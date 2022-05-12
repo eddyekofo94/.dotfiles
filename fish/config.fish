@@ -83,6 +83,8 @@ abbr -a -U -- vim nvim
 
 abbr -a -U -- bgr batgrep
 abbr -a -U -- bman batman
+
+# Cargo aliases 
 abbr -a -U -- cg cargo
 abbr -a -U -- cgc 'cargo clean'
 abbr -a -U -- cgi 'cargo install'
@@ -91,3 +93,8 @@ abbr -a -U -- cgs 'cargo search'
 abbr -a -U -- cgt 'cargo test'
 abbr -a -U -- cgu 'cargo uninstall'
 abbr -a -U -- cgug 'cargo upgrade'
+
+
+# bang-bang fish plugin... installed by omf
+bind ! __history_previous_command
+bind '$' __history_previous_command_arguments
