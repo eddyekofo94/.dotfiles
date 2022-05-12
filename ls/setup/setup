@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+formula coreutils
+
+if dot::os::mac; then
+    formula exa
+    formula vivid
+else
+    cargo install exa
+    cargo install lsd
+    cargo install vivid
+fi
