@@ -1,0 +1,5 @@
+pisces
+linuxbrew
+https://github.com/edc/bass
+https://github.com/jhillyerd/plugin-git
+bang-bang
