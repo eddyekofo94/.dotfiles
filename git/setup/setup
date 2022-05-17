@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-formula git
-
-dot::symlink "$HOME/.gitconfig" "$DOT_PLUGIN_DIR/etc/.gitconfig"
