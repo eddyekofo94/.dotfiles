@@ -2,6 +2,22 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
+if status is-login
+
+    # INFO: To get WSL 2 working with VPN https://github.com/sakai135/wsl-vpnkit
+    wsl.exe -d wsl-vpnkit service wsl-vpnkit start
+    # For Homebrew/Linuxbrew to work
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    
+    # Cargo: for Rust development
+    # set -Ua fis_user_paths $HOME/.cargo/bin
+    export PATH="$PATH:$HOME/.cargo/bin"
+    
+    # Zoxide a smart cd to directories (needs rust)
+    zoxide init fish | source
+
+end
+
 ######################################
 # 
 # Athor: Eddy Ekofo - WSL fish configs
@@ -12,16 +28,6 @@ end
 fish_vi_key_bindings
 
 set __file__ $HOME/.config/fish/config.fish
-
-# For Homebrew/Linuxbrew to work
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-# Cargo: for Rust development
-# set -Ua fis_user_paths $HOME/.cargo/bin
-export PATH="$PATH:$HOME/.cargo/bin"
-
-# Zoxide a smart cd to directories (needs rust)
-zoxide init fish | source
 
 # Initialize XDG base directory environment variables as defined in:
 # https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.6.html.
@@ -98,3 +104,6 @@ abbr -a -U -- cgug 'cargo upgrade'
 # bang-bang fish plugin... installed by omf
 bind ! __history_previous_command
 bind '$' __history_previous_command_arguments
+
+# WSL specidic aliases & abbrs
+alias docker='docker.exe'
