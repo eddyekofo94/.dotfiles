@@ -1,3 +1,9 @@
+######################################
+# 
+# Athor: Eddy Ekofo - WSL fish configs
+#
+######################################
+
 if status is-interactive
     # Commands to run in interactive sessions can go here
 end
@@ -16,55 +22,50 @@ if status is-login
     # Zoxide a smart cd to directories (needs rust)
     zoxide init fish | source
 
+    # Initialize XDG base directory environment variables as defined in:
+    # https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.6.html.
+    #
+    # Explicitly define them here so we don't need to add the additional code of
+    # handling the case where they are not explicitly defined, simplifying the code
+    # in the rest of our configurations which use XDG.
+    
+    # Directory where user-specific data files should be stored.
+    export XDG_DATA_HOME="$HOME/.local/share"
+    
+    # Preference-ordered set of base directories to search for data files in
+    # addition to the $XDG_DATA_HOME base directory.
+    export XDG_DATA_DIRS="/usr/local/share/:/usr/share/"
+    
+    # Directory where user-specific configuration files should be stored.
+    export XDG_CONFIG_HOME="$HOME/.config"
+    
+    # Preference-ordered set of base directories to search for configuration files
+    # in addition to the $XDG_CONFIG_HOME base directory.
+    #export XDG_CONFIG_DIRS="/etc/xdg"
+    
+    # Directory where user-specific non-essential data files should be stored.
+    export XDG_CACHE_HOME="$HOME/.cache"
+    
+    # export JAVA_HOME="/usr/libexec/java_home"
+    export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
+    
+    # LS colors using Vivid installed using Cargo
+    export LS_COLORS="$(vivid generate one-dark)"
+    
+    # FZF
+    export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    
+    # Bat a modern cat with all the goodies
+    export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 end
 
-######################################
-# 
-# Athor: Eddy Ekofo - WSL fish configs
-#
-######################################
 
 # Enables vim keybindings
 fish_vi_key_bindings
 
 set __file__ $HOME/.config/fish/config.fish
 
-# Initialize XDG base directory environment variables as defined in:
-# https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.6.html.
-#
-# Explicitly define them here so we don't need to add the additional code of
-# handling the case where they are not explicitly defined, simplifying the code
-# in the rest of our configurations which use XDG.
-
-# Directory where user-specific data files should be stored.
-export XDG_DATA_HOME="$HOME/.local/share"
-
-# Preference-ordered set of base directories to search for data files in
-# addition to the $XDG_DATA_HOME base directory.
-export XDG_DATA_DIRS="/usr/local/share/:/usr/share/"
-
-# Directory where user-specific configuration files should be stored.
-export XDG_CONFIG_HOME="$HOME/.config"
-
-# Preference-ordered set of base directories to search for configuration files
-# in addition to the $XDG_CONFIG_HOME base directory.
-#export XDG_CONFIG_DIRS="/etc/xdg"
-
-# Directory where user-specific non-essential data files should be stored.
-export XDG_CACHE_HOME="$HOME/.cache"
-
-# export JAVA_HOME="/usr/libexec/java_home"
-export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
-
-# LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate one-dark)"
-
-# FZF
-export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-
-# Bat a modern cat with all the goodies
-export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
 
 ######################################
