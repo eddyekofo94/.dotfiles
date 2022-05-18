@@ -11,4 +11,4 @@
 	url = git@github.com:eddyekofo94/.vim.git
 
 [diff]
-  ignoreSubmodules = dirty
+    ignoreSubmodules = dirty
