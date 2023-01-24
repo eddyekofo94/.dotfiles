@@ -1,6 +1,6 @@
 #!/usr/local/bin/fish
 
-function theme_gruvbox --description 'Apply gruvbox-flat theme'
+function theme_gruvbox_flat --description 'Apply gruvbox-flat theme'
     set -l mode light
     if test (count $argv) -gt 0
         set mode $argv[1]

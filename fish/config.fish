@@ -9,17 +9,25 @@ if status is-interactive
 end
 
 if status is-login
+    theme_gruvbox_flat dark
 
     if grep -qi microsoft /proc/version
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+	eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
     end
 
-
+    # NODEJS nvm
+    # make sure you have nvm installed: curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+    # export NVM_DIR="$HOME/.config/nvm"
+    # export NVM_DIR="$HOME/.local/share/nvm"
+    #[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    function nvm
+      bass source ~/.nvm/nvm.sh --no-use ';' nvm $argv
+    end
     # Cargo: for Rust development
     # set -Ua fis_user_paths $HOME/.cargo/bin
     export PATH="$PATH:$HOME/.cargo/bin"
@@ -55,11 +63,12 @@ if status is-login
     export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
 
     # LS colors using Vivid installed using Cargo
-    export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/everforest.yml)"
+    export LS_COLORS=(vivid generate $HOME/.dotfiles/vivid/everforest.yml)
 
     # FZF
-    export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
-    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    #export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
+    #export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+    #export FZF_DEFAULT_OPTS="--layout=reverse --inline-info"
 
     # Bat a modern cat with all the goodies
     export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
