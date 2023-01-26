@@ -1,12 +1,15 @@
 # This is Git's per-user configuration file.
 [user]
-# Please adapt and uncomment the following lines:
-    name = Eddy Ekofo
-    email = Eddy.Ekofo@lexisnexisrisk.com
+	email = eddy.ekofo@external.equans.com
+	name = Eddy Ekofo
 [init]
     defaultBranch = master
 [http]
     sslVerify = false
+
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
 
 [pager]
     diff = delta
@@ -15,10 +18,12 @@
     show = delta
 [delta]
     features = side-by-side line-numbers decorations
-    syntax-theme = OneHalfDark
+    syntax-theme = Forest Night (Italic)
     navigate = true
     dark = true
 
+[core]
+    filemode = false
 [interactive]
     diffFilter = delta --color-only
 
