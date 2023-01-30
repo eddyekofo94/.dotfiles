@@ -4,7 +4,9 @@
 #
 ######################################
 
+theme_gruvbox_flat dark
 if status is-interactive
+    theme_gruvbox_flat dark
     # Commands to run in interactive sessions can go here
 end
 
@@ -20,6 +22,9 @@ if status is-login
         alias docker='docker.exe'
     end
 
+    # bang-bang fish plugin... installed by omf
+    bind ! __history_previous_command
+    bind '$' __history_previous_command_arguments
 
     ######################################
     #
@@ -36,7 +41,7 @@ if status is-login
     abbr -a -U -- cgt 'cargo test'
     abbr -a -U -- cgu 'cargo uninstall'
     abbr -a -U -- cgug 'cargo upgrade'
-    
+
     # Moders ways to list files
     alias ls="lsd"
     alias l="exa --group-directories-first --icons --long --header --binary --group"
@@ -47,7 +52,7 @@ if status is-login
     abbr --add bgr 'batgrep'
     abbr --add bman 'batman'
 
-    abbr -a -U -- gg git grep 
+    abbr -a -U -- gg git grep
     abbr -a -U -- lg lazygit
     abbr -a -U -- lzd lazydocker
     abbr -a -U -- vim nvim
@@ -116,7 +121,4 @@ fish_vi_key_bindings
 
 set __file__ $HOME/.config/fish/config.fish
 
-# bang-bang fish plugin... installed by omf
-bind ! __history_previous_command
-bind '$' __history_previous_command_arguments
 
