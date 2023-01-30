@@ -138,14 +138,8 @@ cask "font-monoid-nerd-font"
 cask "font-ubuntu-mono-nerd-font"
 # GPU-based terminal emulator
 cask "kitty"
-# Open source implementation of Microsoft's .NET Framework
-cask "mono-mdk-for-visual-studio"
 cask "neovim-nightly"
 # Collaboration platform for API development
 cask "postman"
 # Text editor for code, markup and prose
 cask "sublime-text"
-# GUI for the Neovim text editor
-cask "vimr"
-# Integrated development environment
-cask "visual-studio"

@@ -14,11 +14,47 @@ if status is-login
     if grep -qi microsoft /proc/version
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
-	eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
     end
+
+
+    ######################################
+    #
+    # ALIASSES & ABBRs
+    #
+    ######################################
+
+    # Cargo aliases
+    abbr -a -U -- cg cargo
+    abbr -a -U -- cgc 'cargo clean'
+    abbr -a -U -- cgi 'cargo install'
+    abbr -a -U -- cgn 'cargo new'
+    abbr -a -U -- cgs 'cargo search'
+    abbr -a -U -- cgt 'cargo test'
+    abbr -a -U -- cgu 'cargo uninstall'
+    abbr -a -U -- cgug 'cargo upgrade'
+    
+    # Moders ways to list files
+    alias ls="lsd"
+    alias l="exa --group-directories-first --icons --long --header --binary --group"
+    alias la="l -a"
+
+    # Bat things
+    alias cat='bat --paging=never --style=changes'
+    abbr --add bgr 'batgrep'
+    abbr --add bman 'batman'
+
+    abbr -a -U -- gg git grep 
+    abbr -a -U -- lg lazygit
+    abbr -a -U -- lzd lazydocker
+    abbr -a -U -- vim nvim
+
+    abbr -a -U -- bgr batgrep
+    abbr -a -U -- bman batman
+
 
     # NODEJS nvm
     # make sure you have nvm installed: curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
@@ -79,42 +115,6 @@ end
 fish_vi_key_bindings
 
 set __file__ $HOME/.config/fish/config.fish
-
-
-
-######################################
-#
-# ALIASSES & ABBRs
-#
-######################################
-
-# Moders ways to list files
-alias ls="lsd"
-alias l="exa --group-directories-first --icons --long --header --binary --group"
-alias la="l -a"
-
-# Bat things
-alias cat='bat --paging=never --style=changes'
-abbr --add bgr 'batgrep'
-abbr --add bman 'batman'
-
-abbr -a -U -- lg lazygit
-abbr -a -U -- lzd lazydocker
-abbr -a -U -- vim nvim
-
-abbr -a -U -- bgr batgrep
-abbr -a -U -- bman batman
-
-# Cargo aliases
-abbr -a -U -- cg cargo
-abbr -a -U -- cgc 'cargo clean'
-abbr -a -U -- cgi 'cargo install'
-abbr -a -U -- cgn 'cargo new'
-abbr -a -U -- cgs 'cargo search'
-abbr -a -U -- cgt 'cargo test'
-abbr -a -U -- cgu 'cargo uninstall'
-abbr -a -U -- cgug 'cargo upgrade'
-
 
 # bang-bang fish plugin... installed by omf
 bind ! __history_previous_command
