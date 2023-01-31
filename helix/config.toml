@@ -1,0 +1,36 @@
+theme = "everforest_dark"
+
+[editor]
+line-number = "relative"
+mouse = true
+cursorline = true # not working
+color-modes = true
+true-color = true
+scroll-lines = 1 # not working 
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false
+
+# or control each character
+[editor.whitespace.render]
+space = "all"
+tab = "all"
+newline = "none"
+
+[keys.insert]
+"A-x" = "normal_mode" # Maps Alt-X to enter normal mode
+j = { j = "normal_mode" } # Maps `jk` to exit insert mode
+
+[keys.normal]
+X = "extend_line_above"
+D = "delete_char_backward"
+
+[editor.statusline]
+left = ["file-name", "diagnostics"]
+center = ["mode"]
+right = ["selections", "file-type", "file-encoding", "position-percentage", "position"]
