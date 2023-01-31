@@ -8,3 +8,5 @@
 # search a single directory for executables based on the shell and context
 /.path
 ./fish/fish_variables
+fish/fish_variables
+
