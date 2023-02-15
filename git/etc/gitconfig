@@ -23,7 +23,7 @@
     dark = true
 
 [core]
-    filemode = false
+	filemode = false
 [interactive]
     diffFilter = delta --color-only
 
