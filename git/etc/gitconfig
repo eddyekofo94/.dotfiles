@@ -8,7 +8,7 @@
     sslVerify = false
 
 [credential "https://github.com"]
-	helper = 
+	helper =
 	helper = !/usr/bin/gh auth git-credential
 
 [pager]
@@ -18,7 +18,7 @@
     show = delta
 [delta]
     features = side-by-side line-numbers decorations
-    syntax-theme = Forest Night (Italic)
+    syntax-theme = Catppuccin-mocha
     navigate = true
     dark = true
 

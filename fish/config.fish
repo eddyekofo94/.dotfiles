@@ -4,14 +4,12 @@
 #
 ######################################
 
-theme_gruvbox_flat dark
 if status is-interactive
-    theme_gruvbox_flat dark
     # Commands to run in interactive sessions can go here
 end
 
 if status is-login
-    theme_gruvbox_flat dark
+#theme_gruvbox_flat dark
 
     if grep -qi microsoft /proc/version
         echo "It is wsl"
@@ -25,41 +23,6 @@ if status is-login
     # bang-bang fish plugin... installed by omf
     bind ! __history_previous_command
     bind '$' __history_previous_command_arguments
-
-    ######################################
-    #
-    # ALIASSES & ABBRs
-    #
-    ######################################
-
-    # Cargo aliases
-    abbr -a -U -- cg cargo
-    abbr -a -U -- cgc 'cargo clean'
-    abbr -a -U -- cgi 'cargo install'
-    abbr -a -U -- cgn 'cargo new'
-    abbr -a -U -- cgs 'cargo search'
-    abbr -a -U -- cgt 'cargo test'
-    abbr -a -U -- cgu 'cargo uninstall'
-    abbr -a -U -- cgug 'cargo upgrade'
-
-    # Moders ways to list files
-    alias ls="lsd"
-    alias l="exa --group-directories-first --icons --long --header --binary --group"
-    alias la="l -a"
-
-    # Bat things
-    alias cat='bat --paging=never --style=changes'
-    abbr --add bgr 'batgrep'
-    abbr --add bman 'batman'
-
-    abbr -a -U -- gg git grep
-    abbr -a -U -- lg lazygit
-    abbr -a -U -- lzd lazydocker
-    abbr -a -U -- vim nvim
-
-    abbr -a -U -- bgr batgrep
-    abbr -a -U -- bman batman
-
 
     # NODEJS nvm
     # make sure you have nvm installed: curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
@@ -110,9 +73,16 @@ if status is-login
     #export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
     #export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
     #export FZF_DEFAULT_OPTS="--layout=reverse --inline-info"
+    set -Ux FZF_DEFAULT_OPTS "\
+    --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+    --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+    --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 
     # Bat a modern cat with all the goodies
     export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
+
+    # Disable this for now
+    # bash (curl -L zellij.dev/launch | psub)
 end
 
 
@@ -122,3 +92,40 @@ fish_vi_key_bindings
 set __file__ $HOME/.config/fish/config.fish
 
 
+######################################
+#
+# ALIASSES & ABBRs
+#
+######################################
+
+# Cargo aliases
+abbr -a -U -- cg cargo
+abbr -a -U -- cgc 'cargo clean'
+abbr -a -U -- cgi 'cargo install'
+abbr -a -U -- cgn 'cargo new'
+abbr -a -U -- cgs 'cargo search'
+abbr -a -U -- cgt 'cargo test'
+abbr -a -U -- cgu 'cargo uninstall'
+abbr -a -U -- cgug 'cargo upgrade'
+
+# Python
+abbr -a -U -- py python3
+abbr -a -U -- py3 python3
+
+# Moders ways to list files
+alias ls="lsd"
+alias l="exa --group-directories-first --icons --long --header --binary --group"
+alias la="l -a"
+
+# Bat things
+alias cat='bat --paging=never --style=changes'
+abbr --add bgr 'batgrep'
+abbr --add bman 'batman'
+
+abbr -a -U -- gg git grep
+abbr -a -U -- lg lazygit
+abbr -a -U -- lzd lazydocker
+abbr -a -U -- vim nvim
+
+abbr -a -U -- bgr batgrep
+abbr -a -U -- bman batman
