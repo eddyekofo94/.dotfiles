@@ -117,6 +117,8 @@ alias ls="lsd"
 alias l="exa --group-directories-first --icons --long --header --binary --group"
 alias la="l -a"
 
+abbr  -a -U -- cm command
+
 # Bat things
 alias cat='bat --paging=never --style=changes'
 abbr --add bgr 'batgrep'
