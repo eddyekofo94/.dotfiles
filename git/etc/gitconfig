@@ -1,6 +1,6 @@
 # This is Git's per-user configuration file.
 [user]
-	email = eddy.ekofo@external.equans.com
+	email = ekofoeddy@gmail.com
 	name = Eddy Ekofo
 [init]
     defaultBranch = master
