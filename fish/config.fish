@@ -14,10 +14,19 @@ if status is-login
     if grep -qi microsoft /proc/version
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
-    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+        eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+        export PYTHONPATH=:~/.local/lib/python3.11/site-packages/:~/.local/lib/python3.11/site-packages/
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
+
+        function storePathForWindowsTerminal --on-variable PWD
+            echo "[WSL] Export current folder"
+
+            if test -n "$WT_SESSION"
+            printf "\e]9;9;%s\e\\" (wslpath -w "$PWD")
+            end
+        end
     end
 
     # bang-bang fish plugin... installed by omf
@@ -81,7 +90,7 @@ if status is-login
     # Bat a modern cat with all the goodies
     export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
-    # Disable this for now
+    # INFO: Disable this for now
     # bash (curl -L zellij.dev/launch | psub)
 end
 
@@ -118,6 +127,7 @@ alias l="exa --group-directories-first --icons --long --header --binary --group"
 alias la="l -a"
 
 abbr  -a -U -- cm command
+abbr -a -U -- hg "history | grep"
 
 # Bat things
 alias cat='bat --paging=never --style=changes'
