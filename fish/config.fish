@@ -1,46 +1,42 @@
 ######################################
 #
-# Athor: Eddy Ekofo - WSL fish configs
+# Athor: Eddy Ekofo - fish configs
 #
 ######################################
+
+set unameOut (uname -a)
+
+switch $unameOut
+    case "*Microsoft*"
+        set OS "WSL" #wls must be first since it will have Linux in the name too
+    case "*microsoft*"
+        set OS "WSL2"
+    case "Linux*"
+        set OS "Linux"
+    case "Darwin*"
+        set OS "Mac"
+    # Note that the next case has a wildcard which is quoted
+    case '*'
+        echo $unameOut
+end
 
 if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
 if status is-login
-#theme_gruvbox_flat dark
-
-    if grep -qi microsoft /proc/version
+    # TODO: See how properly do this without the error on MacOS
+    if string match -q -- $OS "WSL"
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
-        eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         export PYTHONPATH=:~/.local/lib/python3.11/site-packages/:~/.local/lib/python3.11/site-packages/
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
-
-        function storePathForWindowsTerminal --on-variable PWD
-            echo "[WSL] Export current folder"
-
-            if test -n "$WT_SESSION"
-            printf "\e]9;9;%s\e\\" (wslpath -w "$PWD")
-            end
-        end
     end
 
-    # bang-bang fish plugin... installed by omf
-    bind ! __history_previous_command
-    bind '$' __history_previous_command_arguments
 
-    # NODEJS nvm
-    # make sure you have nvm installed: curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-    # export NVM_DIR="$HOME/.config/nvm"
-    # export NVM_DIR="$HOME/.local/share/nvm"
-    #[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-    function nvm
-      bass source ~/.nvm/nvm.sh --no-use ';' nvm $argv
-    end
     # Cargo: for Rust development
     # set -Ua fis_user_paths $HOME/.cargo/bin
     export PATH="$PATH:$HOME/.cargo/bin"
@@ -76,12 +72,13 @@ if status is-login
     export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
 
     # LS colors using Vivid installed using Cargo
-    export LS_COLORS=(vivid generate $HOME/.dotfiles/vivid/everforest.yml)
+    export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 
     # FZF
-    #export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
-    #export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-    #export FZF_DEFAULT_OPTS="--layout=reverse --inline-info"
+    export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+    # Catpuccin FZF colours
     set -Ux FZF_DEFAULT_OPTS "\
     --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
     --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
@@ -89,9 +86,6 @@ if status is-login
 
     # Bat a modern cat with all the goodies
     export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
-
-    # INFO: Disable this for now
-    # bash (curl -L zellij.dev/launch | psub)
 end
 
 
@@ -107,37 +101,38 @@ set __file__ $HOME/.config/fish/config.fish
 #
 ######################################
 
-# Cargo aliases
-abbr -a -U -- cg cargo
-abbr -a -U -- cgc 'cargo clean'
-abbr -a -U -- cgi 'cargo install'
-abbr -a -U -- cgn 'cargo new'
-abbr -a -U -- cgs 'cargo search'
-abbr -a -U -- cgt 'cargo test'
-abbr -a -U -- cgu 'cargo uninstall'
-abbr -a -U -- cgug 'cargo upgrade'
-
-# Python
-abbr -a -U -- py python3
-abbr -a -U -- py3 python3
-
 # Moders ways to list files
 alias ls="lsd"
 alias l="exa --group-directories-first --icons --long --header --binary --group"
 alias la="l -a"
-
-abbr  -a -U -- cm command
-abbr -a -U -- hg "history | grep"
 
 # Bat things
 alias cat='bat --paging=never --style=changes'
 abbr --add bgr 'batgrep'
 abbr --add bman 'batman'
 
-abbr -a -U -- gg git grep
-abbr -a -U -- lg lazygit
-abbr -a -U -- lzd lazydocker
-abbr -a -U -- vim nvim
+abbr -a -- lg lazygit
+abbr -a -- lzd lazydocker
+abbr -a -- vim nvim
 
-abbr -a -U -- bgr batgrep
-abbr -a -U -- bman batman
+abbr -a -- bgr batgrep
+abbr -a -- bman batman
+
+# Cargo abbreviations
+abbr -a -- cg cargo
+abbr -a -- cgc 'cargo clean'
+abbr -a -- cgi 'cargo install'
+abbr -a -- cgn 'cargo new'
+abbr -a -- cgs 'cargo search'
+abbr -a -- cgt 'cargo test'
+abbr -a -- cgu 'cargo uninstall'
+abbr -a -- cgug 'cargo upgrade'
+
+abbr -a -- h "history"
+abbr -a -- hg "history | grep "
+
+# bang-bang fish plugin... installed by omf
+bind ! __history_previous_command
+bind '$' __history_previous_command_arguments
+
+abbr -a -- bman batman

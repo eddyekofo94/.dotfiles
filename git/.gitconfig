@@ -1,26 +1,29 @@
 # This is Git's per-user configuration file.
 [user]
-# Please adapt and uncomment the following lines:
+	email = ekofoeddy@gmail.com
 	name = Eddy Ekofo
-	email = eddyecko@gmail.com
 [init]
-	defaultBranch = master
+    defaultBranch = master
 [http]
-	sslVerify = false
+    sslVerify = false
+
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
 
 [pager]
     diff = delta
     log = delta
     reflog = delta
     show = delta
-
 [delta]
-    plus-style = "syntax #002800"
-    minus-style = "syntax #3c1f1e"
     features = side-by-side line-numbers decorations
     syntax-theme = Catppuccin-mocha
     navigate = true
+    dark = true
 
+[core]
+	filemode = false
 [interactive]
     diffFilter = delta --color-only
 
@@ -28,24 +31,23 @@
     commit-decoration-style = bold yellow ul
     file-style = bold blue ul
     file-decoration-style = none
-    hunk-header-decoration-style = "#5C6370" box ul
-    plus-empty-line-marker-style = normal "#002800"
+    hunk-header-decoration-style = omit
+    hunk-header-file-style = magenta
+    line-numbers = true
+    line-numbers-right-style = "#5c6370"
+    line-numbers-left-style = "#5c6370"
+    line-numbers-minus-style = "#9A353D"
+    line-numbers-plus-style = "#109868"
+    minus-emph-style = bold "#9A353D" 52
     minus-empty-line-marker-style = normal "#9A353D"
-    plus-non-emph-style = dim green
     minus-non-emph-style = dim red
+    minus-style = bold red
+    plus-emph-style = bold green 22
+    plus-empty-line-marker-style = normal "#002800"
+    plus-non-emph-style = dim green
+    plus-style = bold syntax
+    whitespace-error-style = reverse red
     zero-style = dim syntax
 
-[delta "line-numbers"]
-    line-numbers-plus-style = "#109868"
-    line-numbers-minus-style = "#9A353D"
-    line-numbers-left-style = "#5C6370"
-    line-numbers-right-style = "#5C6370"
-    line-numbers-zero-style = "#5C6370"
-
 [diff]
-	ignoreSubmodules = dirty
-[filter "lfs"]
-	smudge = git-lfs smudge -- %f
-	process = git-lfs filter-process
-	required = true
-	clean = git-lfs clean -- %f
+    ignoreSubmodules = dirty
