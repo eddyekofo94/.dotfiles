@@ -5,3 +5,6 @@ if dot::os::mac; then
 else
     cargo install git-delta
 fi
+
+# if you have an error, use this 
+sudo apt-get install libz-dev
