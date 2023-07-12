@@ -4,6 +4,7 @@
 #
 ######################################
 
+
 set unameOut (uname -a)
 
 switch $unameOut
@@ -34,8 +35,27 @@ if status is-login
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
+
+        # IMPORTANT: this seems to work on WSL, so keep it!
+        fzf_configure_bindings --history=\cr --git_status=\cg
+
+        # Fix the VPN issue
+        # Info: Mainly in Amadeus.
+        abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
     end
 
+    # Enables vim keybindings
+    fish_vi_key_bindings --no-erase insert
+    # Emulates vim's cursor shape behavior
+    # Set the normal and visual mode cursors to a block
+    set fish_cursor_default block
+    # Set the insert mode cursor to a line
+    set fish_cursor_insert line
+    # Set the replace mode cursor to an underscore
+    set fish_cursor_replace_one underscore
+    # The following variable can be used to configure cursor shape in
+    # visual mode, but due to fish_cursor_default, is redundant here
+    set fish_cursor_visual block
 
     # Cargo: for Rust development
     # set -Ua fis_user_paths $HOME/.cargo/bin
@@ -78,19 +98,18 @@ if status is-login
     export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
+    # set fzf_fd_opts --hidden --exclude=.git
+
     # Catpuccin FZF colours
     set -Ux FZF_DEFAULT_OPTS "\
-    --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
-    --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
-    --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
+        --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+        --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+        --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 
     # Bat a modern cat with all the goodies
     export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 end
 
-
-# Enables vim keybindings
-fish_vi_key_bindings
 
 set __file__ $HOME/.config/fish/config.fish
 
