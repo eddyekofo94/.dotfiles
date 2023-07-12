@@ -26,7 +26,7 @@ end
 
 if status is-login
     # TODO: See how properly do this without the error on MacOS
-    if string match -q -- $OS "WSL"
+    if string match -q -- "WSL*" $OS
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
