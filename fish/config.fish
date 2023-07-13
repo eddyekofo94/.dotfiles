@@ -1,6 +1,6 @@
 ######################################
 #
-# Athor: Eddy Ekofo - fish configs
+# Author: Eddy Ekofo - fish configs
 #
 ######################################
 
@@ -35,17 +35,18 @@ if status is-login
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
+        abbr -a -- psh 'powershell.exe'
 
         # IMPORTANT: this seems to work on WSL, so keep it!
-        fzf_configure_bindings --history=\cr --git_status=\cg
+        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp 
 
-        # Fix the VPN issue
-        # Info: Mainly in Amadeus.
+        # Fix the VPN issue: For Amadeus
         abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
     end
 
     # Enables vim keybindings
     fish_vi_key_bindings --no-erase insert
+
     # Emulates vim's cursor shape behavior
     # Set the normal and visual mode cursors to a block
     set fish_cursor_default block
@@ -120,7 +121,7 @@ set __file__ $HOME/.config/fish/config.fish
 #
 ######################################
 
-# Moders ways to list files
+# Modern ways to list files
 alias ls="lsd"
 alias l="exa --group-directories-first --icons --long --header --binary --group"
 alias la="l -a"
@@ -133,6 +134,7 @@ abbr --add bman 'batman'
 abbr -a -- lg lazygit
 abbr -a -- lzd lazydocker
 abbr -a -- vim nvim
+abbr -a -- vi vim
 
 abbr -a -- bgr batgrep
 abbr -a -- bman batman
