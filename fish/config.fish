@@ -35,6 +35,7 @@ if status is-login
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
+        alias wsl='wsl.exe'
         abbr -a -- psh 'powershell.exe'
 
         # IMPORTANT: this seems to work on WSL, so keep it!
