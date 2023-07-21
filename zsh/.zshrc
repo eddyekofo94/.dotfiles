@@ -114,3 +114,6 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
+# Auto sugestions 
+# source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
