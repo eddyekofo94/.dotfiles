@@ -1,0 +1,118 @@
+colors:
+  background_color: '323d43'
+  white: '828997'
+  red: 'e68183'
+  green: 'a7c080'
+  yellow: 'd9bb80'
+  blue: '83b6af'
+  pink: 'd39bb6'
+  cyan: '87c095'
+
+  black: '000000'
+  gray: '868d80'
+  darkgray: '3c474d'
+  darkergray: '3c474d'
+
+core:
+  normal_text: {}
+  regular_file: {}
+  reset_to_normal: {}
+
+  directory:
+    foreground: blue
+
+  symlink:
+    foreground: pink
+
+  multi_hard_link: {}
+
+  fifo:
+    foreground: black
+    background: blue
+
+  socket:
+    foreground: black
+    background: pink
+
+  door:
+    foreground: black
+    background: pink
+
+  block_device:
+    foreground: cyan
+    background: darkergray
+
+  character_device:
+    foreground: pink
+    background: darkergray
+
+  broken_symlink:
+    foreground: black
+    background: red
+
+  missing_symlink_target:
+    foreground: black
+    background: red
+
+  setuid: {}
+
+  setgid: {}
+
+  file_with_capability: {}
+
+  sticky_other_writable: {}
+
+  other_writable: {}
+
+  sticky: {}
+
+  executable_file:
+    foreground: red
+    font-style: bold
+
+text:
+  special:
+    foreground: background_color
+    background: yellow
+
+  todo:
+    font-style: bold
+
+  licenses:
+    foreground: gray
+
+  configuration:
+    foreground: yellow
+
+  other:
+    foreground: yellow
+
+markup:
+  foreground: yellow
+
+programming:
+  source:
+    foreground: green
+
+  tooling:
+    foreground: green
+
+    continuous-integration:
+      foreground: green
+
+media:
+  foreground: pink
+
+office:
+  foreground: red
+
+archives:
+  foreground: cyan
+  font-style: underline
+
+executable:
+  foreground: red
+  font-style: bold
+
+unimportant:
+  foreground: darkgray

@@ -1,0 +1,51 @@
+# This is Git's per-user configuration file.
+[user]
+# Please adapt and uncomment the following lines:
+	name = Eddy Ekofo
+	email = eddyecko@gmail.com
+[init]
+	defaultBranch = master
+[http]
+	sslVerify = false
+
+[pager]
+    diff = delta
+    log = delta
+    reflog = delta
+    show = delta
+
+[delta]
+    plus-style = "syntax #002800"
+    minus-style = "syntax #3c1f1e"
+    features = side-by-side line-numbers decorations
+    syntax-theme = Catppuccin-mocha
+    navigate = true
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta "decorations"]
+    commit-decoration-style = bold yellow ul
+    file-style = bold blue ul
+    file-decoration-style = none
+    hunk-header-decoration-style = "#5C6370" box ul
+    plus-empty-line-marker-style = normal "#002800"
+    minus-empty-line-marker-style = normal "#9A353D"
+    plus-non-emph-style = dim green
+    minus-non-emph-style = dim red
+    zero-style = dim syntax
+
+[delta "line-numbers"]
+    line-numbers-plus-style = "#109868"
+    line-numbers-minus-style = "#9A353D"
+    line-numbers-left-style = "#5C6370"
+    line-numbers-right-style = "#5C6370"
+    line-numbers-zero-style = "#5C6370"
+
+[diff]
+	ignoreSubmodules = dirty
+[filter "lfs"]
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
