@@ -1,7 +1,0 @@
-#!/usr/bin/env sh
-
-if dot::os::mac; then
-    formula git-delta
-else
-    cargo install git-delta
-fi

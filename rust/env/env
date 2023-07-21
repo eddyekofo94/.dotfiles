@@ -1,2 +1,0 @@
-export PATH="$PATH:$HOME/.cargo/bin"
-# set -Ua fis_user_paths $HOME/.cargo/bin

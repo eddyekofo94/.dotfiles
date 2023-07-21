@@ -1,1 +1,0 @@
-abbr --add lzd 'lazydocker'
