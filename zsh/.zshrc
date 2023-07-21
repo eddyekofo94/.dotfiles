@@ -33,13 +33,19 @@ source ~/.dotfiles/znap/znap.zsh  # Start Znap
 # alias lg="lazygit"
 # Colorize `ls` output using dircolors settings
 alias l="exa --group-directories-first --long --header --binary --group"
+alias ls='exa $exa_params'
+alias ll='exa --all --header --long $exa_params'
+alias llm='exa --all --header --long --sort=modified $exa_params'
+alias la='exa -lbhHigUmuSa'
+alias lx='exa -lbhHigUmuSa@'
+alias lt='exa --tree $exa_params'
+alias tree='exa --tree $exa_params'
 # List only directories and symbolic
 # links that point to directories
 alias lsd='ls -ld *(-/DN)'
-alias la="l -a"
-alias ll="l -al"
 alias lh='ls -a | egrep "^\."'
 # alias hg="history | grep "
+alias cat='bat --paging=never --style=changes'
 
 # Installation: brew install olets/tap/zsh-abbr
 source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
@@ -76,22 +82,6 @@ env \
     command man "$@"
 }
 
-
-# Customize appearance
-zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
-zstyle ':completion:*:warnings' format '%BSorry, no matches for: %d%b'
-zstyle ':completion:*' auto-description 'specify: %d'
-zstyle ':completion:*' completer _expand _complete _correct _approximate
-zstyle ':completion:*' format 'Completing %d'
-zstyle ':completion:*' group-name ''
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' list-colors ''
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
-zstyle ':completion:*' menu select=long
-zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
-zstyle ':completion:*' use-compctl false # Disable old completion system
-
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
@@ -112,5 +102,15 @@ export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 # Installation: brew install zsp-autopair
 source /home/linuxbrew/.linuxbrew/share/zsh-autopair/autopair.zsh
 
+# Catpuccin FZF colours
+export FZF_DEFAULT_OPTS=" \
+--color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+--color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+--color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
+
+# Bat a modern cat with all the goodies
+export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
+
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+
