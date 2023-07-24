@@ -22,6 +22,8 @@ export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
+# INFO: uselfull link for the layout etc.....
+# https://thevaluable.dev/practical-guide-fzf-example/
 export FZF_DEFAULT_OPTS=" \
     --height=70% --border --margin=1 --padding=1 \
     --layout=reverse \
