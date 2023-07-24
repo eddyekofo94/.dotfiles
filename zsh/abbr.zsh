@@ -1,5 +1,7 @@
-abbr ..="cd .." --quiet
-abbr ....="cd ../.." --quiet
+abbr -S ..="cd .." --quiet
+abbr -S ...="cd ../.." --quiet
+abbr -S ....='../../..' --quiet
+abbr -S .....='../../../..' --quiet
 abbr -S g=git --quiet
 abbr -S ga='git add' --quiet
 abbr -S gaa='git add --all' --quiet

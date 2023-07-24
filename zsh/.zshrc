@@ -1,7 +1,5 @@
 # Announce 256 bit color support
-export TERM=xterm-256color
-
-source "$HOME/.cargo/env"
+source ~/.dotfiles/zsh/history.zsh
 
 # Disable activating fzf autocompletion via TAB since in some contexts (e.g.
 # completing a file name in the current directory) it is overkill. Explicit
@@ -47,14 +45,14 @@ source ~/.dotfiles/znap/znap.zsh  # Start Znap
 # alias g=git
 # alias lg="lazygit"
 # Colorize `ls` output using dircolors settings
-alias l="exa --group-directories-first --long --header --binary --group"
-alias ls='exa $exa_params'
-alias ll='exa --all --header --long $exa_params'
-alias llm='exa --all --header --long --sort=modified $exa_params'
-alias la='exa -lbhHigUmuSa'
-alias lx='exa -lbhHigUmuSa@'
-alias lt='exa --tree $exa_params'
-alias tree='exa --tree $exa_params'
+alias l="exa --group-directories-first --long --icons --header --binary --group"
+alias ls='exa $exa_params --icons'
+alias ll='exa --all --header --icons --long $exa_params'
+alias llm='exa --all --header --icons --long --sort=modified $exa_params'
+alias la='exa -lbhHigUmuSa --icons'
+alias lx='exa -lbhHigUmuSa@ --icons'
+alias lt='exa --tree $exa_params --icons'
+alias tree='exa --tree $exa_params --icons'
 # List only directories and symbolic
 # links that point to directories
 alias lsd='ls -ld *(-/DN)'
@@ -62,28 +60,11 @@ alias lh='ls -a | egrep "^\."'
 # alias hg="history | grep "
 alias cat='bat --paging=never --style=changes'
 
+# ABBRs
 # Installation: brew install olets/tap/zsh-abbr
 source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
-
-# Abbrevations
-# abbr hg="history | grep "
-# abbr h=history
-# abbr lg=lazygit
-# abbr lzd=lazydocker
-# abbr vim=nvim
-# abbr vi=vim
+# My personalised abbreviations
 source ~/.dotfiles/zsh/abbr.zsh
-
-# Zsh settings for history
-HISTORY_IGNORE="(ls|[bf]g|exit|l|ll|cd -|la|reset|clear|cd|cd ..|cd..)"
-HISTSIZE=25000
-HISTFILE=~/.zsh_history
-SAVEHIST=100000
-setopt INC_APPEND_HISTORY
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_REDUCE_BLANKS
-setopt HIST_VERIFY
 
 # -------------------------------------------------------------------
 # make some commands (potentially) less destructive
