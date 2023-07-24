@@ -11,15 +11,28 @@ setopt vi
 
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
+# source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
 source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh
 
+# Options to fzf command
  # LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 
 # FZF
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+
+export FZF_DEFAULT_OPTS=" \
+    --height=70% --border --margin=1 --padding=1 \
+    --layout=reverse \
+    --prompt='$> ' \
+    --pointer='→' \
+    --info=hidden \
+    --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+    --color=border:#6c7086 \
+    --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+    --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
+    
 # Download Znap, if it's not there yet.
 [[ -r ~/.dotfiles/znap/znap.zsh ]] ||
     git clone --depth 1 -- \
@@ -123,12 +136,6 @@ export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 # Installation: brew install zsp-autopair
 source /home/linuxbrew/.linuxbrew/share/zsh-autopair/autopair.zsh
 
-# Catpuccin FZF colours
-export FZF_DEFAULT_OPTS=" \
---color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
---color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
---color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
-
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
@@ -140,7 +147,6 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Trying this one out
-# autoload -Uz compinit; compinit; _comp_options+=(globdots;
 autoload -Uz compinit
 compinit
 _comp_options+=(globdots)
