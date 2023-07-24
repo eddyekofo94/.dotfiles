@@ -59,11 +59,29 @@ source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
 # abbr vi=vim
 source ~/.dotfiles/zsh/abbr.zsh
 
+# Zsh settings for history
+HISTORY_IGNORE="(ls|[bf]g|exit|l|ll|cd -|la|reset|clear|cd|cd ..|cd..)"
+HISTSIZE=25000
+HISTFILE=~/.zsh_history
+SAVEHIST=100000
+setopt INC_APPEND_HISTORY
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
+
 # -------------------------------------------------------------------
 # make some commands (potentially) less destructive
 # -------------------------------------------------------------------
+# Play safe!
 alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
 
+
+alias 'mkdir=mkdir -p'
+# Typing errors...
+alias 'cd..= cd ..'
 # Colorize `man` output.
 #
 # We define this here so that these environment variables only need to be
@@ -88,6 +106,9 @@ fpath+=("$(brew --prefix)/share/zsh/site-functions")
 # Pure prompt
 autoload -U promptinit; promptinit
 prompt pure 
+
+# Don’t write over existing files with >, use >! instead
+setopt NOCLOBBER
 
 # Highlight like Fishshell
 # echo "source ${(q-)PWD}/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
@@ -117,3 +138,9 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 # Auto sugestions 
 # source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# Trying this one out
+# autoload -Uz compinit; compinit; _comp_options+=(globdots;
+autoload -Uz compinit
+compinit
+_comp_options+=(globdots)
