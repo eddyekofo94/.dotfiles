@@ -7,6 +7,12 @@ source ~/.dotfiles/zsh/history.zsh
 # https://github.com/junegunn/fzf/wiki/Configuring-fuzzy-completion#caveats
 setopt vi 
 
+setopt auto_cd # cd by typing directory name if it's not a command
+setopt correct_all # autocorrect commands
+setopt auto_list # automatically list choices on ambiguous completion
+setopt auto_menu # automatically use menu completion
+setopt always_to_end # move cursor to end if word had one match
+
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 # source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
