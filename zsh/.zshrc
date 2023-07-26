@@ -20,10 +20,6 @@ setopt prompt_subst           # allow expansion in prompts
 # source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
 source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh
 
-# Options to fzf command
- # LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
-
 # FZF
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -42,10 +38,10 @@ export FZF_DEFAULT_OPTS=" \
     --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
     
 # Download Znap, if it's not there yet.
-[[ -r ~/.dotfiles/znap/znap.zsh ]] ||
+[[ -r ~/.dotfiles/zsh/znap/znap.zsh ]] ||
     git clone --depth 1 -- \
-        https://github.com/marlonrichert/zsh-snap.git ~/.dotfiles/znap
-source ~/.dotfiles/znap/znap.zsh  # Start Znap
+        https://github.com/marlonrichert/zsh-snap.git ~/.dotfiles/zsh/znap
+source ~/.dotfiles/zsh/znap/znap.zsh  # Start Znap
 
 # Aliases
 

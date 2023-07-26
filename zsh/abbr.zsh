@@ -66,7 +66,8 @@ abbr -S glg='git log --stat' --quiet
 abbr -S glgg='git log --graph' --quiet
 abbr -S glgga='git log --graph --decorate --all' --quiet
 abbr -S glo='git log --oneline --decorate --color' --quiet
-abbr -S glog='git log --oneline --decorate --color --graph' --quiet
+# abbr -S glog='git log --oneline --decorate --color --graph' --quiet
+abbr -S glog='git log --pretty=format:"%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=short' --quiet # A nicer Git Log
 abbr -S gloga='git log --oneline --decorate --color --graph --all' --quiet
 abbr -S glom='git log --oneline --decorate --color (__git.default_branch)..' --quiet
 abbr -S glod='git log --oneline --decorate --color develop..' --quiet
