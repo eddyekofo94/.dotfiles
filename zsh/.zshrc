@@ -12,6 +12,8 @@ setopt correct_all # autocorrect commands
 setopt auto_list # automatically list choices on ambiguous completion
 setopt auto_menu # automatically use menu completion
 setopt always_to_end # move cursor to end if word had one match
+setopt no_beep                # silence all bells and beeps
+setopt prompt_subst           # allow expansion in prompts
 
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
@@ -46,25 +48,31 @@ export FZF_DEFAULT_OPTS=" \
 source ~/.dotfiles/znap/znap.zsh  # Start Znap
 
 # Aliases
-# alias vim="nvim"
 
 # alias g=git
 # alias lg="lazygit"
 # Colorize `ls` output using dircolors settings
-alias l="exa --group-directories-first --long --icons --header --binary --group"
-alias ls='exa $exa_params --icons'
-alias ll='exa --all --header --icons --long $exa_params'
-alias llm='exa --all --header --icons --long --sort=modified $exa_params'
-alias la='exa -lbhHigUmuSa --icons'
-alias lx='exa -lbhHigUmuSa@ --icons'
-alias lt='exa --tree $exa_params --icons'
-alias tree='exa --tree $exa_params --icons'
-# List only directories and symbolic
-# links that point to directories
-alias lsd='ls -ld *(-/DN)'
-alias lh='ls -a | egrep "^\."'
+# alias l="exa --group-directories-first --long --icons --header --binary --group"
+# alias ls='exa $exa_params --icons'
+# alias ll='exa --all --header --icons --long $exa_params'
+# alias llm='exa --all --header --icons --long --sort=modified $exa_params'
+# alias la='exa -lbhHigUmuSa --icons'
+# alias lx='exa -lbhHigUmuSa@ --icons'
+# alias lt='exa --tree $exa_params --icons'
+# alias tree='exa --tree $exa_params --icons'
+# # List only directories and symbolic
+# # links that point to directories
+# alias lsd='ls -ld *(-/DN)'
+# alias lh='ls -a | egrep "^\."'
 # alias hg="history | grep "
-alias cat='bat --paging=never --style=changes'
+
+# alias cat='bat --paging=never --style=changes'
+
+source ~/.dotfiles/zsh/aliases.zsh
+# alias ls='exa $exa_params --icons'
+# alias ll='exa --all --header --icons --long $exa_params'
+# alias llm='exa --all --header --icons --long --sort=modified $exa_params'
+# alias lt='exa --tree $exa_params --icons'
 
 # ABBRs
 # Installation: brew install olets/tap/zsh-abbr
@@ -72,18 +80,8 @@ source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
 # My personalised abbreviations
 source ~/.dotfiles/zsh/abbr.zsh
 
-# -------------------------------------------------------------------
-# make some commands (potentially) less destructive
-# -------------------------------------------------------------------
-# Play safe!
-alias rm='rm -i'
-alias mv='mv -i'
-alias cp='cp -i'
+source ~/.dotfiles/zsh/plugins/zsh-bat.plugin.zsh
 
-
-alias 'mkdir=mkdir -p'
-# Typing errors...
-alias 'cd..= cd ..'
 # Colorize `man` output.
 #
 # We define this here so that these environment variables only need to be
