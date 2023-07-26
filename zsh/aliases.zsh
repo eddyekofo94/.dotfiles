@@ -14,11 +14,10 @@ alias 'cd..= cd ..'
 # links that point to directories
 alias lsd='ls -ld *(-/DN)'
 alias lh='ls -a | egrep "^\."'
-# alias hg="history | grep "
 
-if command -v bat >/dev/null 2>&1; then
-    alias cat='bat --paging=never --style=changes'
-fi
+# if command -v bat >/dev/null 2>&1; then
+#     alias cat='bat --paging=never --style=changes'
+# fi
 
 # alias g=git
 # alias lg="lazygit"
@@ -32,7 +31,7 @@ if exa --icons &>/dev/null; then
     alias ls='exa --git --icons'                             # system: List filenames on one line
     # alias l='exa --git --icons -lF'                          # system: List filenames with long format
     alias l="exa --git --group-directories-first --long --icons --header --binary --group"
-    alias ll='exa -lahF --git'                               # system: List all files
+    alias ll='exa -lahF --git --icons'                               # system: List all files
     alias lll="exa -1F --git --icons"                        # system: List files with one line per file
     alias llm='ll --sort=modified'                           # system: List files by last modified date
     alias la='exa -lbhHigUmuSa --color-scale --git --icons'  # system: List files with attributes
