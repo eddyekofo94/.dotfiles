@@ -8,8 +8,8 @@
     sslVerify = false
 
 [credential "https://github.com"]
-	helper =
-	helper = !/usr/bin/gh auth git-credential
+	helper = !/usr/local/bin/gh auth git-credential
+	; helper = !/usr/bin/gh auth git-credential
 
 [pager]
     diff = delta

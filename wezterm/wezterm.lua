@@ -20,13 +20,12 @@ if wezterm.target_triple == 'x86_64-apple-darwin' then
     }
 elseif wezterm.target_triple == 'x86_64-pc-windows-msvc' then
     -- TODO: add powershell as default
-    -- We are running on Windows; maybe we emit different
-    -- key assignments here?
+    config.default_prog = { 'powershell.exe', '-NoLogo' }
+    config.window_decorations = "RESIZE"
 end
 
 config.enable_csi_u_key_encoding = true
 config.check_for_updates = true
--- window_decorations = "RESIZE",
 config.audible_bell = "Disabled"
 config.color_scheme = "Catppuccin Mocha"
 config.colors = {
