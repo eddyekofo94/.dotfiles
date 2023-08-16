@@ -136,3 +136,4 @@ _comp_options+=(globdots)
 
 # Zellij
 ZELLIJ_CONFIG_DIR=$HOME/.dotfiles/zellij
+eval "$(zellij setup --generate-auto-start zsh)"
