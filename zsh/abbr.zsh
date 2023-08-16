@@ -186,3 +186,4 @@ abbr -S cgu='cargo uninstall' --quiet
 abbr -S cgug='cargo upgrade' --quiet
 abbr -S h=history --quiet
 abbr -S hg='history | grep ' --quiet
+abbr -s zj='zellij' --quiet

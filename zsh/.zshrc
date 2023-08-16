@@ -135,5 +135,6 @@ compinit
 _comp_options+=(globdots)
 
 # Zellij
-ZELLIJ_CONFIG_DIR=$HOME/.dotfiles/zellij
-eval "$(zellij setup --generate-auto-start zsh)"
+# INFO: figure out about how to change ctrl+s before changing this back.
+# ZELLIJ_CONFIG_DIR=$HOME/.dotfiles/zellij
+# eval "$(zellij setup --generate-auto-start zsh)"
