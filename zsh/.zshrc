@@ -133,3 +133,6 @@ source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 autoload -Uz compinit
 compinit
 _comp_options+=(globdots)
+
+# Zellij
+ZELLIJ_CONFIG_DIR=$HOME/.dotfiles/zellij
