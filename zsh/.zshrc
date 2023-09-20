@@ -1,11 +1,13 @@
-# Announce 256 bit color support
 source ~/.dotfiles/zsh/history.zsh
+
+# export local variable
+source /workspace/projects/otf/.env
 
 # Disable activating fzf autocompletion via TAB since in some contexts (e.g.
 # completing a file name in the current directory) it is overkill. Explicit
 # Ctrl-T is our preferred activation mechanism.
 # https://github.com/junegunn/fzf/wiki/Configuring-fuzzy-completion#caveats
-setopt vi 
+setopt vi
 
 setopt auto_cd # cd by typing directory name if it's not a command
 setopt correct_all # autocorrect commands
@@ -15,6 +17,7 @@ setopt always_to_end # move cursor to end if word had one match
 setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 # source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
@@ -36,12 +39,19 @@ export FZF_DEFAULT_OPTS=" \
     --color=border:#6c7086 \
     --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
     --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
-    
+
 # Download Znap, if it's not there yet.
 [[ -r ~/.dotfiles/zsh/znap/znap.zsh ]] ||
     git clone --depth 1 -- \
         https://github.com/marlonrichert/zsh-snap.git ~/.dotfiles/zsh/znap
 source ~/.dotfiles/zsh/znap/znap.zsh  # Start Znap
+
+# `znap prompt` makes your prompt visible in just 15-40ms!
+znap prompt sindresorhus/pure
+
+# `znap source` starts plugins.
+znap source marlonrichert/zsh-autocomplete
+
 
 # Aliases
 
@@ -99,16 +109,17 @@ env \
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
+# INFO: 2023-09-20 - using znap to load the prompt
 # Pure prompt
-autoload -U promptinit; promptinit
-prompt pure 
-
+# autoload -U promptinit; promptinit
+# prompt pure
+#
 # Don’t write over existing files with >, use >! instead
 setopt NOCLOBBER
 
 # Highlight like Fishshell
 # echo "source ${(q-)PWD}/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
-source ~/.dotfiles/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# source ~/.dotfiles/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Zoxide
 eval "$(zoxide init zsh)"
@@ -125,7 +136,7 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
-# Auto sugestions 
+# Auto sugestions
 # source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 
@@ -133,6 +144,13 @@ source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 autoload -Uz compinit
 compinit
 _comp_options+=(globdots)
+
+# if type brew &>/dev/null; then
+#     FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+#
+#     autoload -Uz compinit
+#     compinit
+# fi
 
 # Zellij
 # INFO: figure out about how to change ctrl+s before changing this back.
