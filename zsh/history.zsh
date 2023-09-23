@@ -9,7 +9,7 @@
 [[ $HISTSIZE -lt 50000 ]] && HISTSIZE=50000
 
 ## History command configuration
-HISTORY_IGNORE="(ls|[bf]g|exit|l|ll|cd -|la|reset|clear|cd|cd ..|cd..)"
+HISTORY_IGNORE="(ls|[bf]g|exit|la|l|ll|cd -|la|reset|clear|cd|cd ..|cd..)"
 setopt INC_APPEND_HISTORY
 setopt HIST_REDUCE_BLANKS
 setopt HIST_IGNORE_ALL_DUPS

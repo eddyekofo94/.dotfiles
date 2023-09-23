@@ -1,4 +1,10 @@
+# INFO: you should symlink the dotfiles to the home dir
+# ln -s /example/.dotfiles /home/eekofo/.dotfiles
 source ~/.dotfiles/zsh/history.zsh
+source ~/.dotfiles/terminal/base_directories
+
+# start a prompt called starship
+eval "$(starship init zsh)"
 
 # export local variable
 source /workspace/projects/otf/.env
@@ -9,23 +15,26 @@ source /workspace/projects/otf/.env
 # https://github.com/junegunn/fzf/wiki/Configuring-fuzzy-completion#caveats
 setopt vi
 
-setopt auto_cd # cd by typing directory name if it's not a command
-setopt correct_all # autocorrect commands
-setopt auto_list # automatically list choices on ambiguous completion
-setopt auto_menu # automatically use menu completion
+setopt auto_cd       # cd by typing directory name if it's not a command
+setopt correct_all   # autocorrect commands
+setopt auto_list     # automatically list choices on ambiguous completion
+setopt auto_menu     # automatically use menu completion
 setopt always_to_end # move cursor to end if word had one match
 setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+# Trying this one out
+autoload -Uz compinit
+compinit
+_comp_options+=(globdots)
+
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-# source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
+source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
 source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh
 
-
 # Options to fzf command
- # LS colors using Vivid installed using Cargo
+# LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 
 # FZF
@@ -46,23 +55,32 @@ export FZF_DEFAULT_OPTS=" \
     --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 
 # Download Znap, if it's not there yet.
-[[ -r ~/.dotfiles/zsh/znap/znap.zsh ]] ||
-    git clone --depth 1 -- \
-        https://github.com/marlonrichert/zsh-snap.git ~/.dotfiles/zsh/znap
-source ~/.dotfiles/zsh/znap/znap.zsh  # Start Znap
+[[ -r ~/.config/zsh/znap/znap.zsh ]] ||
+git clone --depth 1 -- \
+    https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
+source ~/.config/zsh/znap/znap.zsh # Start Znap
 
 # `znap prompt` makes your prompt visible in just 15-40ms!
-znap prompt sindresorhus/pure
+# znap prompt sindresorhus/pure
 
 znap source zsh-users/zsh-syntax-highlighting
 
+znap source hlissner/zsh-autopair
+autopair-init
+
 znap source zsh-users/zsh-autosuggestions
+
+# znap source bigH/git-fuzzy
+znap clone https://github.com/bigH/git-fuzzy.git
+
+# add the executable to your path
+export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
 znap source olets/zsh-abbr
 
 # ABBRs
 # My personalised abbreviations
-# source ~/.dotfiles/zsh/abbr.zsh
+source ~/.dotfiles/zsh/abbr.zsh
 
 # alias g=git
 # alias lg="lazygit"
@@ -97,22 +115,25 @@ alias rm='rm -i'
 alias mv='mv -i'
 alias cp='cp -i'
 
+alias 'mkdir=mkdir -p'
+# Typing errors...
+alias 'cd..= cd ..'
 # Colorize `man` output.
 #
 # We define this here so that these environment variables only need to be
 # defined for when they are used, and don't colorize everything when we run
 # `env` on its own.
 man() {
-env \
-    LESS_TERMCAP_mb=$'\E[05;31m'        \
-    LESS_TERMCAP_md=$'\E[01;38;5;64m'   \
-    LESS_TERMCAP_me=$'\E[0m'            \
-    LESS_TERMCAP_mr=$'\E[01;38;5;199m'  \
-    LESS_TERMCAP_so=$'\E[38;5;208m'     \
-    LESS_TERMCAP_se=$'\E[0m'            \
-    LESS_TERMCAP_us=$'\E[04;38;5;33m'   \
-    LESS_TERMCAP_ue=$'\E[0m'            \
-    command man "$@"
+    env \
+        LESS_TERMCAP_mb=$'\E[05;31m' \
+        LESS_TERMCAP_md=$'\E[01;38;5;64m' \
+        LESS_TERMCAP_me=$'\E[0m' \
+        LESS_TERMCAP_mr=$'\E[01;38;5;199m' \
+        LESS_TERMCAP_so=$'\E[38;5;208m' \
+        LESS_TERMCAP_se=$'\E[0m' \
+        LESS_TERMCAP_us=$'\E[04;38;5;33m' \
+        LESS_TERMCAP_ue=$'\E[0m' \
+        command man "$@"
 }
 
 # brew install pure
@@ -133,24 +154,21 @@ source /home/linuxbrew/.linuxbrew/share/zsh-autopair/autopair.zsh
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
+BAT_THEMES_DIR=$(bat --config-dir)/themes
+
+if [[ ! -d $BAT_THEMES_DIR ]]; then
+    echo "Making a new bat dir: $BAT_THEMES_DIR"
+    mkdir -p $BAT_THEMES_DIR
+
+    cd $BAT_THEMES_DIR
+    # cp my own bat theme
+    cp $HOME/.dotfiles/bat/Catppuccin-mocha.tmTheme $BAT_THEMES_DIR
+
+    # Update the binary cache
+    bat cache --build
+fi
+
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 # source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
-
-# Trying this one out
-autoload -Uz compinit
-compinit
-_comp_options+=(globdots)
-
-# if type brew &>/dev/null; then
-#     FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
-#
-#     autoload -Uz compinit
-#     compinit
-# fi
-
-# Zellij
-# INFO: figure out about how to change ctrl+s before changing this back.
-# ZELLIJ_CONFIG_DIR=$HOME/.dotfiles/zellij
-# eval "$(zellij setup --generate-auto-start zsh)"
