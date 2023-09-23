@@ -23,6 +23,11 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 # source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
 source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh
 
+
+# Options to fzf command
+ # LS colors using Vivid installed using Cargo
+export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
+
 # FZF
 export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -49,11 +54,15 @@ source ~/.dotfiles/zsh/znap/znap.zsh  # Start Znap
 # `znap prompt` makes your prompt visible in just 15-40ms!
 znap prompt sindresorhus/pure
 
-# `znap source` starts plugins.
-znap source marlonrichert/zsh-autocomplete
+znap source zsh-users/zsh-syntax-highlighting
 
+znap source zsh-users/zsh-autosuggestions
 
-# Aliases
+znap source olets/zsh-abbr
+
+# ABBRs
+# My personalised abbreviations
+# source ~/.dotfiles/zsh/abbr.zsh
 
 # alias g=git
 # alias lg="lazygit"
@@ -80,13 +89,13 @@ source ~/.dotfiles/zsh/aliases.zsh
 # alias llm='exa --all --header --icons --long --sort=modified $exa_params'
 # alias lt='exa --tree $exa_params --icons'
 
-# ABBRs
-# Installation: brew install olets/tap/zsh-abbr
-source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
-# My personalised abbreviations
-source ~/.dotfiles/zsh/abbr.zsh
-
-source ~/.dotfiles/zsh/plugins/zsh-bat.plugin.zsh
+# -------------------------------------------------------------------
+# make some commands (potentially) less destructive
+# -------------------------------------------------------------------
+# Play safe!
+alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
 
 # Colorize `man` output.
 #
@@ -109,17 +118,8 @@ env \
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
-# INFO: 2023-09-20 - using znap to load the prompt
-# Pure prompt
-# autoload -U promptinit; promptinit
-# prompt pure
-#
 # Don’t write over existing files with >, use >! instead
 setopt NOCLOBBER
-
-# Highlight like Fishshell
-# echo "source ${(q-)PWD}/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >> ${ZDOTDIR:-$HOME}/.zshrc
-# source ~/.dotfiles/zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # Zoxide
 eval "$(zoxide init zsh)"
@@ -136,9 +136,7 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
-# Auto sugestions
 # source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
-source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 
 # Trying this one out
 autoload -Uz compinit
