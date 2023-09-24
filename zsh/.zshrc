@@ -1,13 +1,4 @@
-# INFO: you should symlink the dotfiles to the home dir
-# ln -s /example/.dotfiles /home/eekofo/.dotfiles
-source ~/.dotfiles/zsh/history.zsh
-source ~/.dotfiles/terminal/base_directories
-
-# start a prompt called starship
-eval "$(starship init zsh)"
-
-# export local variable
-source /workspace/projects/otf/.env
+# INFO: This is a working progress
 
 # Disable activating fzf autocompletion via TAB since in some contexts (e.g.
 # completing a file name in the current directory) it is overkill. Explicit
@@ -23,42 +14,10 @@ setopt always_to_end # move cursor to end if word had one match
 setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 
-# Trying this one out
-autoload -Uz compinit
-compinit
-_comp_options+=(globdots)
-
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh
-source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh
-
-# Options to fzf command
-# LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
-
-# FZF
-export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-
-# INFO: uselfull link for the layout etc.....
-# https://thevaluable.dev/practical-guide-fzf-example/
-export FZF_DEFAULT_OPTS=" \
-    --height=70% --border --margin=1 --padding=1 \
-    --layout=reverse \
-    --prompt='$> ' \
-    --pointer='→' \
-    --info=hidden \
-    --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
-    --color=border:#6c7086 \
-    --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
-    --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
-
-# Download Znap, if it's not there yet.
-[[ -r ~/.config/zsh/znap/znap.zsh ]] ||
-git clone --depth 1 -- \
-    https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
-source ~/.config/zsh/znap/znap.zsh # Start Znap
+source $(brew --prefix)/opt/fzf/shell/completion.zsh
+source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
 
 # `znap prompt` makes your prompt visible in just 15-40ms!
 # znap prompt sindresorhus/pure
@@ -76,48 +35,15 @@ znap clone https://github.com/bigH/git-fuzzy.git
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
-znap source olets/zsh-abbr
-
 # ABBRs
 # My personalised abbreviations
-source ~/.dotfiles/zsh/abbr.zsh
+# source ~/.dotfiles/zsh/abbr.zsh
 
-# alias g=git
-# alias lg="lazygit"
-# Colorize `ls` output using dircolors settings
-# alias l="exa --group-directories-first --long --icons --header --binary --group"
-# alias ls='exa $exa_params --icons'
-# alias ll='exa --all --header --icons --long $exa_params'
-# alias llm='exa --all --header --icons --long --sort=modified $exa_params'
-# alias la='exa -lbhHigUmuSa --icons'
-# alias lx='exa -lbhHigUmuSa@ --icons'
-# alias lt='exa --tree $exa_params --icons'
-# alias tree='exa --tree $exa_params --icons'
-# # List only directories and symbolic
-# # links that point to directories
-# alias lsd='ls -ld *(-/DN)'
-# alias lh='ls -a | egrep "^\."'
-# alias hg="history | grep "
 
-# alias cat='bat --paging=never --style=changes'
+alias cat='bat --paging=never --style=changes'
 
 source ~/.dotfiles/zsh/aliases.zsh
-# alias ls='exa $exa_params --icons'
-# alias ll='exa --all --header --icons --long $exa_params'
-# alias llm='exa --all --header --icons --long --sort=modified $exa_params'
-# alias lt='exa --tree $exa_params --icons'
 
-# -------------------------------------------------------------------
-# make some commands (potentially) less destructive
-# -------------------------------------------------------------------
-# Play safe!
-alias rm='rm -i'
-alias mv='mv -i'
-alias cp='cp -i'
-
-alias 'mkdir=mkdir -p'
-# Typing errors...
-alias 'cd..= cd ..'
 # Colorize `man` output.
 #
 # We define this here so that these environment variables only need to be
@@ -142,33 +68,23 @@ fpath+=("$(brew --prefix)/share/zsh/site-functions")
 # Don’t write over existing files with >, use >! instead
 setopt NOCLOBBER
 
-# Zoxide
-eval "$(zoxide init zsh)"
 
 # vivid
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 
-# Installation: brew install zsp-autopair
-source /home/linuxbrew/.linuxbrew/share/zsh-autopair/autopair.zsh
-
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
-
-BAT_THEMES_DIR=$(bat --config-dir)/themes
-
-if [[ ! -d $BAT_THEMES_DIR ]]; then
-    echo "Making a new bat dir: $BAT_THEMES_DIR"
-    mkdir -p $BAT_THEMES_DIR
-
-    cd $BAT_THEMES_DIR
-    # cp my own bat theme
-    cp $HOME/.dotfiles/bat/Catppuccin-mocha.tmTheme $BAT_THEMES_DIR
-
-    # Update the binary cache
-    bat cache --build
-fi
 
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 # source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
+# source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
+#  WARN: 2023-09-24 - Keep this here because it doesn't work elsewhere
+#  DO NOT REMOVE from here
+znap source olets/zsh-abbr
+
+# Trying this one out
+autoload -Uz compinit
+compinit
+_comp_options+=(globdots)

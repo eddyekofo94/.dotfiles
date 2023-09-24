@@ -19,3 +19,4 @@ fi
 
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH
+source /workspace/projects/otf/.env

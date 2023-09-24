@@ -65,3 +65,20 @@ else
     alias ll='ls -FGlAhpv'
     alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 fi
+
+# alias g=git
+# alias lg="lazygit"
+# Colorize `ls` output using dircolors settings
+# alias l="exa --group-directories-first --long --icons --header --binary --group"
+# alias ls='exa $exa_params --icons'
+# alias ll='exa --all --header --icons --long $exa_params'
+# alias llm='exa --all --header --icons --long --sort=modified $exa_params'
+# alias la='exa -lbhHigUmuSa --icons'
+# alias lx='exa -lbhHigUmuSa@ --icons'
+# alias lt='exa --tree $exa_params --icons'
+# alias tree='exa --tree $exa_params --icons'
+# # List only directories and symbolic
+# # links that point to directories
+# alias lsd='ls -ld *(-/DN)'
+# alias lh='ls -a | egrep "^\."'
+# alias hg="history | grep "
