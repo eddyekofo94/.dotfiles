@@ -13,6 +13,7 @@ setopt auto_menu     # automatically use menu completion
 setopt always_to_end # move cursor to end if word had one match
 setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
+setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
 
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
@@ -65,20 +66,11 @@ man() {
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
-# Don’t write over existing files with >, use >! instead
-setopt NOCLOBBER
-
-
-# vivid
-export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
-
-# Bat a modern cat with all the goodies
-export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
 # brew install zsh-vi-mode
 # source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
-# source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
+source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 # source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
 #  WARN: 2023-09-24 - Keep this here because it doesn't work elsewhere
 #  DO NOT REMOVE from here

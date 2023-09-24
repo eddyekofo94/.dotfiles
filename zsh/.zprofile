@@ -19,6 +19,12 @@ eval "$(starship init zsh)"
 # Zoxide
 eval "$(zoxide init zsh)"
 
+# vivid
+export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
+
+# Bat a modern cat with all the goodies
+export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
+
 # Options to fzf command
 # LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
