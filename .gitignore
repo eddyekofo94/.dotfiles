@@ -9,4 +9,4 @@
 /.path
 ./fish/fish_variables
 fish/fish_variables
-**/core.**
+**/core.*

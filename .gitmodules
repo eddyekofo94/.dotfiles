@@ -1,10 +1,6 @@
-[submodule "framework"]
-	path = framework
-	url = git@github.com:sds/dot.git
-
 [submodule "nvim"]
-	path =  ./plugins/neovim/nvim/
-	url = git@github.com:eddyekofo94/nvim.git
+	path =  ./nvim/
+	url = https://github.com/eddyekofo94/nvim.git
 
 [submodule "vim"]
 	path =  ./plugins/vim/.vim/

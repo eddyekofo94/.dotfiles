@@ -3,8 +3,10 @@
 ensure_homebrew_installed() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "You may be asked for your sudo password to install Homebrew:"
-    sudo -v
-    yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  #   sudo -v
+  #   yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+  else
+    echo "brew does not exist... "
   fi
 }
 
