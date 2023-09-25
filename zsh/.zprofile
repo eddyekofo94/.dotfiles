@@ -13,6 +13,11 @@ if [[ ! -d $DOTFILES_DIR ]]; then
     ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
 fi
 
+STARSHIP_CONFIG_DIR="$XDG_CONFIG_HOME/starship"
+if [[ ! -d $STARSHIP_CONFIG_DIR ]]; then
+    ln -s /home/$(whoami)/.dotfiles/starship /home/$(whoami)/.config/starship
+fi
+
 # start a prompt called starship
 eval "$(starship init zsh)"
 

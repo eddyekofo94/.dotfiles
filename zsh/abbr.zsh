@@ -4,6 +4,7 @@ abbr -S ....='../../..' --quiet
 abbr -S .....='../../../..' --quiet
 abbr -S g=git --quiet
 abbr -S config="vim $HOME/.zshrc" --quiet
+abbr -S cl=clear --quiet
 abbr -S reload="source $HOME/.zshrc" --quiet
 abbr -S ga='git add' --quiet
 abbr -S gaa='git add --all' --quiet

@@ -1,5 +1,8 @@
 # INFO: This is a working progress
 
+source ~/.dotfiles/zsh/history.zsh
+source ~/.dotfiles/terminal/base_directories
+
 # Disable activating fzf autocompletion via TAB since in some contexts (e.g.
 # completing a file name in the current directory) it is overkill. Explicit
 # Ctrl-T is our preferred activation mechanism.
@@ -15,11 +18,19 @@ setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
 
+# start a prompt called starship
+eval "$(starship init zsh)"
+
+# Zoxide
+eval "$(zoxide init zsh)"
+
 # FZF
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 source $(brew --prefix)/opt/fzf/shell/completion.zsh
 source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
 
+
+source ~/.config/zsh/znap/znap.zsh # Start Znap
 # `znap prompt` makes your prompt visible in just 15-40ms!
 # znap prompt sindresorhus/pure
 
@@ -36,9 +47,6 @@ znap clone https://github.com/bigH/git-fuzzy.git
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
-# ABBRs
-# My personalised abbreviations
-# source ~/.dotfiles/zsh/abbr.zsh
 
 
 alias cat='bat --paging=never --style=changes'
@@ -72,11 +80,17 @@ fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
 source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 # source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
+
+# ABBRs
 #  WARN: 2023-09-24 - Keep this here because it doesn't work elsewhere
 #  DO NOT REMOVE from here
 znap source olets/zsh-abbr
 
+# My personalised abbreviations
+source ~/.dotfiles/zsh/abbr.zsh
 # Trying this one out
 autoload -Uz compinit
 compinit
 _comp_options+=(globdots)
+
+zstyle ':completion:*' menu select
