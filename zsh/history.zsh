@@ -1,6 +1,6 @@
 # By default, zsh does not save the history to a file
 ## History file configuration
-[[ -z $HISTFILE ]] && HISTFILE=$HOME/.zsh_history
+[[ -z $HISTFILE ]] && HISTFILE=$ZDOTDIR/.zhistory
 #
 # A number of commands that are stored in the zsh history file
 [[ $SAVEHIST -lt 10000 ]] && SAVEHIST=10000

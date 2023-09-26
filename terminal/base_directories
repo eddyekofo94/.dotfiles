@@ -8,7 +8,7 @@
 # in the rest of our configurations which use XDG.
 
 # Directory where user-specific data files should be stored.
-export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_DATA_HOME="$XDG_CONFIG_HOME/.local/share"
 
 # Preference-ordered set of base directories to search for data files in
 # addition to the $XDG_DATA_HOME base directory.
@@ -22,4 +22,4 @@ export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CONFIG_DIRS="/etc/xdg"
 
 # Directory where user-specific non-essential data files should be stored.
-export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_CACHE_HOME="$XDG_CONFIG_HOME/.cache"

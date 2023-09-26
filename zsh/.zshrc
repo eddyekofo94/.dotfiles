@@ -1,13 +1,20 @@
 # INFO: This is a working progress
+# You can set that the files are in the .dotfiles dir
+# this will remove the need to symlink them
+# $ZDOTDIR/.zshenv #  Should only contain user’s environment variables.
+# $ZDOTDIR/.zprofile # Can be used to execute commands just after logging in.
+# $ZDOTDIR/.zshrc # Should be used for the shell configuration and for executing commands.
+# $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
+# $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
 
 source ~/.dotfiles/zsh/history.zsh
-source ~/.dotfiles/terminal/base_directories
 
 # Disable activating fzf autocompletion via TAB since in some contexts (e.g.
 # completing a file name in the current directory) it is overkill. Explicit
 # Ctrl-T is our preferred activation mechanism.
 # https://github.com/junegunn/fzf/wiki/Configuring-fuzzy-completion#caveats
-setopt vi
+bindkey -v
+export KEYTIMEOUT=1
 
 setopt auto_cd       # cd by typing directory name if it's not a command
 setopt correct_all   # autocorrect commands
@@ -46,8 +53,6 @@ znap clone https://github.com/bigH/git-fuzzy.git
 
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
-
-
 
 alias cat='bat --paging=never --style=changes'
 
@@ -89,8 +94,30 @@ znap source olets/zsh-abbr
 # My personalised abbreviations
 source ~/.dotfiles/zsh/abbr.zsh
 # Trying this one out
-autoload -Uz compinit
+# autoload -Uz compinit
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
+
 compinit
 _comp_options+=(globdots)
 
+# INFO: https://thevaluable.dev/zsh-completion-guide-examples/
 zstyle ':completion:*' menu select
+zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' squeeze-slashes true
+zstyle ':completion:*' complete-options true
+zstyle ':completion:*' file-sort change
+zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+
+zmodload zsh/complist
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'j' vi-down-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+
+# NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
+bindkey -M viins '\e.' insert-last-word
+# CTRL+x i to switch to the interactive mode in the completion menu
+# bindkey -M menuselect '^xi' vi-insert
