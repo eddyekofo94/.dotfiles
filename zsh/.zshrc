@@ -7,8 +7,6 @@
 # $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
 # $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
 
-source ~/.dotfiles/zsh/history.zsh
-
 setopt auto_cd       # cd by typing directory name if it's not a command
 setopt correct_all   # autocorrect commands
 setopt auto_list     # automatically list choices on ambiguous completion

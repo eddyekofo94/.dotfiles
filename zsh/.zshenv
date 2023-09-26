@@ -40,6 +40,8 @@ else
   export VISUAL=vim
 fi
 
+source ~/.dotfiles/zsh/history.zsh
+
 . "$HOME/.cargo/env"
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
