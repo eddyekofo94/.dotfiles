@@ -118,11 +118,5 @@ bindkey -M viins '\e.' insert-last-word
 # CTRL+x i to switch to the interactive mode in the completion menu
 # bindkey -M menuselect '^xi' vi-insert
 
-delete-branches() {
-    local branches_to_delete
-    branches_to_delete=$(git branch | fzf --multi)
-
-    if [ -n "$branches_to_delete" ]; then
-        git branch --delete --force $branches_to_delete
-    fi
-}
+# LS colors using Vivid installed using Cargo
+export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"

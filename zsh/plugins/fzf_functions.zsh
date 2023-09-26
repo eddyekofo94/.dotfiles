@@ -44,6 +44,14 @@ cdf() {
     file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 
+delete-branches() {
+    local branches_to_delete
+    branches_to_delete=$(git branch | fzf --multi)
+
+    if [ -n "$branches_to_delete" ]; then
+        git branch --delete --force $branches_to_delete
+    fi
+}
 # using ripgrep combined with preview
 # find-in-file - usage: fif <searchTerm>
 fif() {
