@@ -26,6 +26,8 @@ export ZPWR_EXPAND_BLACKLIST=(g z)
 
 source ~/.config/zsh/znap/znap.zsh # Start Znap
 
+znap source wintermi/zsh-brew
+
 znap source zdharma-continuum/fast-syntax-highlighting
 
 znap source hlissner/zsh-autopair
