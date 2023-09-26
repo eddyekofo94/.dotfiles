@@ -9,13 +9,6 @@
 
 source ~/.dotfiles/zsh/history.zsh
 
-# Disable activating fzf autocompletion via TAB since in some contexts (e.g.
-# completing a file name in the current directory) it is overkill. Explicit
-# Ctrl-T is our preferred activation mechanism.
-# https://github.com/junegunn/fzf/wiki/Configuring-fuzzy-completion#caveats
-bindkey -v
-export KEYTIMEOUT=1
-
 setopt auto_cd       # cd by typing directory name if it's not a command
 setopt correct_all   # autocorrect commands
 setopt auto_list     # automatically list choices on ambiguous completion
@@ -50,6 +43,22 @@ znap source zsh-users/zsh-autosuggestions
 
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
+
+
+function zvm_config() {
+  # Start in insert mode
+  ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
+  # Only changing the escape key to `jj` in insert mode, we still
+  # keep using the default keybindings `^[` in other modes
+  ZVM_VI_INSERT_ESCAPE_BINDKEY=jj
+  # The plugin will auto execute this zvm_after_init function
+}
+
+function zvm_after_init() {
+  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+}
+
+znap source "jeffreytse/zsh-vi-mode"
 
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
@@ -119,5 +128,6 @@ bindkey -M menuselect 'l' vi-forward-char
 
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
 bindkey -M viins '\e.' insert-last-word
+
 # CTRL+x i to switch to the interactive mode in the completion menu
 # bindkey -M menuselect '^xi' vi-insert
