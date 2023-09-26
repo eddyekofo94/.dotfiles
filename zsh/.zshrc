@@ -1,3 +1,4 @@
+echo "Exporting .zshrc"
 # INFO: This is a working progress
 # You can set that the files are in the .dotfiles dir
 # this will remove the need to symlink them
@@ -22,15 +23,9 @@ eval "$(starship init zsh)"
 # Zoxide
 eval "$(zoxide init zsh)"
 
-# FZF
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-source $(brew --prefix)/opt/fzf/shell/completion.zsh
-source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
-
+export ZPWR_EXPAND_BLACKLIST=(g z)
 
 source ~/.config/zsh/znap/znap.zsh # Start Znap
-# `znap prompt` makes your prompt visible in just 15-40ms!
-# znap prompt sindresorhus/pure
 
 znap source zdharma-continuum/fast-syntax-highlighting
 
@@ -53,7 +48,10 @@ function zvm_config() {
 }
 
 function zvm_after_init() {
+  # NOTE:  FZF has to be here for it to be instanstiated
   [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+  source $(brew --prefix)/opt/fzf/shell/completion.zsh
+  source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
 }
 
 znap source "jeffreytse/zsh-vi-mode"
@@ -86,20 +84,11 @@ man() {
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
-
-# brew install zsh-vi-mode
-# source $(brew --prefix)/opt/zsh-vi-mode/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-
 source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
-# source /home/linuxbrew/.linuxbrew/share/zsh-abbr/zsh-abbr.zsh
 
-# ABBRs
-#  WARN: 2023-09-24 - Keep this here because it doesn't work elsewhere
-#  DO NOT REMOVE from here
-znap source olets/zsh-abbr
+#  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
+znap source MenkeTechnologies/zsh-expand
 
-# My personalised abbreviations
-source ~/.dotfiles/zsh/abbr.zsh
 # Trying this one out
 # autoload -Uz compinit
 autoload -Uz edit-command-line
