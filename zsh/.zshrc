@@ -32,7 +32,7 @@ source ~/.config/zsh/znap/znap.zsh # Start Znap
 # `znap prompt` makes your prompt visible in just 15-40ms!
 # znap prompt sindresorhus/pure
 
-znap source zsh-users/zsh-syntax-highlighting
+znap source zdharma-continuum/fast-syntax-highlighting
 
 znap source hlissner/zsh-autopair
 autopair-init
