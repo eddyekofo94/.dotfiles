@@ -1,4 +1,3 @@
-echo "Exporting .zshrc"
 # INFO: This is a working progress
 # You can set that the files are in the .dotfiles dir
 # this will remove the need to symlink them
@@ -39,19 +38,19 @@ znap clone https://github.com/bigH/git-fuzzy.git
 
 
 function zvm_config() {
-  # Start in insert mode
-  ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
-  # Only changing the escape key to `jj` in insert mode, we still
-  # keep using the default keybindings `^[` in other modes
-  ZVM_VI_INSERT_ESCAPE_BINDKEY=jj
-  # The plugin will auto execute this zvm_after_init function
+    # Start in insert mode
+    ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
+    # Only changing the escape key to `jj` in insert mode, we still
+    # keep using the default keybindings `^[` in other modes
+    ZVM_VI_INSERT_ESCAPE_BINDKEY=jj
+    # The plugin will auto execute this zvm_after_init function
 }
 
 function zvm_after_init() {
-  # NOTE:  FZF has to be here for it to be instanstiated
-  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-  source $(brew --prefix)/opt/fzf/shell/completion.zsh
-  source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
+    # NOTE:  FZF has to be here for it to be instanstiated
+    [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+    source $(brew --prefix)/opt/fzf/shell/completion.zsh
+    source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
 }
 
 znap source "jeffreytse/zsh-vi-mode"
@@ -118,3 +117,12 @@ bindkey -M viins '\e.' insert-last-word
 
 # CTRL+x i to switch to the interactive mode in the completion menu
 # bindkey -M menuselect '^xi' vi-insert
+
+delete-branches() {
+    local branches_to_delete
+    branches_to_delete=$(git branch | fzf --multi)
+
+    if [ -n "$branches_to_delete" ]; then
+        git branch --delete --force $branches_to_delete
+    fi
+}

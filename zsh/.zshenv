@@ -32,26 +32,24 @@ export ZDOTDIR="$DOTFILES_DIR/zsh"
 # for linux
 # export LS_COLORS="di=32:ln=35:so=01;35:pi=01;33:ex=01;31:bd=01;33:cd=01;33:su=37;41:sg=37;43:tw=00;42:ow=01;34;42:"
 
-if type nvim > /dev/null 2>&1; then
-  export EDITOR="nvim"
-  export VISUAL="nvim"
-else
-  export EDITOR=vim
-  export VISUAL=vim
-fi
-
-source ~/.dotfiles/zsh/history.zsh
-
-. "$HOME/.cargo/env"
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
-# vivid
-export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
+. "$HOME/.cargo/env"
+
+if type nvim > /dev/null 2>&1; then
+    export EDITOR="nvim"
+    export VISUAL="nvim"
+else
+    export EDITOR=vim
+    export VISUAL=vim
+fi
+
+#  INFO: 2023-09-26 - This is my history config
+source ~/.dotfiles/zsh/history.zsh
 
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
-# Options to fzf command
 # LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
 
@@ -64,14 +62,57 @@ export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_DEFAULT_OPTS=" \
   --height=70% --border --margin=1 --padding=1 \
   --layout=reverse \
+  --border sharp\
+  --pointer ▶ \
+  --marker ⇒ \
   --prompt='$> ' \
-  --pointer='→' \
   --info=hidden \
   --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
   --color=border:#6c7086 \
   --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
   --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 
+export FZF_CTRL_T_OPTS="--height 60% \
+--border sharp \
+--layout reverse \
+--prompt '∷ ' \
+--pointer ▶ \
+--marker ⇒"
+
+export FZF_COMPLETION_DIR_COMMANDS="cd pushd rmdir tree nvim vim"
+
+_fzf_compgen_path() {
+    rg --files --glob "!.git" . "$1"
+}
+
+_fzf_compgen_dir() {
+    fd --type d --hidden --follow --exclude ".git" . "$1"
+}
+
+_fzf_comprun() {
+    local command=$1
+    shift
+
+    case "$command" in
+        tree)         find . -type d | fzf --preview 'tree -C {}' "$@" ;;
+        *)            fzf "$@" ;;
+    esac
+}
+
+_fzf_complete_git() {
+    _fzf_complete -- "$@" < <(
+        echo log
+        echo diff
+    )
+}
+
+_fzf_complete_git() {
+    _fzf_complete -- "$@" < <(
+        git --help -a | grep -E '^\s+' | awk '{print $1}'
+    )
+}
+
+export NVIM_DIR="$XDG_CONFIG_HOME/nvim"
 
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH

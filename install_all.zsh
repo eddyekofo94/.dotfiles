@@ -18,9 +18,9 @@ ensure_homebrew_installed() {
         yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
         # TODO: 2023-09-23 - Try to export a different path on MacOs
-        [[ -r ~/.zprofile ]] ||
-        touch ~/.zprofile
-        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zprofile
+        [[ -r ~/.zshenv ]] ||
+        touch ~/.zshenv
+        echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.zshenv
 
         # Install some of the packages I use
         install_brew_packages
