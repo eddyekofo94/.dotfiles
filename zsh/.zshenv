@@ -65,7 +65,7 @@ export FZF_DEFAULT_OPTS=" \
   --border sharp\
   --pointer ▶ \
   --marker ⇒ \
-  --prompt='$> ' \
+  --prompt '∷ ' \
   --info=hidden \
   --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
   --color=border:#6c7086 \
@@ -81,36 +81,7 @@ export FZF_CTRL_T_OPTS="--height 60% \
 
 export FZF_COMPLETION_DIR_COMMANDS="cd pushd rmdir tree nvim vim"
 
-_fzf_compgen_path() {
-    rg --files --glob "!.git" . "$1"
-}
-
-_fzf_compgen_dir() {
-    fd --type d --hidden --follow --exclude ".git" . "$1"
-}
-
-_fzf_comprun() {
-    local command=$1
-    shift
-
-    case "$command" in
-        tree)         find . -type d | fzf --preview 'tree -C {}' "$@" ;;
-        *)            fzf "$@" ;;
-    esac
-}
-
-_fzf_complete_git() {
-    _fzf_complete -- "$@" < <(
-        echo log
-        echo diff
-    )
-}
-
-_fzf_complete_git() {
-    _fzf_complete -- "$@" < <(
-        git --help -a | grep -E '^\s+' | awk '{print $1}'
-    )
-}
+source "$ZDOTDIR/plugins/fzf_functions.zsh"
 
 export NVIM_DIR="$XDG_CONFIG_HOME/nvim"
 
