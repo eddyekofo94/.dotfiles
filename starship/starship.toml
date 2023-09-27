@@ -97,7 +97,7 @@ base = "#eff1f5"
 mantle = "#e6e9ef"
 crust = "#dce0e8"
 
-[catppuccin_mocha]
+[palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
 flamingo = "#f2cdcd"
 pink = "#f5c2e7"

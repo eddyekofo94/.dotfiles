@@ -30,6 +30,8 @@ znap source wintermi/zsh-brew
 
 znap source zdharma-continuum/fast-syntax-highlighting
 
+znap source Tarrasch/zsh-bd
+
 znap source hlissner/zsh-autopair
 autopair-init
 
@@ -122,3 +124,4 @@ bindkey -M viins '\e.' insert-last-word
 
 # LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
+

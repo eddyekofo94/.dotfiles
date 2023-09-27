@@ -52,6 +52,7 @@ delete-branches() {
         git branch --delete --force $branches_to_delete
     fi
 }
+
 # using ripgrep combined with preview
 # find-in-file - usage: fif <searchTerm>
 fif() {
