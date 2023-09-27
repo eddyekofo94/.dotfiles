@@ -11,3 +11,4 @@
 fish/fish_variables
 **/core.*
 ./zsh/.zhistory
+**.zhistory
