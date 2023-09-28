@@ -97,7 +97,6 @@ source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
 znap source MenkeTechnologies/zsh-expand
 
-znap source Aloxaf/fzf-tab
 # Trying this one out
 # autoload -Uz compinit
 autoload -Uz edit-command-line
