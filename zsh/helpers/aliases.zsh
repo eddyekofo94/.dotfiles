@@ -1,6 +1,15 @@
 # -------------------------------------------------------------------
 # make some commands (potentially) less destructive
 # -------------------------------------------------------------------
+
+get_default_branch(){
+    git branch -l master main | sed -r 's/^[* ] //' | head -n 1
+}
+
+get_current_branch(){
+    git branch --show-current
+}
+
 # Play safe!
 alias rm='rm -i'
 alias mv='mv -i'
@@ -86,7 +95,7 @@ alias gba='git branch -a -v'
 alias gban='git branch -a -v --no-merged'
 alias gbd='git branch -d'
 alias gbD='git branch -D'
-alias ggsup='git branch --set-upstream-to=origin/(__git.current_branch)'
+alias ggsup='git branch --set-upstream-to=origin/$(get_current_branch)'
 alias gbl='git blame -b -w'
 alias gbs='git bisect'
 alias gbsb='git bisect bad'
@@ -127,10 +136,10 @@ alias gdto='git difftool'
 alias gignore='git update-index --assume-unchanged'
 alias gf='git fetch'
 alias gfa='git fetch --all --prune'
-alias gfm='git fetch origin (__git.default_branch) --prune; and git merge FETCH_HEAD'
+alias gfm='git fetch origin $(get_default_branch) --prune; and git merge FETCH_HEAD'
 alias gfo='git fetch origin'
 alias gl='git pull'
-alias ggl='git pull origin (__git.current_branch)'
+alias ggl='git pull origin $(get_current_branch)'
 alias gll='git pull origin'
 alias glr='git pull --rebase'
 alias glg='git log --stat'
@@ -140,40 +149,49 @@ alias glo='git log --oneline --decorate --color'
 alias glog='git log --oneline --decorate --color --graph'
 alias glog='git log --pretty=format:"%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=short'  # A nicer Git Log
 alias gloga='git log --oneline --decorate --color --graph --all'
-alias glom='git log --oneline --decorate --color (__git.default_branch)..'
-alias glod='git log --oneline --decorate --color develop..'
+alias glom='git log --oneline --decorate --color $(get_default_branch)..'
+alias glod='git log --oneline --decorate --color dev..'
 alias gloo="git\ log\ --pretty=format:\'\%C\(yellow\)\%h\ \%Cred\%ad\ \%Cblue\%an\%Cgreen\%d\ \%Creset\%s\'\ --date=short"
 alias gm='git merge'
 alias gmt='git mergetool --no-prompt'
-alias gmom='git merge origin/(__git.default_branch)'
+alias gmom='git merge origin/$(get_default_branch)'
+
+gpp(){
+    if [[ $(get_default_branch) == $(get_current_branch) ]]; then
+        echo "Error: you cannot push on the $(get_default_branch) branch"
+    else
+        git push
+    fi
+}
+
 alias gp='git push'
 alias gp!='git push --force-with-lease'
 alias gpo='git push origin'
 alias gpo!='git push --force-with-lease origin'
 alias gpv='git push --no-verify'
 alias gpv!='git push --no-verify --force-with-lease'
-alias ggp='git push origin (__git.current_branch)'
-alias ggp!='git push origin (__git.current_branch) --force-with-lease'
-alias gpu='git push origin (__git.current_branch) --set-upstream'
+alias ggp='git push origin $(get_current_branch)'
+alias ggp!='git push origin $(get_current_branch) --force-with-lease'
+alias gpu='git push origin $(get_current_branch) --set-upstream'
 alias gpoat='git push origin --all; and git push origin --tags'
-alias ggpnp='git pull origin (__git.current_branch); and git push origin (__git.current_branch)'
+alias ggpnp='git pull origin $(get_current_branch); and git push origin $(get_current_branch)'
 alias gr='git remote -vv'
 alias gra='git remote add'
 alias grb='git rebase'
 alias grba='git rebase --abort'
 alias grbc='git rebase --continue'
 alias grbi='git rebase --interactive'
-alias grbm='git rebase (__git.default_branch)'
-alias grbmi='git rebase (__git.default_branch) --interactive'
-alias grbmia='git rebase (__git.default_branch) --interactive --autosquash'
-alias grbom='git fetch origin (__git.default_branch); and git rebase FETCH_HEAD'
-alias grbomi='git fetch origin (__git.default_branch); and git rebase FETCH_HEAD --interactive'
-alias grbomia='git fetch origin (__git.default_branch); and git rebase FETCH_HEAD --interactive --autosquash'
-alias grbd='git rebase develop'
-alias grbdi='git rebase develop --interactive'
-alias grbdia='git rebase develop --interactive --autosquash'
+alias grbm='git rebase $(get_default_branch)'
+alias grbmi='git rebase $(get_default_branch) --interactive'
+alias grbmia='git rebase $(get_default_branch) --interactive --autosquash'
+alias grbom='git fetch origin $(get_default_branch); and git rebase FETCH_HEAD'
+alias grbomi='git fetch origin $(get_default_branch); and git rebase FETCH_HEAD --interactive'
+alias grbomia='git fetch origin $(get_default_branch); and git rebase FETCH_HEAD --interactive --autosquash'
+alias grbd='git rebase dev'
+alias grbdi='git rebase dev --interactive'
+alias grbdia='git rebase dev --interactive --autosquash'
 alias grbs='git rebase --skip'
-alias ggu='git pull --rebase origin (__git.current_branch)'
+alias ggu='git pull --rebase origin $(get_current_branch)'
 alias grev='git revert'
 alias grh='git reset'
 alias grhh='git reset --hard'
@@ -214,8 +232,8 @@ alias gupav='git pull --rebase --autostash -v'
 alias gwch='git whatchanged -p --abbrev-commit --pretty=medium'
 alias gco='git checkout'
 alias gcb='git checkout -b'
-alias gcod='git checkout develop'
-alias gcom='git checkout (__git.default_branch)'
+alias gcod='git checkout dev'
+alias gcom='git checkout $(get_default_branch)'
 alias gfb='git flow bugfix'
 alias gff='git flow feature'
 alias gfr='git flow release'
@@ -240,8 +258,8 @@ alias gwtmv='git worktree move'
 alias gwtpr='git worktree prune'
 alias gwtrm='git worktree remove'
 alias gwtulo='git worktree unlock'
-alias gmr='git push origin (__git.current_branch) --set-upstream -o merge_request.create'
-alias gmwps='git push origin (__git.current_branch) --set-upstream -o merge_request.create -o merge_request.merge_when_pipeline_succeeds'
+alias gmr='git push origin $(get_current_branch) --set-upstream -o merge_request.create'
+alias gmwps='git push origin $(get_current_branch) --set-upstream -o merge_request.create -o merge_request.merge_when_pipeline_succeeds'
 alias lg=lazygit
 alias lzd=lazydocker
 alias vim=nvim
