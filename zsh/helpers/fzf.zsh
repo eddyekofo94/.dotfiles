@@ -24,14 +24,15 @@ export FZF_COMMON_OPTIONS="
 --ansi
 --reverse
 --extended
---bind=ctrl-j:ignore,ctrl-k:ignore
+--bind=ctrl-i:ignore,ctrl-k:ignore
 --bind=ctrl-j:down,ctrl-k:up
---bind=ctrl-b:preview-up,ctrl-f:preview-down
---bind=ctrl-u:abort
+--bind=ctrl-u:preview-up,ctrl-d:preview-down
 --bind=esc:abort
 --bind=ctrl-c:abort
 --bind=?:toggle-preview
 --cycle
+--preview-window=right:60%:wrap
+--preview='bat --color=always --style=header,grid --line-range :300 {}'
 --border sharp
 --pointer=▶
 --marker=⇒

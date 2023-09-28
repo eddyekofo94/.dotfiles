@@ -7,6 +7,10 @@
 # $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
 # $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
 
+# Trying this one out
+autoload -Uz edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
 setopt auto_cd       # cd by typing directory name if it's not a command
 setopt correct_all   # autocorrect commands
 setopt auto_list     # automatically list choices on ambiguous completion
@@ -22,7 +26,7 @@ eval "$(starship init zsh)"
 # Zoxide
 eval "$(zoxide init zsh)"
 
-export ZPWR_EXPAND_BLACKLIST=(g z)
+export ZPWR_EXPAND_BLACKLIST=(g z gss)
 
 source ~/.config/zsh/znap/znap.zsh # Start Znap
 
@@ -66,7 +70,8 @@ alias cat='bat --paging=never --style=changes'
 
 export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
 for file in $ZDOTDIR_HELPERS/*; do
-    source "$file";
+    # source "$file";
+    [[ -r "$file" && -f "$file" ]] && source "$file"
 done
 
 # source $ZDOTDIR_HELPERS/aliases.zsh
@@ -97,29 +102,11 @@ source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
 znap source MenkeTechnologies/zsh-expand
 
-# Trying this one out
-# autoload -Uz compinit
-autoload -Uz edit-command-line
-zle -N edit-command-line
-bindkey -M vicmd v edit-command-line
+# How to set the fast-theme
+# fast-theme XDG:catppuccin-mocha
 
 compinit
 _comp_options+=(globdots)
 
-# INFO: https://thevaluable.dev/zsh-completion-guide-examples/
-zstyle ':completion:*' menu select
-zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' squeeze-slashes true
-zstyle ':completion:*' complete-options true
-zstyle ':completion:*' file-sort change
-zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
-
-zmodload zsh/complist
-bindkey -M menuselect 'h' vi-backward-char
-bindkey -M menuselect 'k' vi-up-line-or-history
-bindkey -M menuselect 'j' vi-down-line-or-history
-bindkey -M menuselect 'l' vi-forward-char
-
-# NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
-bindkey -M viins '\e.' insert-last-word
+#  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
+znap source zsh-users/zsh-history-substring-search
