@@ -29,10 +29,32 @@ export DOTFILES_DIR="$HOME/.dotfiles"
 
 export ZDOTDIR="$DOTFILES_DIR/zsh"
 
+export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
+
+export TERM_ITALICS="TRUE"
+
+export COLORTERM=${COLORTERM:=truecolor}
+
+ZSH_CACHE_DIR="$XDG_CACHE_HOME/zsh"
+
+if [ ! -d "$ZSH_CACHE_DIR" ]; then
+    mkdir -p "$ZSH_CACHE_DIR"
+fi
+
 # for linux
 # export LS_COLORS="di=32:ln=35:so=01;35:pi=01;33:ex=01;31:bd=01;33:cd=01;33:su=37;41:sg=37;43:tw=00;42:ow=01;34;42:"
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+case `uname` in
+    Darwin)
+        # -- intel mac:
+        [ -f "/usr/local/bin/brew" ] && eval "$(/usr/local/bin/brew shellenv)"
+        # -- M1 mac:
+        [ -f "/opt/homebrew/bin/brew" ] && eval "$(/opt/homebrew/bin/brew shellenv)"
+        ;;
+    Linux)
+        [ -d "/home/linuxbrew/.linuxbrew" ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        ;;
+esac
 
 . "$HOME/.cargo/env"
 
@@ -50,32 +72,6 @@ source ~/.dotfiles/zsh/history.zsh
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
-
-# FZF
-export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
-export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-
-# INFO: uselfull link for the layout etc.....
-# https://thevaluable.dev/practical-guide-fzf-example/
-export FZF_DEFAULT_OPTS=" \
-  --border sharp\
-  --height=70% --border --margin=1 --padding=1 \
-  --layout=reverse \
-  --pointer ▶ \
-  --marker ⇒ \
-  --prompt '∷ ' \
-  --info=hidden \
-  --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
-  --color=border:#6c7086 \
-  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
-  --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
-
-export FZF_CTRL_T_OPTS="--height 60% \
---border sharp \
---layout reverse \
---prompt '∷ ' \
---pointer ▶ \
---marker ⇒"
 
 export FZF_COMPLETION_DIR_COMMANDS="cd pushd rmdir tree nvim vim"
 

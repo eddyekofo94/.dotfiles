@@ -64,7 +64,12 @@ export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
 alias cat='bat --paging=never --style=changes'
 
-source ~/.dotfiles/zsh/aliases.zsh
+export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
+for file in $ZDOTDIR_HELPERS/*; do
+    source "$file";
+done
+
+# source $ZDOTDIR_HELPERS/aliases.zsh
 
 # Colorize `man` output.
 #
@@ -92,6 +97,7 @@ source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
 znap source MenkeTechnologies/zsh-expand
 
+znap source Aloxaf/fzf-tab
 # Trying this one out
 # autoload -Uz compinit
 autoload -Uz edit-command-line
@@ -118,10 +124,3 @@ bindkey -M menuselect 'l' vi-forward-char
 
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
 bindkey -M viins '\e.' insert-last-word
-
-# CTRL+x i to switch to the interactive mode in the completion menu
-# bindkey -M menuselect '^xi' vi-insert
-
-# LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
-
