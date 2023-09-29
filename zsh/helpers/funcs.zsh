@@ -98,6 +98,18 @@ fzf-down() {
     fzf --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
 }
 
+function gall() {
+    is_in_git_repo || return
+    git add .
+    if [ "$1" != "" ]
+    then
+        git commit -m "$1"
+    else
+        git commit -m update # default commit message is `update`
+    fi # closing statement of if-else block
+    git push origin HEAD
+}
+
 _gf() {
     is_in_git_repo || return
     git -c color.status=always status --short |

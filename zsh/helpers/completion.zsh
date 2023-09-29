@@ -1,8 +1,6 @@
 # REFS:
 # https://github.com/ahmedelgabri/dotfiles/blob/main/config/zsh.d/zsh/config/completion.zsh#L54
 
-setopt always_to_end
-setopt auto_menu
 setopt list_packed
 setopt extended_glob
 
@@ -21,25 +19,6 @@ compinit -C
 # https://github.com/mhanberg/.dotfiles/blob/main/zsh/git.zsh
 compdef g=git
 
-# FIXME: fixes insecure directory warnings
-# TODO: should we run this on every sourcing?
-# compaudit | xargs chmod g-w
-
-# Kitty completions
-# if [[ "$TERM" == "xterm-kitty" && "$(uname)" == "Darwin" ]]; then
-#   kitty + complete setup zsh | source /dev/stdin
-# fi
-
-# Colorize completions using default `ls` colors.
-# zstyle ':completion:*' list-colors ''
-# set list-colors to enable filename colorizing
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-
-# Enable keyboard navigation of completions in menu
-# (not just tab/shift-tab but cursor keys as well):
-zstyle ':completion:*' menu select
-zmodload zsh/complist
-
 # use the vi navigation keys in menu completion
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history
@@ -55,8 +34,6 @@ zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(..) ]] && reply=(..)
 
 # Categorize completion suggestions with headings:
 zstyle ':completion:*' group-name ''
-# Style the group names
-zstyle ':completion:*' format %F{yellow}%B%U%{$__DOTS[ITALIC_ON]%}%d%{$__DOTS[ITALIC_OFF]%}%b%u%f
 
 # Added by running `compinstall`
 zstyle ':completion:*' verbose yes
@@ -64,7 +41,6 @@ zstyle ':completion:*' expand suffix # or:  expand yes
 zstyle ':completion:*' file-sort modification
 zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
 zstyle ':completion:*' list-suffixes true
-# End of lines added by compinstall
 
 # -- process names -------------------------------------------------------------
 zstyle ':completion:*:processes-names' command \
@@ -72,8 +48,7 @@ zstyle ':completion:*:processes-names' command \
 
 # -- ssh hosts -----------------------------------------------------------------
 [[ -r "$HOME/.ssh/config" ]] && _ssh_config_hosts=(${${(s: :)${(ps:\t:)${${(@M)${(f)"$(<$HOME/.ssh/config)"}:#Host *}#Host }}}:#*[*?]*}) || _ssh_config_hosts=()
-# [[ -r ~/.ssh/known_hosts ]] && _ssh_hosts=(${${${${(f)"$(<$HOME/.ssh/known_hosts)"}:#[\|]*}%%\ *}%%,*}) || _ssh_hosts=()
-# [[ -r /etc/hosts ]] && : ${(A)_etc_hosts:=${(s: :)${(ps:\t:)${${(f)~~"$(</etc/hosts)"}%%\#*}##[:blank:]#[^[:blank:]]#}}} || _etc_hosts=()
+
 hosts=(
     "$(hostname)"
     "$_ssh_config_hosts[@]"
@@ -98,24 +73,6 @@ zstyle ':completion:*' matcher-list '' \
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$ZSH_CACHE_DIR/zcompcache"
 
-
-# -- CDR -----------------------------------------------------------------------
-# https://github.com/zsh-users/zsh/blob/master/Functions/Chpwd/cdr
-
-zstyle ':completion:*:*:cdr:*:*' menu selection
-# $WINDOWID is an environment variable set by kitty representing the window ID
-# of the OS window (NOTE this is not the same as the $KITTY_WINDOW_ID)
-# @see: https://github.com/kovidgoyal/kitty/pull/2877
-zstyle ':chpwd:*' recent-dirs-file $ZSH_CACHE_DIR/.chpwd-recent-dirs-${WINDOWID##*/} +
-zstyle ':completion:*' recent-dirs-insert always
-zstyle ':chpwd:*' recent-dirs-default yes
-
-zstyle ':completion:*:functions' ignored-patterns '(_*|pre(cmd|exec)|prompt_*)'
-
-# ignore multiple entries.
-zstyle ':completion:*:(rm|kill|diff):*' ignore-line other
-zstyle ':completion:*:rm:*' file-patterns '*:all-files'
-
 # INFO: https://thevaluable.dev/zsh-completion-guide-examples/
 zstyle ':completion:*' menu select
 zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
@@ -125,6 +82,7 @@ zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
 zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 
+# use the vi navigation keys in menu completion
 zmodload zsh/complist
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history

@@ -20,11 +20,23 @@ setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
 
+#  NOTE: 2023-09-29 - Need this exported early because of the
+# helper functions used
+export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
+for file in $ZDOTDIR_HELPERS/*; do
+    # source "$file";
+    [[ -r "$file" && -f "$file" ]] && source "$file"
+done
+
 # start a prompt called starship
-eval "$(starship init zsh)"
+if has starship; then
+    eval "$(starship init zsh)"
+fi
 
 # Zoxide
-eval "$(zoxide init zsh)"
+if has zoxide; then
+    eval "$(zoxide init zsh)"
+fi
 
 export ZPWR_EXPAND_BLACKLIST=(g z gss)
 
@@ -41,9 +53,14 @@ autopair-init
 
 znap source zsh-users/zsh-autosuggestions
 
+#  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
+znap source zsh-users/zsh-history-substring-search
+
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
 
+#  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
+znap source MenkeTechnologies/zsh-expand
 
 function zvm_config() {
     # Start in insert mode
@@ -68,11 +85,6 @@ export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
 alias cat='bat --paging=never --style=changes'
 
-export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
-for file in $ZDOTDIR_HELPERS/*; do
-    # source "$file";
-    [[ -r "$file" && -f "$file" ]] && source "$file"
-done
 
 # source $ZDOTDIR_HELPERS/aliases.zsh
 
@@ -99,14 +111,9 @@ fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
 source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
 
-#  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
-znap source MenkeTechnologies/zsh-expand
-
 # How to set the fast-theme
 # fast-theme XDG:catppuccin-mocha
 
 compinit
 _comp_options+=(globdots)
 
-#  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
-znap source zsh-users/zsh-history-substring-search
