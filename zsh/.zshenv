@@ -74,7 +74,6 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
 
 export FZF_COMPLETION_DIR_COMMANDS="cd pushd rmdir tree nvim vim"
 
-source "$ZDOTDIR/plugins/fzf_functions.zsh"
 
 export NVIM_DIR="$XDG_CONFIG_HOME/nvim"
 

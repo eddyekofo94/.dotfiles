@@ -108,17 +108,4 @@ _fzf_comprun() {
     esac
 }
 
-# custom-fzf-preview() {
-#   choice=$(
-#     rg --files --hidden | fzf --cycle --preview="preview --ueberzugpp {}"
-#     preview --cleanup
-#   )
-#   if [ -n "$choice" ]; then
-#     printf "\n%s" "$choice"
-#     zle accept-line
-#   fi
-# }
-#
-# zle -N custom-fzf-preview
-#
-# bindkey '^!' custom-fzf-preview
+source "$ZDOTDIR/plugins/fzf_functions.zsh"

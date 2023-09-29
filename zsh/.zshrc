@@ -109,7 +109,7 @@ man() {
 # brew install pure
 fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
-source ~/.dotfiles/zsh/plugins/colorize.plugin.zsh
+source "$ZDOTDIR/plugins/colorize.plugin.zsh"
 
 # How to set the fast-theme
 # fast-theme XDG:catppuccin-mocha
