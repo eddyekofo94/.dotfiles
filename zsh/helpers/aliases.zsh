@@ -156,7 +156,7 @@ alias gm='git merge'
 alias gmt='git mergetool --no-prompt'
 alias gmom='git merge origin/$(get_default_branch)'
 
-gpp(){
+gp(){
     if [[ $(get_default_branch) == $(get_current_branch) ]]; then
         echo "Error: you cannot push on the $(get_default_branch) branch"
     else
@@ -164,7 +164,7 @@ gpp(){
     fi
 }
 
-alias gp='git push'
+alias gpp='git push'
 alias gp!='git push --force-with-lease'
 alias gpo='git push origin'
 alias gpo!='git push --force-with-lease origin'
