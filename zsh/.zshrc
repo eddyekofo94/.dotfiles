@@ -32,8 +32,6 @@ if has starship; then
     eval "$(starship init zsh)"
 fi
 
-fpath+=("$(brew --prefix)/share/zsh/site-functions")
-
 # Zoxide
 if has zoxide; then
     eval "$(zoxide init zsh)"
@@ -41,9 +39,7 @@ fi
 
 export ZPWR_EXPAND_BLACKLIST=(g z gss)
 
-
-znap source wintermi/zsh-brew
-
+# ZNAP source all the plugins
 znap source zdharma-continuum/fast-syntax-highlighting
 
 znap source Tarrasch/zsh-bd
@@ -76,6 +72,7 @@ function zvm_after_init() {
     [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
     source $(brew --prefix)/opt/fzf/shell/completion.zsh
     source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
+    fpath+=("$(brew --prefix)/share/zsh/site-functions")
 }
 
 znap source "jeffreytse/zsh-vi-mode"
@@ -86,7 +83,6 @@ export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 if has bat; then
     alias cat='bat --paging=never --style=changes'
 fi
-
 
 # source $ZDOTDIR_HELPERS/aliases.zsh
 
@@ -110,10 +106,4 @@ man() {
 
 
 source "$ZDOTDIR/plugins/colorize.plugin.zsh"
-
-# How to set the fast-theme
-# fast-theme XDG:catppuccin-mocha
-
-# compinit
-# _comp_options+=(globdots)
 

@@ -1,13 +1,11 @@
 source ~/.dotfiles/terminal/base_directories
 
 install_brew_packages(){
-    cd ~/.dotfiles/homebrew ||
-    brew bundle install
+    cd ~/.dotfiles/homebrew && brew bundle install
 }
 
 install_cargo_crates(){
-    cd ~/.dotfiles/rust
-    xargs < install.sh -n 1 cargo install
+    cd ~/.dotfiles/rust && xargs < install.sh -n 1 cargo install
 }
 
 # Homebrew setup linux
@@ -33,10 +31,11 @@ ensure_homebrew_installed
 ensure_cargo_installed(){
     if ! command -v cargo >/dev/null 2>&1; then
         echo "Cargo needs to be installed: "
-        sudo -v
-        yes '' | /bin/bash -c "$($ curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh)"
-        install_cargo_crates
+ 	# /bin/bash -c -i "$(curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh)"
+	curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
     fi
+    cd ~/.dotfiles/rust
+    xargs < install.sh -n 1 cargo install
 }
 
 ensure_cargo_installed
