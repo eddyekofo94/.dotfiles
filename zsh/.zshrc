@@ -24,7 +24,6 @@ setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
 # helper functions used
 export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
 for file in $ZDOTDIR_HELPERS/*; do
-    # source "$file";
     [[ -r "$file" && -f "$file" ]] && source "$file"
 done
 
@@ -32,6 +31,8 @@ done
 if has starship; then
     eval "$(starship init zsh)"
 fi
+
+fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
 # Zoxide
 if has zoxide; then
@@ -83,7 +84,9 @@ znap source "jeffreytse/zsh-vi-mode"
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
-alias cat='bat --paging=never --style=changes'
+if has bat; then
+    alias cat='bat --paging=never --style=changes'
+fi
 
 
 # source $ZDOTDIR_HELPERS/aliases.zsh
@@ -106,14 +109,12 @@ man() {
         command man "$@"
 }
 
-# brew install pure
-fpath+=("$(brew --prefix)/share/zsh/site-functions")
 
 source "$ZDOTDIR/plugins/colorize.plugin.zsh"
 
 # How to set the fast-theme
 # fast-theme XDG:catppuccin-mocha
 
-compinit
-_comp_options+=(globdots)
+# compinit
+# _comp_options+=(globdots)
 

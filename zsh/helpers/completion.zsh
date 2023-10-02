@@ -11,7 +11,7 @@ autoload -Uz +X compinit
 for dump in ~/.zcompdump(N.mh+24); do
     compinit
 done
-compinit -C
+compinit
 
 
 # REF:
