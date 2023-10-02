@@ -7,7 +7,6 @@
 # $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
 # $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
 
-# Trying this one out
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
@@ -37,7 +36,10 @@ if has zoxide; then
     eval "$(zoxide init zsh)"
 fi
 
-export ZPWR_EXPAND_BLACKLIST=(g z gss)
+export ZPWR_EXPAND_BLACKLIST=(cat ll la l g z gss)
+
+# spelling correction in zsh-expand plugin
+export ZPWR_CORRECT=false
 
 # ZNAP source all the plugins
 znap source zdharma-continuum/fast-syntax-highlighting
@@ -54,6 +56,9 @@ znap source zsh-users/zsh-history-substring-search
 
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
+
+# add the executable to your path
+export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
 #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
 znap source MenkeTechnologies/zsh-expand
@@ -77,14 +82,9 @@ function zvm_after_init() {
 
 znap source "jeffreytse/zsh-vi-mode"
 
-# add the executable to your path
-export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
-
 if has bat; then
     alias cat='bat --paging=never --style=changes'
 fi
-
-# source $ZDOTDIR_HELPERS/aliases.zsh
 
 # Colorize `man` output.
 #
@@ -105,5 +105,5 @@ man() {
 }
 
 
-source "$ZDOTDIR/plugins/colorize.plugin.zsh"
+# source "$ZDOTDIR/plugins/colorize.plugin.zsh"
 

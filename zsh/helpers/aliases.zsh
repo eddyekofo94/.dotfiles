@@ -67,6 +67,7 @@ elif command -v colorls &>/dev/null; then
     alias ltt='colorls -A | grep "$(date +"%d %b")"'
 elif [[ $(command -v ls) =~ gnubin || $OSTYPE =~ linux ]]; then
     alias ls="ls --color=auto"
+    alias l="ls -l --color=auto"
     alias ll='ls -FlAhpv --color=auto'
     alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 else

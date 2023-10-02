@@ -19,12 +19,6 @@ compinit
 # https://github.com/mhanberg/.dotfiles/blob/main/zsh/git.zsh
 compdef g=git
 
-# use the vi navigation keys in menu completion
-bindkey -M menuselect 'h' vi-backward-char
-bindkey -M menuselect 'k' vi-up-line-or-history
-bindkey -M menuselect 'l' vi-forward-char
-bindkey -M menuselect 'j' vi-down-line-or-history
-
 # persistent reshahing i.e puts new executables in the $path
 # if no command is set typing in a line will cd by default
 zstyle ':completion:*' rehash true
@@ -80,7 +74,7 @@ zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
-zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+# zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 
 # use the vi navigation keys in menu completion
 zmodload zsh/complist

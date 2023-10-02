@@ -41,9 +41,6 @@ if [ ! -d "$ZSH_CACHE_DIR" ]; then
     mkdir -p "$ZSH_CACHE_DIR"
 fi
 
-# for linux
-# export LS_COLORS="di=32:ln=35:so=01;35:pi=01;33:ex=01;31:bd=01;33:cd=01;33:su=37;41:sg=37;43:tw=00;42:ow=01;34;42:"
-
 case `uname` in
     Darwin)
         # -- intel mac:
