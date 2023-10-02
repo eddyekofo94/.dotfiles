@@ -146,12 +146,42 @@ alias glg='git log --stat'
 alias glgg='git log --graph'
 alias glgga='git log --graph --decorate --all'
 alias glo='git log --oneline --decorate --color'
-alias glog='git log --oneline --decorate --color --graph'
+# alias glog='git log --oneline --decorate --color --graph'
 alias glog='git log --pretty=format:"%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=short'  # A nicer Git Log
 alias gloga='git log --oneline --decorate --color --graph --all'
 alias glom='git log --oneline --decorate --color $(get_default_branch)..'
 alias glod='git log --oneline --decorate --color dev..'
-alias gloo="git\ log\ --pretty=format:\'\%C\(yellow\)\%h\ \%Cred\%ad\ \%Cblue\%an\%Cgreen\%d\ \%Creset\%s\'\ --date=short"
+
+git config --global alias.ll 'log --graph --format="%C(yellow)%h%C(red)%d%C(reset) - %C(bold green)(%ar)%C(reset) %s %C(blue)<%an>%C(reset)"'
+
+fzf_git_log() {
+    local selection=$(
+        git ll --color=always "$@" | \
+            fzf --no-multi --ansi --no-sort --no-height \
+            --preview "echo {} | grep -o '[a-f0-9]\{7\}' | head -1 |
+        xargs -I@ sh -c 'git show --color=always @'"
+    )
+    if [[ -n $selection ]]; then
+        local commit=$(echo "$selection" | sed 's/^[* |]*//' | awk '{print $1}' | tr -d '\n')
+        git show $commit
+    fi
+}
+
+alias gloo='fzf_git_log'
+
+fzf_git_reflog() {
+    local selection=$(
+        git reflog --color=always "$@" |
+        fzf --no-multi --ansi --no-sort --no-height \
+            --preview "git show --color=always {1}"
+    )
+    if [[ -n $selection ]]; then
+        git show $(echo $selection | awk '{print $1}')
+    fi
+}
+
+alias grl='fzf_git_reflog'
+
 alias gm='git merge'
 alias gmt='git mergetool --no-prompt'
 alias gmom='git merge origin/$(get_default_branch)'

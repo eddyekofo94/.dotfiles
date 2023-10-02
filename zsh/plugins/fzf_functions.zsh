@@ -161,6 +161,41 @@ fshow_preview() {
             --bind "alt-y:execute:$_gitLogLineToHash | xclip"
 }
 
+fzf_kill() {
+    if [[ $(uname) == Linux ]]; then
+        local pids=$(ps -f -u $USER | sed 1d | fzf | awk '{print $2}')
+    elif [[ $(uname) == Darwin ]]; then
+        local pids=$(ps -f -u $USER | sed 1d | fzf | awk '{print $3}')
+    else
+        echo 'Error: unknown platform'
+        return
+    fi
+    if [[ -n "$pids" ]]; then
+        echo "$pids" | xargs kill -9 "$@"
+    fi
+}
+
+alias fkill='fzf_kill'
+
+fzf_git_add() {
+    local selections=$(
+      git status --porcelain | \
+        fzf --ansi \
+            --preview 'if (git ls-files --error-unmatch {2} &>/dev/null); then
+                           git diff --color=always {2}
+                       else
+                           bat --color=always --line-range :500 {2}
+                       fi'
+    )
+    if [[ -n $selections ]]; then
+        local additions=$(echo $selections | sed 's/M //g' | sed 's/?? //g')
+        git add --verbose $additions
+    fi
+}
+
+alias gadd='fzf_git_add'
+
+
 # ZSH
 # Make all kubectl completion fzf
 #  BUG: 2023-09-26 - /proc/self/fd/13:2: command not found: compdef

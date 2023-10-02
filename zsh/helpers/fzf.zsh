@@ -42,7 +42,7 @@ export FZF_COMMON_OPTIONS="
 "
 
 if has rg; then
-    export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
+    export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*" "!.npm/*"'
 fi
 
 command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
@@ -87,7 +87,7 @@ if has fd; then
 
     # FZF
     # Setting fd as the default source for fzf
-    export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
+    export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude (.git|.npm)'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
     export FZF_ALT_C_OPTS="--preview 'exa -T {}' --height=60%"
