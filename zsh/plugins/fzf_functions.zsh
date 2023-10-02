@@ -50,6 +50,19 @@ fzf_find_edit() {
 
 alias fe='fzf_find_edit'
 
+fzf_change_directory() {
+    local directory=$(
+      fd --type d | \
+        fzf --query="$1" --no-multi --select-1 --exit-0 \
+            --preview 'tree -C {} | head -100'
+    )
+    if [[ -n $directory ]]; then
+        cd "$directory"
+    fi
+}
+
+alias fcd='fzf_change_directory'
+
 # cdf - cd into the directory of the selected file
 cdf() {
     local file
