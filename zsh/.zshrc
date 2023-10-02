@@ -41,7 +41,6 @@ fi
 
 export ZPWR_EXPAND_BLACKLIST=(g z gss)
 
-source ~/.config/zsh/znap/znap.zsh # Start Znap
 
 znap source wintermi/zsh-brew
 
