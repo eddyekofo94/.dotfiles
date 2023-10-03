@@ -26,16 +26,6 @@ zstyle ':completion:*' rehash true
 # Allow completion of ..<Tab> to ../ and beyond.
 zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(..) ]] && reply=(..)'
 
-# Categorize completion suggestions with headings:
-zstyle ':completion:*' group-name ''
-
-# Added by running `compinstall`
-zstyle ':completion:*' verbose yes
-zstyle ':completion:*' expand suffix # or:  expand yes
-zstyle ':completion:*' file-sort modification
-zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
-zstyle ':completion:*' list-suffixes true
-
 # -- process names -------------------------------------------------------------
 zstyle ':completion:*:processes-names' command \
     'ps c -u ${USER} -o command | uniq'
@@ -75,6 +65,14 @@ zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
 zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+
+# Categorize completion suggestions with headings:
+zstyle ':completion:*' group-name ''
+
+# Added by running `compinstall`
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*' expand suffix # or:  expand yes
+zstyle ':completion:*' list-suffixes true
 
 # use the vi navigation keys in menu completion
 zmodload zsh/complist
