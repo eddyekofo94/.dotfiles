@@ -1,38 +1,34 @@
 # Initialize colors.
 autoload -U colors; colors
 
-# colors
-# The variables are wrapped in %{%}. This should be the case for every
-# variable that does not contain space.
-for COLOR in RED GREEN YELLOW BLUE MAGENTA CYAN BLACK WHITE; do
-    eval PR_$COLOR='%{$fg_no_bold[${(L)COLOR}]%}'
-    eval PR_BOLD_$COLOR='%{$fg_bold[${(L)COLOR}]%}'
-done
-
-eval RESET='$reset_color'
-export PR_RED PR_GREEN PR_YELLOW PR_BLUE PR_WHITE PR_BLACK
-export PR_BOLD_RED PR_BOLD_GREEN PR_BOLD_YELLOW PR_BOLD_BLUE
-export PR_BOLD_WHITE PR_BOLD_BLACK
-
-# Clear LSCOLORS
-# unset LSCOLORS
+# Colorize `man` output.
+#
+# We define this here so that these environment variables only need to be
+# defined for when they are used, and don't colorize everything when we run
+# `env` on its own.
+man() {
+    env \
+        LESS_TERMCAP_mb=$'\E[05;31m' \
+        LESS_TERMCAP_md=$'\E[01;38;5;64m' \
+        LESS_TERMCAP_me=$'\E[0m' \
+        LESS_TERMCAP_mr=$'\E[01;38;5;199m' \
+        LESS_TERMCAP_so=$'\E[38;5;208m' \
+        LESS_TERMCAP_se=$'\E[0m' \
+        LESS_TERMCAP_us=$'\E[04;38;5;33m' \
+        LESS_TERMCAP_ue=$'\E[0m' \
+        command man "$@"
+}
 
 # Main change, you can see directories on a dark background
-# export LSCOLORS=gxfxcxdxbxegedabagacad
-# export CLICOLOR=true
-# export LSCOLORS="ExGxBxDxCxEgEdxbxgxcxd"
 export CLICOLOR=1
 
-# -------- do not want here right now; breaking stuff
-# # color stuffs
-(command -v gdircolors &>/dev/null) && eval `gdircolors $HOME/.dircolors`
-
+source "$ZDOTDIR/plugins/colorize.plugin.zsh"
 # Fallback to built in ls colors
 # zstyle ':completion:*' list-colors ''
 # ref: https://github.com/robbyrussell/oh-my-zsh/issues/1563#issuecomment-53638038
 # zstyle ':completion:*:default' list-colors "${(@s.:.)LS_COLORS}"
 # zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 
 # https://github.com/xPMo/zsh-ls-colors#customizing-colors-with-styles
 zstyle -e '*' list-colors 'reply=(${(s[:])LS_COLORS})'

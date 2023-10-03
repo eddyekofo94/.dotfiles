@@ -70,7 +70,6 @@ zstyle ':completion:*' cache-path "$ZSH_CACHE_DIR/zcompcache"
 # INFO: https://thevaluable.dev/zsh-completion-guide-examples/
 zstyle ':completion:*' menu select
 zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
-zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
