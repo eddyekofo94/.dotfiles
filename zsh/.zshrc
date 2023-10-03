@@ -37,6 +37,8 @@ export ZPWR_EXPAND_BLACKLIST=(cat ll la l g z gss)
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
 
+source ~/.config/zsh/znap/znap.zsh # Start Znap
+
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
 
