@@ -42,12 +42,6 @@ source ~/.config/zsh/znap/znap.zsh # Start Znap
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
 
-znap source hlissner/zsh-autopair
-autopair-init
-
-znap source zsh-users/zsh-autosuggestions
-#  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
-znap source zsh-users/zsh-history-substring-search
 
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
@@ -83,6 +77,9 @@ function zvm_after_init() {
 
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
+    znap source zsh-users/zsh-autosuggestions
+    #  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
+    znap source zsh-users/zsh-history-substring-search
 }
 
 znap source "jeffreytse/zsh-vi-mode"
