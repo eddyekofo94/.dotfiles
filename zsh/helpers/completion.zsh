@@ -4,7 +4,6 @@
 setopt list_packed
 setopt extended_glob
 
-_comp_options+=(globdots) # Include hidden files.
 
 # zsh speedsup: https://carlosbecker.com/posts/speeding-up-zsh/
 autoload -Uz +X compinit
@@ -64,7 +63,7 @@ zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
 zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
-zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+# zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 
 # Categorize completion suggestions with headings:
 zstyle ':completion:*' group-name ''
@@ -84,4 +83,5 @@ bindkey -M menuselect 'l' vi-forward-char
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
 bindkey -M viins '\e.' insert-last-word
 
-# zstyle ':completion:*' matcher-list 'r:[[:ascii:]]||[[:ascii:]]=** r:|=* m:{a-z\-}={A-Z\_}'
+_comp_options+=(globdots) # Include hidden files.
+zstyle ':completion:*' matcher-list 'r:[[:ascii:]]||[[:ascii:]]=** r:|=* m:{a-z\-}={A-Z\_}'
