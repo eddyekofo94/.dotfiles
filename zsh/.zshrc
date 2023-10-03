@@ -55,8 +55,8 @@ znap clone https://github.com/bigH/git-fuzzy.git
 # add the executable to your path
 export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
 
-#  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
-znap source MenkeTechnologies/zsh-expand
+# ZNAP source all the plugins
+znap source zdharma-continuum/fast-syntax-highlighting
 
 function zvm_config() {
     # Start in insert mode
@@ -76,14 +76,13 @@ function zvm_after_init() {
     znap source hlissner/zsh-autopair
     autopair-init
 
-    znap source zsh-users/zsh-autosuggestions
-    # ZNAP source all the plugins
-    znap source zdharma-continuum/fast-syntax-highlighting
-
     # start a prompt called starship
     if has starship; then
         eval "$(starship init zsh)"
     fi
+
+    #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
+    znap source MenkeTechnologies/zsh-expand
 }
 
 znap source "jeffreytse/zsh-vi-mode"

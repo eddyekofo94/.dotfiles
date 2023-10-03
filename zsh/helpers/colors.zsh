@@ -1,6 +1,9 @@
 # Initialize colors.
 autoload -U colors; colors
 
+# LS colors using Vivid installed using Cargo
+export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
+
 # Colorize `man` output.
 #
 # We define this here so that these environment variables only need to be
@@ -32,6 +35,3 @@ zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
 
 # https://github.com/xPMo/zsh-ls-colors#customizing-colors-with-styles
 zstyle -e '*' list-colors 'reply=(${(s[:])LS_COLORS})'
-
-# LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
