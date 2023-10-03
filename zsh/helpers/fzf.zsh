@@ -17,6 +17,13 @@ function has() {
 # https://www.reddit.com/r/vim/comments/10mh48r/fuzzy_search/
 # perf gains to be had here: https://github.com/ranelpadon/configs/blob/master/zshrc/rg_fzf_bat.sh
 
+# if has rg; then
+#     export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!{.git|.npm|node_modules}/*" 2> /dev/null'
+# fi
+
+command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
+export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
+
 export FZF_COMMON_OPTIONS="
 --inline-info
 --height=70% --border --margin=1 --padding=1
@@ -32,7 +39,7 @@ export FZF_COMMON_OPTIONS="
 --bind=?:toggle-preview
 --cycle
 --preview-window=right:60%:wrap
---preview='bat --color=always --style=header,grid --line-range :300 {}'
+--preview='($FZF_PREVIEW_COMMAND)'
 --border sharp
 --pointer=▶
 --marker=⇒
@@ -40,13 +47,6 @@ export FZF_COMMON_OPTIONS="
 --margin=0,0
 --padding=0,0
 "
-
-# if has rg; then
-#     export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!{.git|.npm|node_modules}/*" 2> /dev/null'
-# fi
-
-command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
-export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
 
 # export FZF_PREVIEW_COMMAND="([[ -d {} ]] && tree -C {}) || ([[ -f {} ]] && bat --style=full --color=always {}) || echo {}"
 export FZF_CTRL_T_OPTS="--min-height 30
@@ -62,7 +62,6 @@ export FZF_CTRL_T_OPTS="--min-height 30
 # --height=22%
 
 _fzf_catppuccin() {
-
 export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS
   --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
   --color=border:#6c7086 \
