@@ -50,6 +50,8 @@ if (( $+commands[brew] )); then
     fi
 fi
 
+. "$HOME/.cargo/env"
+
 if (( ! $+commands[cargo] )); then
     echo "Cargo needs to be installed: "
     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
@@ -87,6 +89,7 @@ if (( $+commands[bat] )); then
         bat cache --build
         cd -
     fi
+
 fi
 
 if [[ ! -d $XDG_CONFIG_HOME/fsh ]]; then

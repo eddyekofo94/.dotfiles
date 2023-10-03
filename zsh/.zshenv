@@ -53,11 +53,10 @@ case `uname` in
         ;;
 esac
 
-. "$HOME/.cargo/env"
-
 if type nvim > /dev/null 2>&1; then
     export EDITOR="nvim"
     export VISUAL="nvim"
+    export NVIM_DIR="$XDG_CONFIG_HOME/nvim"
 else
     export EDITOR=vim
     export VISUAL=vim
@@ -68,10 +67,6 @@ source ~/.dotfiles/zsh/history.zsh
 
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
-
-export FZF_COMPLETION_DIR_COMMANDS="cd pushd rmdir tree nvim vim"
-
-export NVIM_DIR="$XDG_CONFIG_HOME/nvim"
 
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH

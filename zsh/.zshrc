@@ -25,11 +25,7 @@ export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
 for file in $ZDOTDIR_HELPERS/*; do
     [[ -r "$file" && -f "$file" ]] && source "$file"
 done
-
-# start a prompt called starship
-if has starship; then
-    eval "$(starship init zsh)"
-fi
+# unset file
 
 # Zoxide
 if has zoxide; then
@@ -41,16 +37,13 @@ export ZPWR_EXPAND_BLACKLIST=(cat ll la l g z gss)
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
 
-# ZNAP source all the plugins
-znap source zdharma-continuum/fast-syntax-highlighting
-
+#  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
 
 znap source hlissner/zsh-autopair
 autopair-init
 
 znap source zsh-users/zsh-autosuggestions
-
 #  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
 znap source zsh-users/zsh-history-substring-search
 
@@ -78,6 +71,17 @@ function zvm_after_init() {
     source $(brew --prefix)/opt/fzf/shell/completion.zsh
     source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
     fpath+=("$(brew --prefix)/share/zsh/site-functions")
+    znap source hlissner/zsh-autopair
+    autopair-init
+
+    znap source zsh-users/zsh-autosuggestions
+    # ZNAP source all the plugins
+    znap source zdharma-continuum/fast-syntax-highlighting
+
+    # start a prompt called starship
+    if has starship; then
+        eval "$(starship init zsh)"
+    fi
 }
 
 znap source "jeffreytse/zsh-vi-mode"

@@ -58,11 +58,12 @@ zstyle ':completion:*:hosts' hosts $hosts
 # - Then fall back to case-insensitive.
 # - Accept abbreviations after . or _ or - (ie. f.b -> foo.bar).
 # - Substring complete (ie. bar -> foobar).
-zstyle ':completion:*' matcher-list '' \
-    '+m:{[:lower:]}={[:upper:]}' \
-    '+m:{[:upper:]}={[:lower:]}' \
-    '+m:{_-}={-_}' \
-    'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+# INFO: Put this back after if things don't work
+# zstyle ':completion:*' matcher-list '' \
+    #     '+m:{[:lower:]}={[:upper:]}' \
+    #     '+m:{[:upper:]}={[:lower:]}' \
+    #     '+m:{_-}={-_}' \
+    #     'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path "$ZSH_CACHE_DIR/zcompcache"
@@ -73,7 +74,7 @@ zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
 zstyle ':completion:*' squeeze-slashes true
 zstyle ':completion:*' complete-options true
 zstyle ':completion:*' file-sort change
-# zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
 
 # use the vi navigation keys in menu completion
 zmodload zsh/complist
@@ -84,3 +85,5 @@ bindkey -M menuselect 'l' vi-forward-char
 
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
 bindkey -M viins '\e.' insert-last-word
+
+# zstyle ':completion:*' matcher-list 'r:[[:ascii:]]||[[:ascii:]]=** r:|=* m:{a-z\-}={A-Z\_}'

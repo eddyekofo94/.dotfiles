@@ -35,4 +35,3 @@ zstyle -e '*' list-colors 'reply=(${(s[:])LS_COLORS})'
 
 # LS colors using Vivid installed using Cargo
 export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
-
