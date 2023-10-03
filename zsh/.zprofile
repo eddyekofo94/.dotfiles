@@ -28,6 +28,7 @@ if (( ! $+commands[brew] )); then
         echo "You may be asked for your sudo password to install Homebrew:"
         sudo -v
         yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        cd $DOTFILES_DIR/homebrew && brew bundle install
     fi
 fi
 
