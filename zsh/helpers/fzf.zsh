@@ -73,6 +73,12 @@ export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS
 # CTRL-Y to copy the command into clipboard using pbcopy
 export FZF_CTRL_R_OPTS="
 --header='command history (Press CTRL-y to copy command into clipboard)'
+--inline-info
+--height=70% --border --margin=1 --padding=1
+--select-1
+--ansi
+--reverse
+--extended
 --preview 'echo {}' --preview-window up:3:wrap
 --bind 'ctrl-/:toggle-preview'
 --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
