@@ -77,10 +77,10 @@ function zvm_after_init() {
 
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
-    znap source zsh-users/zsh-autosuggestions
     #  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
     znap source zsh-users/zsh-history-substring-search
 }
+znap source zsh-users/zsh-autosuggestions
 
 znap source "jeffreytse/zsh-vi-mode"
 
