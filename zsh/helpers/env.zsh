@@ -1,5 +1,5 @@
 # -- lang
-export LANG="en_US.UTF-8"
+# export LANG="en_US.UTF-8"
 
 # reduce ESC key delay to 0.1
 export KEYTIMEOUT=1
