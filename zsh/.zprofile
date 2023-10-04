@@ -7,6 +7,8 @@ if [[ ! -d $DOTFILES_DIR ]]; then
     ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
 fi
 
+export DOTFILES_DIR="$HOME/.dotfiles"
+
 # Identify the path of the 'brew' command if cannot already be found
 if (( ! $+commands[brew] )); then
     local DEFAULT_BREW_PATHS=("/opt/homebrew/bin/brew" \
