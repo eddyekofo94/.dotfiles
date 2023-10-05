@@ -66,7 +66,7 @@ fi
 source ~/.dotfiles/zsh/history.zsh
 
 # Bat a modern cat with all the goodies
-export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
+export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/bat.conf
 
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH
