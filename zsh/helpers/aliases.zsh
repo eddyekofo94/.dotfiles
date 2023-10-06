@@ -24,12 +24,6 @@ alias 'cd..= cd ..'
 alias lsd='ls -ld *(-/DN)'
 alias lh='ls -a | egrep "^\."'
 
-# if command -v bat >/dev/null 2>&1; then
-#     alias cat='bat --paging=never --style=changes'
-# fi
-
-# alias g=git
-# alias lg="lazygit"
 # Directory Aliases
 # #####################################
 
