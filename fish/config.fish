@@ -23,7 +23,7 @@ end
 
 if status is-interactive
     # Commands to run in interactive sessions can go here
-    eval (zellij setup --generate-auto-start fish | string collect)
+    # eval (zellij setup --generate-auto-start fish | string collect)
 end
 
 if status is-login
@@ -32,7 +32,7 @@ if status is-login
         echo "It is wsl"
         # For Homebrew/Linuxbrew to work
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-        export PYTHONPATH=:~/.local/lib/python3.11/site-packages/:~/.local/lib/python3.11/site-packages/
+        # export PYTHONPATH=:~/.local/lib/python3.11/site-packages/:~/.local/lib/python3.11/site-packages/
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
@@ -40,7 +40,7 @@ if status is-login
         abbr -a -- psh 'powershell.exe'
 
         # IMPORTANT: this seems to work on WSL, so keep it!
-        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp 
+        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
 
         # Fix the VPN issue: For Amadeus
         abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
@@ -66,6 +66,8 @@ if status is-login
 
     # Zoxide a smart cd to directories (needs rust)
     zoxide init fish | source
+
+    # starship init fish | source
 
     # Initialize XDG base directory environment variables as defined in:
     # https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.6.html.

@@ -1,0 +1,160 @@
+brew "neovim", args: ["HEAD"]
+brew "git-delta"
+tap "eth-p/software"
+tap "homebrew/bundle"
+tap "homebrew/cask-versions"
+tap "homebrew/core"
+# Interpreted, interactive, object-oriented programming language
+brew "python@3.10"
+# Tool for generating GNU Standards-compliant Makefiles
+brew "automake"
+# Clone of cat(1) with syntax highlighting and Git integration
+brew "bat"
+# Generate compilation database for clang tooling
+brew "bear"
+# Fish completion for brew-cask
+brew "brew-cask-completion"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
+# GNU internationalization (i18n) and localization (l10n) library
+brew "gettext"
+# Core application library for C
+brew "glib"
+# Object-file caching compiler wrapper
+brew "ccache"
+# Formatting tools for C, C++, Obj-C, Java, JavaScript, TypeScript
+brew "clang-format"
+# Cross-platform make
+brew "cmake"
+# Distributed, open source, package manager for C/C++
+brew "conan"
+# GNU File, Shell, and Text utilities
+brew "coreutils"
+# Static analysis of C and C++ code
+brew "cppcheck"
+# Reimplementation of ctags(1)
+brew "ctags", link: false
+# Open source suite of directory software
+brew "openldap"
+# Get a file from an HTTP, HTTPS or FTP server
+brew "curl"
+# File comparison utilities
+brew "diffutils"
+# Pack, ship and run any application as a lightweight container
+brew "docker", link: false
+# Isolated development environments using Docker
+brew "docker-compose", link: false
+# Modern replacement for 'ls'
+brew "exa"
+# Simple, fast and user-friendly alternative to find
+brew "fd"
+# Collection of GNU find, xargs, and locate
+brew "findutils"
+# User-friendly command-line shell for UNIX-like operating systems
+brew "fish"
+# Command-line fuzzy finder written in Go
+brew "fzf"
+# GNU debugger
+brew "gdb"
+# GitHub command-line tool
+brew "gh"
+# Distributed revision control system
+brew "git"
+# Command-line option parsing utility
+brew "gnu-getopt"
+# C code prettifier
+brew "gnu-indent"
+# GNU implementation of the famous stream editor
+brew "gnu-sed"
+# GNU version of the tar archiving utility
+brew "gnu-tar"
+# GNU Transport Layer Security (TLS) Library
+brew "gnutls"
+# Open source programming language to build simple/reliable/efficient software
+brew "go"
+# Open-source build automation tool based on the Groovy and Kotlin DSL
+brew "gradle"
+# Manage compile and link flags for libraries
+brew "pkg-config"
+# Display an interface's bandwidth usage
+brew "iftop"
+# ISO/IEC 23008-12:2017 HEIF file format decoder and encoder
+brew "libheif"
+# Tools and libraries to manipulate images in many formats
+brew "imagemagick"
+# Network authentication protocol
+brew "krb5"
+# Lazier way to manage everything docker
+brew "lazydocker"
+# Simple terminal UI for git commands
+brew "lazygit"
+# Postgres C API library
+brew "libpq"
+# Next-gen compiler infrastructure
+brew "llvm"
+# Clone of ls with colorful output, file type icons, and more
+brew "lsd"
+# Package manager for the Lua programming language
+brew "luarocks"
+# MongoDB Shell to connect, configure, query, and work with your MongoDB database
+brew "mongosh"
+# Fast, highly customisable system info script
+brew "neofetch"
+# Small build system for use with gyp or CMake
+brew "ninja"
+# Platform built on V8 to build network applications
+brew "node"
+# Manage multiple Node.js versions
+brew "nvm"
+# Code formatter for JavaScript, CSS, JSON, GraphQL, Markdown, YAML
+brew "prettier"
+# Show ps output as a tree
+brew "pstree"
+# Python version management
+brew "pyenv"
+# Tool Command Language
+brew "tcl-tk"
+# Software environment for statistical computing
+brew "r"
+# Search tool like grep and The Silver Searcher
+brew "ripgrep"
+# Powerful, clean, object-oriented scripting language
+brew "ruby"
+# Experimental Rust compiler front-end for IDEs
+brew "rust-analyzer"
+# Multi-media library with bindings for multiple languages
+brew "sfml"
+# Cross-shell prompt for astronauts
+brew "starship"
+# Version control system designed to be a better CVS
+brew "subversion"
+# Code-search similar to ack
+brew "the_silver_searcher"
+# Terminal multiplexer
+brew "tmux"
+# Display directories as trees (with optional color/HTML output)
+brew "tree"
+# Vi 'workalike' with many additional features
+brew "vim"
+# Generator for LS_COLORS with support for multiple color themes
+brew "vivid"
+# Execute commands when watched files change
+brew "watchexec"
+# Internet file retriever
+brew "wget"
+# Hackable, minimal, fast TUI file explorer
+brew "xplr"
+# JavaScript package manager
+brew "yarn"
+# Shell extension to navigate your filesystem faster
+brew "zoxide"
+# Bash scripts that integrate bat with various command-line tools
+brew "eth-p/software/bat-extras"
+# Developer targeted fonts with a high number of glyphs
+cask "font-jetbrains-mono-nerd-font"
+# Developer targeted fonts with a high number of glyphs
+cask "font-ubuntu-nerd-font"
+# Collaboration platform for API development
+cask "postman"
+# GPU-accelerated cross-platform terminal emulator and multiplexer
+cask "wezterm"
