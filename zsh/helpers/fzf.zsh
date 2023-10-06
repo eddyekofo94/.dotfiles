@@ -21,9 +21,6 @@ function has() {
 #     export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!{.git|.npm|node_modules}/*" 2> /dev/null'
 # fi
 
-command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
-export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
-
 export FZF_COMMON_OPTIONS="
 --inline-info
 --height=70% --border --margin=1 --padding=1
@@ -47,6 +44,9 @@ export FZF_COMMON_OPTIONS="
 --margin=0,0
 --padding=0,0
 "
+
+command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
+export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
 
 # export FZF_PREVIEW_COMMAND="([[ -d {} ]] && tree -C {}) || ([[ -f {} ]] && bat --style=full --color=always {}) || echo {}"
 export FZF_CTRL_T_OPTS="--min-height 30
