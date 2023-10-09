@@ -94,6 +94,10 @@ if (( $+commands[bat] )); then
 
 fi
 
+if [[ ! -f ~/.config/lazygit/config.yml ]]; then
+    ln -s /home/$(whoami)/.dotfiles/lazygit/config.yaml /home/$(whoami)/.config/lazygit/config.yaml
+fi
+
 if [[ ! -d $XDG_CONFIG_HOME/fsh ]]; then
     ln -s /home/$(whoami)/.dotfiles/fsh /home/$(whoami)/.config/fsh
 fi
