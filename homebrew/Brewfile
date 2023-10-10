@@ -8,7 +8,6 @@ brew "luarocks"
 brew "neovim", args: ["HEAD"]
 brew "node"
 brew "starship"
-brew "tree"
 brew "wget"
 brew "vivid"
 brew "exa"
