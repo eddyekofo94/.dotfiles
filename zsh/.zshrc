@@ -47,7 +47,7 @@ znap source Tarrasch/zsh-bd
 znap clone https://github.com/bigH/git-fuzzy.git
 
 # add the executable to your path
-export PATH="~/.config/zsh/bigH/git-fuzzy/bin:$PATH"
+export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 
 #  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
 znap source zsh-users/zsh-history-substring-search
@@ -75,8 +75,8 @@ function zvm_after_init() {
         eval "$(starship init zsh)"
     fi
 
-# ZNAP source all the plugins
-znap source zdharma-continuum/fast-syntax-highlighting
+    # ZNAP source all the plugins
+    znap source zdharma-continuum/fast-syntax-highlighting
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
 }
