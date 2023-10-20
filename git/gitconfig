@@ -38,16 +38,19 @@
     line-numbers-left-style = "#5c6370"
     line-numbers-minus-style = "#9A353D"
     line-numbers-plus-style = "#109868"
-    minus-emph-style = bold "#9A353D" 52
+    minus-emph-style = bold "#f38ba8" 52
     minus-empty-line-marker-style = normal "#9A353D"
-    minus-non-emph-style = dim red
-    minus-style = bold red
+    minus-non-emph-style = dim "#f38ba8"
+    minus-style = bold "#f38ba8"
     plus-emph-style = bold green 22
     plus-empty-line-marker-style = normal "#002800"
     plus-non-emph-style = dim green
     plus-style = bold syntax
-    whitespace-error-style = reverse red
+    whitespace-error-style = reverse "#f38ba8"
     zero-style = dim syntax
 
 [diff]
     ignoreSubmodules = dirty
+[alias]
+	ll = log --graph --format=\"%C(yellow)%h%C(red)%d%C(reset) - %C(bold green)(%ar)%C(reset) %s %C(blue)<%an>%C(reset)\"
+
