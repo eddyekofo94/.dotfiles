@@ -38,14 +38,14 @@
     line-numbers-left-style = "#5c6370"
     line-numbers-minus-style = "#9A353D"
     line-numbers-plus-style = "#109868"
-    minus-emph-style = bold "#f38ba8" 52
-    minus-empty-line-marker-style = normal "#9A353D"
-    minus-non-emph-style = dim "#f38ba8"
-    minus-style = bold "#f38ba8"
-    plus-emph-style = bold green 22
+    minus-emph-style = bold syntax "#800000"
+    minus-empty-line-marker-style = normal "#800000"
+    minus-non-emph-style = dim syntax "#400000"
+    minus-style = dim syntax "#400000"
+    plus-emph-style = bold syntax "#1e453e"
     plus-empty-line-marker-style = normal "#002800"
-    plus-non-emph-style = dim green
-    plus-style = bold syntax
+    plus-non-emph-style = dim syntax "#0a3a2a"
+    plus-style = bold syntax "#0a3a2a"
     whitespace-error-style = reverse "#f38ba8"
     zero-style = dim syntax
 
