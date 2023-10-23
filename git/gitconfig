@@ -44,8 +44,8 @@
     minus-style = dim syntax "#400000"
     plus-emph-style = bold syntax "#1e453e"
     plus-empty-line-marker-style = normal "#002800"
-    plus-non-emph-style = dim syntax "#0a3a2a"
-    plus-style = bold syntax "#0a3a2a"
+    plus-non-emph-style = dim syntax "#092919"
+    plus-style = bold syntax "#092919"
     whitespace-error-style = reverse "#f38ba8"
     zero-style = dim syntax
 

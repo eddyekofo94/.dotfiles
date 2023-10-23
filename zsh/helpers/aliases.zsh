@@ -79,7 +79,19 @@ alias g=git
 alias zconf="$EDITOR $ZDOTDIR/.zshrc"
 alias nconf="$EDITOR $NVIM_DIR"
 alias reload="source $ZDOTDIR/.zprofile && source $ZDOTDIR/.zshenv && source $ZDOTDIR/.zshrc"
-alias rmcore="find . -name 'core.*' -type f -delete"
+
+rm_cores() {
+    # echo "$PWD & $HOME"
+    if [[  "$PWD" != "$HOME" ]]; then
+        find . -name 'core.*'
+        find . -name 'core.*' -type f -delete
+    else
+        echo "You cannot do this in the $HOME direction"
+    fi
+}
+
+alias rmcore="rm_cores"
+
 alias cl=clear
 alias ga='git add'
 alias gaa='git add --all'
