@@ -81,10 +81,16 @@ alias nconf="$EDITOR $NVIM_DIR"
 alias reload="source $ZDOTDIR/.zprofile && source $ZDOTDIR/.zshenv && source $ZDOTDIR/.zshrc"
 
 rm_cores() {
-    # echo "$PWD & $HOME"
     if [[  "$PWD" != "$HOME" ]]; then
-        find . -name 'core.*'
-        find . -name 'core.*' -type f -delete
+        if (( $+commands[fd] )); then
+            echo "$(which fd) is found"
+            fd -I "core.[0-9]+"
+            rm $(fd -I "core.[0-9]+")
+        else
+            echo "using $(which find)"
+            find . -name 'core.*'
+            rm -i $(find . -name 'core.*')
+        fi
     else
         echo "You cannot do this in the $HOME direction"
     fi
