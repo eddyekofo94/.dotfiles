@@ -88,3 +88,6 @@ if has bat; then
     alias cat='bat --paging=never --style=changes'
 fi
 
+if has zellij; then
+    eval "$(zellij setup --generate-auto-start zsh)"
+fi

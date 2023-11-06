@@ -76,22 +76,20 @@ fi
 git clone --depth 1 -- \
     https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
 
-
 if (( $+commands[bat] )); then
     BAT_THEMES_DIR=$(bat --config-dir)/themes
-    if [[ ! -d $BAT_THEMES_DIR ]]; then
+    if [[ ! -d "$BAT_THEMES_DIR" ]]; then
         echo "Making a new bat dir: $BAT_THEMES_DIR"
-        mkdir -p $BAT_THEMES_DIR
+        mkdir -p "$BAT_THEMES_DIR"
 
-        cd $BAT_THEMES_DIR
+        cd "$BAT_THEMES_DIR" || exit
         #cp my own bat theme
-        cp $HOME/.dotfiles/bat/Catppuccin-mocha.tmTheme $BAT_THEMES_DIR
+        cp "$HOME/".dotfiles/bat/Catppuccin-mocha.tmTheme "$BAT_THEMES_DIR" || exit
 
         # Update the binary cache
         bat cache --build
-        cd -
+        cd - || exit
     fi
-
 fi
 
 if [[ ! -f ~/.config/lazygit/config.yml ]]; then
@@ -100,4 +98,8 @@ fi
 
 if [[ ! -d $XDG_CONFIG_HOME/fsh ]]; then
     ln -s /home/$(whoami)/.dotfiles/fsh /home/$(whoami)/.config/fsh
+fi
+
+if [[ ! -d $XDG_CONFIG_HOME/zellij ]]; then
+    ln -s /home/$(whoami)/.dotfiles/zellij /home/$(whoami)/.config/zellij
 fi

@@ -320,3 +320,4 @@ alias cgug='cargo upgrade'
 alias h=history
 alias hg='history | grep '
 alias zj='zellij'
+alias ze='zellij edit'

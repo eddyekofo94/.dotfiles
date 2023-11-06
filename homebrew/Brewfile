@@ -1,5 +1,6 @@
 tap "homebrew/bundle"
 brew "fzf"
+brew "zellij"
 brew "gh"
 brew "go"
 brew "lazygit"
