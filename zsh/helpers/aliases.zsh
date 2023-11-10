@@ -132,6 +132,7 @@ alias gscam='git commit -S -a -m'
 alias gcfx='git commit --fixup'
 alias gcf='git config --list'
 alias gcl='git clone'
+alias gclb='git clone --bare'
 alias gclean='git clean -di'
 alias gclean!='git clean -dfx'
 alias gclean!!='git reset --hard; and git clean -dfx'
@@ -318,6 +319,14 @@ alias cgt='cargo test'
 alias cgu='cargo uninstall'
 alias cgug='cargo upgrade'
 alias h=history
-alias hg='history | grep '
+
+if (( $+commands[rg] )); then
+    alias alrg="alias | rg "
+    alias hg='history | rg '
+else
+    alias alrg="alias | grep "
+    alias hg='history | grep '
+fi
+
 alias zj='zellij'
 alias ze='zellij edit'

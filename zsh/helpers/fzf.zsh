@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 #  NOTE: 2023-09-28 - This is needed when loading fzf file
-function has() {
+has() {
     type "$1" &>/dev/null
 }
 # https://github.com/junegunn/fzf/wiki/Color-schemes#color-configuration
