@@ -329,4 +329,6 @@ else
 fi
 
 alias zj='zellij'
-alias ze='zellij edit'
+alias zje='zellij edit'
+alias zjls='zellij list-sessions'
+alias zjk='zellij kill-session'
