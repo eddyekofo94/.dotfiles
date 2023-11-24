@@ -41,7 +41,7 @@ if [ ! -d "$ZSH_CACHE_DIR" ]; then
     mkdir -p "$ZSH_CACHE_DIR"
 fi
 
-case `uname` in
+case $(uname) in
     Darwin)
         # -- intel mac:
         [ -f "/usr/local/bin/brew" ] && eval "$(/usr/local/bin/brew shellenv)"
