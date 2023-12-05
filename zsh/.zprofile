@@ -1,7 +1,12 @@
 DOTFILES_DIR="$HOME/.dotfiles"
 if [[ ! -d $DOTFILES_DIR ]]; then
     echo "Creating a new dotfiles $DOTFILES_DIR"
-    git clone https://github.com/eddyekofo94/.dotfiles.git $DOTFILES_DIR
+    if [[ -d /workspace/.dotfiles ]]; then
+        ln -s /workspace/.dotfiles /home/$(whoami)/.dotfiles
+    else
+        git clone https://github.com/eddyekofo94/.dotfiles.git $DOTFILES_DIR
+    fi
+
     ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.zshenv
     ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
     ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
@@ -30,7 +35,7 @@ if (( ! $+commands[brew] )); then
         echo "You may be asked for your sudo password to install Homebrew:"
         sudo -v
         yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-        cd $DOTFILES_DIR/homebrew && brew bundle install
+        cd $DOTFILES_DIR/homebrew && brew bundle install; cd - || exit
     fi
 fi
 
@@ -53,7 +58,21 @@ if (( $+commands[brew] )); then
     fi
 fi
 
-. "$HOME/.cargo/env"
+CARGO_DIR="$HOME/.cargo"
+if [[ -d $CARGO_DIR ]]; then
+    . "$HOME/.cargo/env"
+else
+    echo "Cargo needs to be installed: "
+    curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+
+    DOTFILES_DIR_RUST = "$DOTFILES_DIR/rust/"
+    if [[ -d $DOTFILES_DIR_RUST ]]; then
+        source "$HOME/.cargo/env"
+        sudo yum update # This is for just incase there are packages which need to be updated
+        cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install
+    fi
+fi
+
 
 if (( ! $+commands[cargo] )); then
     echo "Cargo needs to be installed: "
@@ -92,8 +111,11 @@ if (( $+commands[bat] )); then
     fi
 fi
 
-if [[ ! -f ~/.config/lazygit/config.yml ]]; then
-    ln -s /home/$(whoami)/.dotfiles/lazygit/config.yml /home/$(whoami)/.config/lazygit/config.yml
+LAZYGIT_DIR="$HOME/.config/lazygit"
+if [[ -d "$LAZYGIT_DIR" ]]; then
+    if [[ ! -f ~/.config/lazygit/config.yml ]]; then
+	ln -s /home/$(whoami)/.dotfiles/lazygit/config.yml /home/$(whoami)/.config/lazygit/config.yml
+    fi
 fi
 
 if [[ ! -d $XDG_CONFIG_HOME/fsh ]]; then
