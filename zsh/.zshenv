@@ -70,4 +70,4 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/bat.conf
 
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH
-source /workspace/projects/otf/.env
+# source /workspace/projects/otf/.env

@@ -1,6 +1,15 @@
 local wezterm = require("wezterm")
 local config = {}
 
+-- https://wezfurlong.org/wezterm/faq.html#how-do-i-enable-undercurl-curly-underlines
+--  INFO: 2023-12-05 15:12 PM - To add undercurls in wezterm
+-- tempfile=$(mktemp) \
+--   && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+--   && tic -x -o ~/.terminfo $tempfile \
+--   && rm $tempfile
+--  env TERM=wezterm nvim
+
+
 local scheme = wezterm.get_builtin_color_schemes()["Catppuccin Mocha"]
 -- local wsl_domains = wezterm.default_wsl_domains()
 local mux = wezterm.mux
