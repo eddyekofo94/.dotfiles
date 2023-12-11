@@ -7,6 +7,14 @@
 # $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
 # $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
 
+has() {
+    type "$1" &>/dev/null
+}
+
+if has zellij; then
+    eval "$(zellij setup --generate-auto-start zsh)"
+fi
+
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
@@ -88,6 +96,3 @@ if has bat; then
     alias cat='bat --paging=never --style=changes'
 fi
 
-if has zellij; then
-    eval "$(zellij setup --generate-auto-start zsh)"
-fi
