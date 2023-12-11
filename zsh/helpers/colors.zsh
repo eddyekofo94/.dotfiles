@@ -1,8 +1,14 @@
 # Initialize colors.
 autoload -U colors; colors
 
+has() {
+    type "$1" &>/dev/null
+}
+
 # LS colors using Vivid installed using Cargo
-export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
+if has vivid; then
+	export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
+fi
 
 # Colorize `man` output.
 #

@@ -16,6 +16,9 @@ export DOTFILES_DIR="$HOME/.dotfiles"
 
 # Identify the path of the 'brew' command if cannot already be found
 if (( ! $+commands[brew] )); then
+	echo "You may be asked for your sudo password to install Homebrew:"
+	sudo -v
+	yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     local DEFAULT_BREW_PATHS=("/opt/homebrew/bin/brew" \
             "/usr/local/bin/brew" \
             "/home/linuxbrew/.linuxbrew/bin/brew" \
@@ -31,11 +34,7 @@ if (( ! $+commands[brew] )); then
     if [[ ! -z "$BREW_PATH" ]]; then
         eval "$("$BREW_PATH" shellenv)"
 
-    else
-        echo "You may be asked for your sudo password to install Homebrew:"
-        sudo -v
-        yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-        cd $DOTFILES_DIR/homebrew && brew bundle install; cd - || exit
+	cd $DOTFILES_DIR/homebrew && brew bundle install; cd - || exit
     fi
 fi
 
@@ -65,11 +64,11 @@ else
     echo "Cargo needs to be installed: "
     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
 
-    DOTFILES_DIR_RUST = "$DOTFILES_DIR/rust/"
+    DOTFILES_DIR_RUST="$DOTFILES_DIR/rust/"
     if [[ -d $DOTFILES_DIR_RUST ]]; then
         source "$HOME/.cargo/env"
         sudo yum update # This is for just incase there are packages which need to be updated
-        cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install
+        cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install && cd $HOME || exit
     fi
 fi
 
@@ -101,9 +100,8 @@ if (( $+commands[bat] )); then
         echo "Making a new bat dir: $BAT_THEMES_DIR"
         mkdir -p "$BAT_THEMES_DIR"
 
-        cd "$BAT_THEMES_DIR" || exit
         #cp my own bat theme
-        cp "$HOME/".dotfiles/bat/Catppuccin-mocha.tmTheme "$BAT_THEMES_DIR" || exit
+        cp $DOTFILES_DIR/bat/Catppuccin-mocha.tmTheme $BAT_THEMES_DIR || exit
 
         # Update the binary cache
         bat cache --build
@@ -114,7 +112,8 @@ fi
 LAZYGIT_DIR="$HOME/.config/lazygit"
 if [[ -d "$LAZYGIT_DIR" ]]; then
     if [[ ! -f ~/.config/lazygit/config.yml ]]; then
-	ln -s /home/$(whoami)/.dotfiles/lazygit/config.yml /home/$(whoami)/.config/lazygit/config.yml
+        echo "setting up personal lazygit..."
+        ln -s /home/$(whoami)/.dotfiles/lazygit/config.yml /home/$(whoami)/.config/lazygit/config.yml
     fi
 fi
 
