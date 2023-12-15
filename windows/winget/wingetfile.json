@@ -1,0 +1,122 @@
+{
+	"$schema" : "https://aka.ms/winget-packages.schema.2.0.json",
+	"CreationDate" : "2023-12-15T13:03:29.366-00:00",
+	"Sources" : 
+	[
+		{
+			"Packages" : 
+			[
+				{
+					"PackageIdentifier" : "Canonical.Ubuntu.2204"
+				},
+				{
+					"PackageIdentifier" : "Docker.DockerDesktop"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.Teams"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.Edge"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.EdgeWebView2Runtime"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.AppInstaller"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.Office"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.Office"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.OneDrive"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.Teams.Classic"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2013.x64"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2010.x64"
+				},
+				{
+					"PackageIdentifier" : "7zip.7zip"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2012.x86"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2015+.x86"
+				},
+				{
+					"PackageIdentifier" : "Google.Chrome"
+				},
+				{
+					"PackageIdentifier" : "Apple.iTunes"
+				},
+				{
+					"PackageIdentifier" : "SSHFS-Win.SSHFS-Win"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VisualStudioCode"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2015+.x64"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VisioViewer"
+				},
+				{
+					"PackageIdentifier" : "Adobe.Acrobat.Reader.32-bit"
+				},
+				{
+					"PackageIdentifier" : "wez.wezterm"
+				},
+				{
+					"PackageIdentifier" : "DominikReichl.KeePass"
+				},
+				{
+					"PackageIdentifier" : "WinFsp.WinFsp"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VisualStudioCode"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2010.x86"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2012.x64"
+				},
+				{
+					"PackageIdentifier" : "Microsoft.VCRedist.2013.x86"
+				}
+			],
+			"SourceDetails" : 
+			{
+				"Argument" : "https://cdn.winget.microsoft.com/cache",
+				"Identifier" : "Microsoft.Winget.Source_8wekyb3d8bbwe",
+				"Name" : "winget",
+				"Type" : "Microsoft.PreIndexed.Package"
+			}
+		},
+		{
+			"Packages" : 
+			[
+				{
+					"PackageIdentifier" : "9MSPC6MP8FM4"
+				}
+			],
+			"SourceDetails" : 
+			{
+				"Argument" : "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+				"Identifier" : "StoreEdgeFD",
+				"Name" : "msstore",
+				"Type" : "Microsoft.Rest"
+			}
+		}
+	],
+	"WinGetVersion" : "1.6.3421"
+}
