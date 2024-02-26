@@ -37,10 +37,10 @@ done
 
 # Zoxide
 if has zoxide; then
-    eval "$(zoxide init zsh)"
+    eval "$(zoxide init --cmd cd zsh)"
 fi
 
-export ZPWR_EXPAND_BLACKLIST=(cat ll la l g z gss)
+export ZPWR_EXPAND_BLACKLIST=(cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
@@ -93,6 +93,8 @@ znap source zsh-users/zsh-autosuggestions
 znap source "jeffreytse/zsh-vi-mode"
 
 if has bat; then
-    alias cat='bat --paging=never --style=changes'
+    # alias cat='bat --paging=never --style=changes'
+    alias cat='bat -pp'
 fi
 
+export PATH="$HOME/.local/bin/":$PATH

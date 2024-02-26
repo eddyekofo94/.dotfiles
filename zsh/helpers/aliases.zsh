@@ -250,7 +250,7 @@ alias grs='git restore'
 alias grset='git remote set-url'
 alias grss='git restore --source'
 alias grst='git restore --staged'
-alias grup='git remote update'
+alias group='git remote update'
 alias grv='git remote -v'
 alias gsh='git show'
 alias gsd='git svn dcommit'
@@ -308,6 +308,7 @@ alias gmwps='git push origin $(get_current_branch) --set-upstream -o merge_reque
 alias lg=lazygit
 alias lzd=lazydocker
 alias vim=nvim
+alias nvmc="NVIM_APPNAME=nvim-macro nvim"
 alias vi=vim
 alias bgr=batgrep
 alias cg=cargo
