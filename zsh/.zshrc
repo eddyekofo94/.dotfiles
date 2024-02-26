@@ -40,6 +40,7 @@ if has zoxide; then
     eval "$(zoxide init --cmd cd zsh)"
 fi
 
+#  INFO: 2024-02-26 11:34 AM - aliases expand plugin
 export ZPWR_EXPAND_BLACKLIST=(cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
