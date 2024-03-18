@@ -124,3 +124,10 @@ fi
 if [[ ! -d $XDG_CONFIG_HOME/zellij ]]; then
     ln -s /home/$(whoami)/.dotfiles/zellij /home/$(whoami)/.config/zellij
 fi
+
+if [[ ! -f "$HOME/.terminfo/w/wezterm" ]]; then
+    tempfile=$(mktemp) \
+        && curl -o $tempfile https://raw.githubusercontent.com/wez/wezterm/master/termwiz/data/wezterm.terminfo \
+        && tic -x -o ~/.terminfo $tempfile \
+        && rm $tempfile
+fi
