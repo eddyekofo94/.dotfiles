@@ -41,7 +41,7 @@ if has zoxide; then
 fi
 
 #  INFO: 2024-02-26 11:34 AM - aliases expand plugin
-export ZPWR_EXPAND_BLACKLIST=(cat cd ll la l g z gss)
+export ZPWR_EXPAND_BLACKLIST=(ls cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
