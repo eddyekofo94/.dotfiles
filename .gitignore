@@ -13,3 +13,4 @@ fish/fish_variables
 **.zhistory
 zsh/.zhistory
 zsh/.zcompdump
+**/*.zwc
