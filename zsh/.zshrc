@@ -71,6 +71,8 @@ export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 #  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
 znap source zsh-users/zsh-history-substring-search
 
+znap source mehalter/zsh-nvim-appname
+
 function zvm_config() {
     # Start in insert mode
     ZVM_LINE_INIT_MODE=$ZVM_MODE_INSERT
@@ -146,6 +148,8 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+# switch group using `<` and `>`
+zstyle ':fzf-tab:*' switch-group '<' '>'
 
 if has bat; then
     alias cat='bat -pp'
