@@ -39,5 +39,3 @@ ensure_cargo_installed(){
 }
 
 ensure_cargo_installed
-
-
