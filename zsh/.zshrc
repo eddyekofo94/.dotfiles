@@ -110,7 +110,7 @@ function zvm_after_init() {
 # required libs first:
 znap source ohmyzsh/ohmyzsh lib/git
 
-znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found}
+znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found,fzf}
 
 # Add vim-mode
 znap source "jeffreytse/zsh-vi-mode"
@@ -125,18 +125,7 @@ bindkey '^n' history-search-forward
 bindkey '^[w' kill-region
 
 # History
-HISTSIZE=5000
-HISTFILE=~/.zsh_history
-SAVEHIST=$HISTSIZE
-HISTDUP=erase
-setopt appendhistory
-setopt sharehistory
-setopt hist_ignore_space
-setopt hist_ignore_all_dups
-setopt hist_save_no_dups
-setopt hist_ignore_dups
-setopt hist_find_no_dups
-
+source ~/.dotfiles/zsh/history.zsh
 
 #  INFO: 2024-06-04 - From old .zshrc
 autoload -Uz edit-command-line
