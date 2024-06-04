@@ -7,7 +7,7 @@ setopt extended_glob
 
 # zsh speedsup: https://carlosbecker.com/posts/speeding-up-zsh/
 autoload -Uz +X compinit
-for dump in ~/.zcompdump(N.mh+24); do
+for dump in $HOME"/zcompdump(N.mh+24)"; do
     compinit
 done
 compinit

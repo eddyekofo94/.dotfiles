@@ -10,6 +10,8 @@
 
 ## History command configuration
 HISTORY_IGNORE="(ls|[bf]g|exit|la|l|ll|cd -|la|reset|clear|cd|cd ..|cd..|gss|fe)"
+SAVEHIST=$HISTSIZE
+HISTDUP=erase
 setopt INC_APPEND_HISTORY
 setopt HIST_REDUCE_BLANKS
 setopt HIST_IGNORE_ALL_DUPS
