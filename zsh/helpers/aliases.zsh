@@ -15,6 +15,8 @@ alias rm='rm -i'
 alias mv='mv -i'
 alias cp='cp -i'
 
+alias chmox='chmod +x'
+
 alias 'mkdir=mkdir -p'
 # Typing errors...
 alias 'cd..= cd ..'
@@ -35,8 +37,8 @@ alias lh='ls -a | egrep "^\."'
 if eza --icons &>/dev/null; then
 	alias ls='eza --git --icons auto' # system: List filenames on one line
 	# alias l='eza --git --icons -lF'                          # system: List filenames with long format
-	alias ll="eza --git --group-directories-first --long --icons --header --binary --group"
-	alias l='eza -lahF --git --icons auto'                        # system: List all files
+	alias l="eza --git --group-directories-first --long --icons --header --binary --group"
+	alias ll='eza -lahF --git --icons auto'                        # system: List all files
 	alias lll="eza -1F --git --icons auto"                        # system: List files with one line per file
 	alias llm='ll --sort=modified'                                # system: List files by last modified date
 	alias la='eza -lbhHigUmuSa --color-scale --git --icons auto'  # system: List files with attributes
@@ -47,8 +49,8 @@ if eza --icons &>/dev/null; then
 	alias tree='eza --tree $eza_params --icons auto'
 elif command -v eza &>/dev/null; then
 	alias ls='eza --git'
-	alias ll='eza --git -lF'
-	alias l='eza -lahF --git'
+	alias l='eza --git -lF'
+	alias ll='eza -lahF --git'
 	alias lll="eza -1F --git"
 	alias llm='ll --sort=modified'
 	alias la='eza -lbhHigUmuSa --color-scale --git'
@@ -60,7 +62,7 @@ elif command -v eza &>/dev/null; then
 elif command -v colorls &>/dev/null; then
     alias ll="colorls -1A --git-status"
     alias ls="colorls -A"
-    alias ltt='colorls -A | grep "$(date +"%d %b")"'
+	alias ltt='colorls -A | grep "$(date +"%d %b")"'
 elif [[ $(command -v ls) =~ gnubin || $OSTYPE =~ linux ]]; then
     alias ls="ls --color=auto"
     alias l="ls -l --color=auto"
