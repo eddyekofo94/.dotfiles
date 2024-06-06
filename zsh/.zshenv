@@ -27,9 +27,12 @@ export TERM="xterm-256color"
 
 export DOTFILES_DIR="$HOME/.dotfiles"
 
-export ZDOTDIR="$DOTFILES_DIR/zsh"
+export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 
-export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
+export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
+
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+# export ZDOTDIR="$ZSH_DOT_DIR"
 
 export TERM_ITALICS="TRUE"
 
@@ -61,6 +64,21 @@ else
     export EDITOR=vim
     export VISUAL=vim
 fi
+
+# -- lang
+# export LANG="en_US.UTF-8"
+
+TERM=wezterm
+
+# reduce ESC key delay to 0.1
+export KEYTIMEOUT=1
+
+# Main change, you can see directories on a dark background
+export CLICOLOR=1
+
+# autosuggest
+export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
+export ZSH_AUTOSUGGEST_USE_ASYNC=1
 
 #  INFO: 2023-09-26 - This is my history config
 source ~/.dotfiles/zsh/history.zsh

@@ -12,7 +12,13 @@ if [[ ! -d $DOTFILES_DIR ]]; then
     ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
 fi
 
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 export DOTFILES_DIR="$HOME/.dotfiles"
+
+if [[ ! -f ~/.zshrc ]]; then
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
+fi
 
 # Identify the path of the 'brew' command if cannot already be found
 if (( ! $+commands[brew] )); then
@@ -57,20 +63,20 @@ if (( $+commands[brew] )); then
     fi
 fi
 
-CARGO_DIR="$HOME/.cargo"
-if [[ -d $CARGO_DIR ]]; then
-    . "$HOME/.cargo/env"
-else
-    echo "Cargo needs to be installed: "
-    curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
-
-    DOTFILES_DIR_RUST="$DOTFILES_DIR/rust/"
-    if [[ -d $DOTFILES_DIR_RUST ]]; then
-        source "$HOME/.cargo/env"
-        sudo yum update # This is for just incase there are packages which need to be updated
-        cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install && cd $HOME || exit
-    fi
-fi
+# CARGO_DIR="$HOME/.cargo"
+# if [[ -d $CARGO_DIR ]]; then
+#     . "$HOME/.cargo/env"
+# else
+#     echo "Cargo needs to be installed: "
+#     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+#
+#     DOTFILES_DIR_RUST="$DOTFILES_DIR/rust/"
+#     if [[ -d $DOTFILES_DIR_RUST ]]; then
+#         source "$HOME/.cargo/env"
+#         sudo yum update # This is for just incase there are packages which need to be updated
+#         cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install && cd $HOME || exit
+#     fi
+# fi
 
 
 if (( ! $+commands[cargo] )); then

@@ -1,6 +1,8 @@
+#!/usr/bin/env zsh
 # -------------------------------------------------------------------
 # make some commands (potentially) less destructive
 # -------------------------------------------------------------------
+echo "aliases.zsh"
 
 get_default_branch(){
     git branch -l master main | sed -r 's/^[* ] //' | head -n 1
@@ -80,9 +82,10 @@ alias ...="cd ../.."
 alias ....='../../..'
 alias .....='../../../..'
 alias g=git
-alias zconf="$EDITOR $ZDOTDIR/.zshrc"
+alias zconf="$EDITOR $ZSH_DOT_DIR/.zshrc"
 alias nconf="$EDITOR $NVIM_DIR"
-alias reload="source $ZDOTDIR/.zprofile && source $ZDOTDIR/.zshenv && source $ZDOTDIR/.zshrc"
+alias reload="source $ZDOTDIR/.zshenv && source $ZDOTDIR/.zprofile && source $ZDOTDIR/.zshrc"
+# alias reload="$(exec zsh)"
 
 rm_cores() {
     if [[  "$PWD" != "$HOME" ]]; then
@@ -312,6 +315,7 @@ alias gmwps='git push origin $(get_current_branch) --set-upstream -o merge_reque
 alias lg=lazygit
 alias lzd=lazydocker
 alias vim=nvim
+alias grep="grep --color=auto"
 alias nvmc="NVIM_APPNAME=nvim-macro nvim"
 alias vi=vim
 alias bgr=batgrep

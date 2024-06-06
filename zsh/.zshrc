@@ -31,10 +31,11 @@ source ~/.config/zsh/znap/znap.zsh # Start Znap
 
 #  NOTE: 2023-09-29 - Need this exported early because of the
 # helper functions used
-export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
-for file in $ZDOTDIR_HELPERS/*.zsh; do
+export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
+for file in $ZSH_DOT_DIR_HELPERS/*.zsh; do
     [[ -r "$file" && -f "$file" ]] && source "$file"
 done
+
 # unset file
 
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
@@ -90,17 +91,13 @@ function zvm_after_init() {
     source $(brew --prefix)/opt/fzf/shell/completion.zsh
     source $(brew --prefix)/opt/fzf/shell/key-bindings.zsh
     fpath+=("$(brew --prefix)/share/zsh/site-functions")
+
     znap source hlissner/zsh-autopair
     autopair-init
     znap source Aloxaf/fzf-tab
     # znap source zsh-users/zsh-syntax-highlighting
     znap source zsh-users/zsh-completions
     znap source zsh-users/zsh-autosuggestions
-
-    # start a prompt called starship
-    # if has starship; then
-    #     eval "$(starship init zsh)"
-    # fi
 
     # ZNAP source all the plugins
     znap source zdharma-continuum/fast-syntax-highlighting
@@ -161,3 +158,9 @@ if has zoxide; then
 fi
 
 export PATH="$HOME/.local/bin/":$PATH
+
+# start a prompt called starship
+# if has starship; then
+#     eval "$(starship init zsh)"
+# fi
+

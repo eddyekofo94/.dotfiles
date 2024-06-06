@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 # shellcheck shell=bash
+echo "funcs.zsh"
 
 function mixx() {
     mix $(mix help --names | fzf --delimiter=' ' --preview 'mix help {}' --reverse)
@@ -45,13 +46,6 @@ function shutdown() {
     sudo shutdown -h now
 }
 
-# function greeting_message() {
-#   e_success "$(whoami)@$(hostname)"
-#   e_success "os: $(sw_vers -productName)$(sw_vers -productVersion), build version: $(sw_vers -buildVersion)"
-#   e_success "shell: $(zsh --version)"
-#   e_success "term: $TERM"
-#   e_success "uptime: $(uptime | sed 's/.*up \([^,]*\), .*/\1/')"
-# }
 
 ## -- [FZF] --------------------------------------------------------------------
 # Open fzf in tmux popup

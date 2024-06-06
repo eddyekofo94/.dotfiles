@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 
+echo "fzf.zsh"
+
 #  NOTE: 2023-09-28 - This is needed when loading fzf file
 has() {
     type "$1" &>/dev/null
@@ -113,4 +115,3 @@ _fzf_comprun() {
     esac
 }
 
-source "$ZDOTDIR/plugins/fzf_functions.zsh"

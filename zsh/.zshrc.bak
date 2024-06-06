@@ -29,8 +29,8 @@ setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
 
 #  NOTE: 2023-09-29 - Need this exported early because of the
 # helper functions used
-export ZDOTDIR_HELPERS="$ZDOTDIR/helpers"
-for file in $ZDOTDIR_HELPERS/*.zsh; do
+export DOTFILES_DIR_HELPERS="$ZDOTDIR/helpers"
+for file in $DOTFILES_DIR_HELPERS/*.zsh; do
     [[ -r "$file" && -f "$file" ]] && source "$file"
 done
 # unset file
@@ -80,11 +80,6 @@ function zvm_after_init() {
     znap source hlissner/zsh-autopair
     autopair-init
 
-    # start a prompt called starship
-    if has starship; then
-        eval "$(starship init zsh)"
-    fi
-
     # ZNAP source all the plugins
     znap source zdharma-continuum/fast-syntax-highlighting
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
@@ -100,3 +95,8 @@ if has bat; then
 fi
 
 export PATH="$HOME/.local/bin/":$PATH
+
+# start a prompt called starship
+if has starship; then
+    eval "$(starship init zsh)"
+fi
