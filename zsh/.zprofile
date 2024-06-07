@@ -15,9 +15,14 @@ if [[ ! -d $DOTFILES_DIR ]]; then
         echo "Creating a new ZDOTDIR: $ZDOTDIR"
         mkdir $ZDOTDIR
     fi
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.config/zsh/.zshrc
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.config/zsh/zshenv
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.config/zsh/.zprofile
+
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.zshenv
+ 	ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
+fi
+
+if [[ ! -f ~/.zshrc ]]; then
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
 fi
 
 # Identify the path of the 'brew' command if cannot already be found

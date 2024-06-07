@@ -80,7 +80,7 @@ export FZF_CTRL_R_OPTS="
 --ansi
 --reverse
 --extended
---preview 'echo {}' --preview-window up:3:wrap
+--preview 'echo {}' --preview-window down:3:wrap
 --bind 'ctrl-/:toggle-preview'
 --bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
 --color header:italic"
