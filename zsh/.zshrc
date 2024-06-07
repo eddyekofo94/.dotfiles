@@ -1,26 +1,14 @@
-# INFO: This is a working progress
-# You can set that the files are in the .dotfiles dir
-# this will remove the need to symlink them
-# $ZDOTDIR/.zshenv #  Should only contain user’s environment variables.
-# $ZDOTDIR/.zprofile # Can be used to execute commands just after logging in.
-# $ZDOTDIR/.zshrc # Should be used for the shell configuration and for executing commands.
-# $ZDOTDIR/.zlogin # Same purpose than .zprofile, but read just after .zshrc
-# $ZDOTDIR/.zlogout # Can be used to execute commands when a shell exit.
+# [ -f "$HOME/.local/share/zap/zap.zsh" ] && source "$HOME/.local/share/zap/zap.zsh"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
+export DOTFILES_DIR="$HOME/.dotfiles"
+
+# Main change, you can see directories on a dark background
+export CLICOLOR=1
 
 has() {
     type "$1" &>/dev/null
 }
-
-if has zellij; then
-    eval "$(zellij setup --generate-auto-start zsh)"
-fi
-
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.dotfiles/zsh/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
 
 # Download Znap, if it's not there yet.
 [[ -r ~/.config/zsh/znap/znap.zsh ]] ||
@@ -29,50 +17,61 @@ git clone --depth 1 -- \
 
 source ~/.config/zsh/znap/znap.zsh # Start Znap
 
-#  NOTE: 2023-09-29 - Need this exported early because of the
-# helper functions used
-export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
-for file in $ZSH_DOT_DIR_HELPERS/*.zsh; do
-    [[ -r "$file" && -f "$file" ]] && source "$file"
-done
+if has zellij; then
+    eval "$(zellij setup --generate-auto-start zsh)"
+fi
 
-# unset file
+# Initialize colors.
+autoload -U colors; colors
 
-# NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
-bindkey -M viins '\e.' insert-last-word
+# LS colors using Vivid installed using Cargo
+if has vivid; then
+	export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
+fi
 
-# ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
-# [ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"
-# [ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
-#
-# source "${ZINIT_HOME}/zinit.zsh"
+# Zoxide
+if has zoxide; then
+    eval "$(zoxide init --cmd cd zsh)"
+fi
 
-# Add in Powerlevel10k
-znap source romkatv/powerlevel10k
+if has bat; then
+    alias cat='bat -pp'
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+fi
 
+# history
+source ~/.dotfiles/zsh/history.zsh
+
+source $ZSH_DOT_DIR_HELPERS/aliases.zsh
+source $ZSH_DOT_DIR_HELPERS/funcs.zsh
+source $ZSH_DOT_DIR_HELPERS/helpers.zsh
+source $ZSH_DOT_DIR_HELPERS/fzf.zsh
+source $ZSH_DOT_DIR_HELPERS/fzf_functions.zsh
+
+# plugins
+znap source  esc/conda-zsh-completion
+znap source  zsh-users/zsh-autosuggestions
+# znap source  hlissner/zsh-autopair
+znap source  zap-zsh/supercharge
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
-
-# To customize prompt, run `p10k configure` or edit ~/.dotfiles/zsh/.p10k.zsh.
-[[ ! -f ~/.dotfiles/zsh/.p10k.zsh ]] || source ~/.dotfiles/zsh/.p10k.zsh
-
+znap source  zap-zsh/vim
+# znap source bigH/git-fuzzy
+znap clone https://github.com/bigH/git-fuzzy.git
+# add the executable to your path
+export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 # Add in zsh plugins
 #  INFO: 2024-02-26 11:34 AM - aliases expand plugin
 export ZPWR_EXPAND_BLACKLIST=(tree ls cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
+# znap source  zap-zsh/zap-prompt
+# plug "zap-zsh/atmachine"
+znap source  zap-zsh/fzf
+znap source  zsh-users/zsh-history-substring-search
 
-# znap source bigH/git-fuzzy
-znap clone https://github.com/bigH/git-fuzzy.git
-
-# add the executable to your path
-export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
-
-#  REF: 2023-09-28 - https://github.com/zsh-users/zsh-history-substring-search
-znap source zsh-users/zsh-history-substring-search
-
-znap source mehalter/zsh-nvim-appname
+znap source MichaelAquilina/zsh-you-should-use
 
 function zvm_config() {
     # Start in insert mode
@@ -85,7 +84,6 @@ function zvm_config() {
 
 function zvm_after_init() {
     # # NOTE:  FZF has to be here for it to be instanstiated
-    # [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
     # Set up fzf key bindings and fuzzy completion
     source <(fzf --zsh)
     source $(brew --prefix)/opt/fzf/shell/completion.zsh
@@ -105,28 +103,23 @@ function zvm_after_init() {
     znap source MenkeTechnologies/zsh-expand
 }
 
-# `znap prompt` also supports Oh-My-Zsh themes. Just make sure you load the
-# required libs first:
-znap source ohmyzsh/ohmyzsh lib/git
-
 znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found,fzf}
 
 # Add vim-mode
 znap source "jeffreytse/zsh-vi-mode"
 
-# Load completions
-autoload -Uz compinit && compinit
+# keybinds
+bindkey '^ ' autosuggest-accept
 
-# Keybindings
-bindkey -e
-bindkey '^p' history-search-backward
-bindkey '^n' history-search-forward
-bindkey '^[w' kill-region
+# NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
+bindkey -M viins '\e.' insert-last-word
 
-# History
-source ~/.dotfiles/zsh/history.zsh
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
 
-#  INFO: 2024-06-04 - From old .zshrc
+bindkey -M vicmd 'k' history-substring-search-up
+bindkey -M vicmd 'j' history-substring-search-down
+
 autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
@@ -147,20 +140,12 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 # switch group using `<` and `>`
 zstyle ':fzf-tab:*' switch-group '<' '>'
-
-if has bat; then
-    alias cat='bat -pp'
-fi
-
-# Zoxide
-if has zoxide; then
-    eval "$(zoxide init --cmd cd zsh)"
-fi
+# Load completions
+autoload -Uz compinit && compinit
 
 export PATH="$HOME/.local/bin/":$PATH
 
 # start a prompt called starship
-# if has starship; then
-#     eval "$(starship init zsh)"
-# fi
-
+if has starship; then
+    eval "$(starship init zsh)"
+fi

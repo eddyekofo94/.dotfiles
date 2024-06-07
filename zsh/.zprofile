@@ -1,4 +1,8 @@
 DOTFILES_DIR="$HOME/.dotfiles"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
+export DOTFILES_DIR="$HOME/.dotfiles"
+
 if [[ ! -d $DOTFILES_DIR ]]; then
     echo "Creating a new dotfiles $DOTFILES_DIR"
     if [[ -d /workspace/.dotfiles ]]; then
@@ -7,17 +11,13 @@ if [[ ! -d $DOTFILES_DIR ]]; then
         git clone https://github.com/eddyekofo94/.dotfiles.git $DOTFILES_DIR
     fi
 
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.zshenv
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
-fi
-
-export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
-export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
-export DOTFILES_DIR="$HOME/.dotfiles"
-
-if [[ ! -f ~/.zshrc ]]; then
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
+    if [[ ! -d $ZDOTDIR ]]; then
+        echo "Creating a new ZDOTDIR: $ZDOTDIR"
+        mkdir $ZDOTDIR
+    fi
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.config/zsh/.zshrc
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.config/zsh/zshenv
+    ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.config/zsh/.zprofile
 fi
 
 # Identify the path of the 'brew' command if cannot already be found
@@ -62,22 +62,6 @@ if (( $+commands[brew] )); then
         compinit
     fi
 fi
-
-# CARGO_DIR="$HOME/.cargo"
-# if [[ -d $CARGO_DIR ]]; then
-#     . "$HOME/.cargo/env"
-# else
-#     echo "Cargo needs to be installed: "
-#     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
-#
-#     DOTFILES_DIR_RUST="$DOTFILES_DIR/rust/"
-#     if [[ -d $DOTFILES_DIR_RUST ]]; then
-#         source "$HOME/.cargo/env"
-#         sudo yum update # This is for just incase there are packages which need to be updated
-#         cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install && cd $HOME || exit
-#     fi
-# fi
-
 
 if (( ! $+commands[cargo] )); then
     echo "Cargo needs to be installed: "

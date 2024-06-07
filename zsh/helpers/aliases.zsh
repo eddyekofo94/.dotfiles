@@ -2,7 +2,6 @@
 # -------------------------------------------------------------------
 # make some commands (potentially) less destructive
 # -------------------------------------------------------------------
-echo "aliases.zsh"
 
 get_default_branch(){
     git branch -l master main | sed -r 's/^[* ] //' | head -n 1
@@ -33,11 +32,10 @@ alias lh='ls -a | egrep "^\."'
 
 # Different sets of LS aliases because Gnu LS and macOS LS use different
 # exa (which I have used for a longtime is currently not maintained, therefore eza is now used)
-# INFO: https://github.com/ogham/exa/issues/1243
-# flags for colors.  Also, prefer gem colorls or eza when available.
 
 if eza --icons &>/dev/null; then
 	alias ls='eza --git --icons auto' # system: List filenames on one line
+    # alias ls='eza --git --group-directories-first --icons'
 	# alias l='eza --git --icons -lF'                          # system: List filenames with long format
 	alias l="eza --git --group-directories-first --long --icons --header --binary --group"
 	alias ll='eza -lahF --git --icons auto'                        # system: List all files
@@ -45,20 +43,21 @@ if eza --icons &>/dev/null; then
 	alias llm='ll --sort=modified'                                # system: List files by last modified date
 	alias la='eza -lbhHigUmuSa --color-scale --git --icons auto'  # system: List files with attributes
 	alias lx='eza -lbhHigUmuSa@ --color-scale --git --icons auto' # system: List files with extended attributes
-	alias lt='eza --tree --level=2'                               # system: List files in a tree view
-	alias llt='eza -lahF --tree --level=2'                        # system: List files in a tree view with long format
-	alias ltt='eza -lahF | grep "$(date +"%d %b")"'               # system: List files modified today
+	alias lt='eza --tree --level=2 --icon auto'                               # system: List files in a tree view
+	alias llt='eza -lahF --tree --level=2 --icon auto'                        # system: List files in a tree view with long format
+	alias ltt='eza -lahF --icons auto | grep "$(date +"%d %b")"'               # system: List files modified today
 	alias tree='eza --tree $eza_params --icons auto'
 elif command -v eza &>/dev/null; then
-	alias ls='eza --git'
-	alias l='eza --git -lF'
-	alias ll='eza -lahF --git'
-	alias lll="eza -1F --git"
-	alias llm='ll --sort=modified'
+    # alias ls='eza --group-directories-first --icons'
+	alias ls='eza --git --icons auto'
+	alias l='eza --git -lF --icons auto'
+	alias ll='eza -lahF --git --icons auto'
+	alias lll="eza -1F --git --icons auto"
+	alias llm='ll --sort=modified --icons auto'
 	alias la='eza -lbhHigUmuSa --color-scale --git'
 	alias lx='eza -lbhHigUmuSa@ --color-scale --git'
-	alias lt='eza --tree --level=2'
-	alias llt='eza -lahF --tree --level=2'
+	alias lt='eza --tree --level=2 --icons auto'
+	alias llt='eza -lahF --tree --level=2 --icons auto'
 	alias ltt='eza -lahF | grep "$(date +"%d %b")"'
 	alias tree='eza --tree $eza_params --icons auto'
 elif command -v colorls &>/dev/null; then
@@ -75,7 +74,6 @@ else
     alias ll='ls -FGlAhpv'
     alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 fi
-
 
 alias ..="cd .."
 alias ...="cd ../.."

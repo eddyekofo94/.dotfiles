@@ -1,6 +1,4 @@
 #!/usr/bin/env zsh
-echo "helpers.zsh"
-
 # shellcheck shell=bash
 
 #set -euo pipefail

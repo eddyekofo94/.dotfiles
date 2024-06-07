@@ -1,6 +1,5 @@
 #!/usr/bin/env zsh
 # shellcheck shell=bash
-echo "funcs.zsh"
 
 function mixx() {
     mix $(mix help --names | fzf --delimiter=' ' --preview 'mix help {}' --reverse)
@@ -324,6 +323,7 @@ fgb() {
 }
 
 # fuzzy grep via rg and open in vim with line number
+# NOTE: 2024-06-07 - this seems to not work as expected
 fgr() {
     local file
     local line

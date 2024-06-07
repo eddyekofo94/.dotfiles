@@ -1,5 +1,4 @@
 #!/usr/bin/env zsh
-echo "fzf_functions.zsh"
 
 _fzf_compgen_path() {
     rg --files --glob "!.git" . "$1"
