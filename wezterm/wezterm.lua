@@ -1,7 +1,7 @@
 local wezterm = require("wezterm")
 local config = {}
 
---[=====[ 
+--[=====[
 
  https://wezfurlong.org/wezterm/faq.html#how-do-i-enable-undercurl-curly-underlines
   INFO: 2023-12-05 15:12 PM - To add undercurls in wezterm
@@ -25,12 +25,13 @@ end)
 
 if wezterm.target_triple == 'x86_64-apple-darwin' then
     config.font_size = 19 -- depends on monitor size
-    config.font = wezterm.font {
-        family = "Delugia",
-        weight = 'Regular',
-        stretch = 'Normal',
-        style = 'Normal',
-    }
+    -- NOTE: removed, using default font
+    -- config.font = wezterm.font {
+    --     family = "Delugia",
+    --     weight = 'Regular',
+    --     stretch = 'Normal',
+    --     style = 'Normal',
+    -- }
 elseif wezterm.target_triple == 'x86_64-pc-windows-msvc' then
     -- TODO: add powershell as default
     config.default_prog = { 'powershell.exe', '-NoLogo' }
