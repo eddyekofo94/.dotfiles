@@ -6,7 +6,7 @@ export DOTFILES_DIR="$HOME/.dotfiles"
 if [[ ! -d $DOTFILES_DIR ]]; then
     echo "Creating a new dotfiles $DOTFILES_DIR"
     if [[ -d /workspace/.dotfiles ]]; then
-        ln -s /workspace/.dotfiles /home/$(whoami)/.dotfiles
+        ln -s /workspace/.dotfiles ~/.dotfiles
     else
         git clone https://github.com/eddyekofo94/.dotfiles.git $DOTFILES_DIR
     fi
@@ -16,13 +16,17 @@ if [[ ! -d $DOTFILES_DIR ]]; then
         mkdir $ZDOTDIR
     fi
 
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshenv /home/$(whoami)/.zshenv
- 	ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zprofile /home/$(whoami)/.zprofile
+    ln -s ~/.dotfiles/zsh/.zshenv ~/.zshenv
+    ln -s ~/.dotfiles/zsh/.zshrc ~/.zshrc
+    ln -s ~/.dotfiles/zsh/.zprofile ~/.zprofile
 fi
 
 if [[ ! -f ~/.zshrc ]]; then
-    ln -s /home/$(whoami)/.dotfiles/zsh/.zshrc /home/$(whoami)/.zshrc
+    ln -s ~/.dotfiles/zsh/.zshrc ~/.zshrc
+fi
+
+if [[ ! -f $ZDOTDIR/.zshrc ]]; then
+    ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
 fi
 
 # Identify the path of the 'brew' command if cannot already be found
@@ -81,7 +85,7 @@ if (( ! $+commands[cargo] )); then
 fi
 
 if [[ ! -f $XDG_CONFIG_HOME/starship.toml ]]; then
-    ln -s /home/$(whoami)/.dotfiles/starship/starship.toml /home/$(whoami)/.config/starship.toml
+    ln -s ~/.dotfiles/starship/starship.toml ~/.config/starship.toml
 fi
 
 # Download Znap, if it's not there yet.
@@ -108,16 +112,16 @@ LAZYGIT_DIR="$HOME/.config/lazygit"
 if [[ -d "$LAZYGIT_DIR" ]]; then
     if [[ ! -f ~/.config/lazygit/config.yml ]]; then
         echo "setting up personal lazygit..."
-        ln -s /home/$(whoami)/.dotfiles/lazygit/config.yml /home/$(whoami)/.config/lazygit/config.yml
+        ln -s ~/.dotfiles/lazygit/config.yml ~/.config/lazygit/config.yml
     fi
 fi
 
 if [[ ! -d $XDG_CONFIG_HOME/fsh ]]; then
-    ln -s /home/$(whoami)/.dotfiles/fsh /home/$(whoami)/.config/fsh
+    ln -s ~/.dotfiles/fsh ~/.config/fsh
 fi
 
 if [[ ! -d $XDG_CONFIG_HOME/zellij ]]; then
-    ln -s /home/$(whoami)/.dotfiles/zellij /home/$(whoami)/.config/zellij
+    ln -s ~/.dotfiles/zellij ~/.config/zellij
 fi
 
 if [[ ! -f "$HOME/.terminfo/w/wezterm" ]]; then

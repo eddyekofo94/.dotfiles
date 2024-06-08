@@ -17,9 +17,6 @@ git clone --depth 1 -- \
 
 source ~/.config/zsh/znap/znap.zsh # Start Znap
 
-if has zellij; then
-    eval "$(zellij setup --generate-auto-start zsh)"
-fi
 
 # Initialize colors.
 autoload -U colors; colors
@@ -145,7 +142,13 @@ autoload -Uz compinit && compinit
 
 export PATH="$HOME/.local/bin/":$PATH
 
+export PATH="/usr/local/opt/curl/bin:$PATH"
+
 # start a prompt called starship
 if has starship; then
     eval "$(starship init zsh)"
+fi
+
+if has zellij; then
+    eval "$(zellij setup --generate-auto-start zsh)"
 fi
