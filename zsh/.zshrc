@@ -90,16 +90,14 @@ function zvm_after_init() {
     znap source hlissner/zsh-autopair
     autopair-init
     znap source Aloxaf/fzf-tab
-    # znap source zsh-users/zsh-syntax-highlighting
     znap source zsh-users/zsh-completions
     znap source zsh-users/zsh-autosuggestions
 
-    # ZNAP source all the plugins
-    znap source zdharma-continuum/fast-syntax-highlighting
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
 }
 
+znap source zsh-users/zsh-syntax-highlighting
 znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found,fzf}
 
 # Add vim-mode
