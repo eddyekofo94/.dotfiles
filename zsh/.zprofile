@@ -29,6 +29,10 @@ if [[ ! -f $ZDOTDIR/.zshrc ]]; then
     ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
 fi
 
+if [[ ! -f $ZDOTDIR/.zshrc ]]; then
+    ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
+fi
+
 if (( ! $+commands[brew] )); then
 	echo "You may be asked for your sudo password to install Homebrew:"
 	sudo -v

@@ -93,8 +93,8 @@ rm_cores() {
             rm $(fd -I "core.[0-9]+")
         else
             echo "using $(which find)"
-            find . -name 'core.*'
-            rm -i $(find . -name 'core.*')
+            find . -name 'core.[0-9][0-9][0-9][0-9]'
+            rm -i $(find . -name 'core.[0-9][0-9][0-9][0-9]')
         fi
     else
         echo "You cannot do this in the $HOME direction"
