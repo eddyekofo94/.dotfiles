@@ -29,7 +29,6 @@ if [[ ! -f $ZDOTDIR/.zshrc ]]; then
     ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
 fi
 
-# Identify the path of the 'brew' command if cannot already be found
 if (( ! $+commands[brew] )); then
 	echo "You may be asked for your sudo password to install Homebrew:"
 	sudo -v

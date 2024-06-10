@@ -44,6 +44,7 @@ source $ZSH_DOT_DIR_HELPERS/funcs.zsh
 source $ZSH_DOT_DIR_HELPERS/helpers.zsh
 source $ZSH_DOT_DIR_HELPERS/fzf.zsh
 source $ZSH_DOT_DIR_HELPERS/fzf_functions.zsh
+source $ZSH_DOT_DIR/extras/fzf-extras.sh
 
 # plugins
 znap source  esc/conda-zsh-completion
@@ -65,8 +66,10 @@ export ZPWR_EXPAND_BLACKLIST=(tree ls cat cd ll la l g z gss)
 export ZPWR_CORRECT=false
 # znap source  zap-zsh/zap-prompt
 # plug "zap-zsh/atmachine"
-znap source  zap-zsh/fzf
-znap source  zsh-users/zsh-history-substring-search
+znap source zap-zsh/fzf
+znap source zsh-users/zsh-history-substring-search
+
+# znap source marlonrichert/zsh-autocomplete
 
 znap source MichaelAquilina/zsh-you-should-use
 
@@ -79,6 +82,12 @@ function zvm_config() {
     # The plugin will auto execute this zvm_after_init function
 }
 
+function zvm_init ()
+{
+    autoload add-zle-hook-widget
+    add-zle-hook-widget zle-line-pre-redraw zvm_zle-line-pre-redraw
+}
+
 function zvm_after_init() {
     # # NOTE:  FZF has to be here for it to be instanstiated
     # Set up fzf key bindings and fuzzy completion
@@ -89,15 +98,16 @@ function zvm_after_init() {
 
     znap source hlissner/zsh-autopair
     autopair-init
-    znap source Aloxaf/fzf-tab
+    znap source zsh-users/zsh-syntax-highlighting
     znap source zsh-users/zsh-completions
     znap source zsh-users/zsh-autosuggestions
 
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
+    znap source Aloxaf/fzf-tab
 }
 
-znap source zsh-users/zsh-syntax-highlighting
+znap source ohmyzsh/ohmyzsh lib/{git,completion}
 znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found,fzf}
 
 # Add vim-mode
@@ -133,6 +143,8 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:accept' 'ctrl-a:toggle-all'
+
 # switch group using `<` and `>`
 zstyle ':fzf-tab:*' switch-group '<' '>'
 # Load completions

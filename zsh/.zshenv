@@ -77,7 +77,7 @@ export KEYTIMEOUT=1
 export CLICOLOR=1
 
 # autosuggest
-export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
+# export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
 export ZSH_AUTOSUGGEST_USE_ASYNC=1
 
 #  INFO: 2023-09-26 - This is my history config
