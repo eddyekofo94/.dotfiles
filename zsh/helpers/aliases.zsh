@@ -43,10 +43,10 @@ if eza --icons &>/dev/null; then
 	alias llm='ll --sort=modified'                                # system: List files by last modified date
 	alias la='eza -lbhHigUmuSa --color-scale --git --icons auto'  # system: List files with attributes
 	alias lx='eza -lbhHigUmuSa@ --color-scale --git --icons auto' # system: List files with extended attributes
-	alias lt='eza --tree --level=2 --icon auto'                               # system: List files in a tree view
-	alias llt='eza -lahF --tree --level=2 --icon auto'                        # system: List files in a tree view with long format
+	alias lt='eza --tree --level=2'                               # system: List files in a tree view
+	alias llt='eza -lahF --tree --level=2'                        # system: List files in a tree view with long format
 	alias ltt='eza -lahF --icons auto | grep "$(date +"%d %b")"'               # system: List files modified today
-	alias tree='eza --tree $eza_params --icons auto'
+	alias tree='eza --tree $eza_params'
 elif command -v eza &>/dev/null; then
     # alias ls='eza --group-directories-first --icons'
 	alias ls='eza --git --icons auto'
@@ -56,10 +56,10 @@ elif command -v eza &>/dev/null; then
 	alias llm='ll --sort=modified --icons auto'
 	alias la='eza -lbhHigUmuSa --color-scale --git'
 	alias lx='eza -lbhHigUmuSa@ --color-scale --git'
-	alias lt='eza --tree --level=2 --icons auto'
-	alias llt='eza -lahF --tree --level=2 --icons auto'
+	alias lt='eza --tree --level=2'
+	alias llt='eza -lahF --tree --level=2'
 	alias ltt='eza -lahF | grep "$(date +"%d %b")"'
-	alias tree='eza --tree $eza_params --icons auto'
+	alias tree='eza --tree $eza_params'
 elif command -v colorls &>/dev/null; then
     alias ll="colorls -1A --git-status"
     alias ls="colorls -A"

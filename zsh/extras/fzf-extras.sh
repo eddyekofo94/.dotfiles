@@ -106,11 +106,12 @@ zdf() {
 }
 
 # zz - selectable cd to frecency directory
+# TODO: remove fasd
 zz() {
   local dir
 
   dir="$(
-    fasd -dl \
+    zoxide query -l \
       | fzf \
           --tac \
           --reverse \
@@ -186,32 +187,6 @@ EOF
 # file
 # -----------------------------------------------------------------------------
 
-# e - open 'frecency' files in $VISUAL editor
-e() {
-  local IFS=$'\n'
-  local files=()
-
-  files=(
-  "$(
-    fasd -fl \
-      | fzf \
-          --tac \
-          --reverse -1 \
-          --no-sort \
-          --multi \
-          --tiebreak=index \
-          --bind=ctrl-x:toggle-sort \
-          --query "$*" \
-          --preview="${FZF_PREVIEW_CMD}" \
-          --preview-window='right:hidden:wrap' \
-          --bind=ctrl-v:toggle-preview \
-          --bind=ctrl-x:toggle-sort \
-          --header='(view:ctrl-v) (sort:ctrl-x)' \
-      )"
-  ) || return
-
-  "${EDITOR:-vim}" "${files[@]}"
-}
 
 # fe [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
@@ -263,6 +238,7 @@ fo() {
 }
 
 # v - open files in ~/.viminfo
+#  INFO: 2024-06-13 - fix this some day?
 v() {
   local files
   files="$(
@@ -276,7 +252,26 @@ v() {
   "${EDITOR:-vim}" "${files/\~/$HOME}"
 }
 
+#  NOTE: 2024-06-13 - This searches the environment variables
+en() {
+  local envs
+  envs="$(env | fzf +m \
+                  --preview 'echo {}' --preview-window down:3:wrap \
+                  )"
 
+  echo "${envs}"
+}
+
+#  NOTE: 2024-06-13 - This openes specific NVIM files for editing
+nvfiles() {
+    local file=$(
+     cd $NVIM_DIR; fd | fzf --query="$1" --no-multi --select-1 --exit-0
+    )
+
+    if [[ -n "$file" ]]; then
+        $EDITOR "$file"
+    fi
+}
 # -----------------------------------------------------------------------------
 # git
 # -----------------------------------------------------------------------------

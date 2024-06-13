@@ -281,26 +281,50 @@ mcd() { mkdir -p $1 && cd $1 }
 alias cdm=mcd
 cdf() { cd *$1*/ } # stolen from @topfunky
 
-# Codi
-# Usage: codi [filetype] [filename]
-codi() {
-    local syntax="${1:-elixir}"
-    shift
-    nvim -c \
-        "let g:startify_disable_at_vimenter = 1 |\
-    set bt=nofile ls=0 noru nonu nornu |\
-    hi CodiVirtualText guifg=red
-      hi ColorColumn ctermbg=NONE |\
-        hi VertSplit ctermbg=NONE |\
-        hi NonText ctermfg=0 |\
-        Codi $syntax" "$@"
-}
-
 ## FZF FUNCTIONS ##
 
 # fo [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
 #   - Exit if there's no match (--exit-0)
+
+# e - open 'frecency' files in $VISUAL editor
+
+e() {
+  local IFS=$'\n'
+  local files=()
+
+  files=(
+  "$(
+    # fasd -fl \
+    zoxide query -l \
+      | fzf \
+          --tac \
+          --reverse -1 \
+          --no-sort \
+          --multi \
+          --tiebreak=index \
+          --bind=ctrl-x:toggle-sort \
+          --query "$*" \
+          --preview="${FZF_PREVIEW_CMD}" \
+          --preview-window='right:hidden:wrap' \
+          --bind=ctrl-v:toggle-preview \
+          --bind=ctrl-x:toggle-sort \
+          --header='(view:ctrl-v) (sort:ctrl-x)' \
+      )"
+  ) || return
+
+  "${EDITOR:-vim}" "${files[@]}"
+}
+
+# NOTE: 2024-06-13 - Opens recent files using zoxide
+o() {
+    local files=()
+
+    files=( "$(zoxide query -i)" ) || return
+
+    "${EDITOR:-vim}" "${files[@]}"
+}
+
 fo() {
     local files
     IFS=$'\n' files=($(fzf-tmux --query="$1" --multi --select-1 --exit-0))
