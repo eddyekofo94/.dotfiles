@@ -295,7 +295,6 @@ e() {
 
   files=(
   "$(
-    # fasd -fl \
     zoxide query -l \
       | fzf \
           --tac \
@@ -318,11 +317,12 @@ e() {
 
 # NOTE: 2024-06-13 - Opens recent files using zoxide
 o() {
-    local files=()
+    local IFS=$'\n'
+    local dirs=()
 
-    files=( "$(zoxide query -i)" ) || return
+    dirs=( "$(zoxide query -i "$1")" ) || return
 
-    "${EDITOR:-vim}" "${files[@]}"
+    "${EDITOR:-vim}" "${dirs[@]}"
 }
 
 fo() {
@@ -356,7 +356,7 @@ fgr() {
 
     if [[ -n $file ]]
     then
-        vim $file +$line
+        $EDITOR $file +$line
     fi
 }
 
