@@ -64,7 +64,7 @@ export FZF_CTRL_T_OPTS="--min-height 30
 _fzf_catppuccin() {
 export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS
   --color=bg+:#313244,spinner:#f5e0dc,hl:#f38ba8 \
-  --color=border:#6c7086 \
+  --color=border:#45475a \
   --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
   --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
     # bg:#1e1e2e,
