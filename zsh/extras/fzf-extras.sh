@@ -256,7 +256,7 @@ v() {
 en() {
   local envs
   envs="$(env | fzf +m \
-    							--query="$1" --no-multi --select-1 --exit-0 \
+                  --query="$1" --no-multi --select-1 --exit-0 \
                   --preview 'echo {}' --preview-window down:3:wrap \
                   )"
 
