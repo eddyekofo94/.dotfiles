@@ -88,6 +88,31 @@ fif() {
     rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
 }
 
+#  NOTE: 2024-06-14 - This finds a grep in a file then *cats* it
+fcat() {
+    if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+
+    local file
+    file="$( rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
+
+    if [[ -n $file ]]; then
+        echo "$file"
+        cat "$file"
+    fi
+}
+
+fbat() {
+    if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+
+    local file
+    file="$( rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
+
+    if [[ -n $file ]]; then
+        echo "$file"
+        bat "$file"
+    fi
+}
+
 # fco - checkout git branch/tag
 fco() {
     local tags branches target
@@ -226,4 +251,15 @@ bup() {
         for prog in $(echo $upd);
         do; brew upgrade $prog; done;
     fi
+}
+
+fzf_alias() {
+    local selection
+    selection="$(alias |
+                       sed 's/=/\t/' |
+                       column -s '	' -t |
+                       fzf --preview "echo {2..}" --query="$1" |
+                       awk '{ print $1 }')"
+    echo "${selection}"
+    "${selection}"
 }

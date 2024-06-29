@@ -60,10 +60,11 @@ znap clone https://github.com/bigH/git-fuzzy.git
 export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 # Add in zsh plugins
 #  INFO: 2024-02-26 11:34 AM - aliases expand plugin
-export ZPWR_EXPAND_BLACKLIST=(tree ls cat cd ll la l g z gss)
+export ZPWR_EXPAND_BLACKLIST=(fe tree ls cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
+
 # znap source  zap-zsh/zap-prompt
 # plug "zap-zsh/atmachine"
 znap source zap-zsh/fzf
@@ -105,10 +106,12 @@ function zvm_after_init() {
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
     znap source Aloxaf/fzf-tab
+
+    # znap source thirteen37/fzf-alias
 }
 
-znap source ohmyzsh/ohmyzsh lib/{git,completion}
-znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,command-not-found,fzf}
+znap source ohmyzsh/ohmyzsh lib/{git,completion,clipboard}
+znap source ohmyzsh/ohmyzsh plugins/{git,sudo,kubectl,kubectx,zsh-navigation-tools,command-not-found,fzf}
 
 # Add vim-mode
 znap source "jeffreytse/zsh-vi-mode"
@@ -129,6 +132,10 @@ autoload -Uz edit-command-line
 zle -N edit-command-line
 bindkey -M vicmd v edit-command-line
 setopt auto_cd       # cd by typing directory name if it's not a command
+setopt auto_pushd
+setopt pushd_ignore_dups
+setopt pushdminus
+
 setopt correct_all   # autocorrect commands
 setopt auto_list     # automatically list choices on ambiguous completion
 setopt auto_menu     # automatically use menu completion

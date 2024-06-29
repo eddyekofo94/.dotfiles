@@ -266,7 +266,7 @@ en() {
 #  NOTE: 2024-06-13 - This openes specific NVIM files for editing
 nvfiles() {
     local file=$(
-     cd $NVIM_DIR; fzf --query="$1" --no-multi --select-1 --exit-0 # rg --files |
+        cd $NVIM_DIR; fzf --query="$1" --no-multi --select-1 --exit-0 # rg --files |
     )
 
     if [[ -n "$file" ]]; then

@@ -18,7 +18,14 @@ alias cp='cp -i'
 
 alias chmox='chmod +x'
 
+## super user alias
+alias _='sudo '
+
 alias 'mkdir=mkdir -p'
+
+alias md='mkdir -p'
+alias rd=rmdir
+
 # Typing errors...
 alias 'cd..= cd ..'
 
@@ -75,10 +82,10 @@ else
     alias ltt='ls -FlAhpv| grep "$(date +"%d %b")"'
 fi
 
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....='../../..'
-alias .....='../../../..'
+alias -g ..="cd .."
+alias -g ...="cd ../.."
+alias -g ....='../../..'
+alias -g .....='../../../..'
 alias g=git
 alias zconf="$EDITOR $ZSH_DOT_DIR/.zshrc"
 alias nconf="$EDITOR $NVIM_DIR"
@@ -89,8 +96,8 @@ rm_cores() {
     if [[  "$PWD" != "$HOME" ]]; then
         if (( $+commands[fd] )); then
             echo "$(which fd) is found"
-            fd -I "core.[0-9]+"
-            rm $(fd -I "core.[0-9]+")
+            fd -I "core.[0-9][0-9][0-9][0-9]"
+            rm $(fd -I "core.[0-9][0-9][0-9][0-9]")
         else
             echo "using $(which find)"
             find . -name 'core.[0-9][0-9][0-9][0-9]'

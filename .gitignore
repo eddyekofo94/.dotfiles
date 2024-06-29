@@ -14,3 +14,5 @@ fish/fish_variables
 zsh/.zhistory
 zsh/.zcompdump
 **/*.zwc
+doit/build/**
+CMakeFile
