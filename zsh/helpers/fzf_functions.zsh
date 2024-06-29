@@ -93,11 +93,11 @@ fcat() {
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
 
     local file
-    file="$( rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
+    file="$( rg --files-with-matches --no-messages "$*" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
 
     if [[ -n $file ]]; then
         echo "$file"
-        cat "$file"
+        bat -pp "$file"
     fi
 }
 
@@ -105,7 +105,7 @@ fbat() {
     if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
 
     local file
-    file="$( rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
+    file="$( rg --files-with-matches --no-messages "$*" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}" )"
 
     if [[ -n $file ]]; then
         echo "$file"
