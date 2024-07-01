@@ -1,4 +1,6 @@
 # [ -f "$HOME/.local/share/zap/zap.zsh" ] && source "$HOME/.local/share/zap/zap.zsh"
+[[ -f "$ZSH_DOT_DIR_HELPERS/envs.zsh" ]] && source "$ZSH_DOT_DIR_HELPERS/envs.zsh"
+
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 export DOTFILES_DIR="$HOME/.dotfiles"
@@ -44,6 +46,7 @@ source $ZSH_DOT_DIR_HELPERS/funcs.zsh
 source $ZSH_DOT_DIR_HELPERS/helpers.zsh
 source $ZSH_DOT_DIR_HELPERS/fzf.zsh
 source $ZSH_DOT_DIR_HELPERS/fzf_functions.zsh
+source $ZSH_DOT_DIR_HELPERS/widgets.sh
 source $ZSH_DOT_DIR/extras/fzf-extras.sh
 
 # plugins
@@ -162,9 +165,19 @@ export PATH="$HOME/.local/bin/":$PATH
 export PATH="/usr/local/opt/curl/bin:$PATH"
 
 # start a prompt called starship
-if has starship; then
-    eval "$(starship init zsh)"
-fi
+# if has starship; then
+#     eval "$(starship init zsh)"
+# fi
+
+#  NOTE: 2024-06-17 - Trying this!
+# eval "$(oh-my-posh init zsh)"
+# eval "$(oh-my-posh init zsh --config $(brew --prefix oh-my-posh)/themes/pure.omp.json)"
+
+#  INFO: 2024-06-17
+# eval "$(oh-my-posh init zsh --config ~/.dotfiles/oh-my-posh/pure.omp.toml)"
+
+#  INFO: 2024-06-17 - This one
+eval "$(oh-my-posh init zsh --config ~/.dotfiles/oh-my-posh/sim-web.omp.toml)"
 
 if has zellij; then
     eval "$(zellij setup --generate-auto-start zsh)"

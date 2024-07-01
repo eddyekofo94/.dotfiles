@@ -64,6 +64,8 @@ fzf_change_directory() {
 }
 
 alias fcd='fzf_change_directory'
+#  TODO: 2024-07-01 - Add C-f keymap
+# bindkey -M '^[[f' fzf_change_directory
 
 # cdf - cd into the directory of the selected file
 cdf() {
@@ -215,7 +217,8 @@ fzf_git_add() {
                        fi'
     )
     if [[ -n $selections ]]; then
-        local additions=$(echo $selections | sed 's/M //g' | sed 's/?? //g')
+        # local additions=$(echo $selections | sed 's/M //g' | sed 's/?? //g')
+        local additions=$(echo $selections | cut -c4-)
         git add --verbose $additions
     fi
 }
@@ -261,5 +264,6 @@ fzf_alias() {
                        fzf --preview "echo {2..}" --query="$1" |
                        awk '{ print $1 }')"
     echo "${selection}"
-    "${selection}"
+    eval "${selection}"
 }
+

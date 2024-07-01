@@ -1,0 +1,86 @@
+#:schema https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json
+
+version = 2
+console_title_template = '{{ .Folder }}'
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'right'
+  overflow = 'hide'
+
+  [[blocks.segments]]
+    type = 'executiontime'
+    style = 'powerline'
+    foreground = 'yellow'
+    template = ' {{ .FormattedMs }}s '
+
+    [blocks.segments.properties]
+      style = 'dallas'
+      threshold = 0.0
+
+  [[blocks.segments]]
+    type = 'node'
+    style = 'powerline'
+    foreground = '#45bf17'
+    template = '  {{ .Full }} '
+
+  [[blocks.segments]]
+    type = 'go'
+    style = 'powerline'
+    foreground = '#519aba'
+    template = '  {{ .Full }} '
+
+  [[blocks.segments]]
+    type = 'npm'
+    style = 'powerline'
+    foreground = '#FE4A49'
+    template = '<#F3EFF5>and</>  {{ .Full }} '
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+  overflow = 'break'
+
+  [[blocks.segments]]
+    type = 'path'
+    style = 'powerline'
+    foreground = 'blue'
+    template = ' {{ .Path }} '
+
+    [blocks.segments.properties]
+      folder_icon = ''
+      folder_separator_icon = ' ❯ '
+      home_icon = 'home'
+      style = 'agnoster_full'
+
+  [[blocks.segments]]
+    type = 'git'
+    style = 'powerline'
+    foreground = 'black'
+    template = '{{ .UpstreamIcon }}{{ .HEAD }}{{if .BranchStatus }} {{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}<#FFAFD7>*</>{{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }} '
+
+    [blocks.segments.properties]
+      branch_icon = ' '
+
+[[blocks]]
+  type = 'prompt'
+  alignment = 'left'
+  newline = true
+
+  [[blocks.segments]]
+    type = 'status'
+    style = 'diamond'
+    foreground = 'green'
+    template = '<green>❯</>_: '
+
+    [blocks.segments.properties]
+      always_enabled = true
+
+[transient_prompt]
+  foreground_templates = [
+    "{{if gt .Code 0}}red{{end}}",
+    "{{if eq .Code 0}}magenta{{end}}",
+  ]
+  background = 'transparent'
+  template = '❯ '

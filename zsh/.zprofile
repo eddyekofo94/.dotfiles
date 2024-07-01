@@ -40,6 +40,7 @@ if (( ! $+commands[brew] )); then
     local DEFAULT_BREW_PATHS=("/opt/homebrew/bin/brew" \
             "/usr/local/bin/brew" \
             "/home/linuxbrew/.linuxbrew/bin/brew" \
+            "$HOME/homebrew/bin/brew" \
         "$HOME/.linuxbrew/bin/brew")
     for bp in "${DEFAULT_BREW_PATHS[@]}"; do
         if [ -x "$bp" ]; then
@@ -47,6 +48,12 @@ if (( ! $+commands[brew] )); then
             break
         fi
     done
+
+    #  INFO: 2024-06-19 - If you cannot install the traditional way do this
+    # mkdir homebrew && curl -L https://github.com/Homebrew/brew/tarball/master | tar xz --strip-components 1 -C homebrew
+    # eval "$(homebrew/bin/brew shellenv)"
+    # brew update --force --quiet
+    # chmod -R go-w "$(brew --prefix)/share/zsh"
 
     # If a path was found, setup the shell environment
     if [[ ! -z "$BREW_PATH" ]]; then
@@ -73,6 +80,23 @@ if (( $+commands[brew] )); then
         autoload -Uz compinit
         compinit
     fi
+fi
+
+#  NOTE: 2024-06-17 - Golang path set-up
+if command -v go &>/dev/null; then
+    export GOROOT=/usr/lib/go
+    export GOPATH=$HOME/go
+    export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+fi
+
+DOIT_DIR="$DOTFILES_DIR/doit"
+if (( ! $+commands[doitclient] )); then
+    cd "$DOIT_DIR"; echo "$DOIT_DIR"
+    chmod +x cmake_run.sh
+    ./cmake_run.sh -s
+    cd -
+
+    export PATH=$HOME/.dotfiles/doit/build:$PATH
 fi
 
 if (( ! $+commands[cargo] )); then

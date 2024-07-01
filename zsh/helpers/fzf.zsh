@@ -23,7 +23,7 @@ has() {
 
 export FZF_COMMON_OPTIONS="
 --inline-info
---height=70% --border --margin=1 --padding=1
+--height 96% --border --margin=1 --padding=1
 --select-1
 --ansi
 --reverse
@@ -34,24 +34,26 @@ export FZF_COMMON_OPTIONS="
 --bind=esc:abort
 --bind=ctrl-c:abort
 --bind=?:toggle-preview
---cycle
---preview-window=right:60%:wrap
 --preview='($FZF_PREVIEW_COMMAND)'
---border sharp
---pointer=▶
---marker=⇒
---prompt='∷ '
+--cycle
 --margin=0,0
 --padding=0,0
+--prompt='∷ '
 "
 
+# --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
+# --preview='($FZF_PREVIEW_COMMAND)'
+# --border sharp
+# --pointer=▶
+# --marker=⇒
+# --prompt='∷ '
 command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
 export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
 
 # export FZF_PREVIEW_COMMAND="([[ -d {} ]] && tree -C {}) || ([[ -f {} ]] && bat --style=full --color=always {}) || echo {}"
 export FZF_CTRL_T_OPTS="--min-height 30
---height=95% --border --margin=1 --padding=1
---preview-window right:60% --preview-window noborder --preview '($FZF_PREVIEW_COMMAND) 2> /dev/null'"
+--height 85%
+--preview-window noborder --preview '($FZF_PREVIEW_COMMAND) 2> /dev/null'"
 
 # alts: 󰛄
 # --bind=ctrl-f:page-down,ctrl-b:page-up
@@ -75,7 +77,7 @@ export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS
 export FZF_CTRL_R_OPTS="
 --header='command history (Press CTRL-y to copy command into clipboard)'
 --inline-info
---height=70% --border --margin=1 --padding=1
+--height=70%
 --select-1
 --ansi
 --reverse

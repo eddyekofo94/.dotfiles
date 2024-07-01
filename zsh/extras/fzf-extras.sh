@@ -113,7 +113,6 @@ zz() {
   dir="$(
     zoxide query -l \
       | fzf \
-          --tac \
           --reverse \
           --select-1 \
           --no-sort \
@@ -253,20 +252,21 @@ v() {
 }
 
 #  NOTE: 2024-06-13 - This searches the environment variables
-en() {
+fenv() {
   local envs
   envs="$(env | fzf +m \
                   --query="$1" --no-multi --select-1 --exit-0 \
                   --preview 'echo {}' --preview-window down:3:wrap \
                   )"
 
-  echo "${envs}"
+  echo "$(echo "$envs" | cut -d= -f2)"
+
 }
 
 #  NOTE: 2024-06-13 - This openes specific NVIM files for editing
 nvfiles() {
     local file=$(
-        cd $NVIM_DIR; fzf --query="$1" --no-multi --select-1 --exit-0 # rg --files |
+        cd "$NVIM_DIR" || exit; fzf --query="$1" --no-multi --select-1 --exit-0 || return # rg --files |
     )
 
     if [[ -n "$file" ]]; then
