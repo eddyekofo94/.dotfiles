@@ -5,6 +5,11 @@
 # handling the case where they are not explicitly defined, simplifying the code
 # in the rest of our configurations which use XDG.
 
+#  NOTE: 2024-07-02 - Check if the program exists
+has() {
+    type "$1" &>/dev/null
+}
+
 # Directory where user-specific configuration files should be stored.
 export XDG_CONFIG_HOME="$HOME/.config"
 

@@ -207,7 +207,6 @@ function fgstash() {
         fi
     done
 }
-alias fstash=fgstash
 
 # Test whether a given command exists
 # Adapted from http://stackoverflow.com/questions/592620/check-if-a-program-exists-from-a-bash-script/3931779#3931779
@@ -297,7 +296,6 @@ e() {
   "$(
     zoxide query -l \
       | fzf \
-          --tac \
           --reverse -1 \
           --no-sort \
           --multi \

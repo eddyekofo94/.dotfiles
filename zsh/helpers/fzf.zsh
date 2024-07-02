@@ -26,8 +26,10 @@ export FZF_COMMON_OPTIONS="
 --height 96% --border --margin=1 --padding=1
 --select-1
 --ansi
+--multi
 --reverse
 --extended
+--bind=ctrl-space:toggle
 --bind=ctrl-i:ignore,ctrl-k:ignore
 --bind=ctrl-j:down,ctrl-k:up
 --bind=ctrl-u:preview-up,ctrl-d:preview-down

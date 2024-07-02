@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+has() {
+    type "$1" &>/dev/null
+}
+
 # -----------------------------------------------------------------------------
 # directory
 # -----------------------------------------------------------------------------
@@ -128,6 +132,12 @@ zz() {
   )" || return
 
   cd "$dir" || return
+
+  if has eza; then
+    eza --git --group-directories-first --long --icons --header --binary --group --sort=modified
+  else
+    ls -al --color=auto
+  fi
 }
 
 # zd - cd into selected directory with options
@@ -190,7 +200,7 @@ EOF
 # fe [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
 #   - Exit if there's no match (--exit-0)
-fe() {
+fzf_find_fuzzy_open() {
   local IFS=$'\n'
   local files=()
   files=(
@@ -202,7 +212,7 @@ fe() {
           --preview="${FZF_PREVIEW_CMD}" \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
-          --bind=ctrl-x:toggle-sort \
+          --bind=ctrl-s:toggle-sort \
           --header='(view:ctrl-v) (sort:ctrl-x)'
     )"
   ) || return
@@ -569,7 +579,7 @@ fhe() {
 # -----------------------------------------------------------------------------
 
 # fkill - kill process
-fkill() {
+fkill_process() {
   local pid
 
   pid="$(

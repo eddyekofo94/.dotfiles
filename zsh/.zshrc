@@ -2,8 +2,8 @@
 [[ -f "$ZSH_DOT_DIR_HELPERS/envs.zsh" ]] && source "$ZSH_DOT_DIR_HELPERS/envs.zsh"
 
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
-export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 export DOTFILES_DIR="$HOME/.dotfiles"
+export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 
 # Main change, you can see directories on a dark background
 export CLICOLOR=1
@@ -21,7 +21,7 @@ source ~/.config/zsh/znap/znap.zsh # Start Znap
 
 
 # Initialize colors.
-autoload -U colors; colors
+autoload -Uz colors; colors
 
 # LS colors using Vivid installed using Cargo
 if has vivid; then
@@ -53,7 +53,6 @@ source $ZSH_DOT_DIR/extras/fzf-extras.sh
 znap source  esc/conda-zsh-completion
 znap source  zsh-users/zsh-autosuggestions
 # znap source  hlissner/zsh-autopair
-znap source  zap-zsh/supercharge
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
 znap source  zap-zsh/vim
@@ -122,6 +121,8 @@ znap source "jeffreytse/zsh-vi-mode"
 # keybinds
 bindkey '^ ' autosuggest-accept
 
+#  INFO: 2024-07-01 - Source zshrc file
+bindkey -s '^x' "^usource $ZSHRC\n"
 # NOTE: Alt+. fix: https://unix.stackexchange.com/a/696981/305857
 bindkey -M viins '\e.' insert-last-word
 
@@ -146,6 +147,7 @@ setopt always_to_end # move cursor to end if word had one match
 setopt no_beep                # silence all bells and beeps
 setopt prompt_subst           # allow expansion in prompts
 setopt NOCLOBBER # Don’t write over existing files with >, use >! instead
+setopt BANG_HIST                 # Treat the '!' character specially during expansion.
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'

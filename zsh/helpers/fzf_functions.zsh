@@ -1,7 +1,17 @@
 #!/usr/bin/env zsh
 
+has() {
+    type "$1" &>/dev/null
+}
+
 _fzf_compgen_path() {
     rg --files --glob "!.git" . "$1"
+}
+
+_fzf_git_status_git() {
+    git -c color.status=always status --short | \
+      fzf --ansi \
+        --preview '(git diff --color=always -- {-1} | sed 1,4d; bat --color=always {-1}) | head -500'
 }
 
 _fzf_compgen_dir() {
@@ -13,7 +23,7 @@ _fzf_comprun() {
     shift
 
     case "$command" in
-        tree)         find . -type d | fzf --preview 'tree -C {}' "$@" ;;
+        tree)         find . -type d | fzf --preview 'tree {}' "$@" ;;
         *)            fzf "$@" ;;
     esac
 }
@@ -60,6 +70,11 @@ fzf_change_directory() {
     )
     if [[ -n $directory ]]; then
         cd "$directory"
+        if has eza; then
+            eza --git --group-directories-first --long --icons --header --binary --group --sort=modified
+        else
+            ls -al --color=auto
+        fi
     fi
 }
 
@@ -207,23 +222,24 @@ fzf_kill() {
 alias fkill='fzf_kill'
 
 fzf_git_add() {
-    local selections=$(
-      git status --porcelain | \
-        fzf --ansi \
-            --preview 'if (git ls-files --error-unmatch {2} &>/dev/null); then
-                           git diff --color=always {2}
-                       else
-                           bat --color=always --line-range :500 {2}
-                       fi'
-    )
-    if [[ -n $selections ]]; then
-        # local additions=$(echo $selections | sed 's/M //g' | sed 's/?? //g')
-        local additions=$(echo $selections | cut -c4-)
-        git add --verbose $additions
+    git rev-parse --git-dir > /dev/null 2>&1 || { echo "You are not in a git repository" && return }
+    local files=$(_fzf_git_status_git | cut -c4-) #get file from fzf
+    if [[ $files ]]; then
+        for file in $(echo $files);
+        do; git add --verbose $file; done;
     fi
 }
 
-alias gadd='fzf_git_add'
+alias fga='fzf_git_add'
+
+fdiff() {
+    git rev-parse --git-dir > /dev/null 2>&1 || { echo "You are not in a git repository" && return }
+    local files=$(_fzf_git_status_git | cut -c4-) #get file from fzf
+    if [[ $files ]]; then
+        for file in $(echo $files);
+        do; git diff $file; done;
+    fi
+}
 
 
 # ZSH
@@ -240,8 +256,8 @@ bip() {
     local inst=$(brew search "$@" | fzf -m)
 
     if [[ $inst ]]; then
-        for prog in $(echo $inst);
-        do; brew install $prog; done;
+        for file in $(echo $inst);
+        do; brew install $file; done;
     fi
 }
 
@@ -251,8 +267,8 @@ bup() {
     local upd=$(brew leaves | fzf -m)
 
     if [[ $upd ]]; then
-        for prog in $(echo $upd);
-        do; brew upgrade $prog; done;
+        for file in $(echo $upd);
+        do; brew upgrade $file; done;
     fi
 }
 
@@ -267,3 +283,4 @@ fzf_alias() {
     eval "${selection}"
 }
 
+alias falias="fzf_alias"
