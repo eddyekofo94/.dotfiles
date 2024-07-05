@@ -174,10 +174,17 @@ keybinds {
 }
 
 plugins {
-    tab-bar { path "tab-bar"; }
-    status-bar { path "status-bar"; }
-    strider { path "strider"; }
-    compact-bar { path "compact-bar"; }
+    tab-bar location="zellij:tab-bar"
+    status-bar location="zellij:status-bar"
+    strider location="zellij:strider"
+    compact-bar location="zellij:compact-bar"
+    session-manager location="zellij:session-manager"
+    welcome-screen location="zellij:session-manager" {
+        welcome_screen true
+    }
+    filepicker location="zellij:strider" {
+        cwd "/"
+    }
 }
 
 // Choose what to do when zellij receives SIGTERM, SIGINT, SIGQUIT or SIGHUP
@@ -193,7 +200,7 @@ plugins {
 //    - true
 //    - false (Default)
 //
-// simplified_ui true
+simplified_ui true
 
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
@@ -246,35 +253,7 @@ theme "catppuccin-mocha" // or latte, frappe and macchiato
 // The name of the default layout to load on startup
 // Default: "default"
 //
-default_layout "compact"
-
-layout {
-    // default_tab_template {
-    //     // the default zellij tab-bar and status bar plugins
-    //     pane size=1 borderless=true {
-    //         plugin location="zellij:tab-bar"
-    //     }
-    //     children
-    //     pane size=2 borderless=true {
-    //         plugin location="zellij:status-bar"
-    //     }
-    // }
-    // tab // the default_tab_template
-    // tab name="second tab" // the default_tab_template with a custom tab name
-    // tab split_direction="vertical" { // the default_tab_template with three vertical panes between the plugins
-    //     pane
-    //     pane
-    //     pane
-    // }
-    default_tab_template {
-        children
-        pane size=1 borderless=true {
-            plugin location="https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm" {
-                // plugin configuration...
-            }
-        }
-    }
-}
+default_layout "default"
 
 
 // Choose the mode that zellij uses when starting up.
@@ -337,7 +316,7 @@ layout {
 
 // The folder in which Zellij will look for layouts
 //
-// layout_dir "/path/to/my/layout_dir"
+layout_dir "/home/eekofo/.config/zellij/layout_dir"
 
 // The folder in which Zellij will look for themes
 //
