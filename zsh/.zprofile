@@ -120,14 +120,14 @@ fi
 git clone --depth 1 -- \
     https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
 
+BAT_THEMES_DIR=$(bat --config-dir)/themes
 if (( $+commands[bat] )); then
-    BAT_THEMES_DIR=$(bat --config-dir)/themes
     if [[ ! -d "$BAT_THEMES_DIR" ]]; then
         echo "Making a new bat dir: $BAT_THEMES_DIR"
         mkdir -p "$BAT_THEMES_DIR"
 
         #cp my own bat theme
-        cp $DOTFILES_DIR/bat/Catppuccin-mocha.tmTheme $BAT_THEMES_DIR || exit
+        cp "$DOTFILES_DIR"/bat/Catppuccin-mocha.tmTheme "$BAT_THEMES_DIR" || exit
 
         # Update the binary cache
         bat cache --build

@@ -16,7 +16,12 @@ alias rm='rm -i'
 alias mv='mv -i'
 alias cp='cp -i'
 
-alias chmox='chmod +x'
+make_file_executable() {
+    chmod +x "$1" || exit;
+    ls -al
+}
+
+alias chmox='make_file_executable'
 
 ## super user alias
 alias _='sudo '
@@ -44,13 +49,13 @@ if eza --icons &>/dev/null; then
     # alias ls='eza --git --icons auto --sort=modified' # system: List filenames on one line
     alias ls='eza --git --group-directories-first --icons --sort=modified'
     # alias l='eza --git --icons -lF'                          # system: List filenames with long format
-    alias ll="eza --git --group-directories-first --long --icons --header --binary --group --sort=modified"
-    alias l='eza -lahF --git --icons auto'                        # system: List all files
+    alias ll="eza --git --group-directories-first --no-filesize --no-user --long --icons --header --binary --group --sort=modified"
+    alias l='eza --git --group-directories-first --icons --sort=modified --long --no-filesize --no-time --no-user --no-permissions'
     alias lll="eza -1F --git --icons auto"                        # system: List files with one line per file
     alias llm='ll --sort=modified'                                # system: List files by last modified date
     alias la='eza -lbhHigUmuSa --color-scale --git --icons auto'  # system: List files with attributes
     alias lx='eza -lbhHigUmuSa@ --color-scale --git --icons auto' # system: List files with extended attributes
-    alias lt='eza --tree --level=2'                               # system: List files in a tree view
+    alias lt='eza --tree --level=2 --icons auto'                               # system: List files in a tree view
     alias llt='eza -lahF --tree --level=2'                        # system: List files in a tree view with long format
     alias ltt='eza -lahF --icons auto | grep "$(date +"%d %b")"'               # system: List files modified today
     alias tree='eza --tree $eza_params'
@@ -267,7 +272,7 @@ alias grv='git remote -v'
 alias gsh='git show'
 alias gsd='git svn dcommit'
 alias gsr='git svn rebase'
-alias gss='git status -s'
+# alias gss='git status -s' #NOTE: using fzf: fdiff
 alias gst='git status'
 alias gsta='git stash'
 alias gstd='git stash drop'

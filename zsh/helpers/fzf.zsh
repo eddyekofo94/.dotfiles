@@ -13,6 +13,33 @@ has() {
 # https://sourcegraph.com/github.com/junegunn/fzf/-/blob/ADVANCED.md#--height
 # https://pragmaticpineapple.com/four-useful-fzf-tricks-for-your-terminal/#4-preview-files-before-selecting-them
 
+_fzf_compgen_path() {
+    rg --files --glob "!.git" . "$1"
+}
+
+_fzf_git_status_git() {
+    git -c color.status=always status --short | \
+      fzf --ansi \
+        --preview '(git diff --color=always -- {-1} | sed 1,4d; bat --color=always {-1}) | head -500'
+}
+
+_fzf_compgen_dir() {
+    fd --type d --hidden --follow --exclude ".git" . "$1"
+}
+
+
+_fzf_complete_git() {
+    _fzf_complete -- "$@" < <(
+        echo log
+        echo diff
+    )
+}
+
+_fzf_complete_git() {
+    _fzf_complete -- "$@" < <(
+        git --help -a | grep -E '^\s+' | awk '{print $1}'
+    )
+}
 # TODO:
 # https://www.reddit.com/r/vim/comments/10mh48r/fuzzy_search/
 # perf gains to be had here: https://github.com/ranelpadon/configs/blob/master/zshrc/rg_fzf_bat.sh
@@ -30,29 +57,32 @@ export FZF_COMMON_OPTIONS="
 --reverse
 --extended
 --bind=ctrl-space:toggle
+'--bind=ctrl-o:execute-silent($EDITOR {})+abort'
 --bind=ctrl-i:ignore,ctrl-k:ignore
 --bind=ctrl-j:down,ctrl-k:up
 --bind=ctrl-u:preview-up,ctrl-d:preview-down
 --bind=esc:abort
 --bind=ctrl-c:abort
 --bind=?:toggle-preview
---preview='($FZF_PREVIEW_COMMAND)'
+--preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
 --cycle
 --margin=0,0
 --padding=0,0
 --prompt='∷ '
 "
 
-# --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
+export FZF_PREVIEW_LINES=-200
+
 # --preview='($FZF_PREVIEW_COMMAND)'
+# --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
 # --border sharp
 # --pointer=▶
 # --marker=⇒
 # --prompt='∷ '
-command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
-export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || tree -C {} || echo {}"
+# command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
+# export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || eza -T --icons auto {} || echo {}"
 
-# export FZF_PREVIEW_COMMAND="([[ -d {} ]] && tree -C {}) || ([[ -f {} ]] && bat --style=full --color=always {}) || echo {}"
+# export FZF_PREVIEW_COMMAND="([[ -d {} ]] && eza -T --icons auto {}) || ([[ -f {} ]] && bat --style=numbers,chanes --color=always {}) || echo {}"
 export FZF_CTRL_T_OPTS="--min-height 30
 --height 85%
 --preview-window noborder --preview '($FZF_PREVIEW_COMMAND) 2> /dev/null'"
@@ -100,7 +130,7 @@ if has fd; then
     export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
-    export FZF_ALT_C_OPTS="--preview 'exa -T {}' --height=60%"
+    export FZF_ALT_C_OPTS="--preview 'eza -T --icons auto {}' --height=60%"
     export FZF_ALT_C_COMMAND="fd -t d -d 1 --follow --hidden --color=always --no-ignore-vcs --exclude 'Library'"
 fi
 
@@ -113,7 +143,11 @@ _fzf_comprun() {
 
     case "$command" in
         git) git --help -a | grep -E '^\s+' | awk '{print $1}' | fzf "$@" ;;
-        cd) fzf --preview 'tree -C {} | head -200' "$@" ;;
+        cd) fzf --preview 'eza -T --icons auto --color=always {} | head -200' "$@" ;;
+        export|unset) fzf --preview "eval 'echo\$' {}" "$@" ;;
+        ssh) fzf --preview 'dig {}' "$@" ;;
+        tree) find . -type d | fzf --preview 'eza -T --icons auto {}' --color=always "$@" ;;
         *) fzf "$@" ;;
     esac
 }
+

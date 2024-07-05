@@ -25,7 +25,7 @@ autoload -Uz colors; colors
 
 # LS colors using Vivid installed using Cargo
 if has vivid; then
-	export LS_COLORS="$(vivid generate $DOTFILES_DIR/vivid/catppuccin-mocha.yml)"
+	export LS_COLORS="$(vivid generate "$DOTFILES_DIR"/vivid/catppuccin-mocha.yml)"
 fi
 
 # Zoxide
@@ -41,10 +41,10 @@ fi
 # history
 source ~/.dotfiles/zsh/history.zsh
 
+source $ZSH_DOT_DIR_HELPERS/fzf.zsh
 source $ZSH_DOT_DIR_HELPERS/aliases.zsh
 source $ZSH_DOT_DIR_HELPERS/funcs.zsh
 source $ZSH_DOT_DIR_HELPERS/helpers.zsh
-source $ZSH_DOT_DIR_HELPERS/fzf.zsh
 source $ZSH_DOT_DIR_HELPERS/fzf_functions.zsh
 source $ZSH_DOT_DIR_HELPERS/widgets.sh
 source $ZSH_DOT_DIR/extras/fzf-extras.sh
@@ -62,7 +62,7 @@ znap clone https://github.com/bigH/git-fuzzy.git
 export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 # Add in zsh plugins
 #  INFO: 2024-02-26 11:34 AM - aliases expand plugin
-export ZPWR_EXPAND_BLACKLIST=(fe tree ls cat cd ll la l g z gss)
+export ZPWR_EXPAND_BLACKLIST=(fe chmox tree ls cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
@@ -108,8 +108,6 @@ function zvm_after_init() {
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
     znap source Aloxaf/fzf-tab
-
-    # znap source thirteen37/fzf-alias
 }
 
 znap source ohmyzsh/ohmyzsh lib/{git,completion,clipboard}
@@ -159,6 +157,7 @@ zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:accept' 'ctrl-a:toggle-all'
 
 # switch group using `<` and `>`
 zstyle ':fzf-tab:*' switch-group '<' '>'
+
 # Load completions
 autoload -Uz compinit && compinit
 

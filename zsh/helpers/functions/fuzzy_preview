@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 if [[ -d $1 ]]; then
-  tree --level=2 $1
+  eza --tree --color=always --icons auto {} | head -200
 elif [[ -n $(file -b $1 | grep 'text' ) ]]; then
   bat -r :"$LINES" "$1" --color always --style=numbers,changes --wrap never
 elif [[ -n $(file -b $1 | grep 'Zip' ) ]]; then
@@ -9,5 +9,5 @@ elif [[ -n $(file -b $1 | grep 'Zip' ) ]]; then
 elif [[ -n $(file -b $1 | grep 'gzip compressed data' ) ]]; then
   tar -tf $1
 else
-  file $1
+  echo $1
 fi

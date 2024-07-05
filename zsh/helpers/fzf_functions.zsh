@@ -4,42 +4,6 @@ has() {
     type "$1" &>/dev/null
 }
 
-_fzf_compgen_path() {
-    rg --files --glob "!.git" . "$1"
-}
-
-_fzf_git_status_git() {
-    git -c color.status=always status --short | \
-      fzf --ansi \
-        --preview '(git diff --color=always -- {-1} | sed 1,4d; bat --color=always {-1}) | head -500'
-}
-
-_fzf_compgen_dir() {
-    fd --type d --hidden --follow --exclude ".git" . "$1"
-}
-
-_fzf_comprun() {
-    local command=$1
-    shift
-
-    case "$command" in
-        tree)         find . -type d | fzf --preview 'tree {}' "$@" ;;
-        *)            fzf "$@" ;;
-    esac
-}
-
-_fzf_complete_git() {
-    _fzf_complete -- "$@" < <(
-        echo log
-        echo diff
-    )
-}
-
-_fzf_complete_git() {
-    _fzf_complete -- "$@" < <(
-        git --help -a | grep -E '^\s+' | awk '{print $1}'
-    )
-}
 
 # fe [FUZZY PATTERN] - Open the selected file with the default editor
 #   - Bypass fuzzy finder if there's only one match (--select-1)
@@ -66,7 +30,7 @@ fzf_change_directory() {
     local directory=$(
       fd --type d | \
         fzf --query="$1" --no-multi --select-1 --exit-0 \
-            --preview 'tree -C {} | head -100'
+            --preview 'eza --tree --color=always --icons auto {} | head -200'
     )
     if [[ -n $directory ]]; then
         cd "$directory"
@@ -89,13 +53,12 @@ cdf() {
     file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
 }
 
-delete-branches() {
-    local branches_to_delete
-    branches_to_delete=$(git branch | fzf --multi)
-
-    if [ -n "$branches_to_delete" ]; then
-        git branch --delete --force $branches_to_delete
-    fi
+function delete-branches() {
+  git branch |
+    grep --invert-match '\*' |
+    cut -c 3- |
+    fzf --multi --preview="git log {} --" |
+    xargs --no-run-if-empty git branch --delete --force
 }
 
 # using ripgrep combined with preview
@@ -128,6 +91,17 @@ fbat() {
         echo "$file"
         bat "$file"
     fi
+}
+
+#  REFC: 2024-07-04 - fix this one upm it might be useful
+find_files_or_dirs() {
+    fd --type file |
+    fzf --prompt 'Files> ' \
+        --header 'CTRL-T: Switch between Files/Directories' \
+        --bind 'ctrl-t:transform:[[ ! $FZF_PROMPT =~ Files ]] &&
+                echo "change-prompt(Files> )+reload(fd --type file)" ||
+                echo "change-prompt(Directories> )+reload(fd --type directory)"' \
+        --preview '[[ $FZF_PROMPT =~ Files ]] && bat --color=always {} || tree -C {}'
 }
 
 # fco - checkout git branch/tag
@@ -175,7 +149,8 @@ fshow() {
   git log --graph --color=always \
           --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" |
   fzf --ansi --no-sort --reverse --tiebreak=index --bind=ctrl-s:toggle-sort \
-          --bind "ctrl-m:execute:
+        --preview="git log {} --" \
+        --bind "ctrl-m:execute:
                 (grep -o '[a-f0-9]\{7\}' | head -1 |
                 xargs -I % sh -c 'git show --color=always % | less -R') << 'FZF-EOF'
                 {}
@@ -207,9 +182,9 @@ fshow_preview() {
 
 fzf_kill() {
     if [[ $(uname) == Linux ]]; then
-        local pids=$(ps -f -u $USER | sed 1d | fzf | awk '{print $2}')
+        local pids=$(ps -ef -u $USER | sed 1d | fzf --bind='ctrl-r:reload(date; ps -ef)' --preview 'echo {}' --preview-window up:3:wrap | awk '{print $2}')
     elif [[ $(uname) == Darwin ]]; then
-        local pids=$(ps -f -u $USER | sed 1d | fzf | awk '{print $3}')
+        local pids=$(ps -ef -u $USER | sed 1d | fzf --preview 'echo {}' --preview-window up:3:wrap | awk '{print $3}')
     else
         echo 'Error: unknown platform'
         return
@@ -240,6 +215,8 @@ fdiff() {
         do; git diff $file; done;
     fi
 }
+
+alias gss="fdiff"
 
 
 # ZSH

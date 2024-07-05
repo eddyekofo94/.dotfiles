@@ -23,7 +23,7 @@ zdd() {
   dir="$(
     find "${1:-.}" -path '*/\.*' -prune -o -type d -print 2> /dev/null \
       | fzf +m \
-          --preview='tree -C {} | head -n $FZF_PREVIEW_LINES' \
+          --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
@@ -38,7 +38,7 @@ zda() {
   dir="$(
     find "${1:-.}" -type d 2> /dev/null \
       | fzf +m \
-          --preview='tree -C {} | head -n $FZF_PREVIEW_LINES' \
+          --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
@@ -64,7 +64,7 @@ zdr() {
   parent_dir="$(
     get_parent_dirs "$(realpath "${1:-$PWD}")" \
       | fzf +m \
-          --preview 'tree -C {} | head -n $FZF_PREVIEW_LINES' \
+          --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
@@ -83,7 +83,7 @@ zst() {
       | uniq \
       | sed "s#^~#$HOME#" \
       | fzf +s +m -1 -q "$*" \
-            --preview='tree -C {} | head -n $FZF_PREVIEW_LINES' \
+            --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
             --preview-window='right:hidden:wrap' \
             --bind=ctrl-v:toggle-preview \
             --bind=ctrl-x:toggle-sort \
@@ -124,7 +124,7 @@ zz() {
           --tiebreak=index \
           --bind=ctrl-x:toggle-sort \
           --query "$*" \
-          --preview='tree -C {} | head -n $FZF_PREVIEW_LINES' \
+          --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-x:toggle-sort \
