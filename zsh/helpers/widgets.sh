@@ -26,9 +26,9 @@ zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm,cmd
 zstyle ':fzf-tab:complete:kill:argument-rest' extra-opts --preview=$extract'ps --pid=$in[(w)1] -o cmd --no-headers -w -w' --preview-window=down:3:wrap
 
 # give a preview of directory when completing cd
-zstyle ':fzf-tab:complete:cd:*' fzf-preview ". $ZDOTDIR/functions/fuzzy_preview \$realpath"
-zstyle ':fzf-tab:complete:nvim:*' fzf-preview ". $ZDOTDIR/functions/fuzzy_preview \$realpath"
-zstyle ':fzf-tab:complete:rm:*' fzf-preview ". $ZDOTDIR/functions/fuzzy_preview \$realpath"
+zstyle ':fzf-tab:complete:cd:*' fzf-preview ". $FZF_PREVIEW_COMMAND \$realpath"
+zstyle ':fzf-tab:complete:nvim:*' fzf-preview ". $FZF_PREVIEW_COMMAND \$realpath"
+zstyle ':fzf-tab:complete:rm:*' fzf-preview ". $FZF_PREVIEW_COMMAND \$realpath"
 
 FZF_TAB_GROUP_COLORS=(
     $'\033[97m' $'\033[32m' $'\033[33m' $'\033[35m' $'\033[31m' $'\033[38;5;27m' $'\033[36m' \

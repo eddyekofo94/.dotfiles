@@ -347,6 +347,9 @@ else
     alias hg='history | grep '
 fi
 
+alias -g -- -h='-h 2>&1 | bat --language=help --style=plain'
+alias -g -- --help='--help 2>&1 | bat --language=help --style=plain'
+
 alias zj='zellij'
 alias zja='zellij attach'
 alias zje='zellij edit'
