@@ -75,7 +75,3 @@ CYGWIN* | MINGW32* | MSYS* | MINGW*)
         # echo 'Other OS'
         ;;
 esac
-
-                                                                                                              0.056s
- home ❯ .config ❯ zsh
-❯_:

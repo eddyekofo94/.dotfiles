@@ -48,44 +48,37 @@ _fzf_complete_git() {
 #     export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!{.git|.npm|node_modules}/*" 2> /dev/null'
 # fi
 
-export FZF_COMMON_OPTIONS="
---inline-info
---height 96% --border --margin=1 --padding=1
---select-1
---ansi
---multi
---reverse
---extended
---bind=ctrl-space:toggle
-'--bind=ctrl-o:execute-silent($EDITOR {})+abort'
---bind=ctrl-i:ignore,ctrl-k:ignore
---bind=ctrl-j:down,ctrl-k:up
---bind=ctrl-u:preview-up,ctrl-d:preview-down
---bind=esc:abort
---bind=ctrl-c:abort
---bind=?:toggle-preview
---preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
---cycle
---margin=0,0
---padding=0,0
---prompt='∷ '
-"
 
-export FZF_PREVIEW_LINES=-200
+export FZF_COMMON_OPTIONS="--inline-info \
+--height 96% --border --margin=1 --padding=1 \
+--select-1 \
+--ansi \
+--multi \
+--reverse \
+--extended \
+--bind=ctrl-space:toggle \
+'--bind=ctrl-o:execute-silent($EDITOR {})+abort' \
+--bind=ctrl-i:ignore,ctrl-k:ignore \
+--bind=ctrl-j:down,ctrl-k:up \
+--bind=ctrl-u:preview-up,ctrl-d:preview-down \
+--bind=esc:abort \
+--bind=ctrl-c:abort \
+--bind=?:toggle-preview \
+--preview='($FZF_PREVIEW_COMMAND)'
+--cycle \
+--margin=0,0 \
+--padding=0,0 \
+--prompt='∷ '"
 
-# --preview='($FZF_PREVIEW_COMMAND)'
-# --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\"
-# --border sharp
-# --pointer=▶
-# --marker=⇒
-# --prompt='∷ '
-# command -v bat > /dev/null && command -v tree > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
-# export FZF_PREVIEW_COMMAND="bat --style=numbers,changes --wrap never --color always {} || cat {} || eza -T --icons auto {} || echo {}"
+command -v bat > /dev/null && command -v eza > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
+
+# --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\" \
+export FZF_PREVIEW_COMMAND="$ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview"
 
 # export FZF_PREVIEW_COMMAND="([[ -d {} ]] && eza -T --icons auto {}) || ([[ -f {} ]] && bat --style=numbers,chanes --color=always {}) || echo {}"
-export FZF_CTRL_T_OPTS="--min-height 30
---height 85%
---preview-window noborder --preview '($FZF_PREVIEW_COMMAND) 2> /dev/null'"
+export FZF_CTRL_T_OPTS="--min-height 30 \
+--height 85% \
+--preview-window noborder --preview '($FZF_PREVIEW_COMMAND)'"
 
 # alts: 󰛄
 # --bind=ctrl-f:page-down,ctrl-b:page-up
@@ -96,35 +89,30 @@ export FZF_CTRL_T_OPTS="--min-height 30
 # --height=22%
 
 _fzf_catppuccin() {
-export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS
-  --color=bg+:#313244,spinner:#f5e0dc,hl:#f38ba8 \
-  --color=border:#45475a \
-  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
-  --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
-    # bg:#1e1e2e,
+    export FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS \
+    --color=bg+:#313244,spinner:#f5e0dc,hl:#f38ba8 \
+    --color=border:#45475a \
+    --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+    --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 }
 
 # CTRL-/ to toggle small preview window to see the full command
 # CTRL-Y to copy the command into clipboard using pbcopy
-export FZF_CTRL_R_OPTS="
---header='command history (Press CTRL-y to copy command into clipboard)'
---inline-info
---height=70%
---select-1
---ansi
---reverse
---extended
---preview 'echo {}' --preview-window down:3:wrap
---bind 'ctrl-/:toggle-preview'
---bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort'
+export FZF_CTRL_R_OPTS="--header='command history (Press CTRL-y to copy command into clipboard)' \
+--inline-info \
+--height=70% \
+--select-1 \
+--ansi \
+--reverse \
+--extended \
+--preview 'echo {}' --preview-window down:3:wrap \
+--bind 'ctrl-/:toggle-preview' \
+--bind 'ctrl-y:execute-silent(echo -n {2..} | pbcopy)+abort' \
 --color header:italic"
 
 _fzf_catppuccin
 
 if has fd; then
-    # export FZF_ALT_C_OPTS="--preview '$LIST_DIR_CONTENTS'"
-    # export FZF_CTRL_T_OPTS="--preview 'if [[ -f {} ]]; then $LIST_FILE_CONTENTS; elif [[ -d {} ]]; then $LIST_DIR_CONTENTS; fi'"
-
     # FZF
     # Setting fd as the default source for fzf
     export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
@@ -151,3 +139,4 @@ _fzf_comprun() {
     esac
 }
 
+export FZF_PREVIEW_LINES=-200

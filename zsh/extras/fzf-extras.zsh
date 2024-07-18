@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export FZF_PREVIEW_LINES=-200
+
 has() {
     type "$1" &>/dev/null
 }

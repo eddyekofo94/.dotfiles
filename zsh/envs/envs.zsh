@@ -10,6 +10,8 @@ has() {
     type "$1" &>/dev/null
 }
 
+export ZSH_DOT_DIR_ENVS="$ZSH_DOT_DIR/envs"
+
 # Directory where user-specific configuration files should be stored.
 export XDG_CONFIG_HOME="$HOME/.config"
 
@@ -87,11 +89,14 @@ export CLICOLOR=1
 # export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
 export ZSH_AUTOSUGGEST_USE_ASYNC=1
 
-#  INFO: 2023-09-26 - This is my history config
-source ~/.dotfiles/zsh/history.zsh
+
+#  INFO: 2024-07-16 - Load FZF Vars
+source "$ZSH_DOT_DIR_ENVS"/fzf_envs.zsh
 
 # Bat a modern cat with all the goodies
 export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/bat.conf
+
+export WORKSPACE=/workspace
 
 # export PATH=$HOME/.dotfiles/doit/build:$PATH
 

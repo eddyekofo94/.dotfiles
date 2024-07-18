@@ -78,6 +78,8 @@ export KEYTIMEOUT=1
 # Main change, you can see directories on a dark background
 export CLICOLOR=1
 
+export ZSH_DOT_DIR_ENVS="$ZSH_DOT_DIR/envs"
+
 # autosuggest
 # export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
 export ZSH_AUTOSUGGEST_USE_ASYNC=1
