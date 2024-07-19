@@ -408,3 +408,9 @@ wezshare() {
     local mode="${1:-on}"
     wezterm-cli SCREEN_SHARE_MODE "$mode"
 }
+
+#  BUG: 2024-07-18 - This is not working as expected
+alias bathelp='bat --plain --language=help'
+help() {
+    "$@" --help 2>&1 | bathelp
+}

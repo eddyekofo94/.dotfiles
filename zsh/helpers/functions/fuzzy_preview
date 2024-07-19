@@ -9,5 +9,5 @@ elif [[ -n $(file -b $1 | grep 'Zip' ) ]]; then
 elif [[ -n $(file -b $1 | grep 'gzip compressed data' ) ]]; then
   tar -tf $1
 else
-  file $1
+  echo $1
 fi

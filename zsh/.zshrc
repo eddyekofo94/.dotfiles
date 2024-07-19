@@ -51,6 +51,7 @@ znap source Tarrasch/zsh-bd
 znap source  zap-zsh/vim
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
+
 # add the executable to your path
 export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 # Add in zsh plugins
@@ -160,3 +161,5 @@ bindkey '^ ' autosuggest-accept
 if has zellij; then
     eval "$(zellij setup --generate-auto-start zsh)"
 fi
+
+export PATH="$(brew --prefix)/opt/libgit2@1.7/bin:$PATH"
