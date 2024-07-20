@@ -111,18 +111,6 @@ fbat() {
     fi
 }
 
-vf() {
-  local files
-
-  files=(${(f)$(fd --type f --strip-cwd-prefix --hidden -0 $@ | grep -z -vE '~$' | fzf --read0 -0 -1 -m)})
-
-  if [[ -n $files ]]
-  then
-     vim -- $files
-     print -l $files[1]
-  fi
-}
-
 #  REFC: 2024-07-04 - fix this one upm it might be useful
 find_files_or_dirs() {
     fd --type file |
