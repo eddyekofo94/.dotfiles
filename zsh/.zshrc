@@ -40,7 +40,6 @@ source "$ZSH_DOT_DIR_HELPERS"/aliases.zsh
 source "$ZSH_DOT_DIR_HELPERS"/funcs.zsh
 source "$ZSH_DOT_DIR_HELPERS"/helpers.zsh
 source "$ZSH_DOT_DIR_HELPERS"/fzf_functions.zsh
-source "$ZSH_DOT_DIR_HELPERS"/widgets.sh
 source "$ZSH_DOT_DIR"/extras/fzf-extras.zsh
 
 # plugins
@@ -134,6 +133,8 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|=*' 'l:|=* r:|=*'
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza --color=always -T --git --no-user --icons --group --sort=modified $realpath'
+# NOTE: don't use escape sequences here, fzf-tab will ignore them
+zstyle ':completion:*:descriptions' format '[%d]'
 #  TODO: 2024-07-16 - Fix the preview
 # zstyle ':fzf-tab:complete:nvim:*' fzf-preview "[[ -n $(file -b $1 | grep 'text' ) ]] && bat --color=always {} || eza --color=always -T --icons {} $realpath"
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'eza --color=always -T --git --no-user --icons --group --sort=modified $realpath'
@@ -141,6 +142,11 @@ zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:accept' 'ctrl-a:toggle-all'
 
 # switch group using `<` and `>`
 zstyle ':fzf-tab:*' switch-group '<' '>'
+
+zstyle ':fzf-tab:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath'
+
+#  INFO: 2024-07-22 - it is not working
+zstyle ':completion:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath'
 
 # Load completions
 autoload -Uz compinit && compinit
@@ -163,3 +169,13 @@ if has zellij; then
 fi
 
 export PATH="$(brew --prefix)/opt/libgit2@1.7/bin:$PATH"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# Source the Lazyman shell initialization for aliases and nvims selector
+# shellcheck source=.config/nvim-Lazyman/.lazymanrc
+[ -f ~/.config/nvim-Lazyman/.lazymanrc ] && source ~/.config/nvim-Lazyman/.lazymanrc
+# Source the Lazyman .nvimsbind for nvims key binding
+# shellcheck source=.config/nvim-Lazyman/.nvimsbind
+[ -f ~/.config/nvim-Lazyman/.nvimsbind ] && source ~/.config/nvim-Lazyman/.nvimsbind

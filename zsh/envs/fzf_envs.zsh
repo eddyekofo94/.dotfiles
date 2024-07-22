@@ -73,9 +73,11 @@ export FZF_COMMON_OPTIONS="--inline-info \
 command -v bat > /dev/null && command -v eza > /dev/null && export FZF_DEFAULT_OPTS="$FZF_COMMON_OPTIONS"
 
 # --preview \". $ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview {}\" \
-export FZF_PREVIEW_COMMAND="$ZSH_DOT_DIR_HELPERS/functions/fuzzy_preview"
 
-# export FZF_PREVIEW_COMMAND="([[ -d {} ]] && eza -T --icons auto {}) || ([[ -f {} ]] && bat --style=numbers,chanes --color=always {}) || echo {}"
+export FZF_PREVIEW_COMMAND="([[ -d {} ]] && eza -T --icons auto --color=always {}) || \
+    ([[ -f {} ]] && bat --style=numbers,changes --color=always {}) || \
+    echo {}"
+
 export FZF_CTRL_T_OPTS="--min-height 30 \
 --height 85% \
 --preview-window noborder --preview '($FZF_PREVIEW_COMMAND)'"

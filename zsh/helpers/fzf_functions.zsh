@@ -29,8 +29,7 @@ alias fe='fzf_find_edit'
 fzf_change_directory() {
     local directory=$(
       fd --type d | \
-        fzf --query="$1" --no-multi --select-1 --exit-0 \
-            --preview 'eza --tree --color=always --icons auto {} | head -200'
+        fzf --query="$1" --no-multi --select-1 --exit-0
     )
     if [[ -n $directory ]]; then
         cd "$directory"
