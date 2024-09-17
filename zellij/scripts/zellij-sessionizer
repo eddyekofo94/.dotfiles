@@ -20,7 +20,7 @@ OLD_SESSION_NAME=${ZELLIJ_SESSION_NAME}
 if zellij ls -s | grep -q "${SESSION_NAME}"; then
     zellij attach "${SESSION_NAME}" -f # -f forces to run the already running command in all panes
 else
-    cd "${SESSION_CWD}"
+    cd "${SESSION_CWD}" || return
     zellij -s "${SESSION_NAME}"
 fi
 

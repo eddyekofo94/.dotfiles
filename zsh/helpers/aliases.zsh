@@ -179,7 +179,7 @@ alias glgg='git log --graph'
 alias glgga='git log --graph --decorate --all'
 alias glo='git log --oneline --decorate --color'
 # alias glog='git log --oneline --decorate --color --graph'
-alias glog='git log --pretty=format:"%C(yellow)%h\\ %ad%Cred%d\\ %Creset%s%Cblue\\ [%cn]" --decorate --date=short'  # A nicer Git Log
+alias glog='git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 alias gloga='git log --oneline --decorate --color --graph --all'
 alias glom='git log --oneline --decorate --color $(get_default_branch)..'
 alias glod='git log --oneline --decorate --color dev..'

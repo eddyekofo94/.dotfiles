@@ -2,12 +2,14 @@
 
 if [[ -d $1 ]]; then
   eza --tree --color=always --icons auto | head -200
-elif [[ -n $(file -b $1 | grep 'text' ) ]]; then
-  bat -r :"$LINES" "$1" --color always --style=numbers,changes --wrap never
+elif [[ -f $1 ]]; then
+  bat --style=numbers,changes --color=always
+# elif [[ -n $(file -b $1 | grep 'text' ) ]]; then
+#   bat -r :"$LINES" "$1" --color always --style=numbers,changes --wrap never
 elif [[ -n $(file -b $1 | grep 'Zip' ) ]]; then
   unzip -l $1
 elif [[ -n $(file -b $1 | grep 'gzip compressed data' ) ]]; then
   tar -tf $1
 else
-  echo $1
+    echo $1
 fi

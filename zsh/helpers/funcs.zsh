@@ -22,7 +22,7 @@ function __close_all_apps() {
     apps=$(osascript -e 'tell application "System Events" to get name of (processes where background only is false)' | awk -F ', ' '{for(i=1;i<=NF;i++) printf "%s;", $i}')
     while [ "$apps" ] ;do
         app=${apps%%;*}
-        if [[ $app != 'alacritty' && $app != 'kitty' ]]
+        if [[ $app != 'alacritty' && $app != 'kitty' && $app != 'wezterm' ]]
         then
             pkill -x echo $app
         fi
@@ -413,4 +413,36 @@ wezshare() {
 alias bathelp='bat --plain --language=help'
 help() {
     "$@" --help 2>&1 | bathelp
+}
+
+# TODO: adapt this function to my own apps: fd, ripgrep, bat... etc
+exp() {
+    selection=$(find -type d | fzf --multi --height=80% --border=sharp \
+    --preview='tree -C {}' --preview-window='45%,border-sharp' \
+    --prompt='Dirs > ' \
+    --bind='del:execute(rm -ri {+})' \
+    --bind='ctrl-p:toggle-preview' \
+    --bind='ctrl-d:change-prompt(Dirs > )' \
+    --bind='ctrl-d:+reload(find -type d)' \
+    --bind='ctrl-d:+change-preview(tree -C {})' \
+    --bind='ctrl-d:+refresh-preview' \
+    --bind='ctrl-f:change-prompt(Files > )' \
+    --bind='ctrl-f:+reload(find -type f)' \
+    --bind='ctrl-f:+change-preview(cat {})' \
+    --bind='ctrl-f:+refresh-preview' \
+    --bind='ctrl-a:select-all' \
+    --bind='ctrl-x:deselect-all' \
+    --header '
+    CTRL-D to display directories | CTRL-F to display files
+    CTRL-A to select all | CTRL-x to deselect all
+    ENTER to edit | DEL to delete
+    CTRL-P to toggle preview
+    '
+    )
+
+    if [ -d "$selection" ]; then
+        cd "$selection" || exit
+    else
+        eval "$EDITOR $selection"
+    fi
 }

@@ -20,13 +20,12 @@ _fzf_compgen_path() {
 _fzf_git_status_git() {
     git -c color.status=always status --short | \
       fzf --ansi \
-        --preview '(git diff --color=always -- {-1} | sed 1,4d; bat --color=always {-1}) | head -500'
+        --preview '(git diff --color=always -- {-1} | sed 1,4d; [[ ! -d {-1} ]] && bat --color=always {-1}) | head -500'
 }
 
 _fzf_compgen_dir() {
     fd --type d --hidden --follow --exclude ".git" . "$1"
 }
-
 
 _fzf_complete_git() {
     _fzf_complete -- "$@" < <(
@@ -64,7 +63,7 @@ export FZF_COMMON_OPTIONS="--inline-info \
 --bind=esc:abort \
 --bind=ctrl-c:abort \
 --bind=?:toggle-preview \
---preview='($FZF_PREVIEW_COMMAND)'
+--preview='($FZF_PREVIEW_COMMAND) 2> /dev/null' \
 --cycle \
 --margin=0,0 \
 --padding=0,0 \
@@ -120,7 +119,7 @@ if has fd; then
     export FZF_DEFAULT_COMMAND='fd --type f --strip-cwd-prefix --hidden --follow --exclude .git'
     export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
-    export FZF_ALT_C_OPTS="--preview 'eza -T --icons auto {}' --height=60%"
+    export FZF_ALT_C_OPTS="--preview 'eza -T --icons auto --color=always {}' --height=60%"
     export FZF_ALT_C_COMMAND="fd -t d -d 1 --follow --hidden --color=always --no-ignore-vcs --exclude 'Library'"
 fi
 

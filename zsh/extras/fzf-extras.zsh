@@ -377,7 +377,7 @@ fcoc() {
   git checkout "$(echo "$commit" | sed "s/ .*//")"
 }
 
-# fcs - get git commit sha
+# fcs - get git commit sha/hash
 # example usage: git rebase -i "$(fcs)"
 fcs() {
   local commits
@@ -406,26 +406,64 @@ fcs() {
 }
 
 # fshow - git commit browser
-fshow() {
-  local execute
+ fshow() {
+   local execute
 
-  execute="grep -o \"[a-f0-9]\{7\}\" \
-    | head -1 \
-    | xargs -I % sh -c 'git show --color=always %'"
+   execute="grep -o \"[a-f0-9]\{7\}\" \
+     | head -1 \
+     | xargs -I % sh -c 'git show --color=always %'"
 
-  git log \
-    --graph \
-    --color=always \
-    --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" \
-    | fzf \
-        --ansi \
-        --no-sort \
-        --reverse \
-        --tiebreak=index \
-        --bind=ctrl-s:toggle-sort \
-        --bind "ctrl-m:execute: ($execute) <<'FZF-EOF'
-  {}
-FZF-EOF"
+   git log \
+     --graph \
+     --color=always \
+     --format="%C(auto)%h%d %s %C(black)%C(bold)%cr" "$@" \
+     | fzf \
+         --ansi \
+         --no-sort \
+         --reverse \
+         --tiebreak=index \
+         --preview='
+            hash=$(echo {} | grep -o "[a-f0-9]\{7\}" | sed -n "1p") \
+            && [[ $hash != "" ]] \
+            && git show --color $hash
+            ' \
+         --bind=ctrl-s:toggle-sort \
+         --bind "ctrl-m:execute: ($execute) <<'FZF-EOF'
+   {}
+ FZF-EOF"
+ }
+
+fgit_attach() {
+  git log --graph --color \
+  --format='%C(yellow)%h - %C(green)%cs - %C(blue)%s%C(red)%d' \
+  | fzf \
+    --ansi \
+    --reverse \
+    --no-sort \
+    --preview='
+      hash=$(echo {} | grep -o "[a-f0-9]\{7\}" | sed -n "1p") \
+      && git show --color $hash
+      ' \
+    --bind='enter:execute(
+      hash=$(echo {} | grep -o "[a-f0-9]\{7\}" | sed -n "1p") \
+      && [[ $hash != "" ]] \
+      && sh -c "git show --color $hash | less -R"
+      )' \
+    --bind='alt-c:execute(
+      hash=$(echo {} | grep -o "[a-f0-9]\{7\}" | sed -n "1p") \
+      && [[ $hash != "" ]] \
+      && git checkout $hash
+      )+abort' \
+    --bind='alt-r:execute(
+      hash=$(echo {} | grep -o "[a-f0-9]\{7\}" | sed -n "1p") \
+      && [[ $hash != "" ]] \
+      && git reset $hash
+      )+abort' \
+    --header-first \
+    --header '
+    ENTER to display the diff
+    ALT-C to checkout the commit | ALT-R to reset to the commit
+    '
 }
 
 # fstash - easier way to deal with stashes
@@ -616,6 +654,53 @@ ftags() {
     -c "silent tag \"$(cut -f2 <<< "$line")\""
 }
 
+
+# -----------------------------------------------------------------------------
+# zellij
+# -----------------------------------------------------------------------------
+
+zellij_delete_sessions() {
+  local sessions
+
+  sessions="$(zellij list-sessions -n -s | \
+    fzf --exit-0 \
+        --multi \
+        --preview "echo {}" --preview-window 'nohidden:wrap' \
+        --query="$1")" || return
+
+  if [[ $sessions ]]; then
+    for session in $(echo $sessions);
+    do zellij d --force "$session"; done;
+  fi
+
+  # zellij kill-session "${sessions[@]}"
+}
+
+zellij_attach_session(){
+  old_session=${ZELLIJ_SESSION_NAME}
+
+  get_sessions="$(
+            zellij list-sessions -n -s | \
+            fzf \
+            --no-multi \
+            --select-1 \
+            --query "$*" \
+            --preview "echo {}" --preview-window 'nohidden:wrap' \
+            )" || return
+
+  if zellij ls -n -s | grep -q ${get_sessions}; then
+    # zellij kill-session "${current_session}"
+    echo "$old_session"
+    zellij kill-session "${old_session}" && zellij attach "$get_sessions" 
+  fi
+
+}
+
+export ZELLIJ_DIR="$DOTFILES_DIR/zellij"
+
+zellij_project_attach() {
+  "$ZELLIJ_DIR/scripts/zellij-sessionizer"
+}
 
 # -----------------------------------------------------------------------------
 # tmux

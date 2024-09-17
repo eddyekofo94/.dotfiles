@@ -143,10 +143,10 @@ zstyle ':fzf-tab:*' fzf-bindings 'ctrl-y:accept' 'ctrl-a:toggle-all'
 # switch group using `<` and `>`
 zstyle ':fzf-tab:*' switch-group '<' '>'
 
-zstyle ':fzf-tab:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath'
+zstyle ':fzf-tab:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath 2> /dev/null'
 
 #  INFO: 2024-07-22 - it is not working
-zstyle ':completion:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath'
+zstyle ':completion:*' fzf-preview '($FZF_PREVIEW_COMMAND) $realpath 2> /dev/null'
 
 # Load completions
 autoload -Uz compinit && compinit

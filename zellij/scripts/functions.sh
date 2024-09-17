@@ -20,10 +20,9 @@ function select_project_or_default() {
         return 1
     fi
 
-    selected=$(fd . $HOME/projects $HOME/projects/work \
-        $WORKSPACE/projects/ \
-        $XDG_DATA_HOME/nvim \
-        $HOME -d 1 --type directory --hidden \
+    selected=$(fd . $WORKSPACE/projects \
+        $DOTFILES_DIR/ \
+        $HOME/.config/nvim* -d 2 --type directory \
         | fzf)
 
     echo "$selected"
