@@ -95,3 +95,5 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/bat.conf
 # Amadeus related
 export PATH=/workspace/projects/mpt/puz:$PATH
 # source /workspace/projects/otf/.env
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

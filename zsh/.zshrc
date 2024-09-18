@@ -21,7 +21,7 @@ autoload -Uz colors; colors
 
 # LS colors using Vivid installed using Cargo
 if has vivid; then
-	export LS_COLORS="$(vivid generate "$DOTFILES_DIR"/vivid/catppuccin-mocha.yml)"
+    export LS_COLORS="$(vivid generate "$DOTFILES_DIR"/vivid/catppuccin-mocha.yml)"
 fi
 
 # Zoxide

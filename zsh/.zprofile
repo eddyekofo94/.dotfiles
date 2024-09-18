@@ -3,6 +3,10 @@ export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 export DOTFILES_DIR="$HOME/.dotfiles"
 
+has() {
+    type "$1" &>/dev/null
+}
+
 if [[ ! -d $DOTFILES_DIR ]]; then
     echo "Creating a new dotfiles $DOTFILES_DIR"
     if [[ -d /workspace/.dotfiles ]]; then
@@ -33,7 +37,7 @@ if [[ ! -f $ZDOTDIR/.zshrc ]]; then
     ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
 fi
 
-if (( ! $+commands[brew] )); then
+if ! has brew; then
 	echo "You may be asked for your sudo password to install Homebrew:"
 	sudo -v
 	yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
@@ -63,7 +67,7 @@ if (( ! $+commands[brew] )); then
     fi
 fi
 
-if (( $+commands[brew] )); then
+if has brew; then
     # If the 'HOMEBREW_PREFIX' environment variable is not populated then
     # request the prefix from 'brew' and populate
     if [[ -z "$HOMEBREW_PREFIX" ]]; then
@@ -74,8 +78,8 @@ if (( $+commands[brew] )); then
     local HOMEBREW_SITE_FUNCTIONS="$HOMEBREW_PREFIX/share/zsh/site-functions"
 
     if [[ -d "$HOMEBREW_SITE_FUNCTIONS" ]]; then
-        typeset -TUx FPATH fpath
-        fpath=("$HOMEBREW_SITE_FUNCTIONS" $fpath)
+        # typeset -TUx FPATH fpath
+        # fpath=("$HOMEBREW_SITE_FUNCTIONS" $fpath)
 
         autoload -Uz compinit
         compinit
@@ -89,27 +93,27 @@ if command -v go &>/dev/null; then
     export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 fi
 
-DOIT_DIR="$DOTFILES_DIR/doit"
-if (( ! $+commands[doitclient] )); then
-    cd "$DOIT_DIR"; echo "$DOIT_DIR"
-    chmod +x cmake_run.sh
-    ./cmake_run.sh -s
-    cd -
+# DOIT_DIR="$DOTFILES_DIR/doit"
+# if (( ! $+commands[doitclient] )); then
+#     cd "$DOIT_DIR"; echo "$DOIT_DIR"
+#     chmod +x cmake_run.sh
+#     ./cmake_run.sh -s
+#     cd -
+#
+#     export PATH=$HOME/.dotfiles/doit/build:$PATH
+# fi
 
-    export PATH=$HOME/.dotfiles/doit/build:$PATH
-fi
-
-if (( ! $+commands[cargo] )); then
-    echo "Cargo needs to be installed: "
-    curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
-
-    DOTFILES_DIR_RUST = "$DOTFILES_DIR/rust/"
-    if [[ -d $DOTFILES_DIR_RUST ]]; then
-        source "$HOME/.cargo/env"
-        sudo yum update # This is for just incase there are packages which need to be updated
-        cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install
-    fi
-fi
+# if has cargo; then
+#     echo "Cargo needs to be installed: "
+#     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+# 
+#     DOTFILES_DIR_RUST = "$DOTFILES_DIR/rust/"
+#     if [[ -d $DOTFILES_DIR_RUST ]]; then
+#         source "$HOME/.cargo/env"
+#         sudo yum update # This is for just incase there are packages which need to be updated
+#         cd $DOTFILES_DIR_RUST && xargs < install.sh -n 1 cargo install
+#     fi
+# fi
 
 if [[ ! -f $XDG_CONFIG_HOME/starship.toml ]]; then
     ln -s ~/.dotfiles/starship/starship.toml ~/.config/starship.toml
@@ -121,7 +125,7 @@ git clone --depth 1 -- \
     https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
 
 BAT_THEMES_DIR=$(bat --config-dir)/themes
-if (( $+commands[bat] )); then
+if has bat; then
     if [[ ! -d "$BAT_THEMES_DIR" ]]; then
         echo "Making a new bat dir: $BAT_THEMES_DIR"
         mkdir -p "$BAT_THEMES_DIR"

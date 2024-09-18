@@ -41,7 +41,8 @@ export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
 # export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZDOTDIR=~/.config/zsh
 
-export ZSHRC=$DOTFILES_DIR/zsh/.zshrc
+# export ZSHRC=$DOTFILES_DIR/zsh/.zshrc
+export ZSHRC=$ZDOTDIR/zsh/.zshrc
 
 export TERM_ITALICS="TRUE"
 
@@ -88,7 +89,6 @@ export CLICOLOR=1
 # autosuggest
 # export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#465258,bold,underline"
 export ZSH_AUTOSUGGEST_USE_ASYNC=1
-
 
 #  INFO: 2024-07-16 - Load FZF Vars
 source "$ZSH_DOT_DIR_ENVS"/fzf_envs.zsh
