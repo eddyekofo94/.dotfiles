@@ -49,7 +49,7 @@ if eza --icons &>/dev/null; then
     # alias ls='eza --git --icons auto --sort=modified' # system: List filenames on one line
     alias ls='eza --git --group-directories-first --icons --sort=modified'
     # alias l='eza --git --icons -lF'                          # system: List filenames with long format
-    alias ll="eza --git --group-directories-first --no-filesize --no-user --long --icons --header --binary --group --sort=modified"
+    alias ll="eza --git --all --group-directories-first --no-filesize --no-user --long --icons --header --binary --group --sort=modified"
     alias l='eza --git --group-directories-first --icons --sort=modified --long --all --no-filesize --no-time --no-user --no-permissions'
     alias lll="eza -1F --git --icons auto"                        # system: List files with one line per file
     alias llm='ll --sort=modified'                                # system: List files by last modified date
