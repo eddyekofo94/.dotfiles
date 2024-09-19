@@ -57,4 +57,4 @@ style = "bright-black"
 
 [status]
 disabled = false
-symbol = '✘ '
+symbol = '✖ '
