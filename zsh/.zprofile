@@ -25,6 +25,11 @@ if [[ ! -d $DOTFILES_DIR ]]; then
     ln -s ~/.dotfiles/zsh/.zprofile ~/.zprofile
 fi
 
+if [[ ! -d ~/.config/zsh ]]; then
+    echo "creating... ZDOTDIT folder" 
+    mkdir ~/.config/zsh
+fi
+
 if [[ ! -f ~/.zshrc ]]; then
     ln -s ~/.dotfiles/zsh/.zshrc ~/.zshrc
 fi
@@ -124,8 +129,8 @@ fi
 git clone --depth 1 -- \
     https://github.com/marlonrichert/zsh-snap.git ~/.config/zsh/znap
 
-BAT_THEMES_DIR=$(bat --config-dir)/themes
 if has bat; then
+    BAT_THEMES_DIR=$(bat --config-dir)/themes
     if [[ ! -d "$BAT_THEMES_DIR" ]]; then
         echo "Making a new bat dir: $BAT_THEMES_DIR"
         mkdir -p "$BAT_THEMES_DIR"
