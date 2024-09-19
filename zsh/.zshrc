@@ -156,12 +156,12 @@ export PATH="$HOME/.local/bin/":$PATH
 export PATH="/usr/local/opt/curl/bin:$PATH"
 
 # start a prompt called starship
-# if has starship; then
-#     eval "$(starship init zsh)"
-# fi
+if has starship; then
+    eval "$(starship init zsh)"
+fi
 
 #  INFO: 2024-06-17 - This one
-eval "$(oh-my-posh init zsh --config ~/.dotfiles/oh-my-posh/sim-web.omp.toml)"
+# eval "$(oh-my-posh init zsh --config ~/.dotfiles/oh-my-posh/sim-web.omp.toml)"
 
 bindkey '^ ' autosuggest-accept
 if has zellij; then

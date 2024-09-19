@@ -30,16 +30,16 @@ if [[ ! -d ~/.config/zsh ]]; then
     mkdir ~/.config/zsh
 fi
 
-if [[ ! -f ~/.zshrc ]]; then
-    ln -s ~/.dotfiles/zsh/.zshrc ~/.zshrc
-fi
-
 if [[ ! -f $ZDOTDIR/.zshrc ]]; then
     ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
 fi
 
-if [[ ! -f $ZDOTDIR/.zshrc ]]; then
-    ln -s ~/.dotfiles/zsh/.zshrc ~/.config/zsh/.zshrc
+if [[ ! -f $ZDOTDIR/.zshenv ]]; then
+    ln -s ~/.dotfiles/zsh/.zshenv ~/.config/zsh/.zshenv 
+fi
+
+if [[ ! -f $ZDOTDIR/.zprofile ]]; then
+    ln -s ~/.dotfiles/zsh/.zprofile ~/.config/zsh/.zprofile 
 fi
 
 if ! has brew; then
@@ -83,8 +83,8 @@ if has brew; then
     local HOMEBREW_SITE_FUNCTIONS="$HOMEBREW_PREFIX/share/zsh/site-functions"
 
     if [[ -d "$HOMEBREW_SITE_FUNCTIONS" ]]; then
-        # typeset -TUx FPATH fpath
-        # fpath=("$HOMEBREW_SITE_FUNCTIONS" $fpath)
+        typeset -TUx FPATH fpath
+        fpath=("$HOMEBREW_SITE_FUNCTIONS" $fpath)
 
         autoload -Uz compinit
         compinit
