@@ -118,7 +118,9 @@ setopt auto_pushd
 setopt pushd_ignore_dups
 setopt pushdminus
 
-setopt correct_all   # autocorrect commands
+# setopt correct_all   # autocorrect commands
+unsetopt correct_all
+setopt correct
 setopt auto_list     # automatically list choices on ambiguous completion
 setopt auto_menu     # automatically use menu completion
 setopt always_to_end # move cursor to end if word had one match
