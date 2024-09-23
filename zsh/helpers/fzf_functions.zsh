@@ -230,8 +230,6 @@ fdiff() {
     if [[ -f "$files" ]]; then
         for file in $(echo $files);
         do; git diff $file; done;
-    else
-        "git status is empty..."
     fi
 }
 
