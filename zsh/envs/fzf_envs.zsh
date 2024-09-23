@@ -20,7 +20,8 @@ _fzf_compgen_path() {
 _fzf_git_status_git() {
     git -c color.status=always status --short | \
       fzf --ansi \
-        --preview '(git diff --color=always -- {-1} | sed 1,4d; [[ ! -d {-1} ]] && bat --color=always {-1}) | head -500'
+        --preview '(git diff --color=always -- {-1} | sed 1,4d; [[ ! -d {-1} ]] && bat --color=always {-1}) | head -500' \
+        --bind='ctrl-o:execute(${EDITOR:-vim} {+})' 
 }
 
 _fzf_compgen_dir() {
