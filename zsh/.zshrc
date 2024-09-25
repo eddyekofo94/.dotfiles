@@ -42,6 +42,9 @@ source "$ZSH_DOT_DIR_HELPERS"/helpers.zsh
 source "$ZSH_DOT_DIR_HELPERS"/fzf_functions.zsh
 source "$ZSH_DOT_DIR"/extras/fzf-extras.zsh
 
+# FZF Git functions
+source "$ZSH_DOT_DIR_HELPERS/git/fzf_git_files.sh"
+
 # plugins
 znap source  zsh-users/zsh-autosuggestions
 # znap source  hlissner/zsh-autopair

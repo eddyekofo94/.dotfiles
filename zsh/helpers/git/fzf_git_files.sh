@@ -7,7 +7,8 @@ function fgf() {
 	local -r git_root_dir=$(git rev-parse --show-toplevel)
 	local -r git_unstaged_files="git ls-files --modified --deleted --other --exclude-standard --deduplicate $git_root_dir"
 
-	local git_staged_files='git status --short | grep "^[A-Z]" | awk "{print \$NF}"'
+	# local git_staged_files='git status --short | grep "^[A-Z]" | awk "{print \$NF}"'
+	local git_staged_files='git -c color.status=always status --short | grep "^[A-Z]" | awk "{print \$NF}"'
 
 	local -r git_reset="git reset -- {+}"
 	local -r enter_cmd="($git_unstaged_files | grep {} && git add {+}) || $git_reset"
@@ -75,3 +76,4 @@ function fgf() {
 	--bind='ctrl-d:preview-half-page-down'
 }
 
+	alias gss="fgf"
