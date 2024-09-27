@@ -15,6 +15,7 @@ get_current_branch(){
 alias rm='rm -i'
 alias mv='mv -i'
 alias cp='cp -i'
+alias rmdf='rm -irf '
 
 make_file_executable() {
     chmod +x "$1" || exit;
