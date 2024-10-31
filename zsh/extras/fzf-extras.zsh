@@ -661,6 +661,7 @@ ftags() {
 
 zellij_delete_sessions() {
   local sessions
+  local current_session_name="$ZELLIJ_SESSION_NAME"
 
   sessions="$(zellij list-sessions -n -s | \
     fzf --exit-0 \

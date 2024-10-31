@@ -327,7 +327,9 @@ alias lg=lazygit
 alias lzd=lazydocker
 alias vim=nvim
 alias grep="grep --color=auto"
-alias nvmc="NVIM_APPNAME=nvim-macro nvim"
+alias nvmc="NVIM_APPNAME=nvim.macro nvim"
+alias chad="NVIM_APPNAME=nvim.chad nvim"
+alias bak="NVIM_APPNAME=nvim.bak nvim"
 alias vi=vim
 alias bgr=batgrep
 alias cg=cargo
