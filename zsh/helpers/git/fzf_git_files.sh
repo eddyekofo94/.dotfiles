@@ -13,8 +13,8 @@ function fgf() {
 	local -r git_reset="git reset -- {+}"
 	local -r enter_cmd="($git_unstaged_files | grep {} && git add {+}) || $git_reset"
 
-	local -r preview_status_label="[ Status ]"
-	local -r preview_status="git status --short"
+	local -r preview_status_label="[ Diff ]"
+	local -r preview_status='(git diff --color=always -- {-1} | sed 1,4d; [[ ! -d {-1} ]] && bat --color=always {-1}) | head -500'
 
 	local -r header=$(cat <<-EOF
 		> CTRL-S to switch between Add Mode and Reset mode
@@ -41,6 +41,8 @@ function fgf() {
 	local -r mode_reset="change-prompt($prompt_reset)+reload($git_staged_files)+change-header($reset_header)+unbind(alt-p)+rebind(alt-d)"
 	local -r mode_add="change-prompt($prompt_add)+reload($git_unstaged_files)+change-header($add_header)+rebind(alt-p)+unbind(alt-d)"
 
+	# --preview-label="$preview_status_label" \
+	# --preview="$preview_status" \
 	eval "$git_unstaged_files" | fzf \
 	--multi \
 	--reverse \
@@ -53,8 +55,8 @@ function fgf() {
 	--bind='start:unbind(alt-d)' \
 	--bind="ctrl-t:change-preview-label($preview_status_label)" \
 	--bind="ctrl-t:+change-preview($preview_status)" \
-	--bind='ctrl-f:change-preview-label([ Diff ])' \
-	--bind='ctrl-f:+change-preview(git diff --color=always {} | sed "1,4d")' \
+	--bind='ctrl-f:change-preview-label([ Status ])' \
+	--bind='ctrl-f:+change-preview(git -c color.status=always status --short)' \
 	--bind='ctrl-b:change-preview-label([ Blame ])' \
 	--bind='ctrl-b:+change-preview(git blame --color-by-age {})' \
 	--bind="ctrl-s:transform:[[ \$FZF_PROMPT =~ '$prompt_add' ]] && echo '$mode_reset' || echo '$mode_add'" \

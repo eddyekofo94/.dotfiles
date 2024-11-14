@@ -670,8 +670,13 @@ zellij_delete_sessions() {
         --query="$1")" || return
 
   if [[ $sessions ]]; then
-    for session in $(echo $sessions);
-    do zellij d --force "$session"; done;
+    for session in $(cmd "$sessions");
+    do
+      if [[ "$session" != "$current_session_name" ]]; then
+        zellij d --force "$session";
+      fi
+    done;
+    echo "Cleaned Zellij sessions"
   fi
 
   # zellij kill-session "${sessions[@]}"
