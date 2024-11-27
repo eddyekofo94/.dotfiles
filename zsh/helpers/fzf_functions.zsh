@@ -75,6 +75,7 @@ find_in_files() {
         --color "hl:-1:underline,hl+:-1:underline:reverse" \
         --prompt '1. ripgrep> ' \
         --delimiter : \
+        --border-label="| Find In Files |" \
         --header 'CTRL-T: Switch between ripgrep/fzf' \
         --preview 'bat --color=always {1} --highlight-line {2}' \
         --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \

@@ -57,6 +57,9 @@ export FZF_COMMON_OPTIONS="--inline-info \
 --reverse \
 --extended \
 --bind=ctrl-space:toggle \
+--bind=ctrl-a:select-all \
+--bind=ctrl-d:deselect-all \
+--bind=ctrl-t:toggle-all \
 '--bind=ctrl-o:execute-silent($EDITOR {})+abort' \
 --bind=ctrl-i:ignore,ctrl-k:ignore \
 --bind=ctrl-j:down,ctrl-k:up \
