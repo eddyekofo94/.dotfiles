@@ -316,7 +316,7 @@ default_layout "default"
 
 // The folder in which Zellij will look for layouts
 //
-layout_dir "/home/eekofo/.config/zellij/layout_dir"
+layout_dir "/Users/eddyekofo/.config/zellij/layout_dir"
 
 // The folder in which Zellij will look for themes
 //
