@@ -54,3 +54,22 @@
 [alias]
 	ll = log --graph --format=\"%C(yellow)%h%C(red)%d%C(reset) - %C(bold green)(%ar)%C(reset) %s %C(blue)<%an>%C(reset)\"
 
+[maintenance]
+	repo = /Users/eddyekofo/.config/zsh/znap
+	repo = /Users/eddyekofo/.config/zsh/Aloxaf/fzf-tab
+	repo = /Users/eddyekofo/.config/zsh/MenkeTechnologies/zsh-expand
+	repo = /Users/eddyekofo/.config/zsh/MichaelAquilina/zsh-you-should-use
+	repo = /Users/eddyekofo/.config/zsh/Tarrasch/zsh-bd
+	repo = /Users/eddyekofo/.config/zsh/bigH/git-fuzzy
+	repo = /Users/eddyekofo/.config/zsh/esc/conda-zsh-completion
+	repo = /Users/eddyekofo/.config/zsh/hlissner/zsh-autopair
+	repo = /Users/eddyekofo/.config/zsh/jeffreytse/zsh-vi-mode
+	repo = /Users/eddyekofo/.config/zsh/ohmyzsh/ohmyzsh
+	repo = /Users/eddyekofo/.config/zsh/zap-zsh/fzf
+	repo = /Users/eddyekofo/.config/zsh/zap-zsh/supercharge
+	repo = /Users/eddyekofo/.config/zsh/zap-zsh/vim
+	repo = /Users/eddyekofo/.config/zsh/zdharma-continuum/fast-syntax-highlighting
+	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-autosuggestions
+	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-completions
+	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-history-substring-search
+	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-syntax-highlighting

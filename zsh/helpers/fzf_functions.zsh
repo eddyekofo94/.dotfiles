@@ -258,6 +258,18 @@ bip() {
     fi
 }
 
+# Uninstall (one or multiple) selected application(s)
+# using "brew search" as source input
+# mnemonic [B]rew [X]uninstall [P]ackage
+bxp() {
+    local del=$(brew leaves | fzf -m)
+
+    if [[ $del ]]; then
+        for plugin in $(echo $del);
+        do; brew uninstall $plugin; done;
+    fi
+}
+
 # Update (one or multiple) selected application(s)
 # mnemonic [B]rew [U]pdate [P]ackage
 bup() {

@@ -46,11 +46,11 @@ source "$ZSH_DOT_DIR"/extras/fzf-extras.zsh
 source "$ZSH_DOT_DIR_HELPERS/git/fzf_git_files.sh"
 
 # plugins
-znap source  zsh-users/zsh-autosuggestions
+# znap source  zsh-users/zsh-autosuggestions
 # znap source  hlissner/zsh-autopair
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
-znap source  zap-zsh/vim
+# znap source  zap-zsh/vim
 # znap source bigH/git-fuzzy
 znap clone https://github.com/bigH/git-fuzzy.git
 
@@ -90,7 +90,7 @@ function zvm_init ()
 }
 
 function zvm_after_init() {
-    # # NOTE:  FZF has to be here for it to be instanstiated
+    #  NOTE:  FZF has to be here for it to be instanstiated
     # Set up fzf key bindings and fuzzy completion
     source <(fzf --zsh)
     source "$(brew --prefix)/opt/fzf/shell/completion.zsh"
@@ -161,6 +161,12 @@ export PATH="$HOME/.local/bin/":$PATH
 export PATH="/usr/local/opt/curl/bin:$PATH"
 
 # start a prompt called starship
+if [[ "${widgets[zle-keymap-select]#user:}" == "starship_zle-keymap-select" || \
+	      "${widgets[zle-keymap-select]#user:}" == "starship_zle-keymap-select-wrapped" ]]; then
+    zle -N zle-keymap-select "";
+fi
+
+# eval "$(starship init zsh)"
 if has starship; then
     eval "$(starship init zsh)"
 fi

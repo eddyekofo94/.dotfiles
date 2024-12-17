@@ -23,7 +23,7 @@ end
 
 if status is-interactive
     # Commands to run in interactive sessions can go here
-    # eval (zellij setup --generate-auto-start fish | string collect)
+     eval (zellij setup --generate-auto-start fish | string collect)
 end
 
 if status is-login
@@ -125,36 +125,43 @@ set __file__ $HOME/.config/fish/config.fish
 #
 ######################################
 
+#  INFO: 2024-12-17 - source all abbrs
+for file in $HOME/.dotfiles/fish/abbr/*.fish
+    if test -e $file
+        . $file
+    end
+end
+
 # Modern ways to list files
-alias ls="lsd"
-alias l="exa --group-directories-first --icons --long --header --binary --group"
-alias la="l -a"
-
-# Bat things
-alias cat='bat --paging=never --style=changes'
-abbr --add bgr 'batgrep'
-abbr --add bman 'batman'
-
-abbr -a -- lg lazygit
-abbr -a -- lzd lazydocker
-abbr -a -- vim nvim
-abbr -a -- vi vim
-
-abbr -a -- bgr batgrep
-abbr -a -- bman batman
-
-# Cargo abbreviations
-abbr -a -- cg cargo
-abbr -a -- cgc 'cargo clean'
-abbr -a -- cgi 'cargo install'
-abbr -a -- cgn 'cargo new'
-abbr -a -- cgs 'cargo search'
-abbr -a -- cgt 'cargo test'
-abbr -a -- cgu 'cargo uninstall'
-abbr -a -- cgug 'cargo upgrade'
-
-abbr -a -- h "history"
-abbr -a -- hg "history | grep "
+#alias ls="lsd"
+#alias l="exa --group-directories-first --icons --long --header --binary --group"
+#alias la="l -a"
+#
+## Bat things
+#alias cat='bat --paging=never --style=changes'
+#abbr --add bgr 'batgrep'
+#abbr --add bman 'batman'
+#
+#abbr -a -- lg lazygit
+#abbr -a -- lzd lazydocker
+#abbr -a -- vim nvim
+#abbr -a -- vi vim
+#
+#abbr -a -- bgr batgrep
+#abbr -a -- bman batman
+#
+## Cargo abbreviations
+#abbr -a -- cg cargo
+#abbr -a -- cgc 'cargo clean'
+#abbr -a -- cgi 'cargo install'
+#abbr -a -- cgn 'cargo new'
+#abbr -a -- cgs 'cargo search'
+#abbr -a -- cgt 'cargo test'
+#abbr -a -- cgu 'cargo uninstall'
+#abbr -a -- cgug 'cargo upgrade'
+#
+#abbr -a -- h "history"
+#abbr -a -- hg "history | grep "
 
 # bang-bang fish plugin... installed by omf
 bind ! __history_previous_command
