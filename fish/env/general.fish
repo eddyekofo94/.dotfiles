@@ -10,13 +10,13 @@ set -Ux XDG_DATA_DIRS "/usr/local/share/:/usr/share/"
 
 # Preference-ordered set of base directories to search for configuration files
 # in addition to the $XDG_CONFIG_HOME base directory.
-set -Ux XDG_CONFIG_DIRS "/etc/xdg"
+set -Ux XDG_CONFIG_DIRS /etc/xdg
 
 # Directory where user-specific non-essential data files should be stored.
 set -Ux XDG_CACHE_HOME "$XDG_CONFIG_HOME/.cache"
 
 # Editor vars
-set -Ux TERM "xterm-256color"
+set -Ux TERM xterm-256color
 
 set -Ux DOTFILES_DIR "$HOME/.dotfiles"
 
@@ -32,8 +32,8 @@ set -Ux BAT_CONFIG_PATH "$HOME/.dotfiles/bat/bat.conf"
 set -Ux KEYTIMEOUT 1
 
 if command -q nvim >/dev/null 2>&1
-    set -Ux EDITOR "nvim"
-    set -Ux VISUAL "nvim"
+    set -Ux EDITOR nvim
+    set -Ux VISUAL nvim
     set -Ux NVIM_DIR "$XDG_CONFIG_HOME/nvim"
 else
     set -Ux EDITOR vim
