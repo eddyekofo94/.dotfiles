@@ -112,7 +112,7 @@ if status is-login
         --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
 
     # Bat a modern cat with all the goodies
-    export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/lib/login/bat.conf
+    export BAT_CONFIG_PATH="$HOME/.dotfiles/bat/bat.conf"
 end
 
 
@@ -132,12 +132,25 @@ for file in $HOME/.dotfiles/fish/abbr/*.fish
     end
 end
 
-# Modern ways to list files
-#alias ls="lsd"
-#alias l="exa --group-directories-first --icons --long --header --binary --group"
-#alias la="l -a"
+######################################
 #
+# ENVS
+#
+######################################
+
+for file in $HOME/.dotfiles/fish/env/*.fish
+    if test -e $file
+        . $file
+    end
+end
+
 ## Bat things
+
+if command -q bat
+    alias cat 'bat -pp'
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+end
+
 #alias cat='bat --paging=never --style=changes'
 #abbr --add bgr 'batgrep'
 #abbr --add bman 'batman'
