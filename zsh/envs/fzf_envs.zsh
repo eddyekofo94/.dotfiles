@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env fish
 
 #  NOTE: 2023-09-28 - This is needed when loading fzf file
 has() {

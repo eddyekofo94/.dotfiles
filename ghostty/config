@@ -1,18 +1,22 @@
 theme = catppuccin-mocha
+
 # Font
-font-family = "Jetbrains Mono"
-font-size = 20
+# font-family = "Jetbrains Mono"
+font-family = "CommitMono Nerd Font"
+font-size = 17
+
+cursor-color = f5e0dc
+selection-invert-fg-bg = true
 
 # Padding
-window-padding-x = 10
-window-padding-y = 10
+window-padding-x = 1
+window-padding-y = 5
 
-# Opacity
-background-opacity	= 0.9
-background-blur-radius	= 10
+# some programs do not recognize TERM=xterm-ghostty, so use the classic one
+term = xterm-256color
 
 # Window
 # window-decoration = false
-macos-titlebar-style = "hidden"
+# macos-titlebar-style = "hidden"
 
 macos-option-as-alt = left

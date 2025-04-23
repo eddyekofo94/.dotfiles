@@ -183,3 +183,7 @@ export PATH="$(brew --prefix)/opt/libgit2@1.7/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="/usr/local/opt/sdkman-cli/libexe"
+[[ -s "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh" ]] && source "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh"

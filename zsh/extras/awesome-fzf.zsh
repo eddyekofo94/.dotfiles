@@ -41,7 +41,7 @@ function fzf-man() {
 
 #Eval commands on the fly
 function fzf-eval() {
-echo | fzf -q "$*" --preview-window=up:99% --preview="eval {q}"
+    echo | fzf -q "$*" --preview-window=up:99% --preview="eval {q}"
 }
 
 ## Search list of your aliases and functions
