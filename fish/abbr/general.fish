@@ -10,6 +10,19 @@ abbr -a -- mv 'mv -i'
 abbr -a -- cp 'cp -i'
 abbr -a -- rmdf 'rm -irf '
 
+function mkdir -d "Create a directory and set CWD"
+    command mkdir $argv
+    if test $status = 0
+        switch $argv[(count $argv)]
+            case '-*'
+
+            case '*'
+                cd $argv[(count $argv)]
+                return
+        end
+    end
+end
+
 function make_file_executable
     chmod +x "$1" || exit;
     ls -al
@@ -44,11 +57,11 @@ if command -q eza --icons &>/dev/null
     # abbr -a -- ls 'eza --git --icons auto --sort=modified' # system: List filenames on one line
     abbr -a -- ls 'eza --git --group-directories-first --icons --sort=modified'
     # abbr -a -- l 'eza --git --icons -lF'                          # system: List filenames with long format
-    abbr -a -- ll "eza --git --all --group-directories-first --no-filesize --no-user --long --icons --header --binary --group --sort=modified"
-    abbr -a -- l 'eza --git --group-directories-first --icons --sort=modified --long --all --no-filesize --no-time --no-user --no-permissions'
-    abbr -a -- lll "eza -1F --git --icons auto"                        # system: List files with one line per file
-    abbr -a -- llm 'll --sort=modified'                                # system: List files by last modified date
-    abbr -a -- la 'eza -lbhHigUmuSa --color-scale --git --icons auto'  # system: List files with attributes
+    abbr -a -- l "eza --git --all --group-directories-first --no-filesize --no-user --long --icons --header --binary --group --sort=modified"
+    abbr -a -- ll 'eza --git --group-directories-first --icons --sort=modified --long --all --no-filesize --no-time --no-user --no-permissions'
+    abbr -a -- lll "eza -1F --git --icons auto" # system: List files with one line per file
+    abbr -a -- llm 'll --sort=modified' # system: List files by last modified date
+    abbr -a -- la 'eza -lbhHigUmuSa --color-scale --git --icons auto' # system: List files with attributes
     abbr -a -- lx 'eza -lbhHigUmuSa@ --color-scale --git --icons auto' # system: List files with extended attributes
     abbr -a -- lt 'eza --tree --level=2 --icons auto'                               # system: List files in a tree view
     abbr -a -- llt 'eza -lahF --tree --level=2'                        # system: List files in a tree view with long format
@@ -57,8 +70,8 @@ if command -q eza --icons &>/dev/null
 else if command -v eza &>/dev/null
     abbr -a -- ls 'eza --group-directories-first --icons'
     abbr -a -- ls 'eza --git --icons auto'
-    abbr -a -- ll 'eza --git -lF --icons auto'
-    abbr -a -- l 'eza -lahF --git --icons auto'
+    abbr -a -- l 'eza --git -lF --icons auto'
+    abbr -a -- ll 'eza -lahF --git --icons auto'
     abbr -a -- lll "eza -1F --git --icons auto"
     abbr -a -- llm 'll --sort=modified --icons auto'
     abbr -a -- la 'eza -lbhHigUmuSa --color-scale --git'
@@ -153,15 +166,5 @@ abbr -a -- zjls 'zellij list-sessions'
 abbr -a -- zjk 'zellij kill-session'
 abbr -a -- zjka 'zellij kill-all-sessions'
 
-function mkdir -d "Create a directory and set CWD"
-    command mkdir $argv
-    if test $status = 0
-        switch $argv[(count $argv)]
-            case '-*'
 
-            case '*'
-                cd $argv[(count $argv)]
-                return
-        end
-    end
-end
+abbr -a -- bman batman

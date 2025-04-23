@@ -1,14 +1,12 @@
-
-
 #  NOTE: 2024-06-13 - This searches the environment variables
 function fenv -d "This searches the environment variables"
-  set -l envs
-  set envs (env | fzf +m \
+    set -l envs
+    set envs (env | fzf +m \
                   --query="$argv" --no-multi --select-1 --exit-0 \
                   --preview 'echo {}' --preview-window down:3:wrap \
                   )
 
-  echo (echo "$envs" | cut -d= -f2)
+    echo (echo "$envs" | cut -d= -f2)
 end
 
 function fcd -d "Fuzzy change directory"
@@ -20,7 +18,7 @@ function fcd -d "Fuzzy change directory"
 
     # https://github.com/fish-shell/fish-shell/issues/1362
     set -l tmpfile (mktemp)
-    find $searchdir \( ! -regex '.*/\..*' \) ! -name __pycache__ -type d | fzf > $tmpfile
+    find $searchdir \( ! -regex '.*/\..*' \) ! -name __pycache__ -type d | fzf >$tmpfile
     set -l destdir (cat $tmpfile)
     rm -f $tmpfile
 
@@ -36,7 +34,7 @@ function fkill -d "Fuzzy kill"
 
     if test -n "$pid"
         echo $pid | xargs kill -9
-    end 
+    end
 end
 
 #  FIX: 2024-12-19 - Make fish cinpliat
@@ -57,34 +55,35 @@ function find_in_files
                 --bind "change:reload:$RG_PREFIX {q}" \
                 --preview-window="70%:wrap"
     ) &&
-    open "$file"
+        open "$file"
 end
 
-function fe -d "fzf find edit"
-    set -l file
-    set file (
+function _fzf_find_cat -d "fzf find cat"
+    set -l file (
       fzf --query="$argv" --no-multi --select-1 --exit-0 \
           --preview 'bat --color=always --line-range :500 {}'
     )
-    if test -e $file
+
+    if test (count $file) -gt 0
+        cat $file
+    end
+end
+
+abbr fcat _fzf_find_cat
+
+function _fzf_find_edit -d "fzf find edit"
+    set -l file (
+      fzf --query="$argv" --no-multi --select-1 --exit-0 \
+          --preview 'bat --color=always --line-range :500 {}'
+    )
+
+    if test (count $file) -gt 0
         $EDITOR "$file"
     end
 end
-function fzf_change_directory
-    set -l directory
-    set directory (
-      fd --type d | \
-        fzf --query="$1" --no-multi --select-1 --exit-0
-    )
-    if test -d $directory
-        cd "$directory"
-        if command -q eza
-            eza --git --group-directories-first --long --icons --header --binary --group --sort=modified
-        else
-            ls -al --color=auto
-        end
-    end
-end
+
+abbr fe _fzf_find_edit
+
 
 function fif
     # Switch between Ripgrep mode and fzf filtering mode (CTRL-T)
@@ -94,7 +93,7 @@ function fif
     fzf --ansi --disabled --query "$argv" \
         --bind "start:reload:$RG_PREFIX {q}" \
         --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
-        --bind 'ctrl-t:transform:[[ ! $FZF_PROMPT =~ ripgrep ]] &&
+        --bind 'ctrl-t:transform:( not $FZF_PROMPT =~ ripgrep ) &&
         echo "rebind(change)+change-prompt(1. ripgrep> )+disable-search+transform-query:echo \{q} > /tmp/rg-fzf-f; cat /tmp/rg-fzf-r" ||
         echo "unbind(change)+change-prompt(2. fzf> )+enable-search+transform-query:echo \{q} > /tmp/rg-fzf-r; cat /tmp/rg-fzf-f"' \
         --color "hl:-1:underline,hl+:-1:underline:reverse" \
@@ -106,6 +105,25 @@ function fif
         --preview-window 'up,60%,border-bottom,+{2}+3/3,~3' \
         --bind 'enter:become($EDITOR {1} +{2})'
 end
+
+function _fzf_change_directory
+    set -l INITIAL_QUERY "{*:-}"
+
+    set -l directory (
+        fd --type d | fzf --query="$argv" --no-multi --select-1 --exit-0 \
+    )
+
+    if test (count $directory) -gt 0
+        cd "$directory"
+        if command -q eza
+            eza --git --group-directories-first --long --icons --header --binary --group --sort=modified
+        else
+            ls -al --color=auto
+        end
+    end
+end
+
+abbr -a -- fcd _fzf_change_directory
 
 #function path -d "environmental path"
 #    echo $PATH | tr ":" "\n" | \
