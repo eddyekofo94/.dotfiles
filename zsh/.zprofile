@@ -7,6 +7,9 @@ has() {
     type "$1" &>/dev/null
 }
 
+# INFO: Font: For now I am using this for the forseable future 
+# brew install --cask font-commit-mono-nerd-font
+
 if [[ ! -d $DOTFILES_DIR ]]; then
     echo "Creating a new dotfiles $DOTFILES_DIR"
     if [[ -d /workspace/.dotfiles ]]; then
