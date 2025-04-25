@@ -64,7 +64,7 @@ function delete-branches() {
 find_in_files() {
     # Switch between Ripgrep mode and fzf filtering mode (CTRL-T)
     rm -f /tmp/rg-fzf-{r,f}
-    RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+    RG_PREFIX="rg --column --line-number --hidden --no-heading --color=always --smart-case "
     INITIAL_QUERY="${*:-}"
     fzf --ansi --disabled --query "$INITIAL_QUERY" \
         --bind "start:reload:$RG_PREFIX {q}" \

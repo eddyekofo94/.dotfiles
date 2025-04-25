@@ -1,4 +1,3 @@
-
 # move the rest of the prompt to the right
 right_format = """
 $cmd_duration
@@ -41,7 +40,7 @@ symbol = " "
 # symbol = " "
 
 [git_branch]
-format = "[ $branch]($style)"
+format = "[ $branch]($style) "
 style = "bright-black"
 
 [git_status]
@@ -150,7 +149,7 @@ disabled = true
 [character]                            # The name of the module we are configuring is "character"
 success_symbol = "[❯:](bold green)"     #  The "success_symbol" segment is being set to "➜" with the color "bold green"
 error_symbol = "[✗](bold red)"
-vimcmd_symbol = "[❮](purple)"
+vimcmd_symbol = "[❮](blue)"
 
 #  
 # configure directory

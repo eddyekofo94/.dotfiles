@@ -46,8 +46,8 @@ source "$ZSH_DOT_DIR"/extras/fzf-extras.zsh
 source "$ZSH_DOT_DIR_HELPERS/git/fzf_git_files.sh"
 
 # plugins
-# znap source  zsh-users/zsh-autosuggestions
-# znap source  hlissner/zsh-autopair
+znap source  zsh-users/zsh-autosuggestions
+znap source  hlissner/zsh-autopair
 #  NOTE: 2023-10-03 - use bd to change dir backwards
 znap source Tarrasch/zsh-bd
 # znap source  zap-zsh/vim
@@ -58,7 +58,7 @@ znap clone https://github.com/bigH/git-fuzzy.git
 export PATH="$XDG_CONFIG_HOME/zsh/bigH/git-fuzzy/bin:$PATH"
 # Add in zsh plugins
 #  INFO: 2024-02-26 11:34 AM - aliases expand plugin
-export ZPWR_EXPAND_BLACKLIST=(fe chmox tree ls cat cd ll la l g z gss)
+export ZPWR_EXPAND_BLACKLIST=(fe fif chmox tree ls cat cd ll la l g z gss)
 
 # spelling correction in zsh-expand plugin
 export ZPWR_CORRECT=false
@@ -67,7 +67,8 @@ export ZPWR_CORRECT=false
 znap source zap-zsh/fzf
 znap source zsh-users/zsh-history-substring-search
 
-# znap source marlonrichert/zsh-autocomplete
+znap source Aloxaf/fzf-tab
+znap source marlonrichert/zsh-autocomplete
 
 znap source MichaelAquilina/zsh-you-should-use
 
@@ -99,9 +100,9 @@ function zvm_after_init() {
 
     znap source hlissner/zsh-autopair
     autopair-init
-    znap source zsh-users/zsh-syntax-highlighting
+    # znap source zsh-users/zsh-syntax-highlighting
     znap source zsh-users/zsh-completions
-    znap source zsh-users/zsh-autosuggestions
+    # znap source zsh-users/zsh-autosuggestions
 
     #  INFO: 2023-09-26 - This expands aliases, use this instead of abbr
     znap source MenkeTechnologies/zsh-expand
@@ -171,13 +172,14 @@ if has starship; then
     eval "$(starship init zsh)"
 fi
 
+# Load FZF envs
+source "$ZSH_DOT_DIR_ENVS"/fzf_envs.zsh
+
 #  INFO: 2024-06-17 - This one
 # eval "$(oh-my-posh init zsh --config ~/.dotfiles/oh-my-posh/sim-web.omp.toml)"
 
 bindkey '^ ' autosuggest-accept
-if has zellij; then
-    eval "$(zellij setup --generate-auto-start zsh)"
-fi
+
 
 export PATH="$(brew --prefix)/opt/libgit2@1.7/bin:$PATH"
 
@@ -187,3 +189,7 @@ export NVM_DIR="$HOME/.nvm"
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="/usr/local/opt/sdkman-cli/libexe"
 [[ -s "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh" ]] && source "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh"
+
+if has zellij; then
+    eval "$(zellij setup --generate-auto-start zsh)"
+fi

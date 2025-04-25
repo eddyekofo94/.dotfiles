@@ -42,7 +42,7 @@ export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
 export ZDOTDIR=~/.config/zsh
 
 # export ZSHRC=$DOTFILES_DIR/zsh/.zshrc
-export ZSHRC=$ZDOTDIR/.zshrc
+# export ZSHRC=$ZDOTDIR/.zshrc
 
 export TERM_ITALICS="TRUE"
 

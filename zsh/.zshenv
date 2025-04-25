@@ -27,14 +27,14 @@ export TERM="xterm-256color"
 
 export DOTFILES_DIR="$HOME/.dotfiles"
 
-export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
+# export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 
-export ZSH_DOT_DIR_HELPERS="$ZSH_DOT_DIR/helpers"
+export ZSH_DOT_DIR_HELPERS="$DOTFILES_DIR/zsh/helpers"
 
 # export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZDOTDIR=~/.config/zsh
 
-export ZSHRC=$ZDOTDIR/.zshrc
+export ZSHRC=$HOME/.zshrc
 
 export TERM_ITALICS="TRUE"
 
@@ -93,3 +93,6 @@ export BAT_CONFIG_PATH=$HOME/.dotfiles/bat/bat.conf
 # export PATH=$HOME/.dotfiles/doit/build:$PATH
 
 [ -d "/home/linuxbrew/.linuxbrew" ] && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# Local
+source ~/.local.env
