@@ -4,6 +4,11 @@ theme = catppuccin-mocha
 # font-family = "Jetbrains Mono"
 font-family = "CommitMono Nerd Font"
 font-size = 17
+font-feature = zero
+font-feature = calt
+font-feature = liga
+
+cursor-style-blink = true
 
 cursor-color = f5e0dc
 selection-invert-fg-bg = true
