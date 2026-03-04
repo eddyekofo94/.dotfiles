@@ -1,39 +1,34 @@
-######################################
-#
-# Author: Eddy Ekofo - fish configs
-#
-######################################
+# conf.d runs first!
 
-set unameOut (uname -a)
+# https://fishshell.com/docs/current/tutorial.html
+# https://github.com/jorgebucaran/fish-shell-cookbook
+# https://github.com/fish-shell/fish-shell/blob/master/share/config.fish
+# https://github.com/fish-shell/fish-shell/blob/da32b6c172dcfe54c9dc4f19e46f35680fc8a91a/share/config.fish#L257-L269
 
-switch $unameOut
-    case "*Microsoft*"
-        set OS WSL #wls must be first since it will have Linux in the name too
-    case "*microsoft*"
-        set OS WSL2
-    case "Linux*"
-        set OS Linux
-    case "Darwin*"
-        set OS Mac
-        # Note that the next case has a wildcard which is quoted
-    case '*'
-        echo $unameOut
-end
+#
+# Env
+#
+
+# Set vars for dotfiles and special dirs.
+set -g ZDOTDIR $XDG_CONFIG_HOME/zsh
+set -gx DOTFILES $HOME/.dotfiles
+
+# Set initial working directory.
+set -g IWD $PWD
 
 if status is-interactive
     # Commands to run in interactive sessions can go here
-    eval (zellij setup --generate-auto-start fish | string collect)
+    # eval (zellij setup --generate-auto-start fish | string collect)
 
-    ######################################
-    #
-    # ENVS
-    #
-    ######################################
+    # Set TERM=kitty for undercurl support in neovim when running in Zellij or Ghostty
+    # if test -n "$ZELLIJ_SESSION_NAME" -o "$TERM_PROGRAM" = Ghostty
+    #     function nvim
+    #         TERM=kitty command nvim $argv
+    #     end
+    # end
 
-    for file in $HOME/.dotfiles/fish/env/*.fish
-        if test -e $file
-            . $file
-        end
+    if not string match -q "*fnm_multishell*" "$PATH"
+        fnm env --use-on-cd | source
     end
 end
 
@@ -58,7 +53,6 @@ if status is-login
     end
 
     # Enables vim keybindings
-    #fish_vi_key_bindings --no-erase insert
     set fish_key_bindings fish_user_key_bindings
 
     # Emulates vim's cursor shape behavior
@@ -72,7 +66,6 @@ if status is-login
     # visual mode, but due to fish_cursor_default, is redundant here
     set fish_cursor_visual block
 
-
     # starship init fish | source
 
     # FZF
@@ -82,77 +75,111 @@ if status is-login
     # set fzf_fd_opts --hidden --exclude=.git
 end
 
-
 set __file__ $HOME/.config/fish/config.fish
 
-
-######################################
 #
-# ALIASSES & ABBRs
+# Utils
 #
-######################################
 
-#  INFO: 2024-12-17 - source all abbrs
-for file in $HOME/.dotfiles/fish/abbr/*.fish
-    if test -e $file
-        . $file
+# Initialize fuzzy finder.
+if type -q fzf
+    if not test -r $__fish_cache_dir/fzf_init.fish
+        fzf --fish >$__fish_cache_dir/fzf_init.fish
+    end
+    source $__fish_cache_dir/fzf_init.fish
+end
+
+# Initialize zoxide for fast jumping with 'z'.
+if type -q zoxide
+    if not test -r $__fish_cache_dir/zoxide_init.fish
+        zoxide init --cmd cd fish >$__fish_cache_dir/zoxide_init.fish
+    end
+    source $__fish_cache_dir/zoxide_init.fish
+end
+
+#
+# Prompt
+#
+
+# Greeting is handled by functions/fish_greeting.fish
+
+# Initialize starship.
+if type -q starship
+    #set -gx STARSHIP_CONFIG $__fish_config_dir/themes/starship.toml
+    if not test -r $__fish_cache_dir/starship_init.fish
+        starship init fish --print-full-init >$__fish_cache_dir/starship_init.fish
+    end
+    source $__fish_cache_dir/starship_init.fish
+    #enable_transience
+end
+
+#
+# Theme - Catppuccin Mocha colors
+#
+
+set fish_color_normal cdd6f4
+set fish_color_command 89b4fa
+set fish_color_param f2cdcd
+set fish_color_keyword cba6f7
+set fish_color_quote a6e3a1
+set fish_color_redirection f5c2e7
+set fish_color_end fab387
+set fish_color_comment 7f849c
+set fish_color_error f38ba8
+set fish_color_gray 6c7086
+set fish_color_selection --background=313244
+set fish_color_search_match --background=313244
+set fish_color_option a6e3a1
+set fish_color_operator f5c2e7
+set fish_color_escape eba0ac
+set fish_color_autosuggestion 6c7086
+set fish_color_cancel f38ba8
+set fish_color_cwd f9e2af
+set fish_color_user 94e2d5
+set fish_color_host 89b4fa
+set fish_color_host_remote a6e3a1
+set fish_color_status f38ba8
+set fish_pager_color_progress 6c7086
+set fish_pager_color_prefix f5c2e7
+set fish_pager_color_completion cdd6f4
+set fish_pager_color_description 6c7086
+
+#  CLEAN_UP: 2024-12-29 - Remove when finished!
+#set fish_key_bindings fish_user_key_bindings
+
+# Local
+#
+
+#if test -r $DOTFILES.local/fish/config.fish
+#    source $DOTFILES.local/fish/config.fish
+#end
+
+# Functions needed for !! and !$
+function __history_previous_command
+    switch (commandline -t)
+        case "!"
+            commandline -t $history[1]
+            commandline -f repaint
+        case "*"
+            commandline -i !
     end
 end
 
-
-######################################
-#
-# FUNCTIONS
-#
-######################################
-for file in $HOME/.dotfiles/fish/functions/*.fish
-    if test -e $file
-        . $file
+function __history_previous_command_arguments
+    switch (commandline -t)
+        case "!"
+            commandline -t ""
+            commandline -f history-token-search-backward
+        case "*"
+            commandline -i '$'
     end
 end
 
-## Bat things
-if command -q bat
-    alias cat 'bat -pp'
-    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+# The bindings for !! and !$
+if [ "$fish_key_bindings" = fish_vi_key_bindings ]
+    bind -Minsert ! __history_previous_command
+    bind -Minsert '$' __history_previous_command_arguments
+else
+    bind ! __history_previous_command
+    bind '$' __history_previous_command_arguments
 end
-
-#alias cat='bat --paging=never --style=changes'
-#abbr --add bgr 'batgrep'
-#abbr --add bman 'batman'
-#
-#abbr -a -- lg lazygit
-#abbr -a -- lzd lazydocker
-#abbr -a -- vim nvim
-#abbr -a -- vi vim
-#
-#abbr -a -- bgr batgrep
-#abbr -a -- bman batman
-#
-## Cargo abbreviations
-#abbr -a -- cg cargo
-#abbr -a -- cgc 'cargo clean'
-#abbr -a -- cgi 'cargo install'
-#abbr -a -- cgn 'cargo new'
-#abbr -a -- cgs 'cargo search'
-#abbr -a -- cgt 'cargo test'
-#abbr -a -- cgu 'cargo uninstall'
-#abbr -a -- cgug 'cargo upgrade'
-#
-#abbr -a -- h "history"
-#abbr -a -- hg "history | grep "
-
-# bang-bang fish plugin... installed by omf
-#bind ! __history_previous_command
-#bind '$' __history_previous_command_arguments
-
-#bind -k \e. previous
-#bind -k \cj accept-autosuggestion
-
-#abbr -a -- bman batman
-
-#https://github.com/gazorby/fifc
-set -Ux fifc_editor $EDITOR
-
-# INFO: Zoxide a smart cd to directories (needs rust)
-zoxide init --cmd cd fish | source
