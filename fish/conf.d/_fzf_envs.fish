@@ -55,7 +55,7 @@ set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --multi \
     --reverse \
     --extended \
-    --bind=tab:toggle \
+    --bind=tab:toggle+down \
     --bind=ctrl-a:select-all \
     --bind=ctrl-d:deselect-all \
     --bind=ctrl-t:toggle-all \

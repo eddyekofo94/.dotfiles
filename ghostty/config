@@ -17,11 +17,14 @@ selection-invert-fg-bg = true
 window-padding-x = 1
 window-padding-y = 5
 
-# some programs do not recognize TERM=xterm-ghostty, so use the classic one
-term = xterm-256color
+# Enable cursor styling from apps (neovim)
+shell-integration-features = cursor
 
 # Window
 # window-decoration = false
 # macos-titlebar-style = "hidden"
 
 macos-option-as-alt = left
+
+# Key bindings - passthrough ctrl+space to tmux
+keybind = ctrl+space=passthrough
