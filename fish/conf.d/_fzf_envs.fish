@@ -13,12 +13,6 @@ function _fzf_compgen_path
     rg --files --glob "!.git" . "$1"
 end
 
-function _fzf_git_status_git
-    git -c color.status=always status --short | fzf --ansi \
-        --preview '(git diff --color=always -- {-1} | sed 1,4d; [[ ! -d {-1} ]] && bat --color=always {-1}) | head -500' \
-        --bind='ctrl-o:execute(${EDITOR:-vim} {+})'
-end
-
 function _fzf_compgen_dir
     fd --type d --hidden --follow --exclude ".git" . "$1"
 end
@@ -56,13 +50,13 @@ set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --reverse \
     --extended \
     --bind=tab:toggle+down \
+    --bind=shift-tab:toggle+up \
     --bind=ctrl-a:select-all \
-    --bind=ctrl-d:deselect-all \
+    --bind=ctrl-x:deselect-all \
     --bind=ctrl-t:toggle-all \
-    '--bind=ctrl-o:execute-silent($EDITOR {})+abort' \
-    --bind=ctrl-i:ignore,ctrl-k:ignore \
+    --bind=ctrl-k:ignore \
     --bind=ctrl-j:down,ctrl-k:up \
-    --bind=ctrl-u:preview-up,ctrl-d:preview-down \
+    --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down \
     --bind=esc:abort \
     --bind=ctrl-c:abort \
     --bind=?:toggle-preview \
@@ -97,9 +91,11 @@ end
 
 # CTRL-/ to toggle small preview window to see the full command
 # CTRL-Y to copy the command into clipboard using pbcopy
+set -g fzf_history_opts "--height=40%"
+
 set -gx FZF_CTRL_R_OPTS "--header='command history (Press CTRL-y to copy command into clipboard)' \
     --info=inline \
-    --height=70% \
+    --height=40% \
     --select-1 \
     --ansi \
     --reverse \

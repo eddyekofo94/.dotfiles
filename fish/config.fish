@@ -52,6 +52,24 @@ if status is-login
         abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
     end
 
+    # Auto-start tmux on login
+    if not set -q TMUX
+        if type -q tmux
+            if tmux has-session 2>/dev/null
+                if tmux ls 2>/dev/null | string match -q "*attached*"
+                    # If a session is already active/attached elsewhere, open a new separate session
+                    exec tmux new-session
+                else
+                    # If no session is currently active/attached, attach to the existing/old one
+                    exec tmux attach-session
+                end
+            else
+                # If no session exists at all, create a new one named 'main'
+                exec tmux new-session -s main
+            end
+        end
+    end
+
     # Enables vim keybindings
     set fish_key_bindings fish_user_key_bindings
 
@@ -87,6 +105,10 @@ if type -q fzf
         fzf --fish >$__fish_cache_dir/fzf_init.fish
     end
     source $__fish_cache_dir/fzf_init.fish
+
+    # Override fzf native bindings with fzf.fish plugin versions
+    # (richer previews using bat/eza, consistent styling)
+    fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
 end
 
 # Initialize zoxide for fast jumping with 'z'.
@@ -183,3 +205,13 @@ else
     bind ! __history_previous_command
     bind '$' __history_previous_command_arguments
 end
+
+# bun
+set --export BUN_INSTALL "$HOME/.bun"
+set --export PATH $BUN_INSTALL/bin $PATH
+
+# Added by Antigravity
+fish_add_path /Users/eddyekofo/.antigravity/antigravity/bin
+
+# Added by Antigravity
+fish_add_path /Users/eddyekofo/.antigravity/antigravity/bin
