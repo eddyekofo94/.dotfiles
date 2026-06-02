@@ -4,6 +4,7 @@ function e -d "fzf - open file or change directory"
     #--preview='tree -C {}' --preview-window='45%,border-sharp' \
     --query="$argv" \
     --prompt='Dirs > ' \
+    (_fzf_file_picker_opts .) \
     --bind='del:execute(rm -ri {+})' \
     --bind='ctrl-p:toggle-preview' \
     --bind='ctrl-d:change-prompt(Dirs > )' \

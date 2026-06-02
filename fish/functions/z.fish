@@ -9,6 +9,7 @@ function z -d "z - open 'frecency' files in $VISUAL editor"
           --no-multi \
           --tiebreak=index \
           --query "$argv[1]" \
+          (_fzf_file_picker_opts .) \
           --preview-window='right:hidden:wrap' \
           --bind=ctrl-v:toggle-preview \
           --bind=ctrl-s:toggle-sort \

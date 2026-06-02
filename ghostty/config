@@ -26,5 +26,5 @@ shell-integration-features = cursor
 
 macos-option-as-alt = left
 
-# Key bindings - passthrough ctrl+space to tmux
-keybind = ctrl+space=passthrough
+# Key bindings
+keybind = ctrl+space=unbind

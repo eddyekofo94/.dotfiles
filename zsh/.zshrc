@@ -193,3 +193,5 @@ export SDKMAN_DIR="/usr/local/opt/sdkman-cli/libexe"
 if has zellij; then
     eval "$(zellij setup --generate-auto-start zsh)"
 fi
+
+. "$HOME/.local/share/../bin/env"

@@ -1,6 +1,7 @@
 function fe -d "fzf find edit"
     set -l file (
       fzf --query="$argv" --multi --select-1 --exit-0 \
+          (_fzf_file_picker_opts .) \
           --preview 'bat --color=always --line-range :500 {}'
     )
 
@@ -8,4 +9,3 @@ function fe -d "fzf find edit"
         $EDITOR "$file"
     end
 end
-

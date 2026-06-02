@@ -4,6 +4,7 @@ function find_in_files
     set file (
         FZF_DEFAULT_COMMAND="$RG_PREFIX '$argv'" \
             fzf --sort \
+                (_fzf_file_picker_common_opts) \
                 --preview="[ ! -z {} ] && rg --pretty --context 5 {q} {}" \
         #--preview 'bat --color=always {1} --highlight-line {2}' \
                 --phony -q "$argv" \

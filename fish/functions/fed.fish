@@ -1,6 +1,7 @@
 function fed -d "cd into the directory of the selected file"
     set -l file
     set file (fzf +m -q "$argv" \
+           (_fzf_file_picker_opts .) \
            --bind=ctrl-v:toggle-preview \
            --bind=ctrl-x:toggle-sort \
            --header='(view:ctrl-v) (sort:ctrl-x)' \

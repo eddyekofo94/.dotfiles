@@ -211,6 +211,8 @@ simplified_ui true
 //
 // default_cwd ""
 
+styled_underlines true
+
 // Toggle between having pane frames around the panes
 // Options:
 //   - true (default)

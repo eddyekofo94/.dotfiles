@@ -9,17 +9,19 @@ function __auto_ls \
 
     if test -z "$output"
         return
-    end
-
-    set -l lines (tput lines 2>/dev/null; or 16)
-    set -l max_lines (math ceil $lines / 4)
-    set -l num_lines (count $output)
-
-    if test "$num_lines" -le "$max_lines"
-        printf '%s\n' $output
     else
-        printf '%s\n' $output | head -n $max_lines
-        echo
-        echo ... $num_lines lines total
+         eza -1F --git --icons auto
     end
+
+    # set -l lines (tput lines 2>/dev/null; or 16)
+    # set -l max_lines (math ceil $lines / 4)
+    # set -l num_lines (count $output)
+    #
+    # if test "$num_lines" -le "$max_lines"
+    #     printf '%s\n' $output
+    # else
+    #     printf '%s\n' $output | head -n $max_lines
+    #     echo
+    #     echo ... $num_lines lines total
+    # end
 end

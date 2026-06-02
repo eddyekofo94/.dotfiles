@@ -21,4 +21,9 @@ function fish_user_key_bindings
 
     #bind -M insert -m default \cf fzf_change_directory
     bind -M insert -m default \cf e
+
+    # Re-apply fifc tab binding — fish_vi_key_bindings overwrites it
+    for mode in default insert
+        bind --mode $mode \t _fifc
+    end
 end

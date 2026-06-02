@@ -8,7 +8,9 @@ function __postexec_append_newline --on-event fish_postexec \
     --description 'Add newline before prompt only when previous output exists' \
     --argument-names cmd
     # Avoid adding the extra newline after clearing the terminal
-    if test (string split ';' -- (cursorpos))[1] -gt 1
+    set --local pos (cursorpos)
+    set --local row (string split ';' -- $pos)[1]
+    if test -n "$row" -a "$row" -gt 1
         echo
     end
 end

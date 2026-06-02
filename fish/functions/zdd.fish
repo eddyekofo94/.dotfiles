@@ -6,6 +6,7 @@ function zdd -d "cd to selected directory"
         fd $argv -type d -print 2> /dev/null \
           | fzf +m \
               --query="$argv" \
+              (_fzf_file_picker_opts .) \
               --preview="eza --tree --color=always --icons auto {} | head -n $FZF_PREVIEW_LINES" \
               --preview-window='right:hidden:wrap' \
               --bind=ctrl-v:toggle-preview \

@@ -4,6 +4,7 @@ function fcd -d "cd into the directory of the selected file"
       fd --type d | \
         fzf +m -q "$argv" \
            --no-multi --select-1 --exit-0 \
+           (_fzf_file_picker_opts .) \
            --bind=ctrl-v:toggle-preview \
            --bind=ctrl-x:toggle-sort \
            --header='(view:ctrl-v) (sort:ctrl-x)' \

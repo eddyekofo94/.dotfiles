@@ -7,7 +7,7 @@ function _fzf_search_history --description "Search command history. Replace the 
 
     if not set --query fzf_history_time_format
         # Reference https://devhints.io/strftime to understand strftime format symbols
-        set -f fzf_history_time_format "%m-%d %H:%M:%S"
+        set -f fzf_history_time_format "%m/%d"
     end
 
     # Delinate time from command in history entries using the vertical box drawing char (U+2502).
