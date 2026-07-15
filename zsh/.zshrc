@@ -9,6 +9,17 @@ has() {
     type "$1" &>/dev/null
 }
 
+# --- Agent / non-interactive fast path -------------------------------------
+# You use fish interactively; zsh here is driven almost entirely by agents
+# (Claude Code, Codex, ...) and scripts. PATH + core env are already set by
+# .zshenv/envs above, so these shells have everything they need. Bail BEFORE
+# znap, ~15 plugins, vi-mode, starship, compinit, and any interactive-only
+# side effects (e.g. multiplexer autostart). This keeps agent shells instant
+# and light, and is the root-cause guard against runaway session/RAM leaks.
+if [[ -n "$CLAUDECODE" || -n "$AI_AGENT" || -n "$CI" || "$TERM" == "dumb" || $- != *i* ]]; then
+    return
+fi
+
 # Download Znap, if it's not there yet.
 [[ -r ~/.config/zsh/znap/znap.zsh ]] ||
 git clone --depth 1 -- \
@@ -159,7 +170,7 @@ autoload -Uz compinit && compinit
 
 export PATH="$HOME/.local/bin/":$PATH
 
-export PATH="/usr/local/opt/curl/bin:$PATH"
+export PATH="/opt/homebrew/opt/curl/bin:$PATH"
 
 # start a prompt called starship
 if [[ "${widgets[zle-keymap-select]#user:}" == "starship_zle-keymap-select" || \
@@ -187,11 +198,14 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="/usr/local/opt/sdkman-cli/libexe"
-[[ -s "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh" ]] && source "/usr/local/opt/sdkman-cli/libexe/bin/sdkman-init.sh"
+export SDKMAN_DIR="/opt/homebrew/opt/sdkman-cli/libexec"
+[[ -s "/opt/homebrew/opt/sdkman-cli/libexec/bin/sdkman-init.sh" ]] && source "/opt/homebrew/opt/sdkman-cli/libexec/bin/sdkman-init.sh"
 
-if has zellij; then
-    eval "$(zellij setup --generate-auto-start zsh)"
-fi
+# Disabled 2026-07-14: this spawned a NEW zellij session on every zsh subshell
+# (agents/scripts included), leaking ~400 orphaned sessions -> 33GB swap ->
+# WindowServer crashes. Re-enable only if you actually use zellij again.
+# if has zellij; then
+#     eval "$(zellij setup --generate-auto-start zsh)"
+# fi
 
 . "$HOME/.local/share/../bin/env"

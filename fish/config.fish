@@ -13,6 +13,10 @@
 set -g ZDOTDIR $XDG_CONFIG_HOME/zsh
 set -gx DOTFILES $HOME/.dotfiles
 
+# Keep child processes such as tmux on the currently running fish binary.
+# This repairs stale /usr/local/bin/fish values left by the Intel Homebrew era.
+set -gx SHELL (status fish-path)
+
 # Set initial working directory.
 set -g IWD $PWD
 

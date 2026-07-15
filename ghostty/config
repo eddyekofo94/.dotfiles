@@ -1,5 +1,9 @@
 theme = catppuccin-mocha
 
+# Pin the native Apple Silicon Homebrew shell instead of inheriting a stale
+# /usr/local/bin/fish path from the GUI environment.
+command = /opt/homebrew/bin/fish --login
+
 # Font
 # font-family = "Jetbrains Mono"
 font-family = "CommitMono Nerd Font"

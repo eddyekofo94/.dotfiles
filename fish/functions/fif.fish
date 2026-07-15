@@ -23,6 +23,7 @@ function fif -d "find entry in files"
     set -l preview_cmd "fish -c '_fif_preview \"\$argv[1]\" \"\$argv[2]\" \"\$argv[3]\" \"\$argv[4]\" \"\$argv[5]\"' {1} {2} {3} "(string escape -- "$rg_query_file")" {4..}"
     set -l fzf_query "$query"
     set -l fzf_prompt '1. ripgrep> '
+    set -l fzf_header 'TAB: Select & Next | ALT-A: All | CTRL-G: Toggle Mode | CTRL-D/U: Scroll Preview | CTRL-O: Open'
     set -l fzf_mode_opts --disabled
 
     if test $start_in_filter -eq 1
@@ -40,7 +41,7 @@ function fif -d "find entry in files"
     # transform-query becomes an fzf action.
     set -l toggle_action "case \"\$FZF_PROMPT\" in \
         *ripgrep*) \
-            printf '%s' 'unbind(change)+change-prompt(2. filter> )+enable-search+transform-query:printf %s \\{q} > $rg_query_file; cat $filter_query_file' ;; \
+            printf '%s' 'unbind(change)+change-prompt(2. files> )+enable-search+transform-query:printf %s \\{q} > $rg_query_file; cat $filter_query_file' ;; \
         *) \
             printf '%s' 'rebind(change)+change-prompt(1. ripgrep> )+disable-search+transform-search(cat $filter_query_file)+transform-query(printf %s \\{q} > $filter_query_file; cat $rg_query_file)' ;; \
     esac"
@@ -52,11 +53,13 @@ function fif -d "find entry in files"
         --info=inline-right \
         --no-sort \
         --prompt "$fzf_prompt" \
-        --header 'TAB: Select & Next | ALT-A: All | CTRL-G: Toggle Mode | CTRL-D/U: Scroll Preview | CTRL-O: Open' \
+        --header "$fzf_header" \
         --border-label "| Find In Files: $path |" \
         --delimiter : \
         --nth 1 \
         --color "hl:-1:underline,hl+:-1:underline:reverse,marker:010" \
+        --bind "zero:transform-header:printf 'No matches. Keep typing, edit the ripgrep query, or press CTRL-G to filter current results.'" \
+        --bind "result:transform-header:printf '%s' "(string escape -- "$fzf_header") \
         --bind "change:reload(sleep 0.1; $rg_cmd || true)+transform-search(cat $filter_query_file)" \
         --bind "ctrl-g:transform:$toggle_action" \
         (_fzf_file_picker_common_opts "{+1}") \

@@ -42,7 +42,6 @@ end
 set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --height 96% \
     --preview-window=right,55%,border-sharp,nocycle \
-    --select-1 \
     --border=none \
     --no-separator \
     --ansi \
@@ -59,6 +58,7 @@ set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down \
     --bind=esc:abort \
     --bind=ctrl-c:abort \
+    --bind 'ctrl-y:execute-silent(echo -n {+} | pbcopy)' \
     --bind=?:toggle-preview \
     --preview='$FZF_PREVIEW_COMMAND' \
     --cycle \

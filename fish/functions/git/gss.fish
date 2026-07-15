@@ -166,6 +166,13 @@ function __gss_preview --argument-names line
     end
 end
 
+function __gss_print
+    for line in $argv
+        set -l path (__gss_path_from_line "$line")
+        test -n "$path"; and printf "%s\n" "$path"
+    end
+end
+
 function gss -d "git status"
     git rev-parse --is-inside-work-tree >/dev/null 2>&1; or begin
         echo "gss: not in a git repository" >&2
@@ -174,19 +181,21 @@ function gss -d "git status"
 
     set -l source_file (path resolve -- (status filename))
     set -l list_cmd "git -c color.status=always -c core.quotePath=false status --short"
-    set -l header "CTRL-SPACE: Toggle | F5: Stage all | F6: Unstage all | F7: Commit | F8: Amend | CTRL-X: Discard | CTRL-O: Edit | CTRL-Y: Copy path"
+    set -l header "ENTER/CTRL-SPACE: Toggle | F5: Stage all | F6: Unstage all | F1: Commit | F8: Amend | CTRL-X: Discard | CTRL-O: Edit | CTRL-Y: Copy path"
 
     __gss_status | fzf --ansi --multi --no-sort --header-first \
         --header "$header" \
         --preview "fish -c 'source \"\$argv[2]\"; __gss_preview \"\$argv[3..-1]\"' gss-preview "(string escape -- "$source_file")" '{}'" \
         --preview-window 'right,65%,border-left' \
+        --bind "enter:execute-silent(fish -c 'source \"\$argv[2]\"; __gss_toggle \$argv[3..]' gss-toggle "(string escape -- "$source_file")" {+})+reload($list_cmd)+clear-selection" \
         --bind "ctrl-space:execute-silent(fish -c 'source \"\$argv[2]\"; __gss_toggle \$argv[3..]' gss-toggle "(string escape -- "$source_file")" {+})+reload($list_cmd)+clear-selection" \
         --bind "f5:execute-silent(git add -A)+reload($list_cmd)+clear-selection" \
         --bind "f6:execute-silent(git restore --staged .)+reload($list_cmd)+clear-selection" \
         --bind "ctrl-x:execute(fish -c 'source \"\$argv[2]\"; __gss_checkout \"\$argv[3]\"' gss-checkout "(string escape -- "$source_file")" '{}')+reload($list_cmd)+clear-selection" \
-        --bind "ctrl-o:execute(fish -c 'source \"\$argv[2]\"; __gss_edit \"\$argv[3]\"' gss-edit "(string escape -- "$source_file")" '{}')" \
-        --bind "ctrl-y:execute-silent(fish -c 'source \"\$argv[2]\"; __gss_copy_paths \"\$argv[3]\"' gss-copy "(string escape -- "$source_file")" '{}')" \
-        --bind 'f7:become(git commit)' \
+        --bind "ctrl-o:execute(fish -c 'source \"\$argv[2]\"; __gss_edit \$argv[3..]' gss-edit "(string escape -- "$source_file")" {+})" \
+        --bind "ctrl-y:execute-silent(fish -c 'source \"\$argv[2]\"; __gss_copy_paths \$argv[3..]' gss-copy "(string escape -- "$source_file")" {+})+abort" \
+        --bind "ctrl-s:become(fish -c 'source \"\$argv[2]\"; __gss_print \$argv[3..]' gss-print "(string escape -- "$source_file")" {+})" \
+        --bind 'f1:become(git commit)' \
         --bind 'f8:become(git commit --amend)' \
         --bind "f9:execute(git add --patch)+reload($list_cmd)" \
         --bind '?:toggle-preview' \
