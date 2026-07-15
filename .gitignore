@@ -16,3 +16,18 @@ zsh/.zcompdump
 **/*.zwc
 doit/build/**
 CMakeFile
+
+# Timestamped backups left by migrations / manual edits (e.g. the Apple Silicon
+# move). NOTE: no blanket *.bak — git/etc/gitconfig.bak and zsh/extras/.zshrc.bak
+# are tracked on purpose.
+*.pre-apple-silicon-fix.*
+*.pre-modernize.*
+/tmux/tmux.conf.bak
+
+# Whole-dir backups and debug/scratch artifacts
+/fish.bak/
+/fish/debug_reports/
+/fish/test-*.fish
+/fish/file1
+/fish/file2
+/fish/mock_file.txt
