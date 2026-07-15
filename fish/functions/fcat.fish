@@ -8,7 +8,7 @@ function fcat -d "fzf find cat"
       fzf --query="$argv" --no-multi --select-1 --exit-0 \
           --prompt="All> " \
           --bind="$fzf_bind" \
-          --preview 'test -d {} && eza -T -L 2 --color=always {} || bat --color=always --line-range :500 {}' \
+          --preview '_fzf_preview {}' \
           (_fzf_file_picker_opts .)
     )
 

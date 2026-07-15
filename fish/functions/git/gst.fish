@@ -13,7 +13,7 @@ function __git_status
     set -l enter_cmd "{}| cut -c4- {} && git add {}"
 
     set -l preview_status_label "[ Diff ]"
-    set -l preview_status 'git diff --color=always -- {-1} | sed 1,4d; test ! -d {-1} && bat --color=always {-1} | head -500'
+    set -l preview_status '_fzf_preview --as=diff {-1}'
     set -l header "
 		CTRL-S to switch between Add Mode and Reset mode
 		CTRL_T for status preview | CTRL-F for diff preview | CTRL-B for blame preview
@@ -22,7 +22,7 @@ function __git_status
         "
 
     git -c color.status=always status --short | fzf --ansi \
-        --preview 'git diff --color=always -- {-1} | sed 1,4d; test ! -d {-1} && bat --color=always {-1} | head -500' \
+        --preview '_fzf_preview --as=diff {-1}' \
         --header-first \
         --bind='start:unbind(alt-d)' \
         --bind='ctrl-o:execute({} cut -c4- | ${EDITOR:-vim} {+})' \

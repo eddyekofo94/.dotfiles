@@ -68,3 +68,14 @@ set -q BAT_CONFIG_PATH; or set -Ux BAT_CONFIG_PATH "$HOME/.dotfiles/bat/bat.conf
 
 #https://github.com/gazorby/fifc
 set -q fifc_editor; or set -Ux fifc_editor $EDITOR
+
+# Image previews. chafa's format=auto picks `symbols` (block art) inside tmux,
+# because tmux sets TERM=tmux-256color and rewrites TERM_PROGRAM to "tmux", so
+# chafa cannot see that the outer terminal is Ghostty. Name the format instead.
+#
+# Ghostty speaks the kitty graphics protocol and will not implement sixel, while
+# tmux implements sixel but not kitty -- so real pixels only reach Ghostty by
+# wrapping kitty sequences in tmux's DCS passthrough (needs allow-passthrough on,
+# which tmux.conf sets). tmux does not track those cells, so images can smear or
+# outlive a redraw; drop `-f kitty` to fall back to reliable block art.
+set -g fifc_chafa_opts -f kitty --passthrough=auto --polite=on
