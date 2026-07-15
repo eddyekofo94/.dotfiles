@@ -1,3 +1,8 @@
+# Raise the per-command timeout from the 500ms default. In Swift projects the
+# `swift` module shells out to /usr/bin/swift (an xcrun shim) which can exceed
+# 500ms on a cold call, producing "command timed out" warnings.
+command_timeout = 2000
+
 # move the rest of the prompt to the right
 right_format = """
 $cmd_duration
