@@ -6,8 +6,6 @@ set -q DOT_DIR; or set -Ux DOT_DIR "$HOME/.dotfiles"
 
 set -q NVIM_NF; or set -Ux NVIM_NF true
 
-
-
 # Set editor variables.
 set -q PAGER; or set -Ux PAGER less
 
@@ -64,7 +62,6 @@ set -q LS_COLORS; or set -Ux LS_COLORS "(vivid generate $HOME/.dotfiles/vivid/ca
 
 # Bat a modern cat with all the goodies
 set -q BAT_CONFIG_PATH; or set -Ux BAT_CONFIG_PATH "$HOME/.dotfiles/bat/bat.conf"
-
 
 #https://github.com/gazorby/fifc
 set -q fifc_editor; or set -Ux fifc_editor $EDITOR

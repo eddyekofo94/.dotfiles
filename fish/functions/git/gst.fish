@@ -55,4 +55,3 @@ function gsT
     git rev-parse --git-dir >/dev/null 2>&1 || { echo "You are not in a git repository" && return }
     set -l files (__git_status | cut -c4-) #get file from fzf
 end
-
