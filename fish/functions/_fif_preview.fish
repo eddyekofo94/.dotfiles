@@ -1,7 +1,8 @@
 function _fif_preview --argument-names file line column query_file matched_text --description "Preview a fif match with a column-focused snippet"
-    set file (printf "%s" "$file" | perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g')
-    set line (printf "%s" "$line" | perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g')
-    set column (printf "%s" "$column" | perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g')
+    set -l ansi_pattern '\e\[[0-9;?]*[ -/]*[@-~]'
+    set file (string replace -ra "$ansi_pattern" '' -- "$file")
+    set line (string replace -ra "$ansi_pattern" '' -- "$line")
+    set column (string replace -ra "$ansi_pattern" '' -- "$column")
 
     string match -qr '^[0-9]+$' -- "$line"; or return 0
     string match -qr '^[0-9]+$' -- "$column"; or set column 1

@@ -1,3 +1,5 @@
+status is-interactive; or return
+
 # golang
 abbr -a -- gob 'go build'
 abbr -a -- goc 'go clean'

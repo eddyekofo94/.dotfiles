@@ -2,6 +2,8 @@
 # abbrs
 #
 
+status is-interactive; or return
+
 set -q MY_ABBRS_INITIALIZED; and return
 
 abbr -a -- - 'cd -'

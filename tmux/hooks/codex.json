@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event session-start",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event prompt",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event permission",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event stop",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

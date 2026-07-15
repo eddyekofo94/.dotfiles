@@ -31,9 +31,12 @@ if status is-interactive
     #     end
     # end
 
-    if not string match -q "*fnm_multishell*" "$PATH"
+    if type -q fnm; and not string match -q "*fnm_multishell*" "$PATH"
         fnm env --use-on-cd | source
     end
+
+    # Enables vim keybindings
+    set fish_key_bindings fish_user_key_bindings
 end
 
 if status is-login
@@ -74,9 +77,6 @@ if status is-login
         end
     end
 
-    # Enables vim keybindings
-    set fish_key_bindings fish_user_key_bindings
-
     # Emulates vim's cursor shape behavior
     # Set the normal and visual mode cursors to a block
     set fish_cursor_default block
@@ -103,40 +103,45 @@ set __file__ $HOME/.config/fish/config.fish
 # Utils
 #
 
-# Initialize fuzzy finder.
-if type -q fzf
-    if not test -r $__fish_cache_dir/fzf_init.fish
-        fzf --fish >$__fish_cache_dir/fzf_init.fish
+# Prompt, keybindings, and directory-jump hooks are only useful interactively.
+# Keeping them out of `fish -c` avoids loading unnecessary functions and event
+# handlers into short-lived script shells.
+if status is-interactive
+    # Initialize fuzzy finder.
+    if type -q fzf
+        if not test -r $__fish_cache_dir/fzf_init.fish
+            fzf --fish >$__fish_cache_dir/fzf_init.fish
+        end
+        source $__fish_cache_dir/fzf_init.fish
+
+        # Override fzf native bindings with fzf.fish plugin versions
+        # (richer previews using bat/eza, consistent styling)
+        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
     end
-    source $__fish_cache_dir/fzf_init.fish
 
-    # Override fzf native bindings with fzf.fish plugin versions
-    # (richer previews using bat/eza, consistent styling)
-    fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
-end
-
-# Initialize zoxide for fast jumping with 'z'.
-if type -q zoxide
-    if not test -r $__fish_cache_dir/zoxide_init.fish
-        zoxide init --cmd cd fish >$__fish_cache_dir/zoxide_init.fish
+    # Initialize zoxide for fast jumping with 'z'.
+    if type -q zoxide
+        if not test -r $__fish_cache_dir/zoxide_init.fish
+            zoxide init --cmd cd fish >$__fish_cache_dir/zoxide_init.fish
+        end
+        source $__fish_cache_dir/zoxide_init.fish
     end
-    source $__fish_cache_dir/zoxide_init.fish
-end
 
-#
-# Prompt
-#
+    #
+    # Prompt
+    #
 
-# Greeting is handled by functions/fish_greeting.fish
+    # Greeting is handled by functions/fish_greeting.fish
 
-# Initialize starship.
-if type -q starship
-    #set -gx STARSHIP_CONFIG $__fish_config_dir/themes/starship.toml
-    if not test -r $__fish_cache_dir/starship_init.fish
-        starship init fish --print-full-init >$__fish_cache_dir/starship_init.fish
+    # Initialize starship.
+    if type -q starship
+        #set -gx STARSHIP_CONFIG $__fish_config_dir/themes/starship.toml
+        if not test -r $__fish_cache_dir/starship_init.fish
+            starship init fish --print-full-init >$__fish_cache_dir/starship_init.fish
+        end
+        source $__fish_cache_dir/starship_init.fish
+        #enable_transience
     end
-    source $__fish_cache_dir/starship_init.fish
-    #enable_transience
 end
 
 #
@@ -213,9 +218,6 @@ end
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
-
-# Added by Antigravity
-fish_add_path /Users/eddyekofo/.antigravity/antigravity/bin
 
 # Added by Antigravity
 fish_add_path /Users/eddyekofo/.antigravity/antigravity/bin

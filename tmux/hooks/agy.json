@@ -1,0 +1,41 @@
+{
+  "tmux-agent-status": {
+    "enabled": true,
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent agy --event pre-invocation",
+        "timeout": 5
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "ask_question",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent agy --event question",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "ask_permission",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent agy --event permission",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent agy --event stop",
+        "timeout": 5
+      }
+    ]
+  }
+}

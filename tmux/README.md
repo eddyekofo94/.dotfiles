@@ -2,6 +2,24 @@
 
 This document contains the keybindings for managing windows (tabs) in tmux.
 
+## Agent Status Tabs
+
+Catppuccin window tabs show each interactive coding agent in that window:
+
+```text
+1 codex:.dotfiles ⠋ · claude:BibleStandard 
+```
+
+Supported commands are `codex`, `claude`, `opencode`, `agy`, and legacy
+`gemini`. Blue spinners mean running, orange `` means a question needs an
+answer, red `` means permission or approval is required, green `` means ready
+or finished, and red `` means failed. Selecting a window does not clear its
+state.
+
+Agent hook files call `tmux/scripts/agent_status.py`. Codex requires reviewing
+and trusting the hook once through `/hooks`. Run `tmux/scripts/verify.sh` after
+changing the renderer, adapters, or tmux configuration.
+
 ## Default Prefix
 
 The default prefix is `C-Space` (Ctrl + Space).

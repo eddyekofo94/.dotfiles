@@ -2,6 +2,7 @@
 # make some commands (potentially) less destructive
 # -------------------------------------------------------------------
 
+status is-interactive; or return
 
 # Play safe!
 abbr -a -- rm 'rm -i'

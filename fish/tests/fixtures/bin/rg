@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+printf '%s\n' "$*" >>"$FIF_RG_LOG"
+printf '%s\n' 'fixture.txt:1:1:ab match'

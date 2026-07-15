@@ -1,0 +1,92 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "startup|resume|clear",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event session-start",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event prompt",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "PermissionRequest": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event permission",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "Notification": [
+    {
+      "matcher": "permission_prompt",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event permission",
+          "timeout": 5
+        }
+      ]
+    },
+    {
+      "matcher": "idle_prompt",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event question",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event stop",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "StopFailure": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event failure",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event session-end",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}

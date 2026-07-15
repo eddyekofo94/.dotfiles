@@ -1,3 +1,5 @@
+status is-interactive; or return
+
 function _fzf_git_status_git
     git -c color.status=always status --short | fzf --ansi \
         --preview 'git diff --color=always -- {-1} | sed 1,4d; test ! -d {-1} && bat --color=always {-1} | head -500' \

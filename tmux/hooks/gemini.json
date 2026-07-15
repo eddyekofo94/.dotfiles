@@ -1,0 +1,67 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "startup|resume|clear",
+      "hooks": [
+        {
+          "name": "tmux-agent-status-start",
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent gemini --event session-start",
+          "timeout": 5000
+        }
+      ]
+    }
+  ],
+  "BeforeAgent": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "name": "tmux-agent-status-running",
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent gemini --event before-agent",
+          "timeout": 5000
+        }
+      ]
+    }
+  ],
+  "Notification": [
+    {
+      "matcher": "ToolPermission",
+      "hooks": [
+        {
+          "name": "tmux-agent-status-permission",
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent gemini --event permission",
+          "timeout": 5000
+        }
+      ]
+    }
+  ],
+  "AfterAgent": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "name": "tmux-agent-status-complete",
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent gemini --event after-agent",
+          "timeout": 5000
+        }
+      ]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "name": "tmux-agent-status-end",
+          "type": "command",
+          "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent gemini --event session-end",
+          "timeout": 5000
+        }
+      ]
+    }
+  ]
+}
