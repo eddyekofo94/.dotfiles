@@ -83,6 +83,9 @@ Codex hooks require one-time trust through `/hooks` before live QA.
 - [ ] Trigger replay with no complete handoff visible; confirm tmux shows one
       concise message and does not print a quoted command followed by
       `returned 1` into the pane.
+- [x] Replay a rendered ready-to-paste prompt containing several paragraphs;
+      confirm every paragraph and internal blank line is inserted, while the
+      following `Worked for` divider and input row are excluded.
 
 ### 2026-07-15 regression evidence
 

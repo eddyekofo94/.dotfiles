@@ -126,6 +126,25 @@ assert_extract 'rendered labeled paragraph after Markdown fences are stripped' \
     $'Validate the repaired shortcut in the normal terminal.\nConfirm it leaves this prompt unsubmitted.' \
     "$rendered"
 
+multi_paragraph=$TMP_ROOT/multi-paragraph.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '' \
+    'Perform the to-tickets phase using the approved specification.' \
+    'Continue the first paragraph on its wrapped line.' \
+    '' \
+    'Create an ordered, dependency-aware set of implementation tickets.' \
+    '' \
+    'Map every acceptance criterion to exactly one owning ticket.' \
+    'Stop when traceability is complete.' \
+    '' \
+    '─ Worked for 7m 13s ─────────────────────────' \
+    '' \
+    '› Summarize recent commits' >"$multi_paragraph"
+assert_extract 'rendered labeled multi-paragraph prompt preserves every paragraph' \
+    $'Perform the to-tickets phase using the approved specification.\nContinue the first paragraph on its wrapped line.\n\nCreate an ordered, dependency-aware set of implementation tickets.\n\nMap every acceptance criterion to exactly one owning ticket.\nStop when traceability is complete.' \
+    "$multi_paragraph"
+
 bold_colon=$TMP_ROOT/bold-colon.txt
 printf '%s\n' \
     '**Ready-to-paste prompt:**' \

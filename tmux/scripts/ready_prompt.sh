@@ -153,9 +153,15 @@ extract_prompt() {
             }
 
             if (state == "plain") {
-                if (!nonblank(line)) {
+                if (terminal_chrome(line)) {
                     state = "done"
+                } else if (!nonblank(line)) {
+                    plain_blank_count++
                 } else {
+                    while (plain_blank_count > 0) {
+                        candidate = candidate "\n"
+                        plain_blank_count--
+                    }
                     candidate = candidate "\n" line
                 }
                 next
@@ -211,6 +217,7 @@ extract_prompt() {
                 } else {
                     candidate = line
                     candidate_status = 2
+                    plain_blank_count = 0
                     state = "plain"
                 }
             }

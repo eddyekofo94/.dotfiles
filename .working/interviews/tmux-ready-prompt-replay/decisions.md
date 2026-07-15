@@ -60,15 +60,16 @@ the shared `skill-finish` skill:
 
 The label is the machine-readable anchor and the fenced block is the boundary.
 Rendered terminal output that strips Markdown fences remains supported as a
-labeled plain paragraph. V1 markers remain accepted for older handoffs only.
+labeled plain-text block. V1 markers remain accepted for older handoffs only.
 
 The parser accepts these forms in priority order:
 
 1. Labeled fenced blocks: canonical for all new Codex and Claude handoffs.
 2. V1 begin/end markers: legacy compatibility.
 3. Labeled inline backticks: legacy single-line form.
-4. A labeled plain paragraph: rendered terminal form after Markdown fences are
-   stripped.
+4. A labeled plain-text block: rendered terminal form after Markdown fences are
+   stripped. Internal blank lines are preserved so multi-paragraph prompts stay
+   intact; recognized terminal chrome ends the block.
 5. `Next move:` followed by a standalone paragraph: older unlabeled skill
    closeout form.
 6. An inline `Next move:` action: last legacy fallback when the following lines
@@ -118,9 +119,9 @@ newest candidate fail closed or are ignored.
 
 - Parse the changed tmux configuration in an isolated server.
 - Run `bash -n` on the helper script.
-- Run deterministic extraction fixtures covering fenced multi-line, inline,
-  missing, malformed, multiple-prompt, bounded-history, consume-once, and forced
-  replay cases.
+- Run deterministic extraction fixtures covering fenced multi-line, rendered
+  multi-paragraph, inline, missing, malformed, multiple-prompt, bounded-history,
+  consume-once, and forced replay cases.
 - Run `git diff --check`.
 - Manually verify in a fresh tmux session that insertion preserves newlines and
   does not submit, lowercase refuses a consumed prompt, uppercase replays it,
