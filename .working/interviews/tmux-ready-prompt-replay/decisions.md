@@ -46,6 +46,38 @@ rewriting agent skills, and automatically starting a new agent session.
   recognized Codex, Claude, OpenCode, Gemini, or `agy` agent. Other panes fail
   closed with `prefix+b: current pane is not a supported agent`.
 
+## Producer Protocol And Compatibility
+
+New Codex and Claude skill closeouts use one readable canonical protocol from
+the shared `skill-finish` skill:
+
+````text
+**Ready-to-paste prompt:**
+```text
+<prompt>
+```
+````
+
+The label is the machine-readable anchor and the fenced block is the boundary.
+Rendered terminal output that strips Markdown fences remains supported as a
+labeled plain paragraph. V1 markers remain accepted for older handoffs only.
+
+The parser accepts these forms in priority order:
+
+1. Labeled fenced blocks: canonical for all new Codex and Claude handoffs.
+2. V1 begin/end markers: legacy compatibility.
+3. Labeled inline backticks: legacy single-line form.
+4. A labeled plain paragraph: rendered terminal form after Markdown fences are
+   stripped.
+5. `Next move:` followed by a standalone paragraph: older unlabeled skill
+   closeout form.
+6. An inline `Next move:` action: last legacy fallback when the following lines
+   are Codex terminal chrome.
+
+Unlabeled code blocks, unterminated markers/backticks/fences, worked-for
+dividers, input rows, model-status rows, and older candidates behind a malformed
+newest candidate fail closed or are ignored.
+
 ## Evidence / Findings
 
 - `tmux/tmux.conf:214` implements `prefix+u` by scanning the current visible pane,

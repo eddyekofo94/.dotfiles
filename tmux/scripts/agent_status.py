@@ -371,7 +371,7 @@ def sync_cached_status(frame: int) -> bool:
         rendered, running = render_entries_with_activity(
             list(snapshot["panes"].values()),
             frame,
-            sanitize_label(snapshot["fallback"]),
+            "",
         )
         if rendered != snapshot["cached"]:
             updates.append(

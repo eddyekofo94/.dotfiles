@@ -4,7 +4,10 @@ This document contains the keybindings for managing windows (tabs) in tmux.
 
 ## Agent Status Tabs
 
-Catppuccin window tabs show each interactive coding agent in that window:
+Every Catppuccin window tab includes the active pane's project directory. A
+normal shell tab shows the project name, for example `.dotfiles`. When an
+interactive coding agent is present, the same project name stays in the agent
+status label:
 
 ```text
 1 codex:.dotfiles ⠋ · claude:BibleStandard 
@@ -12,13 +15,47 @@ Catppuccin window tabs show each interactive coding agent in that window:
 
 Supported commands are `codex`, `claude`, `opencode`, `agy`, and legacy
 `gemini`. Blue spinners mean running, orange `` means a question needs an
-answer, red `` means permission or approval is required, green `` means ready
+answer, red `` means permission or approval is required, green `` means ready
 or finished, and red `` means failed. Selecting a window does not clear its
 state.
 
 Agent hook files call `tmux/scripts/agent_status.py`. Codex requires reviewing
 and trusting the hook once through `/hooks`. Run `tmux/scripts/verify.sh` after
 changing the renderer, adapters, or tmux configuration.
+
+The same colored agent label appears beside each applicable window in the
+`prefix+w` tree. Running agents keep their animated blue spinner there; waiting,
+finished, approval, and failed states use the same icons and colors as the tabs.
+
+## Session and window tree
+
+`prefix+w` opens tmux's native tree chooser across every session, window, and
+pane. It starts with pane rows collapsed; use `+` on a window to reveal them.
+
+| Key | Action |
+|-----|--------|
+| `Enter` | Switch to the selected session, window, or pane |
+| `Up` / `Down` | Move through the tree |
+| `+` / `-` | Expand or collapse the selected item |
+| `M-+` / `M--` | Expand or collapse everything |
+| `C-s`, then `n` / `N` | Search, then repeat forward/backward |
+| `f` | Enter a tmux format filter |
+| `O` / `r` | Change or reverse sort order |
+| `v` | Toggle the selected item's preview |
+| `S-Up` / `S-Down` | Move the current window |
+| `x` | Kill the selected item (with confirmation) |
+| `t`, `T`, `C-t` | Toggle one tag, clear tags, or tag everything |
+| `:` | Run a command for every tagged item |
+| `H` | Jump back to the pane where the chooser opened |
+| `F1` / `C-h` | Show tmux's complete chooser help |
+| `q` | Close the chooser |
+
+## Ready-prompt replay
+
+`prefix+b` inserts the newest labeled `Ready-to-paste prompt` without
+submitting it. `prefix+B` clears Codex first, then inserts it. Expected misses,
+duplicates, and malformed handoffs show a concise tmux message; they do not
+print raw background-command failures into the pane.
 
 ## Default Prefix
 
@@ -48,7 +85,7 @@ The default prefix is `C-Space` (Ctrl + Space).
 | `}` | Swap current window with next |
 | `M-{` | Swap current window with previous (no prefix) |
 | `M-}` | Swap current window with next (no prefix) |
-| `w` | Open window tree with fzf |
+| `w` | Open the native session/window/pane tree |
 | `f` | Find window with fzf |
 
 ---
@@ -135,7 +172,7 @@ The default prefix is `C-Space` (Ctrl + Space).
 | `M-(` | Switch to previous session (no prefix) |
 | `C-^` / `C-6` | Switch to last session |
 | `x` | Attach another session and kill current |
-| `w` | Open window tree menu |
+| `w` | Open the native session/window/pane tree |
 
 ---
 

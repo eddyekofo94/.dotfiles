@@ -68,8 +68,51 @@ extract_prompt() {
             return value ~ /[^[:space:]]/
         }
 
+        function next_move_line(value, rest) {
+            value = trim(value)
+            sub(/^-[[:space:]]+/, "", value)
+            sub(/^\*\*/, "", value)
+            if (index(value, "Next move:") != 1) {
+                return 0
+            }
+            rest = trim(substr(value, length("Next move:") + 1))
+            sub(/^\*\*[[:space:]]*/, "", rest)
+            next_move_rest = rest
+            return 1
+        }
+
+        function terminal_chrome(value) {
+            value = trim(value)
+            return value ~ /^[─━].*Worked for/ || \
+                value ~ /^[›❯][[:space:]]/ || \
+                value ~ /^gpt-[[:alnum:]._-]+[[:space:]]/
+        }
+
         {
             line = $0
+
+            if (trim(line) == "READY_TO_PASTE_BEGIN_V1") {
+                saw_marker = 1
+                marker_position = NR
+                marker_status = 1
+                marker_state = "collect"
+                marker_value = ""
+                next
+            }
+
+            if (marker_state == "collect") {
+                if (trim(line) == "READY_TO_PASTE_END_V1") {
+                    if (nonblank(marker_value)) {
+                        marker_status = 2
+                    }
+                    marker_state = "done"
+                } else if (marker_value == "") {
+                    marker_value = line
+                } else {
+                    marker_value = marker_value "\n" line
+                }
+                next
+            }
 
             if (state == "fence") {
                 if (line ~ /^[[:space:]]*```[[:space:]]*$/) {
@@ -91,6 +134,7 @@ extract_prompt() {
 
             if (label_line(line)) {
                 saw_label = 1
+                label_position = NR
                 candidate = ""
                 candidate_status = 1
                 fenced_value = ""
@@ -108,6 +152,48 @@ extract_prompt() {
                 next
             }
 
+            if (state == "plain") {
+                if (!nonblank(line)) {
+                    state = "done"
+                } else {
+                    candidate = candidate "\n" line
+                }
+                next
+            }
+
+            # Older skill-finish closeouts occasionally omitted the explicit
+            # label but still put the paste-ready paragraph immediately after
+            # their "Next move:" line. Accept only that narrow structure.
+            if (next_move_line(line)) {
+                fallback_value = ""
+                fallback_inline = next_move_rest
+                fallback_state = "waiting"
+                next
+            }
+
+            if (fallback_state == "waiting") {
+                if (!nonblank(line)) {
+                    next
+                }
+                if (terminal_chrome(line)) {
+                    fallback_state = "done"
+                    next
+                }
+                fallback_value = line
+                fallback_state = "paragraph"
+                next
+            }
+
+            if (fallback_state == "paragraph") {
+                if (!nonblank(line)) {
+                    fallback_state = "done"
+                } else if (terminal_chrome(line)) {
+                    fallback_state = "done"
+                } else {
+                    fallback_value = fallback_value "\n" line
+                }
+            }
+
             if (state == "waiting") {
                 if (line ~ /^[[:space:]]*$/) {
                     next
@@ -120,14 +206,33 @@ extract_prompt() {
                     candidate = inline_value
                     candidate_status = 2
                     state = "done"
-                } else {
+                } else if (substr(trim(line), 1, 1) == "`") {
                     state = "malformed"
+                } else {
+                    candidate = line
+                    candidate_status = 2
+                    state = "plain"
                 }
             }
         }
 
         END {
+            if (saw_marker && marker_position > label_position) {
+                if (marker_status != 2) {
+                    exit 11
+                }
+                printf "%s", marker_value
+                exit 0
+            }
             if (!saw_label) {
+                if (nonblank(fallback_value)) {
+                    printf "%s", fallback_value
+                    exit 0
+                }
+                if (nonblank(fallback_inline)) {
+                    printf "%s", fallback_inline
+                    exit 0
+                }
                 exit 10
             }
             if (candidate_status != 2) {
@@ -173,10 +278,9 @@ wait_for_codex_ready() {
         fi
 
         if grep -Eq '^[[:space:]]*›' "$ready_screen" && \
-                ! grep -Fq '/clear' "$ready_screen" && \
+                ! grep -Eq '^[[:space:]]*›[[:space:]]*/clear([[:space:]]|$)' "$ready_screen" && \
                 ! grep -Fq 'Queued follow-up inputs' "$ready_screen" && \
-                ! grep -Eq 'model:[[:space:]]+loading' "$ready_screen" && \
-                ! grep -Fq 'Ready-to-paste prompt:' "$ready_screen"; then
+                ! grep -Eq 'model:[[:space:]]+loading' "$ready_screen"; then
             stable=$((stable + 1))
             if [ "$stable" -ge 2 ]; then
                 return 0
@@ -254,8 +358,10 @@ pane_in_mode=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_in_mode}' 2>/de
     exit 1
 }
 if [ "$pane_in_mode" = "1" ]; then
-    show_message "prefix+b: exit copy mode before replaying a prompt"
-    exit 1
+    if ! "$TMUX_BIN" send-keys -X -t "$pane" cancel; then
+        show_message "prefix+b: unable to exit copy mode"
+        exit 1
+    fi
 fi
 
 runtime_base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
@@ -277,11 +383,11 @@ extract_status=$?
 case "$extract_status" in
     0) ;;
     10)
-        show_message "prefix+b: no Ready-to-paste prompt label found; Enter only dismisses this message"
+        show_message "prefix+b: no replayable handoff found"
         exit 1
         ;;
     11)
-        show_message "prefix+b: newest ready-to-paste prompt is malformed"
+        show_message "prefix+b: handoff is incomplete; copy the whole Ready-to-paste prompt block"
         exit 1
         ;;
     *)

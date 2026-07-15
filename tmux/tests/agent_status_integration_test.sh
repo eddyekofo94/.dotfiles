@@ -69,6 +69,31 @@ case "$(test_tmux show-options -gv @catppuccin_window_current_text)" in
     *'@agent_status_rendered'*) ;;
     *) printf 'window status does not use the cached renderer\n' >&2; exit 1 ;;
 esac
+case "$(test_tmux show-options -gv @catppuccin_window_current_text)" in
+    *'@agent_status_rendered} ,'*) ;;
+    *) printf 'window status does not protect wide agent icons from clipping\n' >&2; exit 1 ;;
+esac
+chooser_alias=$(test_tmux show-options -sv 'command-alias[108]')
+case "$chooser_alias" in
+    *'window_format'*'@agent_status_rendered'*) ;;
+    *) printf 'window chooser does not use the cached agent renderer\n' >&2; exit 1 ;;
+esac
+case "$(test_tmux show-options -gv @catppuccin_window_current_text)" in
+    *'#{b:pane_current_path}'*) ;;
+    *) printf 'window status does not fall back to the project directory\n' >&2; exit 1 ;;
+esac
+
+# Windows without agents must leave the cached label empty so tmux can resolve
+# the active pane's project directory dynamically, including after `cd`.
+plain_window=$(test_tmux new-window -d -P -F '#{window_id}' -c "$ROOT" 'sleep 30')
+TMUX="$tmux_environment" python3 "$SCRIPT" sync
+[ -z "$(test_tmux show-options -wqv -t "$plain_window" @agent_status_rendered)" ]
+plain_status=$(test_tmux display-message -p -t "$plain_window" '#{E:@catppuccin_window_current_text}')
+case "$plain_status" in
+    *'.dotfiles'*) ;;
+    *) printf 'plain window status does not show project directory: %s\n' "$plain_status" >&2; exit 1 ;;
+esac
+
 expanded_status=$(test_tmux display-message -p '#{E:@catppuccin_window_current_text}')
 case "$expanded_status" in
     *'codex:ExampleProject'*) ;;

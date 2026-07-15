@@ -72,3 +72,50 @@ Codex hooks require one-time trust through `/hooks` before live QA.
   when no supported agent pane is running.
 - Final size and motion preference remain awaiting user confirmation in the
   normal terminal.
+
+## Ready-prompt replay
+
+- [ ] In the normal terminal, leave a completed agent handoff visible and press
+      `prefix+b`; confirm the prompt appears in the input without submission.
+- [ ] Repeat while viewing scrollback in tmux copy mode; confirm copy mode closes
+      and the prompt is inserted.
+- [ ] Press `prefix+b` again; confirm consume-once blocks the duplicate.
+- [ ] Trigger replay with no complete handoff visible; confirm tmux shows one
+      concise message and does not print a quoted command followed by
+      `returned 1` into the pane.
+
+### 2026-07-15 regression evidence
+
+- A disposable attached tmux client reproduced the failure: the pane was in
+  copy mode, so the helper refused the shortcut before extraction.
+- The binding now preserves its invoking pane for the background job, and the
+  helper exits copy mode before capture.
+- An attached-client test confirmed `prefix+b` inserted the newest handoff into
+  a real Codex input, left it unsubmitted, and recorded consume-once state.
+- Live `prefix+B` tracing confirmed `/clear` was submitted and Codex returned to
+  an idle prompt; replay had timed out only because the old handoff remained
+  visible. Readiness now ignores old output while still rejecting an unsubmitted
+  `/clear`, queued follow-ups, and model loading.
+- User screenshot feedback confirmed an inline-only `Next move:` fallback had
+  captured Codex's `─ Worked for …` divider. The extractor now prefers the
+  inline action and rejects worked-for dividers, input rows, and model-status
+  rows as terminal chrome; readback from the original Bible Standard pane
+  returned the intended issue-closure question exactly.
+
+## Project names in tabs
+
+- [ ] Reload tmux, open an ordinary shell in a project, and confirm its tab uses
+      the active pane's project directory name instead of the shell command.
+- [ ] Start a supported coding agent and confirm the tab changes to an agent
+      status label while retaining the same project name.
+
+## Agent status in `prefix+w`
+
+- [ ] Reload tmux and press `prefix+w`; confirm every session and window remains
+      selectable and pane rows can still be expanded with `+`.
+- [ ] With an agent working, confirm its window row shows a smooth blue spinner.
+- [ ] Let the agent finish, ask a question, require approval, and fail; confirm
+      the chooser uses the same green, orange, and red state indicators as the
+      status tab.
+- [x] Confirm each top status-tab icon is fully round and matches the chooser
+      icon's visual size; the closing rounded tab cap must not clip its edge.
