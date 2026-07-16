@@ -53,7 +53,8 @@ pane. It starts with pane rows collapsed; use `+` on a window to reveal them.
 ## Ready-prompt replay
 
 `prefix+b` inserts the newest labeled `Ready-to-paste prompt` without
-submitting it. `prefix+B` clears Codex first, then inserts it. Expected misses,
+submitting it. `prefix+B` clears Codex first, confirms `/clear` if its slash
+completion consumes the first Enter, then inserts the prompt. Expected misses,
 duplicates, and malformed handoffs show a concise tmux message; they do not
 print raw background-command failures into the pane.
 

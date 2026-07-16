@@ -9,6 +9,7 @@ TMUX_BIN=${TMUX_BIN:-tmux}
 CAPTURE_LINES=${READY_PROMPT_CAPTURE_LINES:-2000}
 READY_ATTEMPTS=${READY_PROMPT_READY_ATTEMPTS:-50}
 READY_INTERVAL=${READY_PROMPT_READY_INTERVAL:-0.1}
+CLEAR_CONFIRM_INTERVAL=${READY_PROMPT_CLEAR_CONFIRM_INTERVAL:-0.2}
 
 extract_prompt() {
     input=$1
@@ -303,6 +304,22 @@ wait_for_codex_ready() {
     return 1
 }
 
+submit_codex_clear() {
+    clear_screen=$work_dir/clear-submit-screen.txt
+
+    "$TMUX_BIN" send-keys -t "$pane" -l '/clear' || return 1
+    "$TMUX_BIN" send-keys -t "$pane" Enter || return 1
+    sleep "$CLEAR_CONFIRM_INTERVAL" || return 1
+    "$TMUX_BIN" capture-pane -p -J -t "$pane" >"$clear_screen" || return 1
+
+    # Current Codex may use the first Enter to resolve the slash-command menu,
+    # leaving /clear active in the multiline composer. Confirm it only when the
+    # command is still visible; never send a blind second Enter.
+    if grep -Eq '^[[:space:]]*›[[:space:]]*/clear([[:space:]]|$)' "$clear_screen"; then
+        "$TMUX_BIN" send-keys -t "$pane" Enter || return 1
+    fi
+}
+
 show_message() {
     "$TMUX_BIN" display-message -t "$pane" "$1"
 }
@@ -416,8 +433,7 @@ if ! "$TMUX_BIN" load-buffer -b "$buffer_name" "$prompt_file"; then
     exit 1
 fi
 if [ "$clear_first" -eq 1 ]; then
-    if ! "$TMUX_BIN" send-keys -t "$pane" -l '/clear' || \
-            ! "$TMUX_BIN" send-keys -t "$pane" Enter; then
+    if ! submit_codex_clear; then
         "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
         show_message "prefix+B: unable to submit /clear"
         exit 1

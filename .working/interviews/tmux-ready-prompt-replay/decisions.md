@@ -28,6 +28,10 @@ rewriting agent skills, and automatically starting a new agent session.
   precedent.
 - `prefix+b` inserts the extracted prompt into the current pane without
   submitting it. The user reviews it and presses Enter explicitly.
+- `prefix+B` submits `/clear`, then inspects the Codex composer after a short
+  settle interval. If the slash command remains active because the first Enter
+  only resolved completion, it sends one confirmation Enter before replaying.
+  It never sends a blind second Enter.
 - Discovery searches recent bounded scrollback rather than only the visible
   pane. The initial implementation cap should be validated against long agent
   handoffs instead of scanning the full 65,536-line history.

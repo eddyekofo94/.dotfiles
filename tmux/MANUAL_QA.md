@@ -80,6 +80,9 @@ Codex hooks require one-time trust through `/hooks` before live QA.
 - [ ] Repeat while viewing scrollback in tmux copy mode; confirm copy mode closes
       and the prompt is inserted.
 - [ ] Press `prefix+b` again; confirm consume-once blocks the duplicate.
+- [x] Press `prefix+B` with a complete handoff visible; confirm `/clear` is
+      submitted even when Codex consumes the first Enter for slash completion,
+      then the whole prompt is inserted without submission.
 - [ ] Trigger replay with no complete handoff visible; confirm tmux shows one
       concise message and does not print a quoted command followed by
       `returned 1` into the pane.
@@ -104,6 +107,10 @@ Codex hooks require one-time trust through `/hooks` before live QA.
   inline action and rejects worked-for dividers, input rows, and model-status
   rows as terminal chrome; readback from the original Bible Standard pane
   returned the intended issue-closure question exactly.
+- A 2026-07-16 live Codex pane reproduced slash completion consuming the first
+  synthetic Enter. A disposable real-Codex replay then confirmed the helper
+  detects the still-active `/clear`, sends one confirmation Enter, waits for
+  readiness, and inserts the full sentinel prompt without submitting it.
 
 ## Project names in tabs
 

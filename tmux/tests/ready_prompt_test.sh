@@ -272,7 +272,18 @@ case "$1" in
     capture-pane)
         case " $* " in
             *' -S '*) cat "$MOCK_HISTORY" ;;
-            *) printf '%s\n' "${MOCK_READY_SCREEN:-› Ready}" ;;
+            *)
+                if [ "${MOCK_CLEAR_REQUIRES_SECOND_ENTER:-0}" = 1 ]; then
+                    enter_count=$(grep -c '^send-keys .* Enter$' "$MOCK_TMUX_STATE/calls" || true)
+                    if [ "$enter_count" -lt 2 ]; then
+                        printf '%s\n' '› /clear'
+                    else
+                        printf '%s\n' '› Ready'
+                    fi
+                else
+                    printf '%s\n' "${MOCK_READY_SCREEN:-› Ready}"
+                fi
+                ;;
         esac
         ;;
     show-options)
@@ -335,6 +346,22 @@ if MOCK_READY_SCREEN=$'Ready-to-paste prompt:\n› Ready' run_mock --clear '%9';
     fi
 else
     fail 'clear-and-replay failed'
+fi
+
+: >"$mock_state/calls"
+before_calls=0
+if MOCK_CLEAR_REQUIRES_SECOND_ENTER=1 READY_PROMPT_CLEAR_CONFIRM_INTERVAL=0 \
+        READY_PROMPT_READY_INTERVAL=0 \
+        run_mock --clear '%9'; then
+    new_calls=$(tail -n "+$((before_calls + 1))" "$mock_state/calls")
+    enter_count=$(printf '%s\n' "$new_calls" | grep -c '^send-keys -t %9 Enter$')
+    if [ "$enter_count" -eq 2 ]; then
+        pass 'uppercase confirms a slash command that remains active after first Enter'
+    else
+        fail "uppercase used $enter_count Enter key(s) for a slash command requiring two"
+    fi
+else
+    fail 'uppercase did not recover when Codex kept /clear active after first Enter'
 fi
 
 before_pastes=$(grep -c '^paste-buffer ' "$mock_state/calls")
