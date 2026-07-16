@@ -32,17 +32,17 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `herdr_nav.lua` | [x] `Alt-h` moved inside Neovim; edge `Alt-l` focused the right Herdr pane. **AWAITING USER feel QA** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `herdr_nav.lua` | [ ] CLI-injected `Alt-h` moved inside Neovim and edge `Alt-l` focused Herdr, but physical keys failed in the nested live trial because the outer tmux intercepted them. **BLOCKED pending direct Ghostty trial** |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
-| Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr navigator | [ ] **AWAITING USER** |
+| Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr navigator | [ ] **BLOCKED:** the live prototype had no representative fzf picker/preview workflow. |
 | Yes | Vi copy mode, search, selection, clipboard | tmux copy-mode-vi | Herdr copy mode | [x] Searched `HERDR_COPY_SENTINEL`, selected with `v/e`, yanked, and `pbpaste` matched exactly. |
 | Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [ ] **AWAITING USER** |
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
-| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] **AWAITING USER:** both layouts captured; stable v0.7.4 still starts expanded. The compact border junction appearance is rejected pending boxed/borderless comparison. |
+| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] User prefers boxed geometry but wants only the focused pane visibly outlined. **PARTIAL / refinement unverified** |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] `chafa -f kitty` exited 0 and reserved the image cells through nested tmux; pixels require live Ghostty approval. **AWAITING USER** |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] `chafa -f kitty` exited 0 and reserved image cells, but the user could not exercise the normal fzf preview path and did not confirm pixels. **BLOCKED pending representative direct trial** |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -64,7 +64,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | Neovim adapter; no global Herdr bind initially | [x] Neovim path passed; non-Neovim global behavior intentionally remains prefix-first. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | Neovim adapter; no global Herdr bind initially | [ ] Adapter passed direct injection; physical nested keys were consumed by the outer tmux because `herdr` does not satisfy its foreground-Vim forwarding guard. **BLOCKED pending direct trial** |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -119,10 +119,10 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 
 | Gate | Current result | Approval |
 | --- | --- | --- |
-| Collapsed/expanded density | User rejected the pinched/soft-looking compact border junction shown in the first live screenshot. Compare `--border boxed` and `--border borderless`. | [ ] |
-| Neovim `Alt-h/j/k/l` feel | Automated edge handoff passed; live key feel is not yet approved. | [ ] |
-| Mouse focus, resize, scroll, and selection | Herdr supports these paths, but live Ghostty QA has not been completed. | [ ] |
-| Kitty/chafa pixels | Protocol command exited successfully; live Ghostty pixels have not been approved. | [ ] |
+| Collapsed/expanded density | Boxed geometry preferred over borderless/compact, but the desired result is a full outline only around the focused pane. | [ ] **PARTIAL** |
+| Neovim `Alt-h/j/k/l` feel | Rejected in the nested trial: physical keys did not switch Herdr panes because the outer tmux intercepted them. Direct Ghostty behavior remains unknown. | [ ] **BLOCKED** |
+| Mouse focus, resize, scroll, and selection | No approval or rejection was reported before closeout. | [ ] **UNVERIFIED** |
+| Kitty/chafa pixels | No approval or rejection: the prototype lacked the normal fzf image-preview path, so the user could not perform a representative test. | [ ] **BLOCKED** |
 
 ## Decisions and evidence log
 
@@ -172,3 +172,23 @@ only on documentation or assumed API parity.
   layout; Neovim plus the temporary Herdr adapter is in the left pane, the
   Kitty/chafa image probe is in the upper-right pane, and a shell is in the
   lower-right pane for mouse focus/resize/selection checks.
+- 2026-07-16: the user preferred independent boxed pane geometry because the
+  complete right-angle outline gives useful focus while preserving a quiet
+  screen. The next visual candidate is "focused box only": retain boxed layout,
+  keep the focused border on the Catppuccin accent, and set the inactive-border
+  `theme.custom.overlay0` token to the pane background. Herdr's renderer supports
+  that color distinction, but the result has not been rendered or approved and
+  still reserves border cells around inactive panes.
+- 2026-07-16: physical `Alt-h/j/k/l` failed during the live nested trial. The
+  outer tmux binds those chords globally and forwards them only when its own
+  foreground-process check sees Vim/Neovim/SSH. It sees `herdr`, so it consumes
+  the chord before Neovim's temporary Herdr adapter can receive it. Earlier
+  direct key injection proved the adapter logic but did not prove real nested
+  keyboard delivery. A direct Herdr-in-Ghostty trial is required.
+- 2026-07-16: the live trial did not include the user's normal fzf image-preview
+  workflow. Kitty transport remains unapproved despite the standalone `chafa`
+  command exiting successfully. Mouse behavior also received no explicit
+  approval or rejection before the requested closeout.
+- 2026-07-16: closeout removed the temporary `herdr-boxed` and
+  `herdr-borderless` tmux windows and stopped the compact, boxed, and borderless
+  Herdr servers. The production `main:1` tmux window remained active.
