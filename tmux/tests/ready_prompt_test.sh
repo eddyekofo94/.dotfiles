@@ -145,6 +145,35 @@ assert_extract 'rendered labeled multi-paragraph prompt preserves every paragrap
     $'Perform the to-tickets phase using the approved specification.\nContinue the first paragraph on its wrapped line.\n\nCreate an ordered, dependency-aware set of implementation tickets.\n\nMap every acceptance criterion to exactly one owning ticket.\nStop when traceability is complete.' \
     "$multi_paragraph"
 
+bare_divider=$TMP_ROOT/bare-divider.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '' \
+    'Push local main to origin/main and verify the commit remotely.' \
+    '' \
+    '────────────────────────────────────────────────────────────────────────' \
+    '' \
+    '› Type a new request' >"$bare_divider"
+assert_extract 'bare Codex response divider ends a rendered prompt' \
+    'Push local main to origin/main and verify the commit remotely.' \
+    "$bare_divider"
+
+normal_closeout=$TMP_ROOT/normal-closeout.txt
+printf '%s\n' \
+    'Next move: Push main when ready.' \
+    '' \
+    'Ready-to-paste prompt:' \
+    '' \
+    'Push local main to origin/main and verify the commit remotely.' \
+    'Preserve this line even though it mentions the Worked for divider.' \
+    '' \
+    '────────────────────────────────────────────────────────────────────────' \
+    '' \
+    '› Type a new request' >"$normal_closeout"
+assert_extract 'explicit label overrides Next move fallback through bare divider' \
+    $'Push local main to origin/main and verify the commit remotely.\nPreserve this line even though it mentions the Worked for divider.' \
+    "$normal_closeout"
+
 bold_colon=$TMP_ROOT/bold-colon.txt
 printf '%s\n' \
     '**Ready-to-paste prompt:**' \

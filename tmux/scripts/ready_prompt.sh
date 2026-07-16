@@ -82,9 +82,19 @@ extract_prompt() {
             return 1
         }
 
+        function horizontal_divider(value, remainder) {
+            value = trim(value)
+            remainder = value
+            gsub(/─/, "", remainder)
+            gsub(/━/, "", remainder)
+            return remainder == "" && length(value) >= 8
+        }
+
         function terminal_chrome(value) {
             value = trim(value)
-            return value ~ /^[─━].*Worked for/ || \
+            return horizontal_divider(value) || \
+                value ~ /^─.*Worked for/ || \
+                value ~ /^━.*Worked for/ || \
                 value ~ /^[›❯][[:space:]]/ || \
                 value ~ /^gpt-[[:alnum:]._-]+[[:space:]]/
         }
@@ -140,6 +150,7 @@ extract_prompt() {
                 candidate_status = 1
                 fenced_value = ""
                 state = "waiting"
+                fallback_state = "done"
 
                 if (label_rest != "") {
                     if (inline_prompt(label_rest)) {
@@ -203,6 +214,10 @@ extract_prompt() {
 
             if (state == "waiting") {
                 if (line ~ /^[[:space:]]*$/) {
+                    next
+                }
+                if (terminal_chrome(line)) {
+                    state = "malformed"
                     next
                 }
                 if (line ~ /^[[:space:]]*```[^`]*$/) {

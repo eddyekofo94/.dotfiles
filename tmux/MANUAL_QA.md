@@ -89,6 +89,8 @@ Codex hooks require one-time trust through `/hooks` before live QA.
 - [x] Replay a rendered ready-to-paste prompt containing several paragraphs;
       confirm every paragraph and internal blank line is inserted, while the
       following `Worked for` divider and input row are excluded.
+- [x] Replay a one-line rendered prompt followed by Codex's bare horizontal
+      response separator; confirm only the prompt is inserted.
 
 ### 2026-07-15 regression evidence
 
@@ -111,6 +113,9 @@ Codex hooks require one-time trust through `/hooks` before live QA.
   synthetic Enter. A disposable real-Codex replay then confirmed the helper
   detects the still-active `/clear`, sends one confirmation Enter, waits for
   readiness, and inserts the full sentinel prompt without submitting it.
+- User confirmation on 2026-07-16 verified that `prefix+b` inserted the complete
+  wrapped prompt as one editable block and excluded the following bare response
+  separator and unrelated terminal text.
 
 ## Project names in tabs
 

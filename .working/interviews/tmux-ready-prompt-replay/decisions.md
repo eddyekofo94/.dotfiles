@@ -39,6 +39,9 @@ rewriting agent skills, and automatically starting a new agent session.
   attached to a `Ready-to-paste prompt` label. Ignore unlabeled code blocks.
 - The newest labeled prompt in the bounded history is the only automatic
   candidate.
+- Explicit `Ready-to-paste prompt` parsing and the legacy `Next move:` fallback
+  are mutually exclusive. Finding an explicit label cancels fallback state so
+  the fallback cannot consume the first line of the canonical prompt.
 - `prefix+b` consumes each discovered prompt once per pane. A repeated attempt
   reports that it was already inserted; `prefix+B` deliberately replays the
   newest prompt.
@@ -79,9 +82,9 @@ The parser accepts these forms in priority order:
 6. An inline `Next move:` action: last legacy fallback when the following lines
    are Codex terminal chrome.
 
-Unlabeled code blocks, unterminated markers/backticks/fences, worked-for
-dividers, input rows, model-status rows, and older candidates behind a malformed
-newest candidate fail closed or are ignored.
+Unlabeled code blocks, unterminated markers/backticks/fences, bare response or
+worked-for dividers, input rows, model-status rows, and older candidates behind
+a malformed newest candidate fail closed or are ignored.
 
 ## Evidence / Findings
 
