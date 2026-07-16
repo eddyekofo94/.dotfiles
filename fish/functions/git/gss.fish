@@ -199,6 +199,5 @@ function gss -d "git status"
         --bind 'f8:become(git commit --amend)' \
         --bind "f9:execute(git add --patch)+reload($list_cmd)" \
         --bind '?:toggle-preview' \
-        --bind 'tab:toggle+down,shift-tab:toggle+up' \
-        --bind 'ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down'
+        --bind 'tab:toggle+down,shift-tab:toggle+up'
 end

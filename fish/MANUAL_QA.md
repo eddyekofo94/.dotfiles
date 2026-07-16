@@ -19,3 +19,12 @@
   when starting interactively in an explicit directory without a query.
 - Move rapidly through several `fif` results and confirm previews update without
   visible configuration startup, stale output, or delayed terminal redraws.
+- In tmux, run `fe` over a directory containing PNGs and move rapidly between
+  images. Confirm each preview redraws with clear pixels, without black
+  placeholder glyphs, heavy pixelation, stale image fragments, or visible
+  control text such as `033[m`.
+- In the same directory, press Ctrl-T and confirm PNGs use the same image
+  previewer instead of showing a `bat` binary-content warning.
+- In `fe` and Ctrl-T, type a query and press Ctrl-U. Confirm it clears the query
+  using fzf's native behavior. Confirm Ctrl-F scrolls the preview forward one
+  page and Ctrl-B scrolls it backward one page.

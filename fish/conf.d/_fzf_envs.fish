@@ -38,6 +38,7 @@ end
 #     set -Ux FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!{.git|.npm|node_modules}/*" 2> /dev/null'
 # fi
 
+set -gx FZF_PREVIEW_COMMAND '_fzf_preview {}'
 
 set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --height 96% \
@@ -55,7 +56,7 @@ set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --bind=ctrl-t:toggle-all \
     --bind=ctrl-k:ignore \
     --bind=ctrl-j:down,ctrl-k:up \
-    --bind=ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down \
+    --bind=ctrl-f:preview-page-down,ctrl-b:preview-page-up \
     --bind=esc:abort \
     --bind=ctrl-c:abort \
     --bind 'ctrl-y:execute-silent(echo -n {+} | pbcopy)' \
@@ -68,15 +69,11 @@ set -gx FZF_COMMON_OPTIONS "--info=inline-right \
 
 command -v bat >/dev/null && command -v eza >/dev/null && set -gx FZF_DEFAULT_OPTS "$FZF_COMMON_OPTIONS"
 
-set -gx FZF_PREVIEW_COMMAND '_fzf_preview_command {}'
-
 set -gx FZF_CTRL_T_OPTS "--min-height 30 \
     --height 85% \
-    --preview-window noborder --preview '_fzf_preview_command {}'"
+    --preview-window noborder --preview '_fzf_preview {}'"
 
 # alts: 󰛄
-# --bind=ctrl-f:page-down,ctrl-b:page-up
-# --bind=ctrl-u:preview-up,ctrl-d:preview-down
 # --preview='bat --color=always --style=header,grid --line-range :300 {}'
 # --no-multi
 # --reverse

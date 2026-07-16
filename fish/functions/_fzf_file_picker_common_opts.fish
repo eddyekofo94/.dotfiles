@@ -9,8 +9,8 @@ function _fzf_file_picker_common_opts --argument-names open_placeholder --descri
         "--bind=tab:toggle+down" \
         "--bind=shift-tab:toggle+up" \
         "--bind=alt-a:select-all" \
-        "--bind=ctrl-u:preview-half-page-up" \
-        "--bind=ctrl-d:preview-half-page-down" \
+        "--bind=ctrl-f:preview-page-down" \
+        "--bind=ctrl-b:preview-page-up" \
         "--bind=ctrl-o:execute-silent($open_cmd)" \
         "--bind=ctrl-y:execute-silent($copy_path_cmd)" \
         "--bind=alt-y:execute-silent($copy_contents_cmd)"

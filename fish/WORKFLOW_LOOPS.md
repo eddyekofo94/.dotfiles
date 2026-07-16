@@ -11,6 +11,8 @@ reproduces the regression.
 
 `fish/tests/fif_integration.sh` is the regression seam for find-in-files query
 gating, opt-in symlink traversal, preview isolation, and temporary-state cleanup.
+`fish/tests/fzf_preview_integration.sh` is the regression seam for shared file
+picker routing and tmux-safe image output in `fe`, Ctrl-T, and related pickers.
 
 Interactive behavior still requires the checks in `fish/MANUAL_QA.md`. Leave
 the result awaiting user confirmation when terminal rendering or perceived

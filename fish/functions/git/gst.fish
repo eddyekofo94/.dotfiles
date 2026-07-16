@@ -46,9 +46,7 @@ function __git_status
         --bind='f1:toggle-header' \
         --bind='f2:toggle-preview' \
         --bind='ctrl-y:preview-up' \
-        --bind='ctrl-e:preview-down' \
-        --bind='ctrl-u:preview-half-page-up' \
-        --bind='ctrl-d:preview-half-page-down'
+        --bind='ctrl-e:preview-down'
 end
 
 function gsT

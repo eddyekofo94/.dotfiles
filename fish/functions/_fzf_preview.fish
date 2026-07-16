@@ -45,25 +45,31 @@ function _fzf_preview -d "fzf preview: render a path as a tree, image, hunk, or 
             eza -T -L 2 --color=always -- "$target"
 
         case image
-            # Ghostty speaks the kitty graphics protocol and will not implement
-            # sixel; tmux implements sixel but not kitty. So pixels only arrive by
-            # wrapping kitty sequences in tmux's DCS passthrough (allow-passthrough
-            # is on in tmux.conf). --passthrough=auto wraps inside tmux and stays
-            # bare outside it, and makes chafa emit kitty unicode placeholders, so
-            # the image occupies real cells and survives fzf redrawing the pane.
-            #
-            # --animate=off matters: chafa loops GIFs forever otherwise, and a
-            # preview that never returns hangs fzf.
-            # chafa separates placeholder rows with `ESC[<n>D ESC D` (cursor back,
-            # then IND) rather than newlines, and --relative=off does not change
-            # that for kitty. fzf's preview is line-based, so it sees one enormous
-            # line and clips it to the pane width -- leaving only row 0, a one-cell
-            # strip of the image. Swap those separators for real newlines. Base64
-            # payload cannot contain an ESC, so this only ever matches separators.
-            if type -q chafa
-                chafa -f kitty --passthrough=auto --animate=off \
-                    --size=$cols"x"$rows "$target" \
-                    | perl -0777 -pe 's/\e\[\d+D\eD/\n/g'
+            set -l kitten_cmd (command -s kitten)
+            if test -z "$kitten_cmd"; and test -x /Applications/kitty.app/Contents/MacOS/kitten
+                set kitten_cmd /Applications/kitty.app/Contents/MacOS/kitten
+            end
+
+            if test -n "$kitten_cmd"
+                # Shared-memory transfer keeps the terminal payload small, so a
+                # cancelled fzf preview cannot strand a partial image transfer.
+                # Production uses Ghostty's real cell geometry. Tests provide a
+                # deterministic substitute because their pseudo-terminal cannot
+                # answer pixel-size queries.
+                set -l window_size_arg
+                if set -q FZF_PREVIEW_TEST_WINDOW_SIZE
+                    set -l pixel_width (math "$cols * 10")
+                    set -l pixel_height (math "$rows * 20")
+                    set window_size_arg --use-window-size="$cols,$rows,$pixel_width,$pixel_height"
+                end
+
+                "$kitten_cmd" icat --clear --transfer-mode=memory \
+                    --unicode-placeholder --stdin=no --scale-up $window_size_arg \
+                    --place=$cols"x"$rows"@0x0" "$target" \
+                    | perl -0777 -pe 's/\n[^\n]*\z/\e[m\n/s'
+            else if type -q chafa
+                chafa -f symbols --colors full --animate=off --polite=on \
+                    --size=$cols"x"$rows "$target"
             else
                 file -b -- "$target"
             end

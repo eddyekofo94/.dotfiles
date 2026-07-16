@@ -18,6 +18,7 @@ fi
 
 "$package_dir/tests/fif_integration.sh"
 "$package_dir/tests/fif_real_fzf.sh"
+"$package_dir/tests/fzf_preview_integration.sh"
 
 before=$(ps -axo command= | rg -c '^(/opt/homebrew/bin/)?fish -c ' || true)
 i=0
