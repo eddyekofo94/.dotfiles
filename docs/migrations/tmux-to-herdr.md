@@ -38,7 +38,7 @@ require explicit user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | Alt unbound in Herdr; exact temporary Neovim port plus Fish/fzf adapters | [ ] **AWAITING USER:** application-level injection moved across real Neovim windows, crossed the editor edge, and moved from Fish/fzf panes. Physical Option feel remains the gate. |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | Alt unbound in Herdr; exact temporary Neovim port plus Fish/fzf adapters | [x] **APPROVED:** user confirms physical Alt-h/j/k/l movement works extremely well. |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
@@ -48,7 +48,7 @@ require explicit user approval.
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
 | Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | corrected `pane.graphics.set` fzf preview | [ ] **AWAITING USER:** actual PNG rendered crisply inside the fzf region; repeated set, focus resize, and clear returned `ok` without cross-pane paint. Screenshot quality remains a user gate. |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | corrected `pane.graphics.set` fzf preview | [ ] **REJECTED:** raster transport works, but the live fzf preview looks glitchy/unpolished and does not meet the tmux visual bar. |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -176,8 +176,8 @@ session was stopped during closeout.
 
 | Gate | Evidence | Approval |
 | --- | --- | --- |
-| Physical `Alt-h/j/k/l` | Herdr has no direct Alt binding; isolated Ghostty explicitly uses left Option as Alt. The temporary Neovim adapter now mirrors the real `lua/plugin/tmux.lua` local-first mappings and `FzfLuaFocus` exception. API injection moved `1048 -> 1003 -> 1048 -> 1005`, then handed focus out of Neovim; the Fish adapter moved `w1:p3 -> w1:p1`. | [ ] **AWAITING USER PHYSICAL FEEL** |
-| Native fzf image | `pane.graphics.set` accepted an actual 1800×890 PNG. Corrected fzf-relative placement confined crisp pixels to `w1:p2`; repeated selection, 62/38 focus resize, and `pane.graphics.clear` all returned `ok` without black or cross-pane paint. See [`native-preview-acceptance.png`](../../herdr/prototype/screenshots/native-preview-acceptance.png). | [ ] **AWAITING USER IMAGE QUALITY** |
+| Physical `Alt-h/j/k/l` | Herdr has no direct Alt binding; isolated Ghostty explicitly uses left Option as Alt. The temporary Neovim adapter mirrors the real `lua/plugin/tmux.lua` local-first mappings and `FzfLuaFocus` exception. API injection moved `1048 -> 1003 -> 1048 -> 1005`, then handed focus out of Neovim; the Fish adapter moved `w1:p3 -> w1:p1`. | [x] **APPROVED:** user reports the movement works extremely well. |
+| Native fzf image | `pane.graphics.set` accepted an actual 1800×890 PNG and confined it to `w1:p2`; repeated set, focus resize, and clear returned `ok`. | [ ] **REJECTED:** user reports the live preview is glitchy and not as polished as tmux. |
 
 ## Decisions and evidence log
 
@@ -324,3 +324,9 @@ only on documentation or assumed API parity.
   reports its `-200` row sentinel. Set, replacement, focus resize, and clear
   returned `ok`; the captured raster is crisp and confined. The previous
   host-wide frame was a placement error, not a stable v0.7.4 blocker.
+- 2026-07-17: the user approved the reopened physical Alt navigation as working
+  extremely well and rejected the native fzf image preview as glitchy and less
+  polished than tmux.
+- 2026-07-17: the Herdr Fish pane inherited `NO_COLOR=1`. The `ll` function
+  delegates to eza without `--color=always`, so eza suppresses color; this is
+  an environment/flag issue, not a Herdr renderer failure.

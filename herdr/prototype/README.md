@@ -10,9 +10,10 @@ Neovim tmux adapter.
 The previous Herdr v0.7.4 rejection is reopened for one corrected trial. The
 user approved golden-ratio focus and asked to retry the first near-working Alt
 ownership model. Physical Alt is now left unbound in Herdr so the temporary
-Neovim/Fish/fzf adapters receive it directly. A corrected `pane.graphics.set`
-request now renders a crisp raster inside the fzf preview region. Both results
-still require physical/visual user approval; tmux remains production.
+Neovim/Fish/fzf adapters receive it directly. The user approved the physical
+navigation feel. A corrected `pane.graphics.set` request renders a raster
+inside the fzf preview region, but the user rejected the live result as
+glitchy/unpolished; tmux remains production.
 
 Run it from the repository root:
 
