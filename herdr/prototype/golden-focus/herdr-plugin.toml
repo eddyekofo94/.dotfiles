@@ -1,0 +1,16 @@
+id = "prototype.golden-focus"
+name = "PROTOTYPE Golden Focus"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Throwaway 62 percent focused-pane resize trial"
+platforms = ["macos"]
+
+[[actions]]
+id = "toggle"
+title = "Toggle prototype golden focus"
+contexts = ["pane"]
+command = ["./golden_focus.sh"]
+
+[[events]]
+on = "pane.focused"
+command = ["./golden_focus.sh"]

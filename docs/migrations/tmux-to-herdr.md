@@ -32,7 +32,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `smart_nav.sh` plus `herdr_nav.lua` | [ ] Direct smart binding passed: the same `Alt-l` moved between real Neovim windows and then handed the edge to Herdr in about 0.01s per invocation. **AWAITING USER physical feel** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `smart_nav.sh` plus `herdr_nav.lua` | [ ] Final direct measurements passed: the same `Alt-l` moved between real Neovim windows and then handed the edge to Herdr in 14.58-16.62 ms. **AWAITING USER physical feel** |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
@@ -42,7 +42,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
 | Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] **BLOCKED:** real fzf preview was initially hidden; after revealing it the memory-transfer preview stayed blank, and forced Kitty stream transfer produced an invalid host-wide black placement in Ghostty. |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | explicit chafa-symbol fallback | [ ] Kitty remains blocked, but the final direct fzf pane renders the selected PNG through `chafa -f symbols`; screenshot captured. **AWAITING USER fallback approval** |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -50,7 +50,7 @@ appearance and interaction feel must include screenshots and user approval.
 | No | Ordinary SSH and remote attach | remote tmux | remote Herdr/thin client | [ ] |
 | No | Resurrect/Continuum-style recovery | TPM plugins | snapshot plus native agent resume | [ ] **PARTIAL for arbitrary processes** |
 | No | Scratch shell and lazygit popups | `display-popup` | custom popup commands | [ ] |
-| No | Golden-ratio pane focus | tmux focus hook | `pane.focused` plugin hook plus resize/layout API | [ ] **FEASIBLE, NOT PROTOTYPED:** v0.7.4 exposes the required focus event and directional fractional resize, but no built-in Focus.nvim-style policy. |
+| No | Golden-ratio pane focus | tmux focus hook | prototype `pane.focused` plugin | [ ] Focus produced exact 62/38 ratios on applicable axes; toggle restored exact 50/50 and reapplied 62/38. **AWAITING USER feel** |
 | No | URL search/open shortcuts | capture/copy scripts | pane-read custom commands | [ ] **PARTIAL** |
 | No | Nested multiplexer passthrough | tmux key-table toggle | remote Herdr or experimental nesting | [ ] **PARTIAL** |
 
@@ -64,7 +64,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | direct prototype shell binding inspects the foreground process, forwards to Neovim, or focuses Herdr | [ ] Objective path passed (`left Neovim window -> right Neovim window -> right Herdr pane`) at about 0.01s per helper call; physical feel awaits user approval. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | direct prototype shell binding inspects the foreground process, forwards to Neovim, or focuses Herdr | [ ] Objective path passed (`left Neovim window -> right Neovim window -> right Herdr pane`) at 14.58-16.62 ms; shell-pane movement measured 14.86 ms. Physical feel awaits user approval. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -146,6 +146,18 @@ The active acceptance window was launched with
 | fzf/Kitty pixels | `?` revealed the fzf preview region, proving it was initially toggled hidden. Memory transfer stayed blank. A controlled stream-transfer probe then produced a host-wide black placement instead of the selected image. | [ ] **BLOCKED / REJECTED FOR v0.7.4** |
 | Golden-ratio focus | Official API exposes `pane.focused`, `pane resize --amount`, and layout snapshots. A small plugin can reapply a target ratio on focus, but nested BSP layouts need a defined restore policy. | [ ] **FEASIBLE; USER POLICY + PROTOTYPE REQUIRED** |
 | Smooth scrolling | Neovim keeps its existing `neoscroll` behavior unchanged. Herdr v0.7.4 scrollback accepts an integer `mouse_scroll_lines` value and applies line-step scroll actions; no animated/pixel-eased scrollback setting exists. | [ ] **NO HERDR-LAYER EQUIVALENT** |
+
+### Round 5 — final direct acceptance trial
+
+The live `trial-focused` session is intentionally still open for the user's
+three subjective decisions. It must be stopped after those decisions are
+recorded.
+
+| Gate | Objective evidence | Approval |
+| --- | --- | --- |
+| Smart `Alt-h/j/k/l` feel | Real Neovim moved window `1002 -> 1005` in 16.62 ms; the next identical chord handed focus `w1:p1 -> w1:p2` in 14.58 ms. A non-Neovim pane moved `w1:p2 -> w1:p3` in 14.86 ms. | [ ] **AWAITING USER** |
+| Golden-ratio focus | The local `prototype.golden-focus` event hook changed the right/top focused layout to root `0.38` and nested `0.62`, then right/bottom to `0.38`/`0.38`. Toggle restored both splits to `0.50`, and a second toggle reapplied `0.38`/`0.62`. All observed plugin commands exited 0. | [ ] **AWAITING USER** |
+| chafa fzf fallback | fzf process argv contains the explicit `chafa_preview.sh {}` preview. Pane readback contains symbol pixels, and [`chafa-final.png`](../../herdr/prototype/screenshots/chafa-final.png) captures the visible selected-PNG preview without Kitty transport. | [ ] **AWAITING USER** |
 
 ## Decisions and evidence log
 
@@ -249,3 +261,15 @@ only on documentation or assumed API parity.
   built in and needs a restore policy before prototyping. Herdr scrollback is
   integer-line stepped; the existing Neovim neoscroll animation remains valid
   inside Neovim, but Herdr adds no equivalent animated terminal scrollback.
+- 2026-07-16: the final direct acceptance harness links the isolated
+  `prototype.golden-focus` plugin. Its `pane.focused` hook applies the tmux-like
+  62% target on each applicable split axis. The `Ctrl-a Shift-g` plugin action
+  disables the hook and restores 50/50, then re-enables and reapplies 62%.
+- 2026-07-16: final navigation samples measured 16.62 ms inside Neovim,
+  14.58 ms for Neovim-edge-to-Herdr handoff, and 14.86 ms between ordinary
+  Herdr panes. These are single direct samples on this Mac, not latency bounds.
+- 2026-07-16: the final fzf probe bypasses the rejected Kitty path and invokes
+  `chafa_preview.sh` explicitly. Both pane readback and the direct Ghostty
+  screenshot show symbol-rendered preview content. Computer Use was denied
+  access to Ghostty by its safety allowlist, so the subjective gates remain
+  user-owned despite command/readback and screenshot evidence.

@@ -29,6 +29,10 @@ if [ "$pane_count" -ne 1 ]; then
   exit 1
 fi
 
+$runner --border focused cli plugin unlink prototype.golden-focus \
+  >/dev/null 2>&1 || true
+$runner --border focused cli plugin link "$prototype/golden-focus" >/dev/null
+
 right=$($runner --border focused cli pane split "$initial_pane" \
   --direction right --ratio 0.5 --env "XDG_CONFIG_HOME=$user_config_home" --focus)
 right_pane=$(printf '%s' "$right" | jq -r '.result.pane.pane_id')
@@ -63,11 +67,11 @@ env XDG_CONFIG_HOME="$user_config_home" \
   >/dev/null
 
 $runner --border focused cli pane send-text "$right_pane" \
-  "env XDG_CONFIG_HOME=$user_config_home fish --no-config -c 'set -p fish_function_path $root/fish/functions; source $root/fish/conf.d/_fzf_envs.fish; cd $prototype/screenshots; fe png'"
+  "env XDG_CONFIG_HOME=$user_config_home fish --no-config -c 'source $root/fish/conf.d/_fzf_envs.fish; cd $prototype/screenshots; fd -e png . | fzf --query=png --preview \"$prototype/chafa_preview.sh {}\" --preview-window=right,55%,border-sharp,nocycle'"
 $runner --border focused cli pane send-keys "$right_pane" return
 
 $runner --border focused cli pane send-text "$lower_pane" \
-  "printf '\\nFOCUSED HERDR QA\\nClick panes; drag borders; scroll; select and copy text.\\nCtrl-a Shift-b hides the sidebar.\\n'"
+  "printf '\\nFINAL HERDR QA\\nAlt-h/j/k/l moves through Neovim and Herdr.\\nFocused panes grow to 62%%; Ctrl-a Shift-g restores/toggles golden focus.\\nThe upper-right fzf preview uses chafa symbols, never Kitty.\\n'"
 $runner --border focused cli pane send-keys "$lower_pane" return
 
 $runner --border focused cli pane focus --direction left --current >/dev/null

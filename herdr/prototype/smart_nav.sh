@@ -16,4 +16,4 @@ if printf '%s\n' "$process_info" | jq -e '
   exec "$herdr" pane send-keys "$pane" "alt+$key"
 fi
 
-exec "$herdr" pane focus --direction "$direction" --pane "$pane"
+exec "$herdr" pane focus --direction "$direction" --pane "$pane" >/dev/null

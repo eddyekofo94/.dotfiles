@@ -81,6 +81,8 @@ j down
 k up
 l right
 EOF
+    printf '\n[[keys.command]]\nkey = "prefix+shift+g"\ntype = "plugin_action"\ncommand = "prototype.golden-focus.toggle"\ndescription = "toggle prototype 62 percent golden focus"\n' \
+      >>"$config_home/herdr/config.toml"
     ;;
   borderless)
     sed 's/^pane_borders = true$/pane_borders = false/' \

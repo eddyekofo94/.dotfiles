@@ -52,10 +52,17 @@ Neovim it reinjects the chord so `herdr_nav.lua` can move locally or hand off at
 an edge; for other panes it focuses Herdr directly. Neither file is installed
 into the production Neovim or Fish configuration.
 
-The representative Kitty preview is currently a recorded v0.7.4 blocker.
-Revealing fzf's preview with `?` leaves memory-transfer output blank, while a
-forced stream-transfer probe produced an invalid host-wide black placement.
-Do not treat a successful `kitten icat` exit code as pixel validation.
+The final acceptance pane deliberately replaces the recorded v0.7.4 Kitty
+blocker with `chafa_preview.sh`, using symbol output rather than any graphics
+protocol. This makes the fallback visually testable without confusing it with
+a successful Kitty transport.
+
+The scratch `prototype.golden-focus` plugin listens for `pane.focused` and
+targets the same 62% width/height used by the tmux focus hook. Press
+`Ctrl-a Shift-g` to disable it and restore the focused layout axes to 50/50;
+press again to re-enable and apply 62%. The plugin source exists only on this
+throwaway branch; its registration and mutable state stay inside the ignored
+prototype runtime.
 
 The first run downloads the official Herdr v0.7.4 macOS arm64 release into
 `.runtime/`, verifies its expected byte size, and starts the named scratch
@@ -83,9 +90,10 @@ Run the repeatable static checks with:
 
 The trial screenshots are
 [`expanded`](screenshots/expanded.png) and
-[`collapsed`](screenshots/collapsed.png). They are ANSI renders captured from
-the actual nested session. Final density, mouse feel, and Kitty image pixels
-must still be judged in the live Ghostty session.
+[`collapsed`](screenshots/collapsed.png). The final direct Ghostty chafa
+fallback is captured in [`chafa-final`](screenshots/chafa-final.png). Smart
+navigation feel, golden-focus behavior, and chafa readability must still be
+approved by the user in the live session.
 
 To stop and wipe the scratch runtime without touching normal tmux:
 
