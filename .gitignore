@@ -24,6 +24,9 @@ CMakeFile
 *.pre-modernize.*
 /tmux/tmux.conf.bak
 
+# Throwaway Herdr prototype runtime: downloaded binary, sockets, and session state.
+/herdr/prototype/.runtime/
+
 # Whole-dir backups and debug/scratch artifacts
 /fish.bak/
 /fish/debug_reports/

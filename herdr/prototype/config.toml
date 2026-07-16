@@ -1,0 +1,63 @@
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[terminal]
+shell_mode = "non_login"
+new_cwd = "follow"
+
+[keys]
+prefix = "ctrl+a"
+new_tab = ["prefix+shift+n", "prefix+ctrl+n"]
+next_tab = "prefix+t"
+previous_tab = "prefix+shift+t"
+close_tab = "prefix+shift+x"
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+split_vertical = "prefix+v"
+split_horizontal = ["prefix+n", "prefix+s"]
+close_pane = "prefix+c"
+zoom = ["prefix+shift+o", "prefix+z"]
+copy_mode = ["prefix+[", "alt+esc"]
+toggle_sidebar = "prefix+shift+b"
+last_pane = "prefix+tab"
+
+[[keys.command]]
+key = "prefix+enter"
+type = "popup"
+command = "exec \"${SHELL:-sh}\""
+description = "prototype scratch shell"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "command -v lazygit >/dev/null 2>&1 && exec lazygit || exec \"${SHELL:-sh}\""
+description = "prototype lazygit"
+width = "85%"
+height = "85%"
+
+[ui]
+sidebar_collapsed_mode = "hidden"
+pane_borders = true
+pane_gaps = false
+hide_tab_bar_when_single_tab = true
+confirm_close = true
+prompt_new_tab_name = false
+
+[ui.toast]
+delivery = "off"
+
+[ui.sound]
+enabled = false
+
+[advanced]
+scrollback_limit_bytes = 10000000
+
+[experimental]
+kitty_graphics = true
+pane_history = false
