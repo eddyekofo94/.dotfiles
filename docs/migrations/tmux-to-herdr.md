@@ -23,10 +23,11 @@ until every **Required** row is checked or the user explicitly accepts its
 documented difference. Prototype evidence must include commands/readback;
 appearance and interaction feel must include screenshots and user approval.
 
-**Final v0.7.4 verdict (2026-07-17): REJECTED for daily migration.** Keep tmux
-as the production multiplexer. Golden-ratio focus is approved, but exact
-physical `Alt-h/j/k/l` Neovim-to-pane handoff and a high-quality pane-clipped
-image preview are required and remain blockers.
+**Reopened v0.7.4 verdict (2026-07-17): AWAITING USER.** Keep tmux as the
+production multiplexer. Golden-ratio focus is approved. A corrected Alt
+pass-through adapter and pane-owned native PNG preview have passed automated
+and screenshot checks, but physical navigation feel and image quality still
+require explicit user approval.
 
 ## Core behavior checklist
 
@@ -37,7 +38,7 @@ image preview are required and remain blockers.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | isolated Ghostty Alt remap plus `smart_nav.sh` and `herdr_nav.lua` | [ ] **BLOCKED / REJECTED:** both direct Alt handling and the revised scratch-only Ctrl-Alt translation failed the physical-key trial. Alt was not read inside Neovim and prefix navigation was still required. |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | Alt unbound in Herdr; exact temporary Neovim port plus Fish/fzf adapters | [ ] **AWAITING USER:** application-level injection moved across real Neovim windows, crossed the editor edge, and moved from Fish/fzf panes. Physical Option feel remains the gate. |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
@@ -47,7 +48,7 @@ image preview are required and remain blockers.
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
 | Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | no acceptable v0.7.4 path | [ ] **BLOCKED / REJECTED:** chafa works but is too pixelated and blurry. Kitty and native PNG graphics both produced invalid host-wide placement/black frames. |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | corrected `pane.graphics.set` fzf preview | [ ] **AWAITING USER:** actual PNG rendered crisply inside the fzf region; repeated set, focus resize, and clear returned `ok` without cross-pane paint. Screenshot quality remains a user gate. |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -69,7 +70,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | scratch Ghostty maps physical Alt to internal Ctrl-Alt; helper forwards original Alt for Neovim/SSH or focuses Herdr | [ ] **BLOCKED / REJECTED:** neither prototype path received the physical Alt chord reliably; exact tmux muscle memory was not preserved. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | leave Alt unbound in Herdr; temporary Neovim/Fish/fzf owners call Herdr only when needed | [ ] **AWAITING USER:** corrected ownership model restores the first near-working path and ports the real `tmux.lua` semantics, including `FzfLuaFocus`. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -170,6 +171,13 @@ session was stopped during closeout.
 | --- | --- | --- |
 | Physical `Alt-h/j/k/l` | Server logs contain no helper API activity for either set of rejected physical Alt presses. The revised scratch-only Ctrl-Alt CSI-u translation still left Alt unread inside Neovim and required prefix navigation. | [ ] **REJECTED / BLOCKED IN v0.7.4** |
 | High-quality fzf image | A direct `pane.graphics.set` PNG request returned `ok` and produced crisp pixels, but placement/clear escaped the pane and blacked the entire Ghostty client, repeating the Kitty stream failure. | [ ] **BLOCKED IN v0.7.4** |
+
+### Round 7 — pass-through ownership and corrected native placement
+
+| Gate | Evidence | Approval |
+| --- | --- | --- |
+| Physical `Alt-h/j/k/l` | Herdr has no direct Alt binding; isolated Ghostty explicitly uses left Option as Alt. The temporary Neovim adapter now mirrors the real `lua/plugin/tmux.lua` local-first mappings and `FzfLuaFocus` exception. API injection moved `1048 -> 1003 -> 1048 -> 1005`, then handed focus out of Neovim; the Fish adapter moved `w1:p3 -> w1:p1`. | [ ] **AWAITING USER PHYSICAL FEEL** |
+| Native fzf image | `pane.graphics.set` accepted an actual 1800×890 PNG. Corrected fzf-relative placement confined crisp pixels to `w1:p2`; repeated selection, 62/38 focus resize, and `pane.graphics.clear` all returned `ok` without black or cross-pane paint. See [`native-preview-acceptance.png`](../../herdr/prototype/screenshots/native-preview-acceptance.png). | [ ] **AWAITING USER IMAGE QUALITY** |
 
 ## Decisions and evidence log
 
@@ -305,3 +313,14 @@ only on documentation or assumed API parity.
   preview standard. Golden-ratio focus remains approved, but the two required
   failures make the v0.7.4 migration verdict **REJECTED**. Production tmux,
   Fish, Neovim, and Ghostty configuration remain unchanged.
+- 2026-07-17: primary-source review localized the Alt regression to ownership:
+  Herdr consumes matching direct bindings before pane forwarding. The reopened
+  prototype removes Herdr/Ghostty chord remaps, explicitly enables left
+  Option-as-Alt in only the scratch Ghostty process, and ports the production
+  Neovim helper's local-first and fzf-lua behavior. Fish and fzf receive
+  separate prototype-only adapters for the non-Neovim half of tmux's guard.
+- 2026-07-17: corrected `pane.graphics.set` placement uses the fzf preview's
+  pane-relative column and grid dimensions, falling back to pane rows when fzf
+  reports its `-200` row sentinel. Set, replacement, focus resize, and clear
+  returned `ok`; the captured raster is crisp and confined. The previous
+  host-wide frame was a placement error, not a stable v0.7.4 blocker.

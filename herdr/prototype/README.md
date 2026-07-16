@@ -5,14 +5,14 @@ the screen simple enough for daily use? This prototype is isolated from the
 normal Herdr config and does not change fish login startup or the production
 Neovim tmux adapter.
 
-## Final verdict
+## Reopened acceptance gate
 
-The Herdr v0.7.4 migration trial is **rejected for daily use**. The user
-approved the prototype golden-ratio focus behavior and found the focused-only
-boxed presentation polished. However, physical `Alt-h/j/k/l` did not preserve
-the tmux/Neovim muscle-memory path, and neither Kitty/native graphics nor the
-pixelated chafa-symbol fallback met the required image-preview standard. Keep
-tmux as production; this prototype is evidence, not a configuration to promote.
+The previous Herdr v0.7.4 rejection is reopened for one corrected trial. The
+user approved golden-ratio focus and asked to retry the first near-working Alt
+ownership model. Physical Alt is now left unbound in Herdr so the temporary
+Neovim/Fish/fzf adapters receive it directly. A corrected `pane.graphics.set`
+request now renders a crisp raster inside the fzf preview region. Both results
+still require physical/visual user approval; tmux remains production.
 
 Run it from the repository root:
 
@@ -51,23 +51,25 @@ For the direct Ghostty acceptance trial, use one command:
 This launches a new Ghostty window without tmux variables, starts the
 focused-only Herdr session, then prepares three panes: the real Neovim config
 with two editor windows and the temporary Herdr edge adapter on the left, the
-real Fish `fe` picker over the prototype PNGs on the upper right, and a shell on
+real fzf picker over the prototype PNGs on the upper right, and a shell on
 the lower right for mouse checks. Press `Ctrl-a Shift-b` once to hide the stable
 v0.7.4 sidebar.
 
-The focused variant also installs prototype-only direct `Alt-h/j/k/l`
-bindings. The launcher remaps physical Alt chords to isolated Ctrl-Alt CSI-u
-signals in only the scratch Ghostty window, avoiding Herdr's failure to match
-the ordinary Alt/ESC input path. `smart_nav.sh` then checks the foreground
-process: for Neovim or SSH it reinjects the original Alt chord; for other panes
-it focuses Herdr directly. None of this is installed into production Ghostty,
-Neovim, or Fish configuration.
+The focused variant deliberately has no Herdr-level `Alt-h/j/k/l` bindings.
+The launcher explicitly enables left Option-as-Alt for only the scratch
+Ghostty process, then lets the chord reach the pane application unchanged.
+`herdr_nav.lua` ports the four mappings from the production Neovim
+`lua/plugin/tmux.lua`: Neovim moves locally first and invokes Herdr only at an
+editor edge, including the existing fzf-lua `j/k` exception. `herdr_nav.fish`
+handles an ordinary Fish prompt, and the scratch fzf command binds the same
+chords to pane focus. None of this is installed into production configuration.
 
-High-quality image preview is a recorded v0.7.4 blocker. Kitty memory transfer
-was blank, Kitty stream transfer corrupted the whole client placement, and a
-direct `pane.graphics.set` PNG probe repeated the host-wide black-frame bug.
-The acceptance pane retains `chafa_preview.sh` only as a safe diagnostic; its
-symbol output was explicitly rejected as too pixelated for daily use.
+High-quality image preview now uses Herdr's experimental pane-owned raster
+layer. `native_preview.sh` reads the real fzf preview geometry, rejects fzf's
+observed negative row sentinel, and sends a pane-relative PNG placement. Set,
+repeated selection, focus resize, and clear all returned `ok`; screenshots show
+the raster confined to the fzf region without a black host frame. Chafa symbols
+remain only the failure fallback because their quality was rejected.
 
 The scratch `prototype.golden-focus` plugin listens for `pane.focused` and
 targets the same 62% width/height used by the tmux focus hook. Press
@@ -104,8 +106,11 @@ The trial screenshots are
 [`expanded`](screenshots/expanded.png) and
 [`collapsed`](screenshots/collapsed.png). The final direct Ghostty chafa
 fallback is captured in [`chafa-final`](screenshots/chafa-final.png). The user
-approved golden-focus behavior and rejected both smart-navigation feel and
-chafa image quality; the durable results are recorded in the migration tracker.
+approved golden-focus behavior and rejected the earlier smart-navigation and
+chafa paths. The corrected raster evidence is captured in
+[`native-preview-retry`](screenshots/native-preview-retry.png) and
+[`native-preview-acceptance`](screenshots/native-preview-acceptance.png); its
+quality and the restored physical Alt feel are awaiting user approval.
 
 To stop and wipe the scratch runtime without touching normal tmux:
 

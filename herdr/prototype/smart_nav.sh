@@ -5,6 +5,7 @@ key=${1:?navigation key required}
 direction=${2:?Herdr direction required}
 herdr=${HERDR_BIN_PATH:-herdr}
 pane=${HERDR_PANE_ID:?smart navigation must run inside a Herdr pane}
+log=${HERDR_NAV_LOG:-/tmp/herdr-prototype-nav.log}
 
 process_info=$($herdr pane process-info --pane "$pane")
 if printf '%s\n' "$process_info" | jq -e '
@@ -16,4 +17,5 @@ if printf '%s\n' "$process_info" | jq -e '
   exec "$herdr" pane send-keys "$pane" "alt+$key"
 fi
 
+printf '%s app %s herdr-pane\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$key" >>"$log"
 exec "$herdr" pane focus --direction "$direction" --pane "$pane" >/dev/null

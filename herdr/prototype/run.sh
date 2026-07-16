@@ -72,15 +72,8 @@ case "$border_style" in
       "$prototype/config.toml" >"$config_home/herdr/config.toml"
     printf '\n[theme.custom]\noverlay0 = "#1e1e2e"\n' \
       >>"$config_home/herdr/config.toml"
-    while read -r key direction; do
-      printf '\n[[keys.command]]\nkey = "ctrl+alt+%s"\ntype = "shell"\ncommand = "%s/smart_nav.sh %s %s"\ndescription = "prototype smart Neovim or Herdr navigation"\n' \
-        "$key" "$prototype" "$key" "$direction" >>"$config_home/herdr/config.toml"
-    done <<'EOF'
-h left
-j down
-k up
-l right
-EOF
+    # Leave Alt unbound here so Ghostty can pass the physical chord through to
+    # Neovim or Fish. Both Herdr-level interception attempts broke this path.
     printf '\n[[keys.command]]\nkey = "prefix+shift+g"\ntype = "plugin_action"\ncommand = "prototype.golden-focus.toggle"\ndescription = "toggle prototype 62 percent golden focus"\n' \
       >>"$config_home/herdr/config.toml"
     ;;
@@ -94,6 +87,7 @@ export XDG_CONFIG_HOME="$config_home"
 export PATH="$runtime/bin:$PATH"
 export HERDR_BIN_PATH="$bin"
 export HERDR_SESSION="$session"
+export HERDR_NAV_LOG="$runtime/nav-events.log"
 
 if [ "${1:-}" = "cli" ]; then
   shift

@@ -12,11 +12,27 @@ local directions = {
   l = { nvim = "l", herdr = "right" },
 }
 
+local function record(message)
+  local path = vim.env.HERDR_NAV_LOG
+  if path and path ~= "" then
+    vim.fn.writefile({ os.date("!%Y-%m-%dT%H:%M:%SZ") .. " nvim " .. message }, path, "a")
+  end
+end
+
 local function navigate(key)
   local direction = directions[key]
-  local before = vim.api.nvim_get_current_win()
+
+  -- Keep the production tmux.lua exception byte-for-byte in behavior: these
+  -- directions first give an active fzf-lua window a chance to own focus.
+  if (key == "j" or key == "k") and _G.FzfLuaFocus and _G.FzfLuaFocus() then
+    record(key .. " fzf-lua")
+    return
+  end
+
+  local before = vim.fn.winnr()
   vim.cmd.wincmd(direction.nvim)
-  if vim.api.nvim_get_current_win() ~= before then
+  if vim.fn.winnr() ~= before then
+    record(key .. " local-window")
     return
   end
 
@@ -29,6 +45,7 @@ local function navigate(key)
     "--current",
   }, { text = true }):wait()
 
+  record(key .. " herdr-edge exit=" .. result.code)
   if result.code ~= 0 and result.stderr and result.stderr ~= "" then
     vim.notify(vim.trim(result.stderr), vim.log.levels.DEBUG)
   end
