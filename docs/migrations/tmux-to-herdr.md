@@ -32,7 +32,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `smart_nav.sh` plus `herdr_nav.lua` | [ ] Final direct measurements passed: the same `Alt-l` moved between real Neovim windows and then handed the edge to Herdr in 14.58-16.62 ms. **AWAITING USER physical feel** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | isolated Ghostty Alt remap plus `smart_nav.sh` and `herdr_nav.lua` | [ ] User rejected the direct Herdr `alt+h/j/k/l` command path because physical Alt stopped working inside Neovim. Revised scratch window remaps physical Alt to internal Ctrl-Alt before restoring the original Alt chord for Neovim/SSH. **AWAITING RETEST** |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
@@ -42,7 +42,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
 | Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | explicit chafa-symbol fallback | [ ] Kitty remains blocked, but the final direct fzf pane renders the selected PNG through `chafa -f symbols`; screenshot captured. **AWAITING USER fallback approval** |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | no acceptable v0.7.4 path | [ ] **BLOCKED / REJECTED:** chafa works but is too pixelated and blurry. Kitty and native PNG graphics both produced invalid host-wide placement/black frames. |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -50,7 +50,7 @@ appearance and interaction feel must include screenshots and user approval.
 | No | Ordinary SSH and remote attach | remote tmux | remote Herdr/thin client | [ ] |
 | No | Resurrect/Continuum-style recovery | TPM plugins | snapshot plus native agent resume | [ ] **PARTIAL for arbitrary processes** |
 | No | Scratch shell and lazygit popups | `display-popup` | custom popup commands | [ ] |
-| No | Golden-ratio pane focus | tmux focus hook | prototype `pane.focused` plugin | [ ] Focus produced exact 62/38 ratios on applicable axes; toggle restored exact 50/50 and reapplied 62/38. **AWAITING USER feel** |
+| No | Golden-ratio pane focus | tmux focus hook | prototype `pane.focused` plugin | [x] Focus produced exact 62/38 ratios, toggle restored exact 50/50, and the user approved the behavior as working very well. |
 | No | URL search/open shortcuts | capture/copy scripts | pane-read custom commands | [ ] **PARTIAL** |
 | No | Nested multiplexer passthrough | tmux key-table toggle | remote Herdr or experimental nesting | [ ] **PARTIAL** |
 
@@ -64,7 +64,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | direct prototype shell binding inspects the foreground process, forwards to Neovim, or focuses Herdr | [ ] Objective path passed (`left Neovim window -> right Neovim window -> right Herdr pane`) at 14.58-16.62 ms; shell-pane movement measured 14.86 ms. Physical feel awaits user approval. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | scratch Ghostty maps physical Alt to internal Ctrl-Alt; helper forwards original Alt for Neovim/SSH or focuses Herdr | [ ] Previous physical path **REJECTED** despite CLI measurements. Revised exact-muscle-memory path **AWAITING USER RETEST**. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -155,9 +155,16 @@ recorded.
 
 | Gate | Objective evidence | Approval |
 | --- | --- | --- |
-| Smart `Alt-h/j/k/l` feel | Real Neovim moved window `1002 -> 1005` in 16.62 ms; the next identical chord handed focus `w1:p1 -> w1:p2` in 14.58 ms. A non-Neovim pane moved `w1:p2 -> w1:p3` in 14.86 ms. | [ ] **AWAITING USER** |
-| Golden-ratio focus | The local `prototype.golden-focus` event hook changed the right/top focused layout to root `0.38` and nested `0.62`, then right/bottom to `0.38`/`0.38`. Toggle restored both splits to `0.50`, and a second toggle reapplied `0.38`/`0.62`. All observed plugin commands exited 0. | [ ] **AWAITING USER** |
-| chafa fzf fallback | fzf process argv contains the explicit `chafa_preview.sh {}` preview. Pane readback contains symbol pixels, and [`chafa-final.png`](../../herdr/prototype/screenshots/chafa-final.png) captures the visible selected-PNG preview without Kitty transport. | [ ] **AWAITING USER** |
+| Smart `Alt-h/j/k/l` feel | Real Neovim moved window `1002 -> 1005` in 16.62 ms; the next identical chord handed focus `w1:p1 -> w1:p2` in 14.58 ms. A non-Neovim pane moved `w1:p2 -> w1:p3` in 14.86 ms. | [ ] **REJECTED:** physical Alt did not invoke this helper path and no longer worked inside Neovim. |
+| Golden-ratio focus | The local `prototype.golden-focus` event hook changed the right/top focused layout to root `0.38` and nested `0.62`, then right/bottom to `0.38`/`0.38`. Toggle restored both splits to `0.50`, and a second toggle reapplied `0.38`/`0.62`. All observed plugin commands exited 0. | [x] **APPROVED:** user reports it works very well. |
+| chafa fzf fallback | fzf process argv contains the explicit `chafa_preview.sh {}` preview. Pane readback contains symbol pixels, and [`chafa-final.png`](../../herdr/prototype/screenshots/chafa-final.png) captures the visible selected-PNG preview without Kitty transport. | [ ] **REJECTED:** working but too pixelated and blurry. |
+
+### Round 6 — exact muscle-memory repair and native-image audit
+
+| Gate | Evidence | Approval |
+| --- | --- | --- |
+| Physical `Alt-h/j/k/l` | Server logs contain no helper API activity for the rejected physical Alt presses. The revised launcher maps physical Alt to distinct Ctrl-Alt CSI-u chords in only the scratch Ghostty window; Herdr binds those internal chords and `smart_nav.sh` forwards the original Alt chord to Neovim/Vim/SSH. | [ ] **AWAITING USER RETEST** |
+| High-quality fzf image | A direct `pane.graphics.set` PNG request returned `ok` and produced crisp pixels, but placement/clear escaped the pane and blacked the entire Ghostty client, repeating the Kitty stream failure. | [ ] **BLOCKED IN v0.7.4** |
 
 ## Decisions and evidence log
 
@@ -273,3 +280,14 @@ only on documentation or assumed API parity.
   screenshot show symbol-rendered preview content. Computer Use was denied
   access to Ghostty by its safety allowlist, so the subjective gates remain
   user-owned despite command/readback and screenshot evidence.
+- 2026-07-17: the user approved golden ratio, rejected the physical smart-nav
+  path because Alt stopped working inside Neovim, and rejected chafa because
+  its symbol rendering is too pixelated and blurry for the required standard.
+- 2026-07-17: server logs confirmed physical Alt never entered the helper/API
+  path. The revised scratch-only launcher translates physical `Alt-h/j/k/l`
+  into unambiguous Ctrl-Alt CSI-u chords; Herdr then forwards the original Alt
+  chord to Neovim/Vim/SSH or focuses an outer pane, mirroring the tmux guard.
+- 2026-07-17: Herdr's native `pane.graphics.set` accepted a full PNG and
+  rendered crisp pixels, but its placement escaped the target pane and a later
+  set/clear blacked the full Ghostty client. Together with the Kitty failures,
+  this leaves no high-quality v0.7.4 preview suitable for migration.

@@ -73,7 +73,7 @@ case "$border_style" in
     printf '\n[theme.custom]\noverlay0 = "#1e1e2e"\n' \
       >>"$config_home/herdr/config.toml"
     while read -r key direction; do
-      printf '\n[[keys.command]]\nkey = "alt+%s"\ntype = "shell"\ncommand = "%s/smart_nav.sh %s %s"\ndescription = "prototype smart Neovim or Herdr navigation"\n' \
+      printf '\n[[keys.command]]\nkey = "ctrl+alt+%s"\ntype = "shell"\ncommand = "%s/smart_nav.sh %s %s"\ndescription = "prototype smart Neovim or Herdr navigation"\n' \
         "$key" "$prototype" "$key" "$direction" >>"$config_home/herdr/config.toml"
     done <<'EOF'
 h left

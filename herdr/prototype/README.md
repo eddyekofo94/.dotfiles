@@ -36,7 +36,7 @@ inside the ignored runtime.
 For the direct Ghostty acceptance trial, use one command:
 
 ```sh
-./herdr/prototype/live_ghostty.sh
+./herdr/prototype/launch_live_ghostty.sh
 ```
 
 This launches a new Ghostty window without tmux variables, starts the
@@ -47,15 +47,18 @@ the lower right for mouse checks. Press `Ctrl-a Shift-b` once to hide the stable
 v0.7.4 sidebar.
 
 The focused variant also installs prototype-only direct `Alt-h/j/k/l`
-bindings. `smart_nav.sh` checks the active pane's foreground process: for
-Neovim it reinjects the chord so `herdr_nav.lua` can move locally or hand off at
-an edge; for other panes it focuses Herdr directly. Neither file is installed
-into the production Neovim or Fish configuration.
+bindings. The launcher remaps physical Alt chords to isolated Ctrl-Alt CSI-u
+signals in only the scratch Ghostty window, avoiding Herdr's failure to match
+the ordinary Alt/ESC input path. `smart_nav.sh` then checks the foreground
+process: for Neovim or SSH it reinjects the original Alt chord; for other panes
+it focuses Herdr directly. None of this is installed into production Ghostty,
+Neovim, or Fish configuration.
 
-The final acceptance pane deliberately replaces the recorded v0.7.4 Kitty
-blocker with `chafa_preview.sh`, using symbol output rather than any graphics
-protocol. This makes the fallback visually testable without confusing it with
-a successful Kitty transport.
+High-quality image preview is a recorded v0.7.4 blocker. Kitty memory transfer
+was blank, Kitty stream transfer corrupted the whole client placement, and a
+direct `pane.graphics.set` PNG probe repeated the host-wide black-frame bug.
+The acceptance pane retains `chafa_preview.sh` only as a safe diagnostic; its
+symbol output was explicitly rejected as too pixelated for daily use.
 
 The scratch `prototype.golden-focus` plugin listens for `pane.focused` and
 targets the same 62% width/height used by the tmux focus hook. Press

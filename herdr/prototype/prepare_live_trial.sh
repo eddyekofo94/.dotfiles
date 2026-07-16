@@ -71,7 +71,7 @@ $runner --border focused cli pane send-text "$right_pane" \
 $runner --border focused cli pane send-keys "$right_pane" return
 
 $runner --border focused cli pane send-text "$lower_pane" \
-  "printf '\\nFINAL HERDR QA\\nAlt-h/j/k/l moves through Neovim and Herdr.\\nFocused panes grow to 62%%; Ctrl-a Shift-g restores/toggles golden focus.\\nThe upper-right fzf preview uses chafa symbols, never Kitty.\\n'"
+  "printf '\\nFINAL HERDR NAV QA\\nPhysical Alt-h/j/k/l uses an isolated Ghostty remap, then moves through Neovim and Herdr.\\nFocused panes grow to 62%%; Ctrl-a Shift-g restores/toggles golden focus.\\nHigh-quality images are blocked in Herdr v0.7.4; chafa remains only as a safe diagnostic.\\n'"
 $runner --border focused cli pane send-keys "$lower_pane" return
 
 $runner --border focused cli pane focus --direction left --current >/dev/null

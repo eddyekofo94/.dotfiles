@@ -6,6 +6,7 @@ prototype="$root/herdr/prototype"
 
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
+test -x "$prototype/launch_live_ghostty.sh"
 test -x "$prototype/prepare_live_trial.sh"
 test -x "$prototype/smart_nav.sh"
 test -x "$prototype/chafa_preview.sh"
@@ -35,6 +36,7 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
   test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 4
+  grep -q '^key = "ctrl+alt+h"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q 'smart_nav.sh h left' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^type = "plugin_action"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^command = "prototype.golden-focus.toggle"$' "$prototype/.runtime/cf/herdr/config.toml"
