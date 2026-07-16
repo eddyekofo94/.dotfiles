@@ -5,8 +5,36 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 prototype="$root/herdr/prototype"
 runtime="$prototype/.runtime"
 bin="$runtime/bin/herdr"
-config_home="$runtime/c"
-session=trial
+border_style=compact
+
+if [ "${1:-}" = "--border" ]; then
+  if [ "$#" -lt 2 ]; then
+    echo "--border requires compact, boxed, or borderless" >&2
+    exit 2
+  fi
+  border_style=$2
+  shift 2
+fi
+
+case "$border_style" in
+  compact)
+    config_home="$runtime/c"
+    session=trial
+    ;;
+  boxed)
+    config_home="$runtime/cb"
+    session=trial-boxed
+    ;;
+  borderless)
+    config_home="$runtime/cl"
+    session=trial-borderless
+    ;;
+  *)
+    echo "unknown border style: $border_style (expected compact, boxed, or borderless)" >&2
+    exit 2
+    ;;
+esac
+
 asset=herdr-macos-aarch64
 version=v0.7.4
 expected_size=15866512
@@ -27,7 +55,19 @@ if [ ! -x "$bin" ]; then
   mv "$tmp" "$bin"
 fi
 
-cp "$prototype/config.toml" "$config_home/herdr/config.toml"
+case "$border_style" in
+  compact)
+    cp "$prototype/config.toml" "$config_home/herdr/config.toml"
+    ;;
+  boxed)
+    sed 's/^pane_gaps = false$/pane_gaps = true/' \
+      "$prototype/config.toml" >"$config_home/herdr/config.toml"
+    ;;
+  borderless)
+    sed 's/^pane_borders = true$/pane_borders = false/' \
+      "$prototype/config.toml" >"$config_home/herdr/config.toml"
+    ;;
+esac
 
 export XDG_CONFIG_HOME="$config_home"
 export PATH="$runtime/bin:$PATH"

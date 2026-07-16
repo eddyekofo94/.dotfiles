@@ -40,7 +40,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | Vi copy mode, search, selection, clipboard | tmux copy-mode-vi | Herdr copy mode | [x] Searched `HERDR_COPY_SENTINEL`, selected with `v/e`, yanked, and `pbpaste` matched exactly. |
 | Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [ ] **AWAITING USER** |
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
-| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] **AWAITING USER:** both layouts captured; stable v0.7.4 still starts expanded. |
+| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] **AWAITING USER:** both layouts captured; stable v0.7.4 still starts expanded. The compact border junction appearance is rejected pending boxed/borderless comparison. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
 | Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] `chafa -f kitty` exited 0 and reserved the image cells through nested tmux; pixels require live Ghostty approval. **AWAITING USER** |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
@@ -115,6 +115,15 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 - [ ] User approves navigation feel and accepted partial differences.
 - [ ] User explicitly authorizes promoting Herdr from prototype to daily driver.
 
+### Round 2 — live Ghostty visual and interaction QA
+
+| Gate | Current result | Approval |
+| --- | --- | --- |
+| Collapsed/expanded density | User rejected the pinched/soft-looking compact border junction shown in the first live screenshot. Compare `--border boxed` and `--border borderless`. | [ ] |
+| Neovim `Alt-h/j/k/l` feel | Automated edge handoff passed; live key feel is not yet approved. | [ ] |
+| Mouse focus, resize, scroll, and selection | Herdr supports these paths, but live Ghostty QA has not been completed. | [ ] |
+| Kitty/chafa pixels | Protocol command exited successfully; live Ghostty pixels have not been approved. | [ ] |
+
 ## Decisions and evidence log
 
 Add dated entries here. Never replace an unverified item with a checkmark based
@@ -147,3 +156,19 @@ only on documentation or assumed API parity.
 - 2026-07-16: screenshots:
   [`expanded`](../../herdr/prototype/screenshots/expanded.png) and
   [`collapsed`](../../herdr/prototype/screenshots/collapsed.png).
+- 2026-07-16: the user rejected the compact border junction appearance as
+  visually ugly. The Neovim `colorful-winsep.lua` implementation and Herdr
+  v0.7.4 source both use square box-drawing junctions (`┌ ┐ └ ┘` and the
+  corresponding T/cross glyphs). Herdr does not expose glyph/corner styling;
+  it exposes only borders on/off and shared (`pane_gaps = false`) versus
+  independent boxed (`pane_gaps = true`) borders. The prototype runner now
+  offers `compact`, `boxed`, and `borderless` sessions for live comparison.
+- 2026-07-16: Mac UI automation is not permitted to control Ghostty in this
+  environment. Density, mouse feel, navigation feel, and Kitty pixels therefore
+  remain human approval gates even when CLI/source checks pass.
+- 2026-07-16: live comparison windows were prepared in the existing `main`
+  tmux session without changing tmux configuration: window 2 `herdr-boxed` and
+  window 3 `herdr-borderless`. Both start collapsed with the same three-pane
+  layout; Neovim plus the temporary Herdr adapter is in the left pane, the
+  Kitty/chafa image probe is in the upper-right pane, and a shell is in the
+  lower-right pane for mouse focus/resize/selection checks.

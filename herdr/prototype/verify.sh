@@ -20,6 +20,11 @@ grep -q '^enabled = false$' "$prototype/config.toml"
 
 if [ -x "$prototype/.runtime/bin/herdr" ]; then
   "$prototype/run.sh" cli config check
+  "$prototype/run.sh" --border boxed cli config check
+  "$prototype/run.sh" --border borderless cli config check
+
+  grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
+  grep -q '^pane_borders = false$' "$prototype/.runtime/cl/herdr/config.toml"
 fi
 
 nvim_config=${XDG_CONFIG_HOME:-"$HOME/.config"}/nvim/lua/plugin/tmux.lua
