@@ -34,8 +34,23 @@ local function navigate(key)
   end
 end
 
-for key in pairs(directions) do
-  vim.keymap.set("n", "<M-" .. key .. ">", function()
-    navigate(key)
-  end, { desc = "PROTOTYPE: Neovim window or Herdr pane " .. key })
+local function apply_maps()
+  for key in pairs(directions) do
+    vim.keymap.set("n", "<M-" .. key .. ">", function()
+      navigate(key)
+    end, { desc = "PROTOTYPE: Neovim window or Herdr pane " .. key })
+  end
 end
+
+apply_maps()
+
+local group = vim.api.nvim_create_augroup("HerdrNavigationPrototype", { clear = true })
+vim.api.nvim_create_autocmd("User", {
+  group = group,
+  pattern = { "VeryLazy", "LazyDone" },
+  callback = apply_maps,
+})
+
+-- Some local keymaps are installed after VimEnter without a common User event.
+-- Reapply once after startup; this remains a prototype-only override.
+vim.defer_fn(apply_maps, 1000)

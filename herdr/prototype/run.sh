@@ -9,7 +9,7 @@ border_style=compact
 
 if [ "${1:-}" = "--border" ]; then
   if [ "$#" -lt 2 ]; then
-    echo "--border requires compact, boxed, or borderless" >&2
+    echo "--border requires compact, boxed, focused, or borderless" >&2
     exit 2
   fi
   border_style=$2
@@ -25,12 +25,16 @@ case "$border_style" in
     config_home="$runtime/cb"
     session=trial-boxed
     ;;
+  focused)
+    config_home="$runtime/cf"
+    session=trial-focused
+    ;;
   borderless)
     config_home="$runtime/cl"
     session=trial-borderless
     ;;
   *)
-    echo "unknown border style: $border_style (expected compact, boxed, or borderless)" >&2
+    echo "unknown border style: $border_style (expected compact, boxed, focused, or borderless)" >&2
     exit 2
     ;;
 esac
@@ -62,6 +66,12 @@ case "$border_style" in
   boxed)
     sed 's/^pane_gaps = false$/pane_gaps = true/' \
       "$prototype/config.toml" >"$config_home/herdr/config.toml"
+    ;;
+  focused)
+    sed 's/^pane_gaps = false$/pane_gaps = true/' \
+      "$prototype/config.toml" >"$config_home/herdr/config.toml"
+    printf '\n[theme.custom]\noverlay0 = "#1e1e2e"\n' \
+      >>"$config_home/herdr/config.toml"
     ;;
   borderless)
     sed 's/^pane_borders = true$/pane_borders = false/' \

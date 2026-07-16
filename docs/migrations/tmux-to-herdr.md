@@ -32,17 +32,17 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `herdr_nav.lua` | [ ] CLI-injected `Alt-h` moved inside Neovim and edge `Alt-l` focused Herdr, but physical keys failed in the nested live trial because the outer tmux intercepted them. **BLOCKED pending direct Ghostty trial** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `herdr_nav.lua` | [ ] Direct Ghostty adapter readback passed: `Alt-l` moved between real Neovim windows, then handed the edge to Herdr. **AWAITING USER physical feel** |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
-| Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr navigator | [ ] **BLOCKED:** the live prototype had no representative fzf picker/preview workflow. |
+| Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr navigator | [ ] The real Fish `fe` picker now runs in the direct trial; Herdr's own navigator remains a separate parity question. **AWAITING USER** |
 | Yes | Vi copy mode, search, selection, clipboard | tmux copy-mode-vi | Herdr copy mode | [x] Searched `HERDR_COPY_SENTINEL`, selected with `v/e`, yanked, and `pbpaste` matched exactly. |
 | Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [ ] **AWAITING USER** |
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
-| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] User prefers boxed geometry but wants only the focused pane visibly outlined. **PARTIAL / refinement unverified** |
+| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] Focused-only boxes are running directly in Ghostty: independent geometry, accented focused border, inactive border token matched to `#1e1e2e`. **AWAITING USER** |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] `chafa -f kitty` exited 0 and reserved image cells, but the user could not exercise the normal fzf preview path and did not confirm pixels. **BLOCKED pending representative direct trial** |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] Real `fe -> _fzf_preview -> kitten icat` is active over the prototype PNGs and Herdr receives the Unicode-placeholder image grid. **AWAITING USER pixel approval** |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -64,7 +64,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | Neovim adapter; no global Herdr bind initially | [ ] Adapter passed direct injection; physical nested keys were consumed by the outer tmux because `herdr` does not satisfy its foreground-Vim forwarding guard. **BLOCKED pending direct trial** |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | Neovim adapter; no global Herdr bind initially | [ ] Direct adapter test passed (`left Neovim window -> right Neovim window -> right Herdr pane`); physical key feel awaits user approval. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -123,6 +123,18 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | Neovim `Alt-h/j/k/l` feel | Rejected in the nested trial: physical keys did not switch Herdr panes because the outer tmux intercepted them. Direct Ghostty behavior remains unknown. | [ ] **BLOCKED** |
 | Mouse focus, resize, scroll, and selection | No approval or rejection was reported before closeout. | [ ] **UNVERIFIED** |
 | Kitty/chafa pixels | No approval or rejection: the prototype lacked the normal fzf image-preview path, so the user could not perform a representative test. | [ ] **BLOCKED** |
+
+### Round 3 — direct focused-only Ghostty trial
+
+The active acceptance window was launched with
+`./herdr/prototype/live_ghostty.sh`. It is not nested in tmux.
+
+| Gate | Objective evidence | Approval |
+| --- | --- | --- |
+| Focused-border density | Focused variant generated with `pane_gaps = true` and inactive `overlay0 = "#1e1e2e"`; direct three-pane layout is running. | [ ] **AWAITING USER** |
+| Neovim `Alt-h/j/k/l` | Real config loaded; prototype map survived lazy startup; readback moved Neovim window `1000 -> 1005`, kept Herdr on `w1:p1`, then moved Herdr to `w1:p2` at the editor edge. | [ ] **AWAITING USER physical feel** |
+| Mouse focus, resize, scroll, and selection | Direct three-pane layout is available for clicks, border drags, scrolling, selection, and clipboard checks. | [ ] **AWAITING USER** |
+| fzf/Kitty pixels | Real `fe png` process is running with `_fzf_preview {}`; visible pane readback contains the Kitty Unicode-placeholder grid for `expanded.png`/`collapsed.png`. | [ ] **AWAITING USER pixels** |
 
 ## Decisions and evidence log
 
@@ -192,3 +204,19 @@ only on documentation or assumed API parity.
 - 2026-07-16: closeout removed the temporary `herdr-boxed` and
   `herdr-borderless` tmux windows and stopped the compact, boxed, and borderless
   Herdr servers. The production `main:1` tmux window remained active.
+- 2026-07-16: the focused-only variant derives an isolated config with
+  independent pane boxes and sets `theme.custom.overlay0` to Ghostty's verified
+  Catppuccin Mocha background `#1e1e2e`. Focused borders retain Herdr's accent;
+  inactive border cells remain reserved but should blend into the background.
+- 2026-07-16: the first direct harness attempt exposed two prototype-only
+  environment mistakes. Isolated `XDG_CONFIG_HOME` leaked into pane processes,
+  hiding the real Neovim/Fish configs; then a login Fish used for `fe` triggered
+  production tmux auto-attach. The harness now passes the normal config home to
+  Neovim explicitly and runs the checked-in `fe`/`_fzf_preview` functions under
+  `fish --no-config`, avoiding login startup without changing Fish itself.
+- 2026-07-16: final direct readback reported `HERDR_DIRECT_GHOSTTY=1`, real
+  Neovim with two normal split windows, the temporary Herdr map after lazy
+  startup, and real fzf with `--query=png --preview '_fzf_preview {}'`. Adapter
+  injection moved within Neovim first and then focused the right Herdr pane.
+  Computer Use is not permitted to inspect Ghostty, so density, physical key
+  feel, mouse behavior, and rendered Kitty pixels remain user-only approvals.

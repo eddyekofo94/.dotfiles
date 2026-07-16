@@ -22,13 +22,29 @@ does support:
 # Independent rectangular boxes: explicit corners, but uses more screen space.
 ./herdr/prototype/run.sh --border boxed
 
+# Independent boxes with inactive borders hidden into the Ghostty background.
+./herdr/prototype/run.sh --border focused
+
 # No pane lines: quietest screen, with layout conveyed by content alone.
 ./herdr/prototype/run.sh --border borderless
 ```
 
 Each style uses an isolated scratch session. The base tracked configuration is
-still the requested compact/no-gap variant; the runner derives the other two
+still the requested compact/no-gap variant; the runner derives the other three
 inside the ignored runtime.
+
+For the direct Ghostty acceptance trial, use one command:
+
+```sh
+./herdr/prototype/live_ghostty.sh
+```
+
+This launches a new Ghostty window without tmux variables, starts the
+focused-only Herdr session, then prepares three panes: the real Neovim config
+with two editor windows and the temporary Herdr edge adapter on the left, the
+real Fish `fe` picker over the prototype PNGs on the upper right, and a shell on
+the lower right for mouse checks. Press `Ctrl-a Shift-b` once to hide the stable
+v0.7.4 sidebar.
 
 The first run downloads the official Herdr v0.7.4 macOS arm64 release into
 `.runtime/`, verifies its expected byte size, and starts the named scratch
@@ -65,6 +81,7 @@ To stop and wipe the scratch runtime without touching normal tmux:
 ```sh
 ./herdr/prototype/run.sh cli server stop
 ./herdr/prototype/run.sh --border boxed cli server stop
+./herdr/prototype/run.sh --border focused cli server stop
 ./herdr/prototype/run.sh --border borderless cli server stop
 rm -rf herdr/prototype/.runtime
 ```
