@@ -5,6 +5,15 @@ the screen simple enough for daily use? This prototype is isolated from the
 normal Herdr config and does not change fish login startup or the production
 Neovim tmux adapter.
 
+## Final verdict
+
+The Herdr v0.7.4 migration trial is **rejected for daily use**. The user
+approved the prototype golden-ratio focus behavior and found the focused-only
+boxed presentation polished. However, physical `Alt-h/j/k/l` did not preserve
+the tmux/Neovim muscle-memory path, and neither Kitty/native graphics nor the
+pixelated chafa-symbol fallback met the required image-preview standard. Keep
+tmux as production; this prototype is evidence, not a configuration to promote.
+
 Run it from the repository root:
 
 ```sh
@@ -94,9 +103,9 @@ Run the repeatable static checks with:
 The trial screenshots are
 [`expanded`](screenshots/expanded.png) and
 [`collapsed`](screenshots/collapsed.png). The final direct Ghostty chafa
-fallback is captured in [`chafa-final`](screenshots/chafa-final.png). Smart
-navigation feel, golden-focus behavior, and chafa readability must still be
-approved by the user in the live session.
+fallback is captured in [`chafa-final`](screenshots/chafa-final.png). The user
+approved golden-focus behavior and rejected both smart-navigation feel and
+chafa image quality; the durable results are recorded in the migration tracker.
 
 To stop and wipe the scratch runtime without touching normal tmux:
 

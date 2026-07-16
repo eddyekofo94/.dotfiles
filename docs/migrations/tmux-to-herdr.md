@@ -23,6 +23,11 @@ until every **Required** row is checked or the user explicitly accepts its
 documented difference. Prototype evidence must include commands/readback;
 appearance and interaction feel must include screenshots and user approval.
 
+**Final v0.7.4 verdict (2026-07-17): REJECTED for daily migration.** Keep tmux
+as the production multiplexer. Golden-ratio focus is approved, but exact
+physical `Alt-h/j/k/l` Neovim-to-pane handoff and a high-quality pane-clipped
+image preview are required and remain blockers.
+
 ## Core behavior checklist
 
 | Required | tmux behavior to preserve | Current implementation | Proposed Herdr path | Status / evidence |
@@ -32,7 +37,7 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | isolated Ghostty Alt remap plus `smart_nav.sh` and `herdr_nav.lua` | [ ] User rejected the direct Herdr `alt+h/j/k/l` command path because physical Alt stopped working inside Neovim. Revised scratch window remaps physical Alt to internal Ctrl-Alt before restoring the original Alt chord for Neovim/SSH. **AWAITING RETEST** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | isolated Ghostty Alt remap plus `smart_nav.sh` and `herdr_nav.lua` | [ ] **BLOCKED / REJECTED:** both direct Alt handling and the revised scratch-only Ctrl-Alt translation failed the physical-key trial. Alt was not read inside Neovim and prefix navigation was still required. |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
@@ -64,7 +69,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | scratch Ghostty maps physical Alt to internal Ctrl-Alt; helper forwards original Alt for Neovim/SSH or focuses Herdr | [ ] Previous physical path **REJECTED** despite CLI measurements. Revised exact-muscle-memory path **AWAITING USER RETEST**. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | scratch Ghostty maps physical Alt to internal Ctrl-Alt; helper forwards original Alt for Neovim/SSH or focuses Herdr | [ ] **BLOCKED / REJECTED:** neither prototype path received the physical Alt chord reliably; exact tmux muscle memory was not preserved. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -149,9 +154,9 @@ The active acceptance window was launched with
 
 ### Round 5 — final direct acceptance trial
 
-The live `trial-focused` session is intentionally still open for the user's
-three subjective decisions. It must be stopped after those decisions are
-recorded.
+The three subjective decisions are final: smart navigation and chafa were
+rejected, while golden-ratio focus was approved. The live `trial-focused`
+session was stopped during closeout.
 
 | Gate | Objective evidence | Approval |
 | --- | --- | --- |
@@ -163,7 +168,7 @@ recorded.
 
 | Gate | Evidence | Approval |
 | --- | --- | --- |
-| Physical `Alt-h/j/k/l` | Server logs contain no helper API activity for the rejected physical Alt presses. The revised launcher maps physical Alt to distinct Ctrl-Alt CSI-u chords in only the scratch Ghostty window; Herdr binds those internal chords and `smart_nav.sh` forwards the original Alt chord to Neovim/Vim/SSH. | [ ] **AWAITING USER RETEST** |
+| Physical `Alt-h/j/k/l` | Server logs contain no helper API activity for either set of rejected physical Alt presses. The revised scratch-only Ctrl-Alt CSI-u translation still left Alt unread inside Neovim and required prefix navigation. | [ ] **REJECTED / BLOCKED IN v0.7.4** |
 | High-quality fzf image | A direct `pane.graphics.set` PNG request returned `ok` and produced crisp pixels, but placement/clear escaped the pane and blacked the entire Ghostty client, repeating the Kitty stream failure. | [ ] **BLOCKED IN v0.7.4** |
 
 ## Decisions and evidence log
@@ -291,3 +296,12 @@ only on documentation or assumed API parity.
   rendered crisp pixels, but its placement escaped the target pane and a later
   set/clear blacked the full Ghostty client. Together with the Kitty failures,
   this leaves no high-quality v0.7.4 preview suitable for migration.
+- 2026-07-17: the final physical-key retest rejected the revised isolated
+  Ghostty remap. The user still had to use prefix navigation, `Alt-h/j/k/l`
+  was not read inside Neovim, and the server log contained focus/resize events
+  but no smart-navigation focus call from those physical Alt presses.
+- 2026-07-17: the final screenshot confirmed that the safe chafa-symbol
+  fallback is fully pixelated and does not meet the existing high-quality
+  preview standard. Golden-ratio focus remains approved, but the two required
+  failures make the v0.7.4 migration verdict **REJECTED**. Production tmux,
+  Fish, Neovim, and Ghostty configuration remain unchanged.
