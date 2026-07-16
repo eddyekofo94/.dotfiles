@@ -32,6 +32,7 @@ OPTION_PREFIX = "@agent_status_"
 RENDERED_OPTION = f"{OPTION_PREFIX}rendered"
 ANIMATOR_PID_OPTION = f"{OPTION_PREFIX}animator_pid"
 ANIMATION_INTERVAL = 1 / 12
+RUNNING_RECONCILE_GRACE = 2.0
 
 
 def normalize_agent(value: str) -> str:
@@ -65,6 +66,32 @@ def agent_from_process(command: str, start_command: str = "") -> str:
     return ""
 
 
+def codex_screen_is_ready(screen: str) -> bool:
+    has_composer = any(re.match(r"^\s*›", line) for line in screen.splitlines())
+    return (
+        has_composer
+        and not re.search(r"\bWorking \([^\n]*esc to interrupt\)", screen)
+        and "Queued follow-up inputs" not in screen
+        and not re.search(r"model:\s+loading", screen)
+    )
+
+
+def reconciled_running_state(
+    pane: dict[str, str], screen: str, now: float
+) -> str:
+    state = pane.get("state", "")
+    if normalize_agent(pane.get("agent", "")) != "codex" or state != "running":
+        return state
+
+    try:
+        changed_at = float(pane.get("changed_at", "0"))
+    except ValueError:
+        changed_at = 0
+    if changed_at > 0 and now - changed_at < RUNNING_RECONCILE_GRACE:
+        return state
+    return "ready" if codex_screen_is_ready(screen) else state
+
+
 def sanitize_label(value: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip())
     return cleaned.strip("-") or "project"
@@ -79,7 +106,7 @@ def truncate_project(value: str, maximum: int = 16) -> str:
 def classify_message(message: str) -> str:
     plain_message = re.sub(r"[*_`]", "", message)
     if re.search(r"\bStatus\s*:\s*AWAITING USER APPROVAL\b", plain_message, re.I):
-        return "permission"
+        return "question"
 
     without_fences = re.sub(r"```.*?```", "", message, flags=re.S)
     for line in without_fences.splitlines():
@@ -204,7 +231,13 @@ def set_pane_status(agent: str, state: str, payload: dict[str, Any]) -> None:
     if current_agent != agent or not project:
         project = project_from_payload(payload)
 
-    for key, value in (("agent", agent), ("project", project), ("state", state)):
+    values = (
+        ("agent", agent),
+        ("project", project),
+        ("state", state),
+        ("changed_at", str(time.time())),
+    )
+    for key, value in values:
         tmux_command("set-option", "-p", "-t", pane, f"{OPTION_PREFIX}{key}", value)
 
 
@@ -319,13 +352,14 @@ def window_snapshots() -> dict[str, dict[str, Any]]:
             f"#{{{OPTION_PREFIX}agent}}",
             f"#{{{OPTION_PREFIX}project}}",
             f"#{{{OPTION_PREFIX}state}}",
+            f"#{{{OPTION_PREFIX}changed_at}}",
             f"#{{{RENDERED_OPTION}}}",
         )
     )
     output = tmux_command("list-panes", "-a", "-F", fields, capture=True)
     snapshots: dict[str, dict[str, Any]] = {}
     for line in output.splitlines():
-        values = (line.split(separator, 9) + [""] * 10)[:10]
+        values = (line.split(separator, 10) + [""] * 11)[:11]
         (
             window,
             fallback,
@@ -336,6 +370,7 @@ def window_snapshots() -> dict[str, dict[str, Any]]:
             agent,
             project,
             state,
+            changed_at,
             cached,
         ) = values
         if not window or not pane:
@@ -350,8 +385,52 @@ def window_snapshots() -> dict[str, dict[str, Any]]:
             "agent": agent,
             "project": project,
             "state": state,
+            "changed_at": changed_at,
         }
     return snapshots
+
+
+def reconcile_cancelled_codex_turns(
+    snapshots: dict[str, dict[str, Any]], now: float
+) -> None:
+    updates: list[tuple[str, ...]] = []
+    for snapshot in snapshots.values():
+        for pane, values in snapshot["panes"].items():
+            if normalize_agent(values.get("agent", "")) != "codex":
+                continue
+            if values.get("state") != "running":
+                continue
+            try:
+                changed_at = float(values.get("changed_at", "0"))
+            except ValueError:
+                changed_at = 0
+            if changed_at > 0 and now - changed_at < RUNNING_RECONCILE_GRACE:
+                continue
+            try:
+                screen = tmux_command(
+                    "capture-pane", "-p", "-J", "-t", pane, capture=True
+                )
+            except subprocess.CalledProcessError:
+                continue
+            state = reconciled_running_state(values, screen, now)
+            if state == values["state"]:
+                continue
+            values["state"] = state
+            values["changed_at"] = str(now)
+            updates.extend(
+                (
+                    ("set-option", "-p", "-t", pane, f"{OPTION_PREFIX}state", state),
+                    (
+                        "set-option",
+                        "-p",
+                        "-t",
+                        pane,
+                        f"{OPTION_PREFIX}changed_at",
+                        str(now),
+                    ),
+                )
+            )
+    tmux_commands(updates)
 
 
 def tmux_commands(commands: list[tuple[str, ...]]) -> None:
@@ -367,7 +446,10 @@ def tmux_commands(commands: list[tuple[str, ...]]) -> None:
 def sync_cached_status(frame: int) -> bool:
     any_running = False
     updates: list[tuple[str, ...]] = []
-    for window, snapshot in window_snapshots().items():
+    snapshots = window_snapshots()
+    if frame == 0:
+        reconcile_cancelled_codex_turns(snapshots, time.time())
+    for window, snapshot in snapshots.items():
         rendered, running = render_entries_with_activity(
             list(snapshot["panes"].values()),
             frame,

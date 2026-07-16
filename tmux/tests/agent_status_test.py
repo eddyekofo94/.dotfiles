@@ -18,7 +18,11 @@ class AgentStatusTests(unittest.TestCase):
         self.assertEqual(agent_status.classify_message("Which layout do you prefer?"), "question")
         self.assertEqual(
             agent_status.classify_message("**Status**: AWAITING USER APPROVAL\nWhich layout?"),
-            "permission",
+            "question",
+        )
+        self.assertEqual(
+            agent_status.classify_message("Status: AWAITING USER APPROVAL"),
+            "question",
         )
         self.assertEqual(
             agent_status.classify_message("```sh\nprintf '?\\n'\n```\nDone."),
@@ -50,6 +54,41 @@ class AgentStatusTests(unittest.TestCase):
     def test_process_detection_uses_aliases_and_start_command(self):
         self.assertEqual(agent_status.agent_from_process("antigravity"), "agy")
         self.assertEqual(agent_status.agent_from_process("node", '"exec gemini"'), "gemini")
+
+    def test_codex_ready_screen_distinguishes_cancelled_and_active_turns(self):
+        cancelled = """\
+› Use /skills to list available skills
+
+  gpt-5.6-sol medium · ~/Documents/Family_Business/RubyandRiver
+"""
+        active = """\
+• Working (10m 32s • esc to interrupt)
+
+› Implement {feature}
+
+  gpt-5.6-sol medium · ~/Documents/Theology/BibleStandard
+"""
+        queued = cancelled + "\nQueued follow-up inputs\n"
+        loading = cancelled + "\nmodel: loading\n"
+
+        self.assertTrue(agent_status.codex_screen_is_ready(cancelled))
+        self.assertFalse(agent_status.codex_screen_is_ready(active))
+        self.assertFalse(agent_status.codex_screen_is_ready(queued))
+        self.assertFalse(agent_status.codex_screen_is_ready(loading))
+
+        pane = {"agent": "codex", "state": "running", "changed_at": "100"}
+        self.assertEqual(
+            agent_status.reconciled_running_state(pane, cancelled, 101),
+            "running",
+        )
+        self.assertEqual(
+            agent_status.reconciled_running_state(pane, cancelled, 103),
+            "ready",
+        )
+        self.assertEqual(
+            agent_status.reconciled_running_state(pane, active, 103),
+            "running",
+        )
 
     def test_multi_agent_render_and_fallback(self):
         panes = [

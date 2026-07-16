@@ -38,6 +38,9 @@ run_hook session-start '{"cwd":"/tmp/ExampleProject"}'
 
 run_hook prompt '{"cwd":"/tmp/ExampleProject"}'
 [ "$(test_tmux show-options -p -v -t "$pane" @agent_status_state)" = running ]
+case "$(test_tmux show-options -p -v -t "$pane" @agent_status_changed_at)" in
+    ''|*[!0-9.]*) printf 'running state has no reconciliation timestamp\n' >&2; exit 1 ;;
+esac
 
 wait_for_option() {
     option=$1
@@ -82,6 +85,29 @@ case "$(test_tmux show-options -gv @catppuccin_window_current_text)" in
     *'#{b:pane_current_path}'*) ;;
     *) printf 'window status does not fall back to the project directory\n' >&2; exit 1 ;;
 esac
+
+# Codex currently emits no terminal hook when a user interrupts a turn. Once
+# its composer is visible again, the status engine must reconcile stale running
+# state without waiting for another prompt or a session restart.
+mkdir "$TMP_ROOT/cancelled"
+printf '%s\n' \
+    '#!/bin/sh' \
+    "printf '%s\\n' '› Ready for another prompt' '' '  gpt-5.6-sol medium · /tmp/ExampleProject'" \
+    'exec sleep 30' >"$TMP_ROOT/cancelled/codex"
+chmod +x "$TMP_ROOT/cancelled/codex"
+test_tmux respawn-pane -k -t "$pane" "$TMP_ROOT/cancelled/codex"
+attempts=20
+while [ "$attempts" -gt 0 ]; do
+    if test_tmux capture-pane -p -J -t "$pane" | grep -q '^› Ready'; then
+        break
+    fi
+    attempts=$((attempts - 1))
+    sleep 0.05
+done
+[ "$attempts" -gt 0 ]
+test_tmux set-option -p -t "$pane" @agent_status_changed_at 0
+TMUX="$tmux_environment" python3 "$SCRIPT" sync
+[ "$(test_tmux show-options -p -v -t "$pane" @agent_status_state)" = ready ]
 
 # Windows without agents must leave the cached label empty so tmux can resolve
 # the active pane's project directory dynamically, including after `cd`.

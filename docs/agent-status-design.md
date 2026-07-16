@@ -36,7 +36,7 @@ their existing Catppuccin window name.
 | --- | --- | --- | --- |
 | Running | Animated spinner | Blue | The agent is processing a turn. |
 | Question required | `` | Peach/orange | A direct conversational question, including grilling, needs an answer. |
-| Permission required | `` | Red | A native permission prompt or explicit approval gate needs action. |
+| Permission required | `` | Red | A native permission or authorization gate needs action. |
 | Ready or finished | `` | Green | No work is pending, or the latest turn completed normally. |
 | Failed | `` | Red | The agent crashed or hit an API, authentication, rate-limit, or equivalent error. |
 
@@ -52,6 +52,9 @@ process exit until another agent starts in that pane or the pane closes.
 - Status is visual-only: no sounds, system notifications, automatic tab
   switching, or read-on-focus behavior.
 - Native agent hooks or plugins feed one shared tmux-status component.
+- Codex interruptions do not currently emit a terminal hook. A running Codex
+  pane is reconciled to ready after a short grace period when its composer is
+  visible and no working, queued-input, or model-loading marker remains.
 
 ## Prototype stop condition
 

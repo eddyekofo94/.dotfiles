@@ -6,8 +6,12 @@
       `opencode`, `agy`, and `gemini`.
 - [ ] Confirm the launch-directory basename remains stable in its label.
 - [ ] Submit a prompt and confirm a blue spinner appears within one second.
+- [ ] Interrupt an active Codex turn with Escape and confirm its blue spinner
+      changes to the green ready icon within about three seconds.
 - [ ] Finish normally and confirm a bold green `` remains while the CLI stays open.
 - [ ] Ask a direct final question and confirm a bold orange ``.
+- [ ] Finish with `Status: AWAITING USER APPROVAL` and confirm it also uses
+      the orange question icon, not the red permission icon.
 - [ ] Trigger a native permission request and confirm a bold red ``.
 - [ ] Trigger or simulate an error and confirm a bold red `` survives process exit.
 - [ ] Put two agents in one window and confirm both entries remain readable.
