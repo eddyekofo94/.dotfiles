@@ -46,6 +46,17 @@ real Fish `fe` picker over the prototype PNGs on the upper right, and a shell on
 the lower right for mouse checks. Press `Ctrl-a Shift-b` once to hide the stable
 v0.7.4 sidebar.
 
+The focused variant also installs prototype-only direct `Alt-h/j/k/l`
+bindings. `smart_nav.sh` checks the active pane's foreground process: for
+Neovim it reinjects the chord so `herdr_nav.lua` can move locally or hand off at
+an edge; for other panes it focuses Herdr directly. Neither file is installed
+into the production Neovim or Fish configuration.
+
+The representative Kitty preview is currently a recorded v0.7.4 blocker.
+Revealing fzf's preview with `?` leaves memory-transfer output blank, while a
+forced stream-transfer probe produced an invalid host-wide black placement.
+Do not treat a successful `kitten icat` exit code as pixel validation.
+
 The first run downloads the official Herdr v0.7.4 macOS arm64 release into
 `.runtime/`, verifies its expected byte size, and starts the named scratch
 session `trial`. The short scratch name keeps the macOS Unix socket below its

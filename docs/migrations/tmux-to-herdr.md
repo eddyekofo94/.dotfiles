@@ -32,17 +32,17 @@ appearance and interaction feel must include screenshots and user approval.
 | Yes | New panes/tabs follow current cwd | `-c '#{pane_current_path}'` | `terminal.new_cwd = "follow"` | [x] New right/down panes both reported the repository cwd. |
 | Yes | Side-by-side and stacked splits | `prefix+v`, `prefix+n/s` | matching Herdr split bindings | [x] Right and down splits created the expected three-pane layout. |
 | Yes | Directional pane navigation | `prefix+h/j/k/l`, guarded Alt bindings | Herdr focus actions plus Neovim adapter | [x] Prefix focus and CLI neighbor/focus readback passed. |
-| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `herdr_nav.lua` | [ ] Direct Ghostty adapter readback passed: `Alt-l` moved between real Neovim windows, then handed the edge to Herdr. **AWAITING USER physical feel** |
+| Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | prototype `smart_nav.sh` plus `herdr_nav.lua` | [ ] Direct smart binding passed: the same `Alt-l` moved between real Neovim windows and then handed the edge to Herdr in about 0.01s per invocation. **AWAITING USER physical feel** |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [ ] **PARTIAL** |
 | Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [ ] **PARTIAL for close-others/reorder aliases** |
 | Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr navigator | [ ] The real Fish `fe` picker now runs in the direct trial; Herdr's own navigator remains a separate parity question. **AWAITING USER** |
 | Yes | Vi copy mode, search, selection, clipboard | tmux copy-mode-vi | Herdr copy mode | [x] Searched `HERDR_COPY_SENTINEL`, selected with `v/e`, yanked, and `pbpaste` matched exactly. |
-| Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [ ] **AWAITING USER** |
+| Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [x] User confirmed all remaining direct-trial behavior worked after separately identifying navigation and image-preview failures. |
 | Yes | Long scrollback | `history-limit 65536` | byte-based `advanced.scrollback_limit_bytes` | [x] 250 generated lines remained readable; byte-vs-line depth remains a migration difference. |
-| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [ ] Focused-only boxes are running directly in Ghostty: independent geometry, accented focused border, inactive border token matched to `#1e1e2e`. **AWAITING USER** |
+| Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [ ] |
-| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] Real `fe -> _fzf_preview -> kitten icat` is active over the prototype PNGs and Herdr receives the Unicode-placeholder image grid. **AWAITING USER pixel approval** |
+| Yes | Kitty/chafa image previews | tmux DCS passthrough | experimental Herdr Kitty graphics | [ ] **BLOCKED:** real fzf preview was initially hidden; after revealing it the memory-transfer preview stayed blank, and forced Kitty stream transfer produced an invalid host-wide black placement in Ghostty. |
 | Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
 | Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
 | Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
@@ -50,7 +50,7 @@ appearance and interaction feel must include screenshots and user approval.
 | No | Ordinary SSH and remote attach | remote tmux | remote Herdr/thin client | [ ] |
 | No | Resurrect/Continuum-style recovery | TPM plugins | snapshot plus native agent resume | [ ] **PARTIAL for arbitrary processes** |
 | No | Scratch shell and lazygit popups | `display-popup` | custom popup commands | [ ] |
-| No | Golden-ratio pane focus | tmux focus hook | plugin/API port | [ ] **PARTIAL** |
+| No | Golden-ratio pane focus | tmux focus hook | `pane.focused` plugin hook plus resize/layout API | [ ] **FEASIBLE, NOT PROTOTYPED:** v0.7.4 exposes the required focus event and directional fractional resize, but no built-in Focus.nvim-style policy. |
 | No | URL search/open shortcuts | capture/copy scripts | pane-read custom commands | [ ] **PARTIAL** |
 | No | Nested multiplexer passthrough | tmux key-table toggle | remote Herdr or experimental nesting | [ ] **PARTIAL** |
 
@@ -64,7 +64,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | --- | --- | --- | --- |
 | `Ctrl-a` | Enter prefix table | `keys.prefix = "ctrl+a"` | [x] |
 | `prefix+h/j/k/l` | Focus pane direction | same | [x] |
-| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | Neovim adapter; no global Herdr bind initially | [ ] Direct adapter test passed (`left Neovim window -> right Neovim window -> right Herdr pane`); physical key feel awaits user approval. |
+| `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | direct prototype shell binding inspects the foreground process, forwards to Neovim, or focuses Herdr | [ ] Objective path passed (`left Neovim window -> right Neovim window -> right Herdr pane`) at about 0.01s per helper call; physical feel awaits user approval. |
 | `prefix+n`, `prefix+s` | Split down | same | [x] |
 | `prefix+v` | Split right | same | [x] |
 | `Alt-n/s/v` | Split unless forwarded to Vim/TUI | conditional command/plugin needed | [ ] **PARTIAL** |
@@ -135,6 +135,17 @@ The active acceptance window was launched with
 | Neovim `Alt-h/j/k/l` | Real config loaded; prototype map survived lazy startup; readback moved Neovim window `1000 -> 1005`, kept Herdr on `w1:p1`, then moved Herdr to `w1:p2` at the editor edge. | [ ] **AWAITING USER physical feel** |
 | Mouse focus, resize, scroll, and selection | Direct three-pane layout is available for clicks, border drags, scrolling, selection, and clipboard checks. | [ ] **AWAITING USER** |
 | fzf/Kitty pixels | Real `fe png` process is running with `_fzf_preview {}`; visible pane readback contains the Kitty Unicode-placeholder grid for `expanded.png`/`collapsed.png`. | [ ] **AWAITING USER pixels** |
+
+### Round 4 — direct smart-navigation and renderer diagnosis
+
+| Gate | Objective evidence | Approval |
+| --- | --- | --- |
+| Focused-border density | User reported that everything other than the named navigation and preview issues worked. | [x] **APPROVED** |
+| Mouse focus, resize, scroll, and selection | Same direct-trial confirmation; no mouse exception was reported. | [x] **APPROVED** |
+| Seamless `Alt-h/j/k/l` | Focused config binds direct Alt chords to `smart_nav.sh`. Foreground Neovim receives the chord through `pane send-keys`; other panes use `pane focus`. Automated `Alt-l` readback moved `1000 -> 1005 -> w1:p2`, with 0.01s helper samples. | [ ] **AWAITING USER physical feel** |
+| fzf/Kitty pixels | `?` revealed the fzf preview region, proving it was initially toggled hidden. Memory transfer stayed blank. A controlled stream-transfer probe then produced a host-wide black placement instead of the selected image. | [ ] **BLOCKED / REJECTED FOR v0.7.4** |
+| Golden-ratio focus | Official API exposes `pane.focused`, `pane resize --amount`, and layout snapshots. A small plugin can reapply a target ratio on focus, but nested BSP layouts need a defined restore policy. | [ ] **FEASIBLE; USER POLICY + PROTOTYPE REQUIRED** |
+| Smooth scrolling | Neovim keeps its existing `neoscroll` behavior unchanged. Herdr v0.7.4 scrollback accepts an integer `mouse_scroll_lines` value and applies line-step scroll actions; no animated/pixel-eased scrollback setting exists. | [ ] **NO HERDR-LAYER EQUIVALENT** |
 
 ## Decisions and evidence log
 
@@ -220,3 +231,21 @@ only on documentation or assumed API parity.
   injection moved within Neovim first and then focused the right Herdr pane.
   Computer Use is not permitted to inspect Ghostty, so density, physical key
   feel, mouse behavior, and rendered Kitty pixels remain user-only approvals.
+- 2026-07-16: the user approved the focused-only density and the remaining
+  interaction set by confirming that everything except Alt navigation and the
+  image preview worked. Those visual and mouse gates are now checked.
+- 2026-07-16: direct Alt bindings now invoke the prototype-only
+  `smart_nav.sh`. It inspects Herdr foreground-process JSON, injects the chord
+  into Neovim when appropriate, and otherwise focuses the neighboring Herdr
+  pane. Automated samples completed in 0.01s and proved local-window then
+  outer-pane handoff; subjective key feel remains unapproved.
+- 2026-07-16: fzf's preview was initially toggled hidden. Sending `?` exposed
+  the right preview region, but `kitten icat --transfer-mode=memory` remained
+  blank. A controlled stream-transfer probe rendered a host-wide black frame
+  instead of the selected red Bible Standard app icon. Kitty image preview is
+  therefore a stable-v0.7.4 migration blocker, not an approved capability.
+- 2026-07-16: golden-ratio autoresize is implementable through a
+  `pane.focused` plugin hook and fractional pane resize/layout APIs, but is not
+  built in and needs a restore policy before prototyping. Herdr scrollback is
+  integer-line stepped; the existing Neovim neoscroll animation remains valid
+  inside Neovim, but Herdr adds no equivalent animated terminal scrollback.

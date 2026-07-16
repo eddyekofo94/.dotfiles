@@ -7,6 +7,7 @@ prototype="$root/herdr/prototype"
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
 test -x "$prototype/prepare_live_trial.sh"
+test -x "$prototype/smart_nav.sh"
 test -f "$prototype/config.toml"
 test -f "$prototype/herdr_nav.lua"
 test -f "$prototype/screenshots/expanded.png"
@@ -29,6 +30,8 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
+  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 4
+  grep -q 'smart_nav.sh h left' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^pane_borders = false$' "$prototype/.runtime/cl/herdr/config.toml"
 fi
 
