@@ -33,6 +33,29 @@
 
 Codex hooks require one-time trust through `/hooks` before live QA.
 
+## Escape routing
+
+- [ ] At a bare Fish prompt, press Escape and confirm tmux enters visible copy
+      mode.
+- [ ] In Claude Code, Codex, and another full-screen TUI, press Escape and
+      confirm the app receives it without tmux entering copy mode.
+- [ ] With Claude Code reporting a version-like `pane_current_command`, confirm
+      nested Fish/MCP processes do not make tmux treat the pane as a bare shell.
+- [x] Confirm the top-right application label says `claude` instead of exposing
+      Claude Code's version-like process title.
+
+### 2026-07-17 regression evidence
+
+- A live Claude pane reported `pane_current_command=2.1.212` and had a nested
+  Fish process newer than Claude. The old `tail -n1` detector selected that
+  Fish process and routed Escape to copy mode.
+- Bare-shell detection now follows the terminal foreground process group, so
+  child and helper process creation order cannot override the foreground app.
+- Deterministic fixtures cover a bare Fish prompt, Claude with a later nested
+  Fish process, Codex with a later Node helper, and a stale process group.
+- User confirmation on 2026-07-17 verified the live top-right application label
+  visibly says `claude` instead of `2.1.212`.
+
 ## 2026-07-15 startup evidence
 
 - All five unchanged commands were launched without submitting a model prompt
