@@ -144,6 +144,18 @@ Codex hooks require one-time trust through `/hooks` before live QA.
   wrapped prompt as one editable block and excluded the following bare response
   separator and unrelated terminal text.
 
+### 2026-07-21 semantic empty-composer regression evidence
+
+- A disposable Codex 0.145.0 pane confirmed current empty composers rotate dim
+  placeholder text rather than rendering only the `›` glyph.
+- The helper now derives plain and styled readiness views from one tmux capture;
+  deterministic fixtures reject stale-snapshot races, inline and multiline
+  typed text, partially dim text, queued input, loading, and working states.
+- Fresh disposable tmux runs confirmed both lowercase replay and uppercase
+  clear-and-replay insert both sentinel lines without submission.
+- The affected Herdr adapter validation and live Claude clear-and-replay gate
+  also passed with automatic submission disabled.
+
 ## Project names in tabs
 
 - [ ] Reload tmux, open an ordinary shell in a project, and confirm its tab uses

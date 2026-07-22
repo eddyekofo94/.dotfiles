@@ -266,12 +266,14 @@ else
     fail 'prefix+b binding could not be loaded in an isolated tmux server'
 fi
 
-if "$SCRIPT" --clear-support codex; then
-    pass 'clear support: codex starts a fresh context with /clear'
-else
-    fail 'clear support: codex should support /clear'
-fi
-for agent in claude opencode gemini agy; do
+for agent in codex claude; do
+    if "$SCRIPT" --clear-support "$agent"; then
+        pass "clear support: $agent starts a fresh context with /clear"
+    else
+        fail "clear support: $agent should support /clear"
+    fi
+done
+for agent in opencode gemini agy; do
     if "$SCRIPT" --clear-support "$agent"; then
         fail "clear support: $agent must fail closed"
     else
@@ -279,8 +281,92 @@ for agent in claude opencode gemini agy; do
     fi
 done
 
+bare_codex=$TMP_ROOT/bare-codex.txt
+printf '%s\n' '›' >"$bare_codex"
+if "$SCRIPT" --ready-screen codex "$bare_codex"; then
+    pass 'bare Codex composer is ready'
+else
+    fail 'bare Codex composer should be ready'
+fi
+
+placeholder_plain=$TMP_ROOT/codex-placeholder-plain.txt
+placeholder_styled=$TMP_ROOT/codex-placeholder-styled.txt
+printf '%s\n' '› Summarize recent commits' >"$placeholder_plain"
+printf '\033[1m›\033[0m \033[2mSummarize recent commits\033[0m\n' \
+    >"$placeholder_styled"
+if "$SCRIPT" --ready-screen codex "$placeholder_plain" "$placeholder_styled"; then
+    pass 'dim Codex placeholder is semantically empty'
+else
+    fail 'dim Codex placeholder should be semantically empty'
+fi
+
+typed_codex=$TMP_ROOT/codex-typed.txt
+printf '\033[1m›\033[0m typed composer text\n' >"$typed_codex"
+if "$SCRIPT" --ready-screen codex "$placeholder_plain" "$typed_codex"; then
+    fail 'typed Codex composer was accepted as empty'
+else
+    pass 'typed Codex composer is not empty'
+fi
+
+multiline_codex=$TMP_ROOT/codex-multiline-typed.txt
+printf '%s\n' '›' '  typed second line' '' '  gpt-5.6-sol medium' \
+    >"$multiline_codex"
+if "$SCRIPT" --ready-screen codex "$multiline_codex" "$multiline_codex"; then
+    fail 'multiline typed Codex composer was accepted as empty'
+else
+    pass 'multiline typed Codex composer is not empty'
+fi
+
+if "$SCRIPT" --ready-screen codex "$bare_codex" "$typed_codex"; then
+    fail 'older bare Codex snapshot overrode newer typed composer text'
+else
+    pass 'styled Codex snapshot is authoritative over stale plain state'
+fi
+
+mixed_codex=$TMP_ROOT/codex-mixed-styles.txt
+printf '\033[1m›\033[0m \033[2mSummarize\033[22m typed\n' >"$mixed_codex"
+if "$SCRIPT" --ready-screen codex "$placeholder_plain" "$mixed_codex"; then
+    fail 'partially dim Codex composer was accepted as empty'
+else
+    pass 'non-dim Codex composer content fails closed'
+fi
+
+typed_claude=$TMP_ROOT/claude-typed.txt
+printf '%s\n' '❯ typed composer text' >"$typed_claude"
+if "$SCRIPT" --ready-screen claude "$typed_claude" "$placeholder_styled"; then
+    fail 'typed Claude composer was accepted through Codex placeholder styling'
+else
+    pass 'typed Claude composer remains non-empty'
+fi
+
+queued_codex=$TMP_ROOT/codex-queued.txt
+printf '%s\n' 'Queued follow-up inputs' '› Summarize recent commits' >"$queued_codex"
+if "$SCRIPT" --ready-screen codex "$queued_codex" "$placeholder_styled"; then
+    fail 'dim Codex placeholder bypassed queued-input guard'
+else
+    pass 'queued Codex input remains non-ready'
+fi
+
+loading_codex=$TMP_ROOT/codex-loading.txt
+printf '%s\n' 'model: loading' '› Summarize recent commits' >"$loading_codex"
+if "$SCRIPT" --ready-screen codex "$loading_codex" "$placeholder_styled"; then
+    fail 'dim Codex placeholder bypassed model-loading guard'
+else
+    pass 'loading Codex state remains non-ready'
+fi
+
+working_codex=$TMP_ROOT/codex-working.txt
+printf '%s\n' '• Working (3s • esc to interrupt)' '› Summarize recent commits' \
+    >"$working_codex"
+if "$SCRIPT" --ready-screen codex "$working_codex" "$placeholder_styled"; then
+    fail 'dim Codex placeholder bypassed working-state guard'
+else
+    pass 'working Codex state remains non-ready'
+fi
+
 mock_state=$TMP_ROOT/mock-state
-mkdir -p "$mock_state"
+runtime_dir=$TMP_ROOT/runtime
+mkdir -p "$mock_state" "$runtime_dir"
 mock_tmux=$TMP_ROOT/tmux
 cat >"$mock_tmux" <<'MOCK'
 #!/usr/bin/env bash
@@ -289,11 +375,12 @@ printf '%s\n' "$*" >>"$MOCK_TMUX_STATE/calls"
 case "$1" in
     display-message)
         if [ "${2:-}" = "-p" ]; then
-            if [ "${*: -1}" = '#{pane_in_mode}' ]; then
-                printf '%s\n' "${MOCK_PANE_IN_MODE:-0}"
-            else
-                printf '%s\n' "${MOCK_PANE_COMMAND:-codex}"
-            fi
+            case "${*: -1}" in
+                '#{pane_in_mode}') printf '%s\n' "${MOCK_PANE_IN_MODE:-0}" ;;
+                '#{pane_start_command}') printf '%s\n' "${MOCK_PANE_START_COMMAND:-}" ;;
+                '#{socket_path}') printf '%s\n' "${MOCK_SOCKET_PATH:-/tmp/mock-tmux.sock}" ;;
+                *) printf '%s\n' "${MOCK_PANE_COMMAND:-codex}" ;;
+            esac
         else
             printf '%s\n' "${*: -1}" >>"$MOCK_TMUX_STATE/messages"
         fi
@@ -301,22 +388,28 @@ case "$1" in
     capture-pane)
         case " $* " in
             *' -S '*) cat "$MOCK_HISTORY" ;;
+            *' -e '*) printf '%s\n' "${MOCK_STYLED_READY_SCREEN:-${MOCK_READY_SCREEN:-›}}" ;;
             *)
                 if [ "${MOCK_CLEAR_REQUIRES_SECOND_ENTER:-0}" = 1 ]; then
                     enter_count=$(grep -c '^send-keys .* Enter$' "$MOCK_TMUX_STATE/calls" || true)
                     if [ "$enter_count" -lt 2 ]; then
                         printf '%s\n' '› /clear'
                     else
-                        printf '%s\n' '› Ready'
+                        printf '%s\n' '›'
                     fi
                 else
-                    printf '%s\n' "${MOCK_READY_SCREEN:-› Ready}"
+                    printf '%s\n' "${MOCK_READY_SCREEN:-›}"
                 fi
                 ;;
         esac
         ;;
     show-options)
-        [ -f "$MOCK_TMUX_STATE/fingerprint" ] && cat "$MOCK_TMUX_STATE/fingerprint"
+        case "${*: -1}" in
+            @agent_status_agent) printf '%s\n' "${MOCK_PANE_AGENT_OPTION:-}" ;;
+            @ready_prompt_fingerprint)
+                [ -f "$MOCK_TMUX_STATE/fingerprint" ] && cat "$MOCK_TMUX_STATE/fingerprint"
+                ;;
+        esac
         ;;
     load-buffer)
         cp "${*: -1}" "$MOCK_TMUX_STATE/buffer"
@@ -339,7 +432,8 @@ chmod +x "$mock_tmux"
 
 run_mock() {
     mock_history=${MOCK_HISTORY:-$fenced}
-    MOCK_TMUX_STATE=$mock_state MOCK_HISTORY=$mock_history TMUX_BIN=$mock_tmux "$SCRIPT" "$@"
+    MOCK_TMUX_STATE=$mock_state MOCK_HISTORY=$mock_history \
+        XDG_RUNTIME_DIR=$runtime_dir TMUX_BIN=$mock_tmux "$SCRIPT" "$@"
 }
 
 if run_mock '%9'; then
@@ -362,7 +456,7 @@ else
     fail 'consume-once did not report its specific failure'
 fi
 
-if MOCK_READY_SCREEN=$'Ready-to-paste prompt:\n› Ready' run_mock --clear '%9'; then
+if MOCK_READY_SCREEN=$'Ready-to-paste prompt:\n›' run_mock --clear '%9'; then
     clear_line=$(grep -n '^send-keys -t %9 -l /clear$' "$mock_state/calls" | cut -d: -f1)
     enter_line=$(grep -n '^send-keys -t %9 Enter$' "$mock_state/calls" | cut -d: -f1)
     last_paste_line=$(grep -n '^paste-buffer ' "$mock_state/calls" | tail -n1 | cut -d: -f1)
@@ -375,6 +469,97 @@ if MOCK_READY_SCREEN=$'Ready-to-paste prompt:\n› Ready' run_mock --clear '%9';
     fi
 else
     fail 'clear-and-replay failed'
+fi
+
+: >"$mock_state/calls"
+rm -f "$mock_state/fingerprint"
+if MOCK_READY_SCREEN='› Summarize recent commits' \
+        MOCK_STYLED_READY_SCREEN=$'\033[1m›\033[0m \033[2mSummarize recent commits\033[0m' \
+        READY_PROMPT_READY_INTERVAL=0 run_mock --clear '%9'; then
+    if grep -q '^paste-buffer ' "$mock_state/calls"; then
+        pass 'uppercase replays into a semantically empty Codex placeholder'
+    else
+        fail 'semantic Codex placeholder did not reach safe paste'
+    fi
+else
+    fail 'uppercase rejected a semantically empty Codex placeholder'
+fi
+
+: >"$mock_state/calls"
+rm -f "$mock_state/fingerprint"
+if MOCK_READY_SCREEN='› typed composer text' \
+        MOCK_STYLED_READY_SCREEN=$'\033[1m›\033[0m typed composer text' \
+        READY_PROMPT_READY_ATTEMPTS=1 READY_PROMPT_READY_INTERVAL=0 \
+        run_mock --clear '%9'; then
+    fail 'uppercase pasted into typed Codex composer text'
+elif grep -q '^paste-buffer ' "$mock_state/calls"; then
+    fail 'typed Codex rejection still reached paste-buffer'
+else
+    pass 'uppercase fails closed on typed Codex composer text'
+fi
+
+: >"$mock_state/calls"
+rm -f "$mock_state/fingerprint"
+if MOCK_PANE_COMMAND=fish MOCK_PANE_AGENT_OPTION=claude \
+        MOCK_READY_SCREEN=$'Ready-to-paste prompt:\n❯ /clear\n❯' \
+        run_mock --clear '%9'; then
+    clear_line=$(grep -n '^send-keys -t %9 -l /clear$' "$mock_state/calls" | cut -d: -f1)
+    enter_line=$(grep -n '^send-keys -t %9 Enter$' "$mock_state/calls" | cut -d: -f1)
+    paste_line=$(grep -n '^paste-buffer ' "$mock_state/calls" | tail -n1 | cut -d: -f1)
+    if [ "$clear_line" -lt "$enter_line" ] && [ "$enter_line" -lt "$paste_line" ]; then
+        pass 'Claude uppercase waits for its ready composer before safe paste'
+    else
+        fail 'Claude uppercase did not preserve clear-ready-safe-paste ordering'
+    fi
+else
+    fail 'Claude clear-and-replay failed'
+fi
+
+before_pastes=$(grep -c '^paste-buffer ' "$mock_state/calls")
+if MOCK_PANE_COMMAND=claude MOCK_READY_SCREEN='❯ still composing' \
+        READY_PROMPT_READY_ATTEMPTS=1 READY_PROMPT_READY_INTERVAL=0 \
+        run_mock --clear '%9'; then
+    fail 'Claude uppercase pasted into a non-empty composer'
+else
+    after_pastes=$(grep -c '^paste-buffer ' "$mock_state/calls")
+    if [ "$before_pastes" -eq "$after_pastes" ]; then
+        pass 'Claude uppercase rejects a non-empty composer'
+    else
+        fail 'Claude non-empty composer did not fail closed'
+    fi
+fi
+
+set +e
+MOCK_READY_SCREEN='model: loading' READY_PROMPT_READY_ATTEMPTS=100 \
+    READY_PROMPT_READY_INTERVAL=0.01 run_mock --clear '%9' >/dev/null 2>&1 &
+first_replay_pid=$!
+set -e
+attempt=0
+while [ "$attempt" -lt 100 ] && \
+        ! find "$runtime_dir" -maxdepth 1 -type d \
+          -name 'tmux-ready-prompt-lock.*' | grep -q .; do
+    sleep 0.01
+    attempt=$((attempt + 1))
+done
+set +e
+run_mock --clear '%9' >/dev/null 2>&1
+concurrent_status=$?
+lock_survived=0
+if find "$runtime_dir" -maxdepth 1 -type d \
+        -name 'tmux-ready-prompt-lock.*' | grep -q .; then
+    lock_survived=1
+fi
+run_mock --clear '%9' >/dev/null 2>&1
+third_concurrent_status=$?
+wait "$first_replay_pid" >/dev/null 2>&1
+set -e
+if [ "$concurrent_status" -eq 75 ] && \
+        [ "$lock_survived" -eq 1 ] && \
+        [ "$third_concurrent_status" -eq 75 ] && \
+        grep -q 'another replay is already active for this pane' "$mock_state/messages"; then
+    pass 'rejected contenders preserve the pane-scoped lock and fail closed'
+else
+    fail "concurrent replay lock was unsafe (second $concurrent_status, survived $lock_survived, third $third_concurrent_status)"
 fi
 
 : >"$mock_state/calls"
@@ -413,7 +598,7 @@ if MOCK_READY_SCREEN='model: loading' READY_PROMPT_READY_ATTEMPTS=1 \
 else
     after_pastes=$(grep -c '^paste-buffer ' "$mock_state/calls")
     if [ "$before_pastes" -eq "$after_pastes" ] && \
-            grep -q 'Codex did not become ready; prompt was not inserted' \
+            grep -q 'codex did not become ready; prompt was not inserted' \
                 "$mock_state/messages"; then
         pass 'uppercase fails closed when Codex readiness never appears'
     else
@@ -426,7 +611,8 @@ if MOCK_PANE_COMMAND=gemini run_mock --clear '%9'; then
     fail 'Gemini clear-and-replay was accepted despite display-only /clear semantics'
 else
     after_calls=$(wc -l <"$mock_state/calls")
-    if [ "$after_calls" -eq $((before_calls + 2)) ] && \
+    new_calls=$(tail -n "+$((before_calls + 1))" "$mock_state/calls")
+    if ! printf '%s\n' "$new_calls" | grep -Eq '^(capture-pane|load-buffer|paste-buffer|send-keys) ' && \
             grep -q 'cannot safely context-clear with /clear' "$mock_state/messages"; then
         pass 'unsupported clear semantics fail closed before capture or insertion'
     else
@@ -485,7 +671,8 @@ if MOCK_PANE_COMMAND=zsh run_mock '%9'; then
     fail 'non-agent pane was accepted'
 else
     after_calls=$(wc -l <"$mock_state/calls")
-    if [ "$after_calls" -eq $((before_calls + 2)) ] && \
+    new_calls=$(tail -n "+$((before_calls + 1))" "$mock_state/calls")
+    if ! printf '%s\n' "$new_calls" | grep -Eq '^(capture-pane|load-buffer|paste-buffer|send-keys) ' && \
             grep -q 'current pane is not a supported agent' "$mock_state/messages"; then
         pass 'non-agent pane fails closed before capture or insertion'
     else

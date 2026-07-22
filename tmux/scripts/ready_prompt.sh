@@ -266,22 +266,42 @@ extract_prompt() {
     '
 }
 
-recognized_agent() {
+normalize_agent() {
     command_name=$(basename -- "$1" | tr '[:upper:]' '[:lower:]')
     case "$command_name" in
         codex|claude|opencode|gemini|agy)
-            return 0
+            printf '%s\n' "$command_name"
             ;;
         *)
             return 1
             ;;
     esac
+}
+
+recognized_agent() {
+    normalize_agent "$1" >/dev/null
+}
+
+agent_from_command_line() {
+    command_line=$1
+    if normalize_agent "$command_line"; then
+        return 0
+    fi
+    read -r -a command_words <<<"$command_line"
+    for candidate in "${command_words[@]}"; do
+        candidate=${candidate//\"/}
+        candidate=${candidate//\'/}
+        if normalize_agent "$candidate"; then
+            return 0
+        fi
+    done
+    return 1
 }
 
 clear_supported_agent() {
     command_name=$(basename -- "$1" | tr '[:upper:]' '[:lower:]')
     case "$command_name" in
-        codex)
+        codex|claude)
             return 0
             ;;
         *)
@@ -290,20 +310,116 @@ clear_supported_agent() {
     esac
 }
 
-wait_for_codex_ready() {
+agent_prompt_glyph() {
+    command_name=$(basename -- "$1" | tr '[:upper:]' '[:lower:]')
+    case "$command_name" in
+        codex) printf '›' ;;
+        claude) printf '❯' ;;
+        *) return 1 ;;
+    esac
+}
+
+latest_agent_prompt() {
+    prompt_glyph=$1
+    screen_file=$2
+    awk -v glyph="$prompt_glyph" '
+        $0 ~ "^[[:space:]]*" glyph { line = $0 }
+        END { if (line != "") print line }
+    ' "$screen_file"
+}
+
+codex_styled_prompt_is_empty() {
+    screen_file=$1
+    perl - "$screen_file" <<'PERL'
+use strict;
+use warnings;
+
+my ($screen_file) = @ARGV;
+open my $screen, '<', $screen_file or exit 1;
+my @lines = <$screen>;
+my $latest_index;
+for my $index (0 .. $#lines) {
+    my $line = $lines[$index];
+    my $plain = $line;
+    $plain =~ s/\e\[[0-9;]*m//g;
+    $latest_index = $index if $plain =~ /^\s*›/;
+}
+exit 1 unless defined $latest_index;
+
+my $latest = $lines[$latest_index];
+for my $index (($latest_index + 1) .. $#lines) {
+    my $plain = $lines[$index];
+    $plain =~ s/\e\[[0-9;]*m//g;
+    last if $plain =~ /^\s*$/;
+    $latest .= $lines[$index];
+}
+
+my $glyph = index($latest, '›');
+exit 1 if $glyph < 0;
+my $rest = substr($latest, $glyph + length('›'));
+my $dim = 0;
+while (length $rest) {
+    if ($rest =~ s/^\e\[([0-9;]*)m//) {
+        my @params = length($1) ? split(/;/, $1) : (0);
+        for my $param (@params) {
+            $dim = 0 if $param == 0 || $param == 22;
+            $dim = 1 if $param == 2;
+        }
+        next;
+    }
+    $rest =~ s/^(.)//s;
+    my $character = $1;
+    next if $character =~ /\s/;
+    exit 1 unless $dim;
+}
+exit 0;
+PERL
+}
+
+agent_screen_ready() {
+    command_name=$1
+    screen_file=$2
+    styled_screen_file=${3:-$screen_file}
+    prompt_glyph=$(agent_prompt_glyph "$command_name") || return 1
+    latest_prompt=$(latest_agent_prompt "$prompt_glyph" "$screen_file")
+    if grep -Fq 'Queued follow-up inputs' "$screen_file" || \
+            grep -Eq 'model:[[:space:]]+loading' "$screen_file" || \
+            grep -Eq 'Working \([^)]*esc to interrupt\)' "$screen_file"; then
+        return 1
+    fi
+    if [ "$command_name" = codex ]; then
+        codex_styled_prompt_is_empty "$styled_screen_file"
+        return $?
+    fi
+    printf '%s\n' "$latest_prompt" | \
+        grep -Eq "^[[:space:]]*$prompt_glyph[[:space:]]*$"
+}
+
+agent_clear_active() {
+    command_name=$1
+    screen_file=$2
+    prompt_glyph=$(agent_prompt_glyph "$command_name") || return 1
+    latest_prompt=$(latest_agent_prompt "$prompt_glyph" "$screen_file")
+    printf '%s\n' "$latest_prompt" | \
+        grep -Eq "^[[:space:]]*$prompt_glyph[[:space:]]*/clear([[:space:]]|$)"
+}
+
+wait_for_agent_ready() {
     ready_screen=$work_dir/ready-screen.txt
+    styled_ready_screen=$work_dir/ready-screen-styled.txt
     attempt=0
     stable=0
 
     while [ "$attempt" -lt "$READY_ATTEMPTS" ]; do
-        if ! "$TMUX_BIN" capture-pane -p -J -t "$pane" >"$ready_screen"; then
+        if ! "$TMUX_BIN" capture-pane -p -J -e -t "$pane" >"$styled_ready_screen"; then
+            return 1
+        fi
+        if ! perl -pe 's/\e\[[0-9;]*m//g' \
+                "$styled_ready_screen" >"$ready_screen"; then
             return 1
         fi
 
-        if grep -Eq '^[[:space:]]*›' "$ready_screen" && \
-                ! grep -Eq '^[[:space:]]*›[[:space:]]*/clear([[:space:]]|$)' "$ready_screen" && \
-                ! grep -Fq 'Queued follow-up inputs' "$ready_screen" && \
-                ! grep -Eq 'model:[[:space:]]+loading' "$ready_screen"; then
+        if agent_screen_ready "$pane_command" "$ready_screen" "$styled_ready_screen"; then
             stable=$((stable + 1))
             if [ "$stable" -ge 2 ]; then
                 return 0
@@ -319,7 +435,7 @@ wait_for_codex_ready() {
     return 1
 }
 
-submit_codex_clear() {
+submit_agent_clear() {
     clear_screen=$work_dir/clear-submit-screen.txt
 
     "$TMUX_BIN" send-keys -t "$pane" -l '/clear' || return 1
@@ -327,10 +443,10 @@ submit_codex_clear() {
     sleep "$CLEAR_CONFIRM_INTERVAL" || return 1
     "$TMUX_BIN" capture-pane -p -J -t "$pane" >"$clear_screen" || return 1
 
-    # Current Codex may use the first Enter to resolve the slash-command menu,
-    # leaving /clear active in the multiline composer. Confirm it only when the
-    # command is still visible; never send a blind second Enter.
-    if grep -Eq '^[[:space:]]*›[[:space:]]*/clear([[:space:]]|$)' "$clear_screen"; then
+    # An agent may use the first Enter to resolve its slash-command menu,
+    # leaving /clear active in the composer. Confirm it only when the command
+    # is still visible; never send a blind second Enter.
+    if agent_clear_active "$pane_command" "$clear_screen"; then
         "$TMUX_BIN" send-keys -t "$pane" Enter || return 1
     fi
 }
@@ -359,6 +475,19 @@ case ${1:-} in
         clear_supported_agent "$2"
         exit $?
         ;;
+    --ready-screen)
+        [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || {
+            echo "usage: ready_prompt.sh --ready-screen AGENT FILE [STYLED_FILE]" >&2
+            exit 2
+        }
+        agent_screen_ready "$2" "$3" "${4:-$3}"
+        exit $?
+        ;;
+    --clear-active)
+        [ "$#" -eq 3 ] || { echo "usage: ready_prompt.sh --clear-active AGENT FILE" >&2; exit 2; }
+        agent_clear_active "$2" "$3"
+        exit $?
+        ;;
 esac
 
 clear_first=0
@@ -380,11 +509,19 @@ case "$CAPTURE_LINES" in
         ;;
 esac
 
-pane_command=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_current_command}' 2>/dev/null) || {
+pane_agent=$("$TMUX_BIN" show-options -p -q -v -t "$pane" @agent_status_agent 2>/dev/null || true)
+pane_current_command=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_current_command}' 2>/dev/null) || {
     show_message "prefix+b: unable to inspect current pane"
     exit 1
 }
-if ! recognized_agent "$pane_command"; then
+pane_start_command=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_start_command}' 2>/dev/null || true)
+if pane_command=$(normalize_agent "$pane_agent" 2>/dev/null); then
+    :
+elif pane_command=$(agent_from_command_line "$pane_current_command" 2>/dev/null); then
+    :
+elif pane_command=$(agent_from_command_line "$pane_start_command" 2>/dev/null); then
+    :
+else
     show_message "prefix+b: current pane is not a supported agent"
     exit 1
 fi
@@ -404,11 +541,34 @@ if [ "$pane_in_mode" = "1" ]; then
 fi
 
 runtime_base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+mkdir -p "$runtime_base" || {
+    show_message "prefix+b: unable to prepare runtime directory"
+    exit 1
+}
+socket_path=$("$TMUX_BIN" display-message -p -t "$pane" '#{socket_path}' 2>/dev/null || true)
+socket_key=$(printf '%s' "$socket_path" | cksum | awk '{print $1}')
+lock_dir="$runtime_base/tmux-ready-prompt-lock.$socket_key.${pane#%}"
+work_dir=''
+lock_acquired=0
+cleanup() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    [ -z "$work_dir" ] || rm -rf -- "$work_dir"
+    if [ "$lock_acquired" -eq 1 ] && [ -d "$lock_dir" ]; then
+        rmdir "$lock_dir" 2>/dev/null || true
+    fi
+    exit "$status"
+}
+trap cleanup EXIT HUP INT TERM
+if ! mkdir "$lock_dir" 2>/dev/null; then
+    show_message "prefix+b: another replay is already active for this pane"
+    exit 75
+fi
+lock_acquired=1
 work_dir=$(mktemp -d "$runtime_base/tmux-ready-prompt.XXXXXX") || {
     show_message "prefix+b: unable to create temporary workspace"
     exit 1
 }
-trap 'rm -rf "$work_dir"' EXIT HUP INT TERM
 history_file=$work_dir/history.txt
 prompt_file=$work_dir/prompt.txt
 
@@ -448,14 +608,14 @@ if ! "$TMUX_BIN" load-buffer -b "$buffer_name" "$prompt_file"; then
     exit 1
 fi
 if [ "$clear_first" -eq 1 ]; then
-    if ! submit_codex_clear; then
+    if ! submit_agent_clear; then
         "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
         show_message "prefix+B: unable to submit /clear"
         exit 1
     fi
-    if ! wait_for_codex_ready; then
+    if ! wait_for_agent_ready; then
         "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
-        show_message "prefix+B: /clear submitted, but Codex did not become ready; prompt was not inserted"
+        show_message "prefix+B: /clear submitted, but $pane_command did not become ready; prompt was not inserted"
         exit 1
     fi
 fi
