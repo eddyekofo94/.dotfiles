@@ -1,3 +1,10 @@
+# Agent and noninteractive login shells need only `.zshenv`. Keep installation,
+# network, plugin, completion, and other interactive bootstrap work out of them.
+if [[ $- != *i* || -n "${CLAUDECODE:-}" || -n "${AI_AGENT:-}" || \
+        -n "${CI:-}" || "${TERM:-}" == dumb ]]; then
+    return 0
+fi
+
 DOTFILES_DIR="$HOME/.dotfiles"
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
 export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
@@ -48,7 +55,7 @@ fi
 if ! has brew; then
 	echo "You may be asked for your sudo password to install Homebrew:"
 	sudo -v
-	yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+	/bin/sh "$DOTFILES_DIR/tools/install_homebrew_verified.sh"
     local DEFAULT_BREW_PATHS=("/opt/homebrew/bin/brew" \
             "/usr/local/bin/brew" \
             "/home/linuxbrew/.linuxbrew/bin/brew" \
@@ -113,7 +120,6 @@ fi
 
 # if has cargo; then
 #     echo "Cargo needs to be installed: "
-#     curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
 # 
 #     DOTFILES_DIR_RUST = "$DOTFILES_DIR/rust/"
 #     if [[ -d $DOTFILES_DIR_RUST ]]; then

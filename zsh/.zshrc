@@ -3,8 +3,6 @@ export DOTFILES_DIR="$HOME/.dotfiles"
 export ZSH_DOT_DIR="$DOTFILES_DIR/zsh"
 export ZSH_DOT_DIR_ENVS="$ZSH_DOT_DIR/envs"
 
-[[ -f "$ZSH_DOT_DIR_ENVS/envs.zsh" ]] && source "$ZSH_DOT_DIR_ENVS"/envs.zsh
-
 has() {
     type "$1" &>/dev/null
 }
@@ -12,13 +10,16 @@ has() {
 # --- Agent / non-interactive fast path -------------------------------------
 # You use fish interactively; zsh here is driven almost entirely by agents
 # (Claude Code, Codex, ...) and scripts. PATH + core env are already set by
-# .zshenv/envs above, so these shells have everything they need. Bail BEFORE
+# .zshenv, so these shells have everything they need. Bail BEFORE
 # znap, ~15 plugins, vi-mode, starship, compinit, and any interactive-only
 # side effects (e.g. multiplexer autostart). This keeps agent shells instant
 # and light, and is the root-cause guard against runaway session/RAM leaks.
-if [[ -n "$CLAUDECODE" || -n "$AI_AGENT" || -n "$CI" || "$TERM" == "dumb" || $- != *i* ]]; then
+if [[ -n "${CLAUDECODE:-}" || -n "${AI_AGENT:-}" || -n "${CI:-}" || \
+        "${TERM:-}" == dumb || $- != *i* ]]; then
     return
 fi
+
+[[ -r "$ZSH_DOT_DIR_ENVS/envs.zsh" ]] && source "$ZSH_DOT_DIR_ENVS/envs.zsh"
 
 # Download Znap, if it's not there yet.
 [[ -r ~/.config/zsh/znap/znap.zsh ]] ||
@@ -208,4 +209,4 @@ export SDKMAN_DIR="/opt/homebrew/opt/sdkman-cli/libexec"
 #     eval "$(zellij setup --generate-auto-start zsh)"
 # fi
 
-. "$HOME/.local/share/../bin/env"
+[[ -r "$HOME/.local/bin/env" ]] && source "$HOME/.local/bin/env"
