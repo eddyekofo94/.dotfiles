@@ -12,7 +12,58 @@ Decision boundary: explain the input regression and identify the smallest isolat
 2. A Herdr direct binding or direct custom command cannot preserve that same path. In v0.7.4, direct bindings are deliberately checked before pane forwarding and a match returns without sending the key to Neovim.
 3. The later Ghostty `Ctrl+Alt` CSI-u remap is valid in principle: Herdr parses CSI-u and recognizes the modifier bitmask. The absence of helper/API activity in the observed trial places the failure before helper dispatch. It does **not** prove an exact Ghostty cause. The strongest testable hypotheses are logical-key/layout matching and implicit Option-as-Alt behavior.
 4. The simplest route that preserves the user's physical muscle memory is therefore the original ownership model: leave Alt-h/j/k/l unbound in Herdr, make Ghostty explicitly treat Option as Alt, and let Neovim own local-window navigation plus edge handoff. Use a separate shell adapter only if the same unprefixed chord must also navigate from ordinary shell panes.
-5. Herdr v0.7.4's experimental `pane.graphics.set` API is now the **verified best high-quality, pane-clipped route** in this stack. A corrected request rendered a crisp 1800×890 PNG only in the upper-right fzf preview region, with no host-wide black frame. The earlier failure came from over-broad/incorrect placement assumptions, not a demonstrated v0.7.4 inability to clip graphics. The API is still experimental and the visual result still needs user quality approval.
+5. Herdr v0.7.4's experimental `pane.graphics.set` API is the **best static high-quality, pane-clipped route** in this stack, but it fails lifecycle acceptance. A corrected request renders a crisp fitted PNG in the fzf preview region; however, the image-only retry captured one-selection-behind rasters and transient host-wide black regions during rapid replacement and focus resize. It is not tmux-quality; record it as an important non-blocking limitation until upstream supplies a qualifying fix.
+
+## Upstream status after v0.7.4 (checked 2026-07-17)
+
+**Verdict: the `pane.graphics.set` lifecycle gap remains. There is no specific
+new Herdr version worth reopening the prototype against yet.** The image preview
+is therefore an important known limitation, but it is non-blocking for the
+migration because the user can live without it until upstream evidence justifies
+another retry.
+
+Release and source review found:
+
+- [`v0.7.4` remains the latest stable Herdr release](https://github.com/ogulcancelik/herdr/releases/tag/v0.7.4).
+  The newest official tag is the
+  [`preview-2026-07-16-e907e6a36646` prerelease](https://github.com/ogulcancelik/herdr/releases/tag/preview-2026-07-16-e907e6a36646),
+  built from `e907e6a36646` with `v0.7.4` as its stable base.
+- That preview contains
+  [`e9cbcf2f`, “handle pane graphics stream disconnect race”](https://github.com/ogulcancelik/herdr/commit/e9cbcf2f6f8654dd41b10826ef6aecd526f6b0b0).
+  Its diff is confined to the dedicated `pane.graphics.stream` socket reader:
+  it treats a macOS `EINVAL` while setting or restoring socket timeouts after a
+  peer disconnect as the end of the stream. It does not change
+  `pane.graphics.set`, host-image replacement, focus redraw, or resize redraw.
+- At the checked `master` head, `99760f77db74d42108865cc412a47137b0ed384c`,
+  Herdr is [20 commits beyond `v0.7.4`](https://github.com/ogulcancelik/herdr/compare/v0.7.4...99760f77db74d42108865cc412a47137b0ed384c).
+  The `pane.graphics.set` implementation is byte-for-byte unchanged between the
+  [v0.7.4 handler](https://github.com/ogulcancelik/herdr/blob/v0.7.4/src/app/api/pane_graphics.rs)
+  and the
+  [checked master handler](https://github.com/ogulcancelik/herdr/blob/99760f77db74d42108865cc412a47137b0ed384c/src/app/api/pane_graphics.rs).
+- [`8dcb75a5`, “extract active tab surface rendering”](https://github.com/ogulcancelik/herdr/commit/8dcb75a5c08b4dd1f225ea531a27824a9f41ae4a),
+  is the only post-v0.7.4 commit that changes Herdr's own host graphics
+  compositor. It passes an extracted `TabSurfaceView` into the existing
+  placement collector; it does not change upload, replacement, deletion, cache,
+  focus, or resize behavior. This is a structural refactor, not evidence of a
+  lifecycle fix.
+- [`4a3302d1`, “update vendored libghostty-vt”](https://github.com/ogulcancelik/herdr/commit/4a3302d19a2baa3a33e910e0088c24e780905b90),
+  is an untagged, post-preview dependency refresh that touches Kitty graphics
+  internals. Herdr does not describe it as a `pane.graphics.set` or compositor
+  lifecycle fix, and no accompanying Herdr test or changelog entry ties it to
+  stale API-set rasters or focus/resize black frames. It is adjacent evidence,
+  not a qualifying reason to retest.
+- The current official
+  [socket API still labels pane graphics experimental](https://herdr.dev/docs/socket-api/#experimental-pane-graphics)
+  and documents `pane.graphics.set`/`clear` separately from the dedicated
+  repeated-frame `pane.graphics.stream` transport. A stream-disconnect fix
+  therefore cannot be treated as proof that repeated standalone `set` calls or
+  host focus/resize composition are fixed.
+
+Reopen the image-only prototype only after an official release or preview
+explicitly changes standalone `pane.graphics.set` replacement, host-image
+delete/repaint ordering, or graphics composition across focus and resize. Until
+then, preserve the v0.7.4 captures as the regression fixture and treat image
+preview as deferred polish rather than a migration gate.
 
 ## 1. Exact input path
 
@@ -119,7 +170,7 @@ The important distinction is transport versus renderer. `kitten icat`, Chafa Kit
 
 | Route | Image quality | Pane clipping potential | Ghostty | Herdr v0.7.4 | Finding |
 |---|---:|---:|---:|---:|---|
-| Herdr `pane.graphics.set` | Excellent | Verified with explicit pane viewport rows/columns | Kitty supported | Experimental, disabled by default | **Verified best route.** A corrected request returned `ok` and rendered a crisp raster only within pane `w1:p2`'s upper-right fzf preview region. User quality approval and lifecycle QA remain. |
+| Herdr `pane.graphics.set` | Excellent when stable | Verified with explicit pane viewport rows/columns | Kitty supported | Experimental, disabled by default | **Best static route, lifecycle blocked.** Corrected requests render crisply inside `w1:p2`, but rapid selection and focus-resize QA captured stale rasters and transient host-wide black regions. |
 | Herdr `pane.graphics.stream` | Excellent, supports frames | Designed for a pane-owned layer | Kitty supported | Experimental; stream owns the pane graphics layer | Same compositor family, but `set` success does not independently verify streaming. Upstream after v0.7.4 [fixes a stream-disconnect race](https://github.com/ogulcancelik/herdr/commit/e9cbcf2f). Use only if animated previews become a requirement. |
 | Direct Kitty / `kitten icat` | Excellent | Kitty protocol supports source cropping, cell geometry, margins, and Unicode placeholders | Supported | Must be parsed/re-emitted by Herdr's experimental bridge | Useful as a transport diagnostic, not a bypass. Prefer the now-verified pane-owned API for fzf integration. |
 | Chafa `-f kitty` | Excellent | Same as Kitty producer | Supported | Same experimental bridge | No advantage over `pane.graphics.set`. `--passthrough=tmux` is wrong for Herdr; Chafa documents only tmux/screen passthrough. |
@@ -145,14 +196,20 @@ The corrected v0.7.4 request provides direct machine evidence beyond code intent
 - Raster height: `grid_rows = preview_rows - 2`; because fzf emitted `FZF_PREVIEW_LINES=-200`, the negative value was rejected as non-positive geometry and `preview_rows` fell back to the pane's row count.
 - Visual result: the [native preview retry screenshot](../../herdr/prototype/screenshots/native-preview-retry.png) shows a crisp raster confined to the upper-right fzf preview region, without the earlier host-wide black frame.
 
-This establishes the root cause of the earlier graphics failure as over-broad/incorrect placement assumptions. It verifies one-shot `pane.graphics.set` containment on v0.7.4; it does not yet prove clear/update behavior through repeated selection changes, resize behavior, or the separate stream API.
+This establishes the root cause of the earlier one-shot graphics failure as
+over-broad/incorrect placement assumptions. The later image-only lifecycle retry
+then used clean 1600×1000 fixtures, pane-scoped serialization, superseded-worker
+guards, pre-fitting to Ghostty cell pixels, and fzf resize refresh. Explicit
+clear passed, but 150 ms selection captures remained one raster behind and focus
+redraws intermittently blacked most of the client before recovery. One-shot
+containment therefore does not translate into an acceptable interactive preview.
 
 The [Kitty graphics specification](https://sw.kovidgoyal.net/kitty/graphics-protocol/) defines PNG/RGB/RGBA transport, placement geometry, source rectangles, cursor-independent placement, Unicode placeholders, and clipping behavior. The [Chafa manual](https://hpjansson.org/chafa/man/) lists `iterm`, `kitty`, `sixels`, and `symbols`, and supports passthrough only for `screen` and `tmux`. The official [iTerm2 image protocol](https://iterm2.com/documentation-images.html) uses OSC 1337, while Ghostty 1.3 explicitly says it [parses but does not implement OSC 1337](https://ghostty.org/docs/install/release-notes/1-3-0#full-changelog). [Überzug++](https://github.com/jstkdng/ueberzugpp) offers X11/Wayland child windows and Kitty/Sixel/iTerm2/Chafa outputs; on macOS, those protocol outputs do not evade Herdr's transport limitations.
 
 ### Ranked prototype recommendation
 
-1. **Use Herdr `pane.graphics.set` for the fzf prototype.** It is the only high-quality route now verified to render crisply and remain confined to the intended pane region on v0.7.4. Preserve the corrected fzf-relative placement math and sanitize negative preview dimensions before computing the grid.
-2. **Run lifecycle and subjective QA before promotion.** Change selections repeatedly, clear the image, resize/focus panes, and confirm no stale or cross-pane placement. The user must approve the image quality; the successful screenshot is evidence, not inferred approval.
+1. **Do not promote Herdr `pane.graphics.set` on v0.7.4.** It is the only route that renders crisply in a stable frame, but the completed lifecycle QA failed the tmux-quality gate.
+2. **Retain the isolated prototype as failure evidence.** Revisit only against a Herdr compositor/lifecycle change, then rerun rapid selection, clear, and focus-resize capture gates before requesting user approval.
 3. **Keep direct Kitty/Chafa Kitty only as diagnostics and Chafa symbols as an optional fallback.** They are no longer the preferred implementation path.
 4. **Do not prototype Sixel, OSC 1337, or Überzug++ for this stack.** Their required transport is absent or collapses into a less suitable route.
 
@@ -190,12 +247,12 @@ Verified on v0.7.4:
 - The crisp raster was confined to the intended upper-right fzf preview region.
 - The captured result had no full-client black background or cross-pane paint.
 
-Remaining acceptance gates:
+Lifecycle result:
 
-- Repeated selection changes replace rather than accumulate stale placements.
-- Clear removes only that pane's image.
-- Resize and focus changes preserve containment.
-- The user explicitly approves the visual quality.
+- Repeated selection changes still exposed the previous raster after the list selection advanced.
+- Clear removed the pane image and restored the terminal cleanly.
+- Resize and focus changes intermittently produced host-wide black regions before recovery.
+- User approval was not requested because the objective tmux-quality gate failed first.
 
 ## Primary sources
 

@@ -67,11 +67,11 @@ env XDG_CONFIG_HOME="$user_config_home" \
   >/dev/null
 
 $runner --border focused cli pane send-text "$right_pane" \
-  "env XDG_CONFIG_HOME=$user_config_home HERDR_GRAPHICS_LOG=$prototype/.runtime/graphics-events.log fish --no-config -c 'source $root/fish/conf.d/_fzf_envs.fish; cd $prototype/screenshots; fd -e png . | fzf --query=png --preview \"$prototype/native_preview.sh {}\" --preview-window=right,55%,border-sharp,nocycle --bind \"alt-h:execute-silent($prototype/smart_nav.sh h left)\" --bind \"alt-j:execute-silent($prototype/smart_nav.sh j down)\" --bind \"alt-k:execute-silent($prototype/smart_nav.sh k up)\" --bind \"alt-l:execute-silent($prototype/smart_nav.sh l right)\"; $prototype/native_preview.sh --clear'"
+  "env XDG_CONFIG_HOME=$user_config_home HERDR_GRAPHICS_LOG=$prototype/.runtime/graphics-events.log fish --no-config -c 'source $root/fish/conf.d/_fzf_envs.fish; cd $prototype/fixtures; fd -e png . | fzf --query=preview --preview \"$prototype/native_preview.sh {}\" --preview-window=right,55%,border-sharp,nocycle --bind \"resize:refresh-preview\" --bind \"alt-h:execute-silent($prototype/smart_nav.sh h left)\" --bind \"alt-j:execute-silent($prototype/smart_nav.sh j down)\" --bind \"alt-k:execute-silent($prototype/smart_nav.sh k up)\" --bind \"alt-l:execute-silent($prototype/smart_nav.sh l right)\"; $prototype/native_preview.sh --clear'"
 $runner --border focused cli pane send-keys "$right_pane" return
 
 $runner --border focused cli pane send-text "$lower_pane" \
-  "source $prototype/herdr_nav.fish; printf '\\nREOPENED HERDR NAV QA\\nPhysical Alt-h/j/k/l is passed through unchanged.\\nNeovim owns local-window and edge handoff; this Fish prompt owns ordinary-pane focus.\\nFocused panes grow to 62%%; Ctrl-a Shift-g restores/toggles golden focus.\\n'"
+  "source $prototype/herdr_nav.fish; printf '\\nHERDR APPLICATION-OWNERSHIP QA\\nAlt-h/j/k/l navigates; Alt-v splits right; Alt-n adapts; Alt-q smart-closes; Alt-X closes the tab; Alt-z zooms.\\nNeovim and fzf retain their application bindings. Ctrl-a Shift-g toggles golden focus.\\n'"
 $runner --border focused cli pane send-keys "$lower_pane" return
 
 $runner --border focused cli pane focus --direction left --current >/dev/null

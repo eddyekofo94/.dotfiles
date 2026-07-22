@@ -6,6 +6,7 @@ prototype="$root/herdr/prototype"
 runtime="$prototype/.runtime"
 bin="$runtime/bin/herdr"
 border_style=compact
+user_config_home=${HERDR_PROTOTYPE_USER_CONFIG_HOME:-"$HOME/.config"}
 
 if [ "${1:-}" = "--border" ]; then
   if [ "$#" -lt 2 ]; then
@@ -88,6 +89,8 @@ export PATH="$runtime/bin:$PATH"
 export HERDR_BIN_PATH="$bin"
 export HERDR_SESSION="$session"
 export HERDR_NAV_LOG="$runtime/nav-events.log"
+export HERDR_PROTOTYPE_DIR="$prototype"
+export HERDR_PROTOTYPE_USER_CONFIG_HOME="$user_config_home"
 
 if [ "${1:-}" = "cli" ]; then
   shift

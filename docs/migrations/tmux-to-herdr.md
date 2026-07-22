@@ -14,6 +14,8 @@ Prototype: [`../../herdr/prototype/README.md`](../../herdr/prototype/README.md)
 - [ ] Not yet verified.
 - **PARTIAL**: usable only with a port or accepted behavior change.
 - **BLOCKED**: no acceptable Herdr path is known.
+- **VERIFIED DIFFERENCE**: the replacement or retirement is deterministic, but
+  the legacy behavior is not reproduced.
 - **ACCEPTED GAP**: important difference explicitly accepted as non-blocking.
 - **AWAITING USER**: automation passed; subjective approval remains.
 
@@ -24,13 +26,18 @@ until every **Required** row is checked or the user explicitly accepts its
 documented difference. Prototype evidence must include commands/readback;
 appearance and interaction feel must include screenshots and user approval.
 
-**Current v0.7.4 verdict (2026-07-17): VIABLE WITH ACCEPTED IMAGE GAP; MIGRATION
-NOT YET AUTHORIZED.** Keep tmux as the production multiplexer until the remaining
-required rows and explicit daily-driver approval are complete. Golden-ratio
-focus and physical Alt navigation are approved. Crisp native PNGs work in stable
-frames, but replacement/focus lifecycle is not tmux-quality; the user considers
-this important but explicitly accepts living without polished image previews
-until an upstream fix is available.
+**Current v0.7.4 verdict (2026-07-18): REQUIRED CORE GATES PASS WITH ACCEPTED
+IMAGE GAP; MIGRATION NOT YET AUTHORIZED.** Keep tmux as the production
+multiplexer until the user explicitly authorizes the daily-driver migration.
+All required core rows now have deterministic evidence or explicit user
+approval. Golden-ratio focus, physical navigation, visual density, and the
+application-owned Alt transport are approved. Crisp native PNGs work in stable frames, but
+replacement/focus lifecycle is not tmux-quality; the user considers this important
+but explicitly accepts living without polished image previews until an upstream
+fix is available. Every active behavior and keybinding row is now checked; the
+unchecked rows in the chronological prototype rounds preserve superseded
+observations and are not active gates. The sole remaining active checkbox is
+explicit daily-driver authorization in the Approval gate.
 
 ## Core behavior checklist
 
@@ -44,7 +51,7 @@ until an upstream fix is available.
 | Yes | Neovim split-to-outer-pane handoff | `lua/plugin/tmux.lua` and tmux TUI guards | Alt unbound in Herdr; exact temporary Neovim port plus Fish/fzf adapters | [x] **APPROVED:** user confirms physical Alt-h/j/k/l movement works extremely well. |
 | Yes | Pane zoom | `prefix+O`, `Alt-z` | Herdr zoom binding/API | [x] CLI readback changed `false -> true -> false`. |
 | Yes | Swap, resize, move, and close panes | tmux commands and smart-close policy | native API plus custom commands | [x] `binding-validation.jsonl` records `w1:p1` swapping rectangles, root ratio `0.50 -> 0.60`, `w1:p3` moving `t1 -> t2 -> t1`, bare-shell close, and process-aware confirmation. Sentinel PID `10747` survived the first close press; the second confirmed press removed its pane. A sole pane survived with exit 75. |
-| Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [x] `tab-lifecycle-validation.jsonl` records tabs `w1:t1`–`w1:t4` with sentinel PIDs `29867`/`29999`/`30130`/`30271`; next/previous wrapped `w1:t4 -> w1:t1 -> w1:t4`; `prefix+2` focused `w1:t2`; exact last-tab returned `w1:t3 -> w1:t2` with second pane `w1:p5`; `w1:t3` reordered right and restored while PID `30130` survived; closing `w1:t5` terminated PID `31069`; confirmed close-others preserved `w1:t2`/PID `29999` and terminated PIDs `29867`/`30130`/`30271`. |
+| Yes | Tabs: create, next/previous, indexed, last, reorder, close | tmux window bindings | Herdr tabs and CLI | [x] `tab-lifecycle-validation.jsonl` records four sentinel-backed tabs; next/previous wrap; existing `prefix+2` focus; missing `prefix+7` creating exactly one cwd-following tab labeled `7`; exact last-tab history; reorder/restore with process survival; immediate close with process exit; and confirmation-protected close-others preserving only the selected tab/process. |
 | Yes | Searchable session/window/pane picker | custom `choose-tree`, fzf picker | Herdr workspace navigation plus searchable navigator | [x] [`picker-validation.jsonl`](../../herdr/prototype/evidence/picker-validation.jsonl) records real `prefix+w` workspace navigation and prefix-only `prefix+f` searchable navigation; current-pane initial selection; case-insensitive multi-term workspace/tab/pane search; false-positive-resistant tree-row assertions for blocked/working/idle/done filters; exact workspace/tab/pane focus readback; safe search/outer Escape, no-match, and stale-target paths; four surviving sentinel PIDs; unchanged before/after runtime-object inventories; and strict isolation between explicitly attached sessions `pa`/`pb`. The PTY capture waits for semantic screen stability while ignoring animation-only spinner redraws. Evidence is replaced atomically only on success and records hashes of the config, PTY client, and validator; `Alt-Ctrl-f` is absent, every approved prototype binding is audited, and production config hashes stayed unchanged. |
 | Yes | Vi copy mode, search, selection, clipboard | tmux copy-mode-vi | Herdr copy mode | [x] Searched `HERDR_COPY_SENTINEL`, selected with `v/e`, yanked, and `pbpaste` matched exactly. |
 | Yes | Mouse focus, resize, scrolling, selection | `mouse on` and copy-mode routing | native Herdr mouse UI | [x] User confirmed all remaining direct-trial behavior worked after separately identifying navigation and image-preview failures. |
@@ -52,16 +59,16 @@ until an upstream fix is available.
 | Yes | Clean, simple Catppuccin screen | one top tmux status row | hidden collapsed sidebar, no gaps/toasts/sounds | [x] User confirmed the focused-only boxed direct layout works; focused border remains accented while inactive borders blend into `#1e1e2e`. |
 | Yes | Ghostty key fidelity and true color | extkeys/RGB/undercurl settings | Herdr terminal renderer | [x] **APPROVED:** isolated direct Ghostty reported `TERM=xterm-256color`/`COLORTERM=truecolor`; pane readback preserved `48;2` RGB, `4:3` undercurl, and `58;2` underline colors. User screenshot visibly confirmed four distinct RGB swatches and curly underlines. Physical key capture produced exact Kitty events for `Alt-x` (`CSI 120;3u`), `Ctrl-Alt-x` (`CSI 120;7u`), `Shift-Tab` (`CSI 9;2u`), and `Ctrl-Shift-Enter` (`CSI 13;6u`), with no missing or duplicate events; user approved the gate. |
 | Yes | Kitty/chafa image previews | tmux DCS passthrough | corrected `pane.graphics.set` fzf preview | [x] **ACCEPTED GAP:** raster transport works, but replacement/focus lifecycle is below the tmux visual bar. Important to revisit after an upstream fix; explicitly non-blocking for migration. |
-| Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] Codex detected and tracked `idle -> working -> idle`; other agents remain a later compatibility round. |
-| Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [ ] Working/idle passed for Codex. **PARTIAL:** approval/question collapse to blocked; no distinct failure state. |
-| Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | port to pane read/send/wait APIs | [ ] **PARTIAL: not in first prototype** |
-| Yes | Fish login attach without nesting loops | `fish/config.fish` tmux block | guarded Herdr launcher | [ ] **deferred until approval** |
-| No | Ordinary SSH and remote attach | remote tmux | remote Herdr/thin client | [ ] |
-| No | Resurrect/Continuum-style recovery | TPM plugins | snapshot plus native agent resume | [ ] **PARTIAL for arbitrary processes** |
-| No | Scratch shell and lazygit popups | `display-popup` | custom popup commands | [ ] |
+| Yes | Codex, Claude, OpenCode, AGY, Gemini visibility | native hooks plus tmux status engine | Herdr detection/integrations | [x] [`multi-agent-compat-validation.jsonl`](../../herdr/prototype/evidence/multi-agent-compat-validation.jsonl) preserves the earlier Codex evidence and deterministically proves Claude, OpenCode, AGY (`antigravity`), and legacy Gemini (`node` plus start command) detection; Herdr-owned `working`/`blocked`/`done` lifecycle status; all five semantic metadata states for every named agent; distinct real `prefix+f` visibility; installed CLI/version readback without model calls; and unsupported-agent no-mutation behavior. No integrations were installed and migration remains unauthorized. |
+| Yes | Distinguish running, question, approval, finished, failure | custom semantic icons/colors | Herdr semantic state plus metadata | [x] `agent-state-validation.jsonl` records five simultaneous Codex fixtures. Herdr keeps lifecycle authority (`working`, `blocked`, `done`) while guarded pane metadata renders distinct `running`, `question`, `approval`, `finished`, and `failure` labels in the real `prefix+f` navigator and `$semantic_state` sidebar row. Production agent integrations remain uninstalled until migration approval. |
+| Yes | Ready-prompt paste and clear-then-paste | `ready_prompt.sh`, `prefix+b/B` | pane process/read/send APIs plus bracketed paste | [x] `ready-prompt-validation.jsonl` records 49 parser checks, exact multiline mock insertion without submission, consume-once and concurrency rejection, agent-aware Codex/Claude clear-and-replay, empty-composer and historical `/clear` handling, and unsupported-agent failure before input. Live tmux and disposable Herdr Claude gates proved `/clear`, stable ready detection, sentinel insertion, and no automatic submission. |
+| Yes | Fish login attach without nesting loops | `fish/config.fish` tmux block | guarded Herdr launcher | [x] `login-attach-validation.jsonl` proves an isolated interactive login launches `--session main`, supports a validated custom session, and stays inert for non-login, non-interactive, existing Herdr, existing tmux, opt-out, and unsafe-session cases. Production `fish/config.fish` remains unchanged; installing the adapter still requires explicit migration approval. |
+| No | Ordinary SSH and remote attach | remote tmux | remote Herdr/thin client | [x] [`remote-validation.jsonl`](../../herdr/prototype/evidence/remote-validation.jsonl) proves a real authenticated `herdr --remote ssh://... --session remote-audit` thin-client attach through a disposable localhost OpenSSH server. The exact v0.7.4 remote binary, compatible named server, and live pane inventory were read back before clean detach. A closed endpoint failed before input, bootstrap, or installation; macOS Remote Login stayed disabled and production hashes were unchanged. Ordinary SSH followed by remote Herdr is also the documented Herdr-native tmux-style path. |
+| No | Resurrect/Continuum-style recovery | TPM plugins | snapshot plus pane history plus native agent resume | [x] **HERDR-NATIVE DIFFERENCE:** `recovery-validation.jsonl` proves a full server stop/restart restores exact workspace/tab/pane IDs, labels, cwd, focus, and 62/38 layout; opt-in history replays exact scrollback in ordinary shell panes; and an isolated current Codex hook restarts the agent fixture as `codex resume recovery-codex-session`. All original PIDs are proven dead and replaced. Arbitrary process state is not resurrected, matching Herdr's explicit model rather than pretending snapshot restore preserves live processes. |
+| No | Scratch shell and lazygit popups | `display-popup` | custom popup commands | [x] `popup-validation.jsonl` records real `prefix+Enter` and `prefix+g` input opening distinct session-modal commands at 80% and 85%. Their inner PTYs measure 72×30 and 76×32 cells in the fixed client, inherit the focused pane cwd, dismiss on command exit, and leave the tiled pane/tab/workspace/layout inventories and sentinel PID unchanged. |
 | No | Golden-ratio pane focus | tmux focus hook | prototype `pane.focused` plugin | [x] Focus produced exact 62/38 ratios, toggle restored exact 50/50, and the user approved the behavior as working very well. |
-| No | URL search/open shortcuts | capture/copy scripts | pane-read custom commands | [ ] **PARTIAL** |
-| No | Nested multiplexer passthrough | tmux key-table toggle | remote Herdr or experimental nesting | [ ] **PARTIAL** |
+| No | URL search/open shortcuts | capture/copy scripts | pane-read custom commands | [x] [`url-validation.jsonl`](../../herdr/prototype/evidence/url-validation.jsonl) proves real `prefix+u` PTY input opens nothing for zero URLs, normalizes and opens the only URL, and opens only the newest of multiple visible URLs. Cursor-local copy-mode `O` is tracked separately as a verified unavailable v0.7.4 action. |
+| No | Nested multiplexer passthrough | tmux key-table toggle | remote Herdr; keep experimental nesting disabled | [x] **HERDR-NATIVE DIFFERENCE:** `remote-validation.jsonl` proves the supported thin-client path while the v0.7.4 configuration readback proves `experimental.allow_nested = false` by default. The migration path avoids a second multiplexer instead of recreating tmux's outer/inner key-table toggle. No nested passthrough binding is installed. |
 
 ## Effective keybinding migration
 
@@ -76,34 +83,39 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | `Alt-h/j/k/l` | Smart TUI/Neovim-or-pane navigation | leave Alt unbound in Herdr; temporary Neovim/Fish/fzf owners call Herdr only when needed | [x] Existing physical ownership path remains approved; the binding-policy pass did not add global Herdr Alt bindings. |
 | `prefix+n`, `prefix+s` | Split down | approved `prefix+a` adaptive split; `prefix+s` copy/search | [x] A 27×24 focused pane deterministically split down into two 27×12 panes. |
 | `prefix+v` | Split right | same | [x] One 54×24 pane became two 27×24 panes. |
-| `Alt-n/s/v` | Split unless forwarded to Vim/TUI | application-owned `Alt-n/v`; no `Alt-s` | [ ] **AWAITING USER:** direct Ghostty has real Neovim, fzf, and Fish panes; config/readback proves Herdr has no global collision, Fish owns the shell actions, and Neovim/fzf-lua retain their mappings. Physical feel is unconfirmed. |
+| `Alt-n/s/v` | Split unless forwarded to Vim/TUI | application-owned `Alt-n/v`; retire `Alt-s` | [x] **APPROVED:** Round 9 proves Fish-owned `Alt-n` and nested-child `Alt-v` through both legacy and Kitty transports with configured child shells. Neovim and fzf retain ownership, Herdr has no global collision, and the retired `Alt-s` has no replacement. |
 | `prefix+c`, `Alt-c/q` | Smart close pane | `prefix+x`; application-owned shell `Alt-q` | [x] Bare shell closed immediately; `sleep 300` and the last pane required an identical second press within five seconds. Neovim retains `Alt-q` for its visible window/buffer and `Alt-x` for window exchange. |
 | `prefix+N`, `prefix+Ctrl-n`, `Alt-Ctrl-n` | New tab after current | approved native `prefix+c` | [x] Real `prefix+c` input created tabs `w1:t2`, `w1:t3`, and `w1:t4`, each with one pane and its own live sentinel PID; legacy aliases remain intentionally removed. |
 | `prefix+t/T` | Next/previous tab | approved native `prefix+n/p` | [x] Real `prefix+n/p` input wrapped `w1:t4 -> w1:t1 -> w1:t4`; legacy aliases remain intentionally removed. |
-| `Alt-0..9`, `prefix+0..9` | Select/create numbered tab | indexed tab jump; create-on-miss needs helper | [ ] **PARTIAL:** real `prefix+2` input focused `w1:t2`; create-on-miss remains unverified. |
-| `prefix+Tab`, `Alt-Tab` | Last tab | Herdr last-pane/tab behavior needs validation | [ ] **PARTIAL:** the gate-only `prefix+Tab` history action returned `w1:t3 -> w1:t2` with two panes in `w1:t3`; `Alt-Tab` remains unverified. |
+| `Alt-0..9`, `prefix+0..9` | Select/create numbered tab | prefix digits focus a matching number/label or create one labeled digit | [x] Real `prefix+2` focused the existing second tab. Real `prefix+7` with four tabs created exactly one fifth tab labeled `7`, inherited the focused pane cwd, and was selected; no filler tabs were manufactured. Direct Alt digits are intentionally retired in favor of the prefix table. |
+| `prefix+Tab` | Last tab | native cross-workspace `last_pane` | [x] **ACCEPTED DIFFERENCE:** `workspace-navigation-validation.jsonl` proves `prefix+Tab`/`Ctrl-^` toggles between `w1:p1` and `w2:p1` with both processes surviving. `tab-lifecycle-validation.jsonl` separately preserves exact last-tab history evidence, but the active `prefix+Tab` binding now means last pane. |
+| `Alt-Tab` | Last tab | retire; use proven `prefix+Tab`/`Ctrl-^` last-pane navigation | [x] **VERIFIED DIFFERENCE:** [`capability-gap-validation.jsonl`](../../herdr/prototype/evidence/capability-gap-validation.jsonl) proves no global or Fish-owned `Alt-Tab` binding is installed. Exact last-tab history remains proven in the tab-lifecycle gate, while the active migration intentionally standardizes on cross-workspace last-pane navigation. |
 | `prefix+{/}` | Reorder tabs | CLI/custom commands | [x] Real prefix input moved `w1:t3` right from `[w1:t1,w1:t2,w1:t3,w1:t4]` to `[w1:t1,w1:t2,w1:t4,w1:t3]`, then restored the original order while sentinel PID `30130` survived. |
-| `prefix+O`, `Alt-z` | Toggle zoom | approved `prefix+z` and application-owned `Alt-z` | [ ] Automated zoom readback passed `false -> true -> false`; direct Fish binding is present and Neovim retains `<M-z>`. **AWAITING USER physical feel.** |
+| `prefix+O`, `Alt-z` | Toggle zoom | approved `prefix+z` and application-owned `Alt-z` | [x] **APPROVED:** native zoom and the Fish-owned Alt transport both passed `false -> true -> false`; Neovim retains `<M-z>` and Herdr has no global `Alt-z` collision. |
 | `prefix+r/R`, `Alt-r/R` | Swap panes | approved directional `prefix+H/J/K/L` | [x] `w1:p1` moved from the full-height left rectangle to the upper-right rectangle while pane identity stayed stable. |
-| `prefix+=`, `Alt-=` | Equal/tiled layout | layout apply/custom action | [ ] **PARTIAL** |
+| `prefix+=`, `Alt-=` | Equal/tiled layout | topology-preserving `layout.set_split_ratio` action | [x] `pane-lifecycle-validation.jsonl` records a distorted three-pane BSP changing from root/nested ratios `0.70/0.65` to leaf-weighted `0.33333334/0.50` through both the real prefix path and Fish-owned Alt transport. Pane IDs, topology, and both sentinel PIDs survived; the rejected `layout.apply` replacement route is not used. |
 | `prefix+<,>,comma,period,-,+` | Resize by two cells | approved native `prefix+r`, then `h/j/k/l` | [x] Direct API evidence changed the root split ratio `0.50 -> 0.60`; config check confirms native resize mode at `prefix+r`. |
-| `prefix+o/Ctrl-o`, `Alt-o` | Close all other panes | custom API command | [ ] **PARTIAL** |
-| `prefix+X`, `Alt-X` | Close tab | native `prefix+X`; application-owned shell `Alt-X` | [ ] **PARTIAL:** real `prefix+X` input removed `w1:t5` and terminated sentinel PID `31069`; application-owned `Alt-X` remains **AWAITING USER**. |
-| `prefix+Ctrl-x`, `Alt-Ctrl-x` | Close all other tabs with confirmation | custom API command | [ ] **PARTIAL:** the first real `prefix+Ctrl-x` input preserved `[w1:t1,w1:t2,w1:t3,w1:t4]`; the identical confirming input preserved `w1:t2`/PID `29999` and terminated PIDs `29867`/`30130`/`30271`. `Alt-Ctrl-x` remains unverified. |
+| `prefix+o/Ctrl-o`, `Alt-o` | Close all other panes | confirmation-protected `prefix+o`; application-owned `Alt-o` | [x] `pane-lifecycle-validation.jsonl` proves the real prefix path and Fish-owned Alt transport both preserve the focused pane and two live sibling processes on the first press, then close only the siblings and terminate their processes on the identical second press. With no siblings the action is a no-op. Redundant `prefix+Ctrl-o` is retired. Neovim keeps its existing `<M-o>` “only window” mapping. |
+| `prefix+X`, `Alt-X` | Close tab | native `prefix+X`; application-owned shell `Alt-X` | [x] `tab-lifecycle-validation.jsonl` proves real `prefix+X` input closes the tab and terminates its sentinel. `binding-validation.jsonl` independently drives `Alt-X` through Herdr's Kitty CSI-u transport into Fish, removes only the focused tab, and proves its shell PID dead. |
+| `prefix+Ctrl-x`, `Alt-Ctrl-x` | Close all other tabs with confirmation | custom API command | [x] `tab-lifecycle-validation.jsonl` proves the prefix path, including fail-closed missing identity and session/socket-scoped confirmation. `binding-validation.jsonl` drives application-owned `Alt-Ctrl-x` through Fish: the first press preserves all four tabs, the second preserves only the selected tab, and both sibling sentinel PIDs terminate. |
 | `prefix+w` | Session/window/pane tree | native `workspace_picker` for current-session workspace navigation | [x] Real prefix input opened ordinary workspace navigation with `Alpha Project` and `Beta Project`, without opening the search overlay; native Down+Enter focus readback changed to workspace `w2`. |
 | `prefix+f`, `Alt-Ctrl-f` | fzf window picker | native searchable `goto` on prefix-only `prefix+f`; retire direct `Alt-Ctrl-f` | [x] Real prefix input opened the searchable workspace/tab/pane overlay with the current pane selected; `Alt-Ctrl-f` is absent and all search, filter, selection, return, stale-target, process-safety, and named-session isolation assertions passed. |
-| `prefix+Enter` | Scratch-shell popup | Herdr popup command | [x] Config accepted; interactive popup sizing remains visual QA. |
-| `prefix+g` | Lazygit popup | Herdr popup command | [x] Config accepted; interactive popup sizing remains visual QA. |
+| `prefix+Enter` | Scratch-shell popup | Herdr popup command | [x] Real prefix input opened an 80% session-modal fixture with a 72×30 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
+| `prefix+g` | Lazygit popup | Herdr popup command | [x] Real prefix input opened an 85% session-modal fixture with a 76×32 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
 | `prefix+[` / `PageUp` / `Alt-Escape` | Copy mode | Herdr copy mode aliases | [x] `prefix+[` and `Alt-Escape` configured; `PageUp` omitted to preserve shell/TUI behavior. |
-| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | Herdr copy mode; rectangle/Y parity unknown | [ ] **PARTIAL** |
-| copy `u/d`, marks, prompt jumps | half pages, marks, OSC 133 prompts | native subset; marks/prompt jumps unverified | [ ] **PARTIAL** |
-| `prefix+u`, copy `O` | Open URL | custom pane-read helper | [ ] **PARTIAL** |
-| `prefix+b/B` | Ready-prompt replay / clear replay | reserved for port; move sidebar toggle elsewhere | [ ] **PARTIAL** |
-| `prefix+Space` | Layout menu | custom popup/plugin action | [ ] **PARTIAL** |
-| `prefix+(`/`)`, `Ctrl-^` | Session navigation/last session | workspace/session commands | [ ] **PARTIAL** |
-| `Alt-Ctrl-Down/Up` | Nested tmux passthrough | avoid nesting or experimental equivalent | [ ] **PARTIAL** |
+| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | native `v`/Space selection and `y`/Enter yank; retire rectangle and copy-line aliases | [x] **VERIFIED DIFFERENCE:** ordinary `v/e/y` selection copied the exact sentinel to `pbpaste`. `capability-gap-validation.jsonl` binds the v0.7.4 default configuration hash and proves rectangle selection and distinct copy-line `Y` are absent, with no input emulation installed. |
+| copy `u/d`, marks, prompt jumps | half pages, marks, OSC 133 prompts | native `Ctrl-u/d` and `PageUp/Down`; retire unavailable extras | [x] **VERIFIED DIFFERENCE:** `copy-mode-validation.jsonl` proves real `prefix+s`, `Ctrl-u/d`, and `PageUp/Down` input over 120 lines, including exact viewport movement and live-process survival. The capability audit proves marks and OSC 133 prompt jumps are absent from the v0.7.4 configurable surface and are not emulated. |
+| `prefix+u`, copy `O` | Open URL | custom pane-read helper; retire cursor-local alias | [x] **VERIFIED DIFFERENCE:** `url-validation.jsonl` proves real `prefix+u` transport and exact zero/one/newest-of-many behavior with a non-launching opener fixture. The capability audit proves copy-mode cursor URL opening is absent from the v0.7.4 configurable surface and no input-emulation shim is installed. |
+| `prefix+b/B` | Ready-prompt replay / clear replay | Herdr pane inspection/read plus bracketed `send-text`; uppercase waits after Codex or Claude `/clear` | [x] `prefix+b/B` are isolated shell commands. The validator proves exact extraction, pane-local consume-once state, no implicit Enter, live non-execution, stable-ready waiting, and fail-closed clear support for agents other than Codex and Claude. |
+| `prefix+Space` | Layout menu | process-preserving Herdr layout palette | [x] `layout-menu-validation.jsonl` proves a real 54×12 session-modal palette with one-key equalize, zoom, adaptive-split, split-right, and cancel actions. Equalize preserves the exact BSP topology and all sentinel PIDs, zoom cycles `false -> true -> false`, both splits preserve original processes, cancel is byte-for-byte inert, and the unsafe `layout.apply` replacement route is absent. |
+| `prefix+(`/`)`, `Ctrl-^` | Session navigation/last session | previous/next workspace plus native cross-workspace `last_pane` | [x] `workspace-navigation-validation.jsonl` proves real prefix input wraps `One -> Two -> Three -> One` and back to `Three`; the physical `Ctrl-^`/`Ctrl-6` byte toggles between panes in different workspaces; and all three sentinel processes survive. Named sessions remain isolation boundaries, while everyday project navigation follows Herdr's workspace model. |
+| `Alt-Ctrl-Down/Up` | Nested tmux passthrough | retire; use native remote attach with nesting disabled | [x] **HERDR-NATIVE DIFFERENCE:** the disposable OpenSSH gate proves remote thin-client attach and the default-disabled nesting guard. These legacy passthrough chords are intentionally absent because there is no inner multiplexer to toggle. |
 
 ## Prototype rounds
+
+The rounds below are a chronological evidence record, not the active checklist.
+Later rounds supersede earlier `PARTIAL`, `BLOCKED`, and `AWAITING USER` results
+without rewriting the historical observations that led to them.
 
 ### Round 1 — isolated local trial
 
@@ -120,8 +132,10 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 
 ### Approval gate
 
-- [ ] User approves the collapsed and expanded visual density.
-- [ ] User approves navigation feel and accepted partial differences.
+- [x] User approves the focused-only boxed visual density; earlier compact and
+  expanded candidates are superseded.
+- [x] User approves physical navigation feel and the documented navigation and
+  image-preview differences accepted by the active gate.
 - [ ] User explicitly authorizes promoting Herdr from prototype to daily driver.
 
 ### Round 2 — live Ghostty visual and interaction QA
@@ -444,3 +458,38 @@ only on documentation or assumed API parity.
   terminates disposable clients/servers, and successful evidence is bound to
   the exact config/client/validator hashes. Production configuration remains
   untouched, and migration remains unauthorized.
+- 2026-07-18: the active tracker was reconciled with the final evidence. Visual
+  density, physical navigation, and the application-owned `Alt-n/v/z` transports
+  are approved. `prefix+Tab` now records the proven cross-workspace `last_pane`
+  behavior while exact last-tab history remains preserved in the tab-lifecycle
+  evidence. Only Codex has multi-agent compatibility evidence, so the other named
+  agents remain a required partial row. Image lifecycle polish stays an accepted
+  deferred gap, and migration remains unauthorized.
+- 2026-07-18: the bounded multi-agent compatibility gate passed for Claude,
+  OpenCode, AGY, and Gemini. Separate atomic evidence records deterministic
+  detection, Herdr lifecycle ownership, all semantic states, real navigator
+  visibility, installed version readback, and safe unsupported-agent behavior.
+  The prior Codex evidence and production configuration remained unchanged;
+  no integration was installed and migration remains unauthorized.
+- 2026-07-18: real `prefix+u` PTY validation passed for zero, one, and multiple
+  visible URLs, including punctuation normalization and newest-match selection.
+  Application-owned `Alt-X` and `Alt-Ctrl-x` also passed through Herdr's Kitty
+  CSI-u transport into Fish, with exact tab survival and process-death readback.
+  Binding evidence is now atomic and hash-bound. Copy-mode `O` remains an
+  upstream difference; production configuration and migration status did not
+  change.
+- 2026-07-18: remote attach passed through a disposable localhost OpenSSH
+  server with temporary keys and isolated local/remote Herdr configuration. A
+  real thin client started a compatible named v0.7.4 remote server with a live
+  pane, detached cleanly, and failed closed against a closed endpoint without
+  bootstrap or installation. This settles remote work and nested passthrough as
+  a Herdr-native difference: use remote attach and keep experimental nesting
+  disabled. macOS Remote Login, production configuration, and migration status
+  did not change.
+- 2026-07-18: the remaining optional legacy-key differences were converted
+  from indirect partial claims into a hash-bound v0.7.4 capability audit.
+  Rectangle selection, copy-line `Y`, marks, OSC 133 prompt jumps, cursor-local
+  copy-mode `O`, and direct `Alt-Tab` are deterministically unavailable or
+  retired, with supported selection/paging/URL/last-pane replacements recorded
+  and no input-emulation shims installed. Production configuration and migration
+  status did not change.

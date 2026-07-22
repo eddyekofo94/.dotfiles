@@ -53,7 +53,7 @@ This launches a new Ghostty window without tmux variables, starts the
 focused-only Herdr session, then prepares three panes: the real Neovim config
 with two editor windows and the temporary Herdr edge adapter on the left, the
 real fzf picker over the prototype PNGs on the upper right, and a shell on
-the lower right for mouse checks. Press `Ctrl-a Shift-b` once to hide the stable
+the lower right for mouse checks. Press `Ctrl-a Shift-s` once to hide the stable
 v0.7.4 sidebar.
 
 The focused variant deliberately has no Herdr-level `Alt-h/j/k/l` bindings.
@@ -65,12 +65,300 @@ editor edge, including the existing fzf-lua `j/k` exception. `herdr_nav.fish`
 handles an ordinary Fish prompt, and the scratch fzf command binds the same
 chords to pane focus. None of this is installed into production configuration.
 
-High-quality image preview now uses Herdr's experimental pane-owned raster
-layer. `native_preview.sh` reads the real fzf preview geometry, rejects fzf's
-observed negative row sentinel, and sends a pane-relative PNG placement. Set,
-repeated selection, focus resize, and clear all returned `ok`; screenshots show
-the raster confined to the fzf region without a black host frame. Chafa symbols
-remain only the failure fallback because their quality was rejected.
+## Approved binding-policy prototype
+
+The isolated config now follows the approved table: `Ctrl-a` remains the
+prefix; lowercase `h/j/k/l` focuses, uppercase `H/J/K/L` swaps, `r` enters
+native resize mode, `v` splits right, `a` adaptively splits right or down,
+`s` enters copy mode (`?` then starts backward search on v0.7.4), `x`
+smart-closes a pane, `o` confirms closing its sibling panes, `=` equalizes pane
+areas without replacing panes, `X` closes the tab,
+`c/n/p` create or select tabs,
+`0..9` focus an existing numeric tab or create one labeled with that digit, `z`
+toggles zoom, `S` toggles the sidebar, and `u` opens the newest HTTP(S) URL
+visible in the focused pane. `b` inserts the newest labeled agent handoff and
+`B` safely clears Codex or Claude context before inserting it.
+
+`adaptive_split.sh`, `smart_close.sh`, and `open_visible_url.sh` resolve the
+focused pane through `HERDR_PANE_ID` or `pane current`, then use Herdr pane
+layout, process, read, split, close, and zoom APIs. Smart close exits 75 and
+leaves the pane alive on the first press when it is the last pane or owns a
+non-shell foreground process; Herdr shows a notification and an identical
+second press within five seconds confirms the API close. Ordinary Fish panes
+own direct `Alt-v/n/q/X/z` plus confirmation-protected `Alt-Ctrl-x` through
+`herdr_nav.fish`. Herdr itself does not bind
+those Alt chords, so Neovim and fzf keep their existing application mappings.
+In Neovim, `Alt-q` remains application-owned and closes the current visible
+window/buffer through the existing mapping; `Alt-x` remains Neovim's window
+exchange chord and has no shell-level Herdr action.
+The Fish adapter registers both legacy `Esc+key` sequences and Herdr's observed
+Kitty CSI-u Alt events; Fish 4.8 does not normalize the latter to named
+`alt-*` bindings automatically.
+
+Every prototype pane starts through `prototype_shell.sh`. Herdr keeps its
+config under the isolated runtime `XDG_CONFIG_HOME`, while the wrapper restores
+the user's real `~/.config` for Fish. It sets a temporary `TMUX` value only
+while production Fish startup runs (preventing its tmux auto-attach), removes
+that guard before the prompt, and then sources the prototype adapter. This
+makes adaptive/fixed child panes recursively identical to the original shell
+without changing production Fish configuration.
+
+Run `validate_bindings.sh`; it resets only its disposable `trial-focused`
+session before starting. It writes deterministic before/after evidence to
+`evidence/binding-validation.jsonl`, including pane rectangles and split
+ratios, moved pane/tab identities, sentinel PID liveness, zoom state, and
+zero/one/multiple visible-URL fixtures. The same gate drives application-owned
+`Alt-X` and `Alt-Ctrl-x` through Herdr's Kitty CSI-u transport into Fish,
+including process termination and two-press close-others confirmation.
+
+Run the real prefix URL gate independently with:
+
+```sh
+./herdr/prototype/validate_urls.sh
+```
+
+It drives `prefix+u` through a disposable PTY client and proves that zero URLs
+open nothing, one URL is normalized and opened, and multiple visible URLs open
+only the newest match. Evidence is replaced atomically only on success at
+`evidence/url-validation.jsonl`; the opener is a log-only fixture and production
+configuration remains unchanged.
+
+## Remote attach gate
+
+Run the isolated OpenSSH transport gate with:
+
+```sh
+./herdr/prototype/validate_remote.sh
+```
+
+The validator launches a disposable user-space `sshd` bound only to localhost,
+uses temporary host/client keys and configuration, and exposes the existing
+prototype v0.7.4 binary on the remote test path. A real `herdr --remote
+ssh://... --session remote-audit` thin client starts a compatible named remote
+server with a live pane, then detaches cleanly. A closed endpoint independently
+proves fail-closed behavior before input or bootstrap. The gate does not enable
+macOS Remote Login, install Herdr, or alter production configuration. Atomic,
+hash-bound evidence is written to `evidence/remote-validation.jsonl`.
+
+## Pane lifecycle gate
+
+Run the pane-layout and destructive sibling-pane gate independently with:
+
+```sh
+./herdr/prototype/validate_panes.sh
+```
+
+Both `prefix+o` and Fish-owned `Alt-o` require an identical second press within
+five seconds. The focused pane survives; only siblings in its tab are closed.
+The live gate proves first-press process survival, second-press process exit,
+and a safe no-op when the tab has no siblings. Neovim continues to own `<M-o>`
+for its local “only window” behavior.
+
+`prefix+=` and Fish-owned `Alt-=` use `layout.export` plus
+`layout.set_split_ratio` to weight every BSP split by descendant pane count.
+The same three pane IDs and sentinel processes survive while their areas become
+equal; no pane, tab, or process is recreated.
+
+## Tab lifecycle gate
+
+Run the tab gate independently with:
+
+```sh
+./herdr/prototype/validate_tabs.sh
+```
+
+The validator derives a gate-only configuration with `/bin/sh` as its isolated
+sentinel shell, starts the disposable `gate-tabs` server and a fixed-size PTY
+client, and drives the real prefix-key path. It verifies create, next/previous,
+indexed selection, exact last-tab history, reorder/restore, immediate close,
+and confirmation-protected close-others with tab-ID readback and
+sentinel-process liveness. Reorder uses the supported `tab.move` socket method
+because v0.7.4 does not expose it in the CLI wrapper. The session is stopped and
+deleted on success or failure; evidence is published atomically to
+`evidence/tab-lifecycle-validation.jsonl` only after a pass. Nothing is
+installed into production Herdr, tmux, Fish, Ghostty, or Neovim configuration,
+and a pass does not authorize migration.
+
+Close-others confirmation state is namespaced by Herdr session and socket and
+fails closed when either identity is unavailable. The gate proves that a
+foreign session and a same-named session on a distinct socket each preserve
+every tab on their first press and cannot consume or confirm the original
+server's pending close.
+
+Numeric creation follows Herdr's contiguous tab model: a missing digit creates
+one cwd-following tab labeled with that digit instead of manufacturing filler
+tabs to imitate tmux's sparse indices.
+
+## Popup gate
+
+Run the session-modal popup gate independently with:
+
+```sh
+./herdr/prototype/validate_popups.sh
+```
+
+Real `prefix+Enter` and `prefix+g` input opens disposable scratch and lazygit
+fixtures at the configured 80% and 85% sizes. The fixed 120×40 client reports
+inner popup PTYs of 72×30 and 76×32 cells after borders and the collapsed
+sidebar are accounted for. Both popups inherit the active pane's cwd, dismiss
+when their command exits, and leave the tiled pane, tab, workspace, layout, and
+sentinel process unchanged. The gate does not launch a production shell or
+lazygit instance and does not authorize migration.
+
+## Layout palette gate
+
+Run the process-preserving layout palette gate with:
+
+```sh
+./herdr/prototype/validate_layout_menu.sh
+```
+
+`prefix+Space` opens a 54×12 session-modal palette. Instead of reproducing
+tmux's named preset catalogue with destructive topology replacement, it exposes
+safe Herdr actions: `e` equalizes the current BSP, `z` toggles zoom, `a` creates
+an adaptive split, `v` splits right, and `q` cancels. The live gate proves all
+five choices through real prefix input. Equalize preserves the exact topology
+and all three sentinel PIDs; zoom cycles `false → true → false`; both split
+actions preserve the original processes; cancel leaves the layout byte-for-byte
+unchanged. `layout.apply` is deliberately absent.
+
+## Copy-mode paging gate
+
+Run the native scroll-navigation gate with:
+
+```sh
+./herdr/prototype/validate_copy_mode.sh
+```
+
+The fixed 120×40 client enters copy mode through real `prefix+s` input over a
+120-line live pane. Native `Ctrl-u` moves the visible range from lines 82–120 to
+62–100 and `Ctrl-d` returns it to 82–120; `PageUp` moves to 44–82 and
+`PageDown` returns to the live bottom. The pane's sentinel process survives the
+entire browse. This intentionally adopts Herdr's documented modifier chords
+instead of injecting tmux's plain `u/d`. Rectangle selection, copy-line `Y`,
+marks, and OSC 133 prompt jumps remain explicit upstream capability gaps in
+v0.7.4 rather than emulated key sequences.
+
+Run `validate_capability_gaps.sh` to bind those unavailable actions to the
+exact v0.7.4 default-configuration hash. The same audit proves that legacy
+`Alt-Tab` and cursor-local copy-mode `O` are retired without global bindings or
+input-emulation shims. It records the supported replacements and writes atomic
+evidence to `evidence/capability-gap-validation.jsonl`.
+
+## Recovery gate
+
+Run the full server-restart gate with:
+
+```sh
+./herdr/prototype/validate_recovery.sh
+```
+
+The gate enables pane history only in its isolated config, builds one named
+workspace with two tabs and three labeled panes, and stops the server while
+three sentinel processes are live. After restart, workspace/tab/pane IDs,
+labels, cwd, focus, and the 62/38 split return byte-for-byte. Two ordinary shell
+panes replay exact saved scrollback. The third pane uses a version-6 Codex hook
+installed into a disposable `CODEX_HOME`; Herdr invokes the runtime-only fixture
+as `codex resume recovery-codex-session`. The three original PIDs are proven
+dead and replaced. This is the Herdr recovery model: snapshot plus opt-in screen
+history plus native agent resume, not arbitrary live-process resurrection.
+
+## Workspace-navigation gate
+
+Run the tmux-session-to-Herdr-workspace navigation gate with:
+
+```sh
+./herdr/prototype/validate_workspace_navigation.sh
+```
+
+Named Herdr sessions remain isolated server namespaces; ordinary project
+navigation uses first-class workspaces inside one session. Real `prefix+(`/`)`
+input cycles three workspaces in both directions with wrapping. `Ctrl-^`
+(the same terminal byte as `Ctrl-6`) invokes native `last_pane` and toggles
+between panes in different workspaces. All three sentinel processes survive.
+`prefix+Tab` remains an additional last-pane binding outside the tab-history
+gate.
+
+## Ready-prompt replay gate
+
+Run the replay gate independently with:
+
+```sh
+./herdr/prototype/validate_ready_prompt.sh
+```
+
+After changing agent-specific clear or ready-composer behavior, run the optional
+live Claude gate. It uses a disposable session and does not make a model request:
+
+```sh
+./herdr/prototype/validate_ready_prompt_live_claude.sh
+```
+
+`ready_prompt.sh` uses Herdr process inspection and recent-unwrapped pane reads,
+then applies the established fail-closed handoff parser. It sends the extracted
+text through a bracketed-paste envelope over `pane send-text`, so multiline
+content is inserted without submission. Consume-once state is scoped to the
+pane. `prefix+B` submits `/clear` for Codex or Claude, waits for two stable
+agent-specific ready screens, then inserts the handoff; other agents fail
+before capture or input.
+The validator covers parser compatibility, mocked error/clear paths, and a live
+Herdr/Fish transport trial whose pasted `touch` command must remain visible but
+unexecuted.
+
+## Semantic agent-state gate
+
+Run the semantic-state gate independently with:
+
+```sh
+./herdr/prototype/validate_agent_states.sh
+```
+
+Herdr retains lifecycle authority and its native `working`, `blocked`, and
+`done` rollups. `semantic_agent_state.py` reuses the established agent-event
+classifier and reports display-only metadata: running work remains `working`,
+questions and approvals remain `blocked`, and finished and failed outcomes
+remain `done`, while state labels and the `$semantic_state` sidebar token make
+all five outcomes visually distinct. The adapter is inert outside a Herdr pane,
+and no Codex, Claude, OpenCode, AGY, or Gemini hook is installed by this gate.
+
+Run the bounded multi-agent compatibility gate independently with:
+
+```sh
+./herdr/prototype/validate_multi_agent_compat.sh
+```
+
+This separate atomic gate preserves `agent-state-validation.jsonl` and records
+Claude, OpenCode, AGY, and Gemini CLI availability plus deterministic detection,
+all five lifecycle/semantic transitions, real `prefix+f` navigator visibility,
+and an unsupported-agent no-mutation control. It makes no model calls, installs
+no integrations, changes no production configuration, and does not authorize
+migration. Successful evidence is written to
+`evidence/multi-agent-compat-validation.jsonl`.
+
+## Fish login-attach gate
+
+Run the isolated login gate with:
+
+```sh
+./herdr/prototype/validate_login_attach.sh
+```
+
+`herdr_login_attach.fish` launches one stable `main` named session only for an
+interactive top-level login shell. It remains inert inside Herdr (`HERDR_ENV` or
+`HERDR_PANE_ID`), inside production tmux, in non-login or non-interactive Fish,
+when `HERDR_NO_AUTO_ATTACH` is set, or when a custom session name is unsafe.
+The gate uses an isolated Fish config and fake Herdr executable; it does not
+source, edit, or install anything into production `fish/config.fish`.
+
+High-quality image preview uses Herdr's experimental pane-owned raster layer.
+`native_preview.sh` reads the real fzf geometry, rejects its negative row
+sentinel, pre-fits PNG pixels to the Ghostty cell box, serializes updates per
+pane, and discards superseded workers. The retry uses only the clean fixtures in
+`fixtures/`; terminal screenshots are no longer preview inputs. Crisp placement
+and explicit clear pass, but fast selection captures still show the previous
+raster and focus/resize can transiently black most of the client. The native
+route therefore remains rejected as less polished than tmux. Chafa symbols
+remain only the failure fallback because their quality was also rejected.
 
 The scratch `prototype.golden-focus` plugin listens for `pane.focused` and
 targets the same 62% width/height used by the tmux focus hook. Press
@@ -108,10 +396,15 @@ The trial screenshots are
 [`collapsed`](screenshots/collapsed.png). The final direct Ghostty chafa
 fallback is captured in [`chafa-final`](screenshots/chafa-final.png). The user
 approved golden-focus behavior and rejected the earlier smart-navigation and
-chafa paths. The corrected raster evidence is captured in
-[`native-preview-retry`](screenshots/native-preview-retry.png) and
-[`native-preview-acceptance`](screenshots/native-preview-acceptance.png); its
-quality and the restored physical Alt feel are awaiting user approval.
+chafa paths. The latest clean raster and clear evidence is captured in
+[`native-preview-clean`](screenshots/native-preview-clean.png) and
+[`native-preview-cleared`](screenshots/native-preview-cleared.png). The stale
+selection and focus-redraw failures are captured in
+[`native-preview-cycle-amber`](screenshots/native-preview-cycle-amber.png),
+[`native-preview-cycle-blue`](screenshots/native-preview-cycle-blue.png), and
+[`native-preview-focus-right`](screenshots/native-preview-focus-right.png).
+The user already approved the physical Alt feel; this image-only retry did not
+modify that adapter.
 
 To stop and wipe the scratch runtime without touching normal tmux:
 

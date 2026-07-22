@@ -5,6 +5,20 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 prototype="$root/herdr/prototype"
 tab_lifecycle_evidence=${HERDR_TAB_LIFECYCLE_EVIDENCE:-"$prototype/evidence/tab-lifecycle-validation.jsonl"}
 picker_evidence=${HERDR_PICKER_EVIDENCE:-"$prototype/evidence/picker-validation.jsonl"}
+ready_prompt_evidence=${HERDR_READY_PROMPT_EVIDENCE:-"$prototype/evidence/ready-prompt-validation.jsonl"}
+pane_lifecycle_evidence=${HERDR_PANE_LIFECYCLE_EVIDENCE:-"$prototype/evidence/pane-lifecycle-validation.jsonl"}
+agent_state_evidence=${HERDR_AGENT_STATE_EVIDENCE:-"$prototype/evidence/agent-state-validation.jsonl"}
+multi_agent_evidence=${HERDR_MULTI_AGENT_EVIDENCE:-"$prototype/evidence/multi-agent-compat-validation.jsonl"}
+login_attach_evidence=${HERDR_LOGIN_ATTACH_EVIDENCE:-"$prototype/evidence/login-attach-validation.jsonl"}
+popup_evidence=${HERDR_POPUP_EVIDENCE:-"$prototype/evidence/popup-validation.jsonl"}
+layout_menu_evidence=${HERDR_LAYOUT_MENU_EVIDENCE:-"$prototype/evidence/layout-menu-validation.jsonl"}
+copy_mode_evidence=${HERDR_COPY_MODE_EVIDENCE:-"$prototype/evidence/copy-mode-validation.jsonl"}
+recovery_evidence=${HERDR_RECOVERY_EVIDENCE:-"$prototype/evidence/recovery-validation.jsonl"}
+workspace_navigation_evidence=${HERDR_WORKSPACE_NAVIGATION_EVIDENCE:-"$prototype/evidence/workspace-navigation-validation.jsonl"}
+url_evidence=${HERDR_URL_EVIDENCE:-"$prototype/evidence/url-validation.jsonl"}
+binding_evidence=${HERDR_BINDING_EVIDENCE:-"$prototype/evidence/binding-validation.jsonl"}
+remote_evidence=${HERDR_REMOTE_EVIDENCE:-"$prototype/evidence/remote-validation.jsonl"}
+capability_gap_evidence=${HERDR_CAPABILITY_GAP_EVIDENCE:-"$prototype/evidence/capability-gap-validation.jsonl"}
 
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
@@ -13,15 +27,20 @@ test -x "$prototype/prepare_live_trial.sh"
 test -x "$prototype/smart_nav.sh"
 test -x "$prototype/chafa_preview.sh"
 test -x "$prototype/native_preview.sh"
+test -x "$prototype/numbered_tab.sh"
 test -x "$prototype/adaptive_split.sh"
 test -x "$prototype/focused_pane.sh"
 test -x "$prototype/open_visible_url.sh"
+test -x "$prototype/ready_prompt.sh"
+test -x "$prototype/ready_prompt_agent_fixture.sh"
 test -x "$prototype/prototype_shell.sh"
 test -x "$prototype/shell_action.sh"
 test -x "$prototype/smart_close.sh"
 test -x "$prototype/swap_pane.sh"
 test -x "$prototype/validate_bindings.sh"
 test -x "$prototype/close_other_tabs.sh"
+test -x "$prototype/close_other_panes.sh"
+test -x "$prototype/equalize_panes.sh"
 test -x "$prototype/tab-history/tab_history.sh"
 test -f "$prototype/tab-history/herdr-plugin.toml"
 test -x "$prototype/tab_client.py"
@@ -29,8 +48,41 @@ test -x "$prototype/picker_client.py"
 test -x "$prototype/tab_move.sh"
 test -x "$prototype/validate_tabs.sh"
 test -x "$prototype/validate_picker.sh"
+test -x "$prototype/validate_ready_prompt.sh"
+test -x "$prototype/validate_panes.sh"
+test -x "$prototype/semantic_agent_state.py"
+test -x "$prototype/validate_agent_states.sh"
+test -x "$prototype/validate_multi_agent_compat.sh"
+test -f "$prototype/herdr_login_attach.fish"
+test -x "$prototype/login_attach_fixture.sh"
+test -x "$prototype/validate_login_attach.sh"
+test -x "$prototype/popup_fixture.sh"
+test -x "$prototype/validate_popups.sh"
+test -x "$prototype/layout_menu.sh"
+test -x "$prototype/validate_layout_menu.sh"
+test -x "$prototype/validate_copy_mode.sh"
+test -x "$prototype/recovery_agent_fixture.sh"
+test -x "$prototype/validate_recovery.sh"
+test -x "$prototype/validate_workspace_navigation.sh"
+test -x "$prototype/validate_urls.sh"
+test -x "$prototype/validate_remote.sh"
+test -x "$prototype/validate_capability_gaps.sh"
 test -f "$tab_lifecycle_evidence"
 test -f "$picker_evidence"
+test -f "$ready_prompt_evidence"
+test -f "$pane_lifecycle_evidence"
+test -f "$agent_state_evidence"
+test -f "$multi_agent_evidence"
+test -f "$login_attach_evidence"
+test -f "$popup_evidence"
+test -f "$layout_menu_evidence"
+test -f "$copy_mode_evidence"
+test -f "$recovery_evidence"
+test -f "$workspace_navigation_evidence"
+test -f "$url_evidence"
+test -f "$binding_evidence"
+test -f "$remote_evidence"
+test -f "$capability_gap_evidence"
 test -f "$prototype/fixtures/preview-amber.png"
 test -f "$prototype/fixtures/preview-blue.png"
 test -f "$prototype/fixtures/preview-green.png"
@@ -75,18 +127,31 @@ grep -q '^split_vertical = "prefix+v"$' "$prototype/config.toml"
 grep -q '^split_horizontal = ""$' "$prototype/config.toml"
 grep -q '^close_pane = ""$' "$prototype/config.toml"
 grep -q '^close_tab = "prefix+shift+x"$' "$prototype/config.toml"
-grep -q '^last_pane = "prefix+tab"$' "$prototype/config.toml"
+grep -q '^previous_workspace = "prefix+("$' "$prototype/config.toml"
+grep -q '^next_workspace = "prefix+)"$' "$prototype/config.toml"
+grep -Fq 'last_pane = ["prefix+tab", "ctrl+^"]' "$prototype/config.toml"
 grep -q '^key = "prefix+a"$' "$prototype/config.toml"
 grep -q '^key = "prefix+x"$' "$prototype/config.toml"
 grep -q '^key = "prefix+u"$' "$prototype/config.toml"
 for key in h j k l; do
   grep -q "^key = \"prefix+shift+$key\"$" "$prototype/config.toml"
 done
-test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 9
-if grep -Eq 'prefix\+(b|shift\+b)' "$prototype/config.toml"; then
-  echo "prefix+b/B must remain reserved and unassigned" >&2
-  exit 1
-fi
+test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 24
+grep -q '^key = "prefix+b"$' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+b"$' "$prototype/config.toml"
+grep -q 'ready_prompt.sh' "$prototype/config.toml"
+grep -q 'ready_prompt.sh.*--clear' "$prototype/config.toml"
+grep -Fq 'bracketed_prompt=$(printf' "$prototype/ready_prompt.sh"
+grep -Fq '\033[200~%s\033[201~' "$prototype/ready_prompt.sh"
+grep -q '^key = "prefix+o"$' "$prototype/config.toml"
+grep -q '^key = "prefix+="$' "$prototype/config.toml"
+grep -q '^key = "prefix+space"$' "$prototype/config.toml"
+grep -q 'layout_menu.sh' "$prototype/config.toml"
+grep -q '^width = 54$' "$prototype/config.toml"
+grep -q '^height = 12$' "$prototype/config.toml"
+for digit in 0 1 2 3 4 5 6 7 8 9; do
+  grep -q "^key = \"prefix+$digit\"$" "$prototype/config.toml"
+done
 duplicates=$(awk -F'"' '/^key = "/ { print $2 }' "$prototype/config.toml" | sort | uniq -d)
 if [ -n "$duplicates" ]; then
   printf 'duplicate prototype command binding(s):\n%s\n' "$duplicates" >&2
@@ -104,6 +169,7 @@ fi
 grep -q '^sidebar_collapsed_mode = "hidden"$' "$prototype/config.toml"
 grep -q '^pane_gaps = false$' "$prototype/config.toml"
 grep -q '^hide_tab_bar_when_single_tab = true$' "$prototype/config.toml"
+grep -Fq 'rows = [["state_icon", "workspace", "tab"], ["agent", "$semantic_state"]]' "$prototype/config.toml"
 grep -q '^delivery = "off"$' "$prototype/config.toml"
 grep -q '^enabled = false$' "$prototype/config.toml"
 
@@ -116,7 +182,7 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
-  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 7
+  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 21
   if grep -Eq '^key = "(alt|ctrl\+alt)\+(h|j|k|l)"$' \
     "$prototype/.runtime/cf/herdr/config.toml"; then
     echo "focused prototype must pass physical Alt through to pane applications" >&2
@@ -131,19 +197,27 @@ fi
 grep -q 'bind --mode.*\\ev.*split-right' "$prototype/herdr_nav.fish"
 grep -q 'bind --mode.*\\en.*split-adaptive' "$prototype/herdr_nav.fish"
 grep -q 'bind --mode.*\\eq.*close-pane' "$prototype/herdr_nav.fish"
+grep -q 'bind --mode.*\\eo.*close-other-panes' "$prototype/herdr_nav.fish"
+grep -q 'bind --mode.*\\e=.*equalize-panes' "$prototype/herdr_nav.fish"
 grep -q 'bind --mode.*\\eX.*close-tab' "$prototype/herdr_nav.fish"
+grep -q 'bind --mode.*\\e\\cx.*close-other-tabs' "$prototype/herdr_nav.fish"
 grep -q 'bind --mode.*\\ez.*zoom' "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[118;3u'" "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[110;3u'" "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[113;3u'" "$prototype/herdr_nav.fish"
+grep -q "printf '\\\\e\[111;3u'" "$prototype/herdr_nav.fish"
+grep -q "printf '\\\\e\[61;3u'" "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[122;3u'" "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[88;3u'" "$prototype/herdr_nav.fish"
 grep -q "printf '\\\\e\[120;4u'" "$prototype/herdr_nav.fish"
+grep -q "printf '\\\\e\[120;7u'" "$prototype/herdr_nav.fish"
 if grep -Eq "\\\\ex.*close-pane|120;3u.*close-pane" "$prototype/herdr_nav.fish"; then
   echo "Alt-x must remain application-owned and unbound in the Fish adapter" >&2
   exit 1
 fi
 fish --no-config -n "$prototype/herdr_nav.fish"
+fish --no-config -n "$prototype/herdr_login_attach.fish"
+sh -n "$prototype/login_attach_fixture.sh"
 grep -q 'export XDG_CONFIG_HOME="$user_config_home"' "$prototype/prototype_shell.sh"
 grep -q 'export TMUX=HERDR_PROTOTYPE_STARTUP_GUARD' "$prototype/prototype_shell.sh"
 grep -q 'set -e TMUX; source' "$prototype/prototype_shell.sh"
@@ -153,11 +227,398 @@ python3 -c 'import sys; compile(open(sys.argv[1]).read(), "tab_client.py", "exec
   "$prototype/tab_client.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "picker_client.py", "exec")' \
   "$prototype/picker_client.py"
+python3 -c 'import sys; compile(open(sys.argv[1]).read(), "semantic_agent_state.py", "exec")' \
+  "$prototype/semantic_agent_state.py"
+
+binding_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+binding_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
+binding_shell_action_hash=$(shasum -a 256 "$prototype/shell_action.sh" | awk '{print $1}')
+binding_validator_hash=$(shasum -a 256 "$prototype/validate_bindings.sh" | awk '{print $1}')
+binding_production=$(jq -cn \
+  --arg tmux "$(shasum -a 256 "$root/tmux/tmux.conf" | awk '{print $1}')" \
+  --arg fish "$(shasum -a 256 "$root/fish/config.fish" | awk '{print $1}')" \
+  --arg ghostty "$(shasum -a 256 "$root/ghostty/config" | awk '{print $1}')" \
+  --arg neovim "$(shasum -a 256 "$HOME/.config/nvim/lua/plugin/tmux.lua" | awk '{print $1}')" \
+  '{"tmux/tmux.conf":$tmux,"fish/config.fish":$fish,"ghostty/config":$ghostty,"~/.config/nvim/lua/plugin/tmux.lua":$neovim}')
+jq -se --arg config_hash "$binding_config_hash" \
+  --arg nav_hash "$binding_nav_hash" \
+  --arg shell_action_hash "$binding_shell_action_hash" \
+  --arg validator_hash "$binding_validator_hash" \
+  --argjson production "$binding_production" '
+  map(.check) == ["fixed_split","adaptive_split","swap","resize","move","smart_close","zoom","visible_urls","alt_transport","close_other_panes","alt_close_tab","alt_close_other_tabs","config","scope_audit","result"] and
+  (.[0].evidence.before.panes | length) == 1 and
+  .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.5 and
+  .[1].evidence.layout.splits[1].direction == "down" and
+  .[2].evidence.before != .[2].evidence.after and
+  .[3].evidence.before.splits[0].ratio == 0.5 and .[3].evidence.after.splits[0].ratio == 0.6 and
+  .[4].evidence.before.terminal_id == .[4].evidence.middle.terminal_id and
+  .[4].evidence.before.terminal_id == .[4].evidence.after.terminal_id and
+  .[5].evidence.protected_exit == 75 and
+  .[5].evidence.process_before == .[5].evidence.process_after_first_press and
+  .[5].evidence.confirmed_process_pane_exists_after_second_press == 0 and
+  .[6].evidence == {before:false,on:true,after:false} and
+  .[7].evidence.opened == ["http://a","http://b"] and
+  .[8].evidence.after_alt_n == (.[8].evidence.pane_count_before + 1) and
+  .[8].evidence.after_nested_alt_v == (.[8].evidence.pane_count_before + 2) and
+  .[8].evidence.zoom_before == false and .[8].evidence.zoom_on == true and .[8].evidence.zoom_after == false and
+  .[8].evidence.alt_q_pane_exists_after == 0 and
+  .[9].evidence.binding == "Alt-o" and .[9].evidence.confirmation_required == true and
+  .[9].evidence.first_press_pane_count == 3 and .[9].evidence.second_press_pane_count == 1 and
+  .[10].evidence.binding == "Alt-X" and .[10].evidence.application_owner == "Fish" and
+  .[10].evidence.tab_absent == true and .[10].evidence.process_dead == true and
+  .[11].evidence.binding == "Alt-Ctrl-x" and .[11].evidence.application_owner == "Fish" and
+  .[11].evidence.tabs_after_first_press == .[11].evidence.tabs_before and
+  .[11].evidence.tabs_after_confirmation == 1 and .[11].evidence.confirmation_required == true and
+  .[12].evidence.result == "config: ok" and
+  .[13].evidence.unchanged == true and
+  .[13].evidence.production_hashes_before == $production and
+  .[13].evidence.production_hashes_after == $production and
+  .[13].evidence.artifact_hashes == {
+    config:$config_hash,nav:$nav_hash,shell_action:$shell_action_hash,validator:$validator_hash
+  } and
+  .[14].evidence == {
+    status:"PASS",session:"trial-focused",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$binding_evidence" >/dev/null
+
+popup_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+popup_fixture_hash=$(shasum -a 256 "$prototype/popup_fixture.sh" | awk '{print $1}')
+popup_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+popup_validator_hash=$(shasum -a 256 "$prototype/validate_popups.sh" | awk '{print $1}')
+popup_production=$(jq -cn \
+  --arg tmux "$(shasum -a 256 "$root/tmux/tmux.conf" | awk '{print $1}')" \
+  --arg fish "$(shasum -a 256 "$root/fish/config.fish" | awk '{print $1}')" \
+  --arg fe "$(shasum -a 256 "$root/fish/functions/fe.fish" | awk '{print $1}')" \
+  --arg ghostty "$(shasum -a 256 "$root/ghostty/config" | awk '{print $1}')" \
+  --arg neovim "$(shasum -a 256 "$HOME/.config/nvim/lua/plugin/tmux.lua" | awk '{print $1}')" \
+  '{"tmux/tmux.conf":$tmux,"fish/config.fish":$fish,"fish/functions/fe.fish":$fe,"ghostty/config":$ghostty,"~/.config/nvim/lua/plugin/tmux.lua":$neovim}')
+jq -se --arg root "$root" \
+  --arg config_hash "$popup_config_hash" \
+  --arg fixture_hash "$popup_fixture_hash" \
+  --arg client_hash "$popup_client_hash" \
+  --arg validator_hash "$popup_validator_hash" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  map(.check) == ["config", "scratch", "lazygit", "scope_audit", "result"] and
+  .[0].evidence == {
+    result:"config: ok",
+    scratch:{binding:"prefix+Enter",width:"80%",height:"80%"},
+    lazygit:{binding:"prefix+g",width:"85%",height:"85%"}
+  } and
+  .[1].evidence.kind == "scratch" and
+  (.[1].evidence.pid | positive_integer) and
+  .[1].evidence.rows == 30 and .[1].evidence.cols == 72 and
+  .[1].evidence.cwd == $root and
+  (.[1].evidence.parent_pane_pid | positive_integer) and
+  .[1].evidence.tiled_objects_unchanged == true and
+  .[1].evidence.dismissed_on_process_exit == true and
+  .[2].evidence.kind == "lazygit" and
+  (.[2].evidence.pid | positive_integer) and
+  .[2].evidence.rows == 32 and .[2].evidence.cols == 76 and
+  .[2].evidence.cwd == $root and
+  .[2].evidence.parent_pane_pid == .[1].evidence.parent_pane_pid and
+  .[2].evidence.tiled_objects_unchanged == true and
+  .[2].evidence.dismissed_on_process_exit == true and
+  .[3].evidence == {
+    config_sha256:$config_hash,
+    fixture_sha256:$fixture_hash,
+    client_sha256:$client_hash,
+    validator_sha256:$validator_hash,
+    production_sha256:$production
+  } and
+  .[4].evidence == {
+    status:"PASS",session:"pu",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$popup_evidence" >/dev/null
+
+layout_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+layout_helper_hash=$(shasum -a 256 "$prototype/layout_menu.sh" | awk '{print $1}')
+layout_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+layout_validator_hash=$(shasum -a 256 "$prototype/validate_layout_menu.sh" | awk '{print $1}')
+jq -se --arg config_hash "$layout_config_hash" \
+  --arg helper_hash "$layout_helper_hash" \
+  --arg client_hash "$layout_client_hash" \
+  --arg validator_hash "$layout_validator_hash" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  def valid_sentinels:
+    type == "array" and length == 3 and
+    all(.[]; (.pane_id | type == "string" and length > 0) and (.pid | positive_integer)) and
+    (map(.pane_id) | unique | length == 3) and
+    (map(.pid) | unique | length == 3);
+  map(.check) == ["config","equalize","zoom","cancel","adaptive_split","split_right","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",binding:"prefix+Space",
+    actions:["equalize","zoom","adaptive-split","split-right","cancel"],
+    layout_apply_used:false
+  } and
+  .[1].evidence.selection == "e" and
+  .[1].evidence.topology_preserved == true and
+  .[1].evidence.processes_survived == true and
+  (.[1].evidence.sentinels | valid_sentinels) and
+  .[1].evidence.topology_signature.type == "split" and
+  .[1].evidence.before.ratio == 0.7 and
+  .[1].evidence.before.second.ratio == 0.65 and
+  .[1].evidence.after.ratio == 0.33333334 and
+  .[1].evidence.after.second.ratio == 0.5 and
+  .[2].evidence.selection == "z" and
+  .[2].evidence.states == [false,true,false] and
+  .[2].evidence.processes_survived == true and
+  .[2].evidence.sentinels == .[1].evidence.sentinels and
+  .[3].evidence.selection == "q" and .[3].evidence.layout_unchanged == true and
+  .[4].evidence.selection == "a" and
+  (.[4].evidence.new_pane | type == "string" and length > 0) and
+  .[4].evidence.original_processes_survived == true and
+  .[4].evidence.sentinels == .[1].evidence.sentinels and
+  .[5].evidence.selection == "v" and
+  (.[5].evidence.new_pane | type == "string" and length > 0) and
+  .[5].evidence.new_pane != .[4].evidence.new_pane and
+  .[5].evidence.original_processes_survived == true and
+  .[5].evidence.sentinels == .[1].evidence.sentinels and
+  .[6].evidence == {
+    config_sha256:$config_hash,helper_sha256:$helper_hash,
+    client_sha256:$client_hash,validator_sha256:$validator_hash,
+    production_sha256:$production
+  } and
+  .[7].evidence == {
+    status:"PASS",session:"lm",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$layout_menu_evidence" >/dev/null
+
+copy_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+copy_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+copy_validator_hash=$(shasum -a 256 "$prototype/validate_copy_mode.sh" | awk '{print $1}')
+jq -se --arg config_hash "$copy_config_hash" \
+  --arg client_hash "$copy_client_hash" \
+  --arg validator_hash "$copy_validator_hash" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  map(.check) == ["config","paging","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",binding:"prefix+s",
+    native_half_page:["Ctrl-u","Ctrl-d"],
+    native_full_page:["PageUp","PageDown"]
+  } and
+  (.[1].evidence.sentinel_pid | positive_integer) and
+  .[1].evidence.initial == {min:82,max:120} and
+  .[1].evidence.copy_entry == .[1].evidence.initial and
+  .[1].evidence.half_up == {min:62,max:100} and
+  .[1].evidence.half_down == .[1].evidence.initial and
+  .[1].evidence.page_up == {min:44,max:82} and
+  .[1].evidence.page_down == .[1].evidence.initial and
+  .[1].evidence.process_survived == true and
+  .[2].evidence == {
+    config_sha256:$config_hash,client_sha256:$client_hash,
+    validator_sha256:$validator_hash,production_sha256:$production
+  } and
+  .[3].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"cm",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$copy_mode_evidence" >/dev/null
+
+url_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+url_helper_hash=$(shasum -a 256 "$prototype/open_visible_url.sh" | awk '{print $1}')
+url_opener_hash=$(shasum -a 256 "$prototype/url_opener_fixture.sh" | awk '{print $1}')
+url_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+url_validator_hash=$(shasum -a 256 "$prototype/validate_urls.sh" | awk '{print $1}')
+url_production=$(jq -cn \
+  --arg tmux "$(shasum -a 256 "$root/tmux/tmux.conf" | awk '{print $1}')" \
+  --arg fish "$(shasum -a 256 "$root/fish/config.fish" | awk '{print $1}')" \
+  --arg ghostty "$(shasum -a 256 "$root/ghostty/config" | awk '{print $1}')" \
+  --arg neovim "$(shasum -a 256 "$HOME/.config/nvim/lua/plugin/tmux.lua" | awk '{print $1}')" \
+  '{"tmux/tmux.conf":$tmux,"fish/config.fish":$fish,"ghostty/config":$ghostty,"~/.config/nvim/lua/plugin/tmux.lua":$neovim}')
+jq -se --arg config_hash "$url_config_hash" \
+  --arg helper_hash "$url_helper_hash" \
+  --arg opener_hash "$url_opener_hash" \
+  --arg client_hash "$url_client_hash" \
+  --arg validator_hash "$url_validator_hash" \
+  --argjson production "$url_production" '
+  map(.check) == ["config","transport","scope_audit","result"] and
+  .[0].evidence == {result:"config: ok",binding:"prefix+u",transport:"real PTY input"} and
+  .[1].evidence.input_submitted_via == "prefix+u" and
+  .[1].evidence.cases == {
+    zero:{opened:false},
+    one:{opened:"https://example.test/one"},
+    multiple:{opened_newest:"https://example.test/new?x=1"}
+  } and
+  .[1].evidence.opened == ["https://example.test/one","https://example.test/new?x=1"] and
+  .[2].evidence.unchanged == true and
+  .[2].evidence.production_hashes_before == $production and
+  .[2].evidence.production_hashes_after == $production and
+  .[2].evidence.artifact_hashes == {
+    config:$config_hash,helper:$helper_hash,opener:$opener_hash,
+    client:$client_hash,validator:$validator_hash
+  } and
+  .[3].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"url",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$url_evidence" >/dev/null
+
+remote_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+remote_validator_hash=$(shasum -a 256 "$prototype/validate_remote.sh" | awk '{print $1}')
+jq -se --arg config_hash "$remote_config_hash" \
+  --arg validator_hash "$remote_validator_hash" \
+  --argjson production "$url_production" '
+  map(.check) == ["capability","ssh","attach","unavailable","scope_audit","result"] and
+  .[0].evidence == {
+    version:"herdr 0.7.4",remote_attach:true,
+    local_or_server_keybindings:true,nesting_default:"disabled"
+  } and
+  .[1].evidence.transport == "disposable-localhost-openssh" and
+  .[1].evidence.authenticated == true and
+  .[1].evidence.remote_binary == "herdr 0.7.4" and
+  .[1].evidence.production_remote_login_enabled == false and
+  .[2].evidence.mode == "thin-client" and .[2].evidence.attached == true and
+  .[2].evidence.session == "remote-audit" and
+  .[2].evidence.server_status.running == true and
+  .[2].evidence.server_status.version == "0.7.4" and
+  .[2].evidence.server_status.compatible == true and
+  (.[2].evidence.pane_inventory.result.panes | length) >= 1 and
+  .[3].evidence.fail_closed == true and .[3].evidence.exit != 0 and
+  .[3].evidence.input_sent == false and
+  .[3].evidence.remote_install_attempted == false and
+  .[4].evidence.unchanged == true and
+  .[4].evidence.production_hashes_before == $production and
+  .[4].evidence.production_hashes_after == $production and
+  .[4].evidence.artifact_hashes == {
+    config:$config_hash,validator:$validator_hash
+  } and
+  .[5].evidence == {
+    status:"PASS",production_configuration_modified:false,
+    remote_login_enabled:false,integration_installed:false,
+    migration_authorized:false
+  }
+' "$remote_evidence" >/dev/null
+
+capability_defaults_hash=$($prototype/.runtime/bin/herdr --default-config | shasum -a 256 | awk '{print $1}')
+capability_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+capability_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
+capability_validator_hash=$(shasum -a 256 "$prototype/validate_capability_gaps.sh" | awk '{print $1}')
+jq -se --arg defaults_hash "$capability_defaults_hash" \
+  --arg config_hash "$capability_config_hash" \
+  --arg nav_hash "$capability_nav_hash" \
+  --arg validator_hash "$capability_validator_hash" \
+  --argjson production "$url_production" '
+  map(.check) == ["surface","alternatives","policy","scope_audit","result"] and
+  .[0].evidence == {
+    version:"herdr 0.7.4",default_config_sha256:$defaults_hash,
+    configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
+    absence_deterministic:true
+  } and
+  .[1].evidence == {
+    ordinary_selection:{keys:["v","Space","y","Enter"],evidence:"copy-mode-validation.jsonl"},
+    paging:{keys:["Ctrl-u","Ctrl-d","PageUp","PageDown"],evidence:"copy-mode-validation.jsonl"},
+    visible_url:{key:"prefix+u",evidence:"url-validation.jsonl"},
+    last_location:{keys:["prefix+Tab","Ctrl-^/Ctrl-6"],semantics:"last-pane"}
+  } and
+  .[2].evidence == {
+    alt_tab:"retired",rectangle_selection:"unavailable",copy_line_Y:"unavailable",
+    marks:"unavailable",prompt_jumps:"unavailable",copy_mode_O:"unavailable",
+    input_emulation_installed:false,global_alt_binding_installed:false,
+    migration_difference_requires_no_production_change:true
+  } and
+  .[3].evidence.unchanged == true and
+  .[3].evidence.production_hashes_before == $production and
+  .[3].evidence.production_hashes_after == $production and
+  .[3].evidence.artifact_hashes == {
+    config:$config_hash,nav:$nav_hash,validator:$validator_hash
+  } and
+  .[4].evidence == {
+    status:"PASS",production_configuration_modified:false,
+    unsupported_emulation_installed:false,migration_authorized:false
+  }
+' "$capability_gap_evidence" >/dev/null
+
+recovery_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+recovery_fixture_hash=$(shasum -a 256 "$prototype/recovery_agent_fixture.sh" | awk '{print $1}')
+recovery_validator_hash=$(shasum -a 256 "$prototype/validate_recovery.sh" | awk '{print $1}')
+jq -se --arg config_hash "$recovery_config_hash" \
+  --arg fixture_hash "$recovery_fixture_hash" \
+  --arg validator_hash "$recovery_validator_hash" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  map(.check) == ["config","before_restart","after_restart","scope_audit","result"] and
+  .[0].evidence.result == "config: ok" and
+  .[0].evidence.pane_history == true and
+  .[0].evidence.resume_agents_on_restore == true and
+  .[0].evidence.isolated_codex_integration.version == 6 and
+  .[0].evidence.isolated_codex_integration.installed == true and
+  (.[0].evidence.isolated_codex_integration.output | contains("installed codex integration hook")) and
+  .[0].evidence.agent_fixture_installed_in_runtime_only == true and
+  (.[1].evidence.structure.workspaces | length) == 1 and
+  (.[1].evidence.structure.tabs | length) == 2 and
+  (.[1].evidence.structure.panes | length) == 3 and
+  (.[1].evidence.structure.panes | map(.pane_id)) == ["w1:p1","w1:p2","w1:p3"] and
+  (.[1].evidence.structure.tabs | map(.label)) == ["Primary","Secondary"] and
+  (.[1].evidence.structure.panes | map(.label)) == ["RECOVERY ONE","RECOVERY TWO","RECOVERY THREE"] and
+  .[1].evidence.structure.layouts[0].splits[0].ratio == 0.62 and
+  (.[1].evidence.live_process_pids | length) == 3 and
+  all(.[1].evidence.live_process_pids[]; positive_integer) and
+  (.[1].evidence.live_process_pids | unique | length) == 3 and
+  .[1].evidence.history_markers == ["RECOVERY_HISTORY_1_LINE_001","RECOVERY_HISTORY_2_LINE_001"] and
+  .[1].evidence.agent_session == {pane_id:"w1:p3",agent:"codex",session_id:"recovery-codex-session"} and
+  .[2].evidence.structure == .[1].evidence.structure and
+  .[2].evidence.original_processes_gone == true and
+  (.[2].evidence.restored_processes | length) == 3 and
+  all(.[2].evidence.restored_processes[]; (.shell_pid | positive_integer) and .old_pid_reused == false) and
+  .[2].evidence.history_replayed == true and
+  .[2].evidence.native_agent_resume == {agent:"codex",args:["resume","recovery-codex-session"]} and
+  .[2].evidence.arbitrary_processes_resumed == false and
+  .[3].evidence == {
+    config_sha256:$config_hash,fixture_sha256:$fixture_hash,
+    validator_sha256:$validator_hash,production_sha256:$production
+  } and
+  .[4].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"rc",
+    snapshot_restored:true,pane_history_replayed:true,
+    native_agent_resumed:true,arbitrary_process_resume:false,
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$recovery_evidence" >/dev/null
+
+workspace_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+workspace_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+workspace_validator_hash=$(shasum -a 256 "$prototype/validate_workspace_navigation.sh" | awk '{print $1}')
+jq -se --arg config_hash "$workspace_config_hash" \
+  --arg client_hash "$workspace_client_hash" \
+  --arg validator_hash "$workspace_validator_hash" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  map(.check) == ["config","cycle","last_pane","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",previous_workspace:"prefix+(",next_workspace:"prefix+)",
+    last_pane:["prefix+Tab","Ctrl-^/Ctrl-6"]
+  } and
+  .[1].evidence.start == "w1" and
+  .[1].evidence.next_sequence == ["w2","w3","w1"] and
+  .[1].evidence.previous_from_first == "w3" and .[1].evidence.wrapped == true and
+  .[2].evidence.binding == "Ctrl-^/Ctrl-6" and
+  .[2].evidence.setup == ["w1:p1","w2:p1"] and
+  .[2].evidence.toggle == ["w1:p1","w2:p1"] and
+  .[2].evidence.cross_workspace == true and .[2].evidence.processes_survived == true and
+  (.[2].evidence.sentinels | length) == 3 and
+  all(.[2].evidence.sentinels[]; (.pane_id | type == "string" and length > 0) and (.pid | positive_integer)) and
+  .[3].evidence == {
+    config_sha256:$config_hash,client_sha256:$client_hash,
+    validator_sha256:$validator_hash,production_sha256:$production
+  } and
+  .[4].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"wn",
+    model:"workspaces-within-session",
+    production_configuration_modified:false,migration_authorized:false
+  }
+' "$workspace_navigation_evidence" >/dev/null
+
 jq -se '
   def nonempty_string: type == "string" and length > 0;
   def positive_integer: type == "number" and floor == . and . > 0;
 
-  ["config", "reorder_api", "create", "cycle", "indexed", "last_tab",
+  ["config", "reorder_api", "create", "cycle", "indexed", "numbered_create", "last_tab",
    "reorder", "close", "close_others", "result"] as $expected_checks |
   map(.check) as $checks |
   .[2].evidence.tabs as $tabs |
@@ -197,39 +658,307 @@ jq -se '
   .[3].evidence ==
     {start:$tab_ids[3], next:$tab_ids[0], previous:$tab_ids[3]} and
   .[4].evidence == {binding:"prefix+2", focused_tab:$tab_ids[1]} and
-  .[5].evidence.previous_tab == $tab_ids[1] and
-  .[5].evidence.from_tab == $tab_ids[2] and
-  .[5].evidence.result == $tab_ids[1] and
-  (.[5].evidence.second_pane_in_from_tab | nonempty_string) and
+  .[5].evidence.binding == "prefix+7" and
+  .[5].evidence.label == "7" and
+  .[5].evidence.number == 5 and
+  .[5].evidence.single_new_tab == true and
+  (.[5].evidence.created_tab | nonempty_string) and
+  ([.[5].evidence.created_tab] - $tab_ids | length) == 1 and
+  (.[5].evidence.cwd | nonempty_string) and
+  .[6].evidence.previous_tab == $tab_ids[1] and
+  .[6].evidence.from_tab == $tab_ids[2] and
+  .[6].evidence.result == $tab_ids[1] and
+  (.[6].evidence.second_pane_in_from_tab | nonempty_string) and
 
-  .[6].evidence.moved_tab == $tab_ids[2] and
-  .[6].evidence.sentinel_pid == $sentinel_pids[2] and
-  .[6].evidence.before == $tab_ids and
-  .[6].evidence.after_right ==
+  .[7].evidence.moved_tab == $tab_ids[2] and
+  .[7].evidence.sentinel_pid == $sentinel_pids[2] and
+  .[7].evidence.before == $tab_ids and
+  .[7].evidence.after_right ==
     [$tab_ids[0], $tab_ids[1], $tab_ids[3], $tab_ids[2]] and
-  .[6].evidence.restored == $tab_ids and
+  .[7].evidence.restored == $tab_ids and
 
-  (.[7].evidence.closed_tab | nonempty_string) and
-  ([.[7].evidence.closed_tab] - $tab_ids | length) == 1 and
-  (.[7].evidence.sentinel_pid | positive_integer) and
-  ([.[7].evidence.sentinel_pid] - $sentinel_pids | length) == 1 and
-  .[7].evidence.tab_absent == true and
-  .[7].evidence.sentinel_dead == true and
+  (.[8].evidence.closed_tab | nonempty_string) and
+  ([.[8].evidence.closed_tab] - $tab_ids | length) == 1 and
+  (.[8].evidence.sentinel_pid | positive_integer) and
+  ([.[8].evidence.sentinel_pid] - $sentinel_pids | length) == 1 and
+  .[8].evidence.tab_absent == true and
+  .[8].evidence.sentinel_dead == true and
 
-  .[8].evidence.first_press_preserved_tabs == $tab_ids and
-  .[8].evidence.survivor_tab == $tab_ids[1] and
-  .[8].evidence.survivor_pid == $sentinel_pids[1] and
-  .[8].evidence.closed_target_pids ==
+  .[9].evidence.first_press_preserved_tabs == $tab_ids and
+  .[9].evidence.survivor_tab == $tab_ids[1] and
+  .[9].evidence.survivor_pid == $sentinel_pids[1] and
+  .[9].evidence.closed_target_pids ==
     [$sentinel_pids[0], $sentinel_pids[2], $sentinel_pids[3]] and
-  .[8].evidence.confirmation_required == true and
+  .[9].evidence.confirmation_required == true and
 
-  .[9].evidence == {
+  .[10].evidence == {
     status:"PASS",
     session:"gate-tabs",
     production_configuration_modified:false,
     migration_authorized:false
   }
 ' "$tab_lifecycle_evidence" >/dev/null
+
+ready_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+ready_helper_hash=$(shasum -a 256 "$prototype/ready_prompt.sh" | awk '{print $1}')
+ready_fixture_hash=$(shasum -a 256 "$prototype/ready_prompt_agent_fixture.sh" | awk '{print $1}')
+ready_validator_hash=$(shasum -a 256 "$prototype/validate_ready_prompt.sh" | awk '{print $1}')
+jq -se --arg config_hash "$ready_config_hash" \
+  --arg helper_hash "$ready_helper_hash" \
+  --arg fixture_hash "$ready_fixture_hash" \
+  --arg validator_hash "$ready_validator_hash" '
+  map(.check) == ["config", "parser", "mock_replay", "live_transport", "scope_audit", "result"] and
+  .[0].evidence == {
+    result:"config: ok",
+    replay_binding:"prefix+b",
+    clear_binding:"prefix+shift+b"
+  } and
+  .[1].evidence.source == "tmux/scripts/ready_prompt.sh --extract" and
+  .[1].evidence.checks > 0 and
+  .[1].evidence.status == "PASS" and
+  .[2].evidence.multiline_insert_exact == true and
+  .[2].evidence.submitted == false and
+  .[2].evidence.consume_once == true and
+  .[2].evidence.duplicate_status != 0 and
+  .[2].evidence.concurrent_status == 75 and
+  .[2].evidence.clear_then_insert == true and
+  .[2].evidence.unsupported_clear_status != 0 and
+  .[3].evidence.agent_argv0 == "codex" and
+  .[3].evidence.prompt_visible == true and
+  .[3].evidence.submitted == false and
+  .[3].evidence.marker_absent == true and
+  .[4].evidence.unchanged == true and
+  .[4].evidence.production_hashes_before == .[4].evidence.production_hashes_after and
+  .[4].evidence.artifact_hashes == {
+    config:$config_hash,
+    helper:$helper_hash,
+    fixture:$fixture_hash,
+    validator:$validator_hash
+  } and
+  .[5].evidence == {
+    status:"PASS",
+    session:"gate-rp",
+    production_configuration_modified:false,
+    migration_authorized:false
+  }
+' "$ready_prompt_evidence" >/dev/null
+
+pane_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+pane_helper_hash=$(shasum -a 256 "$prototype/equalize_panes.sh" | awk '{print $1}')
+pane_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
+pane_client_hash=$(shasum -a 256 "$prototype/tab_client.py" | awk '{print $1}')
+pane_validator_hash=$(shasum -a 256 "$prototype/validate_panes.sh" | awk '{print $1}')
+jq -se --arg config_hash "$pane_config_hash" --arg helper_hash "$pane_helper_hash" \
+  --arg nav_hash "$pane_nav_hash" --arg client_hash "$pane_client_hash" \
+  --arg validator_hash "$pane_validator_hash" '
+  def leaves:
+    if .type == "pane" then 1 else ((.first|leaves)+(.second|leaves)) end;
+  def balanced:
+    if .type == "pane" then true
+    else
+      (.first|leaves) as $a | (.second|leaves) as $b |
+      (($a/($a+$b)) - .ratio) as $delta |
+      ($delta < 0.000001 and $delta > -0.000001) and
+      (.first|balanced) and (.second|balanced)
+    end;
+  def signature:
+    if .type == "pane" then {type,pane_id}
+    else {type,direction,first:(.first|signature),second:(.second|signature)}
+    end;
+  map(.check) == ["config","equalize","prefix_close_others","shell_close_others","no_siblings","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",
+    close_others:{prefix:"prefix+o",shell:"Alt-o"},
+    equalize:{prefix:"prefix+=",shell:"Alt-="}
+  } and
+  .[1].evidence.prefix_binding == "prefix+=" and
+  .[1].evidence.shell_binding == "Alt-=" and
+  .[1].evidence.topology_preserved == true and
+  .[1].evidence.processes_survived == true and
+  (.[1].evidence.sentinel_pids | length) == 2 and
+  (.[1].evidence.sentinel_pids | unique | length) == 2 and
+  (.[1].evidence.before | balanced | not) and
+  (.[1].evidence.after_prefix | balanced) and
+  (.[1].evidence.after_alt | balanced) and
+  (.[1].evidence.before | signature) == .[1].evidence.topology_signature and
+  (.[1].evidence.after_prefix | signature) == .[1].evidence.topology_signature and
+  (.[1].evidence.after_alt | signature) == .[1].evidence.topology_signature and
+  .[2].evidence.binding == "prefix+o" and
+  .[2].evidence.first_press_preserved == true and
+  .[2].evidence.second_press_closed == true and
+  (.[2].evidence.closed_process_pids | length) == 2 and
+  .[3].evidence.binding == "Alt-o" and
+  .[3].evidence.application_owner == "Fish" and
+  .[3].evidence.first_press_preserved == true and
+  .[3].evidence.second_press_closed == true and
+  (.[3].evidence.closed_process_pids | length) == 2 and
+  .[4].evidence == {pane:"w1:p1",pane_count:1,no_op:true} and
+  .[5].evidence.unchanged == true and
+  .[5].evidence.production_hashes_before == .[5].evidence.production_hashes_after and
+  .[5].evidence.artifact_hashes == {
+    config:$config_hash,
+    helper:$helper_hash,
+    nav:$nav_hash,
+    client:$client_hash,
+    validator:$validator_hash
+  } and
+  .[6].evidence == {
+    status:"PASS",
+    session:"gp",
+    production_configuration_modified:false,
+    migration_authorized:false
+  }
+' "$pane_lifecycle_evidence" >/dev/null
+
+agent_state_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+agent_state_helper_hash=$(shasum -a 256 "$prototype/semantic_agent_state.py" | awk '{print $1}')
+agent_state_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+agent_state_validator_hash=$(shasum -a 256 "$prototype/validate_agent_states.sh" | awk '{print $1}')
+jq -se --arg config_hash "$agent_state_config_hash" \
+  --arg helper_hash "$agent_state_helper_hash" \
+  --arg client_hash "$agent_state_client_hash" \
+  --arg validator_hash "$agent_state_validator_hash" '
+  map(.check) == ["config","metadata","navigator","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",
+    sidebar_rows:[["state_icon","workspace","tab"],["agent","$semantic_state"]],
+    metadata_api:true
+  } and
+  .[1].evidence.semantic_states == ["approval","failure","finished","question","running"] and
+  .[1].evidence.lifecycle_authority_preserved == true and
+  (.[1].evidence.panes | length) == 5 and
+  (.[1].evidence.panes | map(.agent) | unique) == ["codex"] and
+  (.[1].evidence.panes | map({state:.tokens.semantic_state,status:.agent_status}) | sort_by(.state)) == [
+    {state:"approval",status:"blocked"},
+    {state:"failure",status:"done"},
+    {state:"finished",status:"done"},
+    {state:"question",status:"blocked"},
+    {state:"running",status:"working"}
+  ] and
+  all(.[1].evidence.panes[];
+    .tokens.semantic_state as $state |
+    .tokens.semantic_state == .tokens.summary and
+    ([.state_labels[]] | index($state)) != null) and
+  .[2].evidence.surface == "prefix+f" and
+  .[2].evidence.distinct_labels == true and
+  .[2].evidence.lines as $lines |
+  all(["running","question","approval","finished","failure"][];
+    . as $state | ($lines[$state] | contains($state))) and
+  .[3].evidence.unchanged == true and
+  .[3].evidence.production_hashes_before == .[3].evidence.production_hashes_after and
+  .[3].evidence.artifact_hashes == {
+    config:$config_hash,
+    helper:$helper_hash,
+    client:$client_hash,
+    validator:$validator_hash
+  } and
+  .[4].evidence == {
+    status:"PASS",
+    version:"herdr 0.7.4",
+    session:"gas",
+    production_configuration_modified:false,
+    integration_installed:false,
+    migration_authorized:false
+  }
+' "$agent_state_evidence" >/dev/null
+
+multi_agent_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+multi_agent_helper_hash=$(shasum -a 256 "$prototype/semantic_agent_state.py" | awk '{print $1}')
+multi_agent_model_hash=$(shasum -a 256 "$root/tmux/scripts/agent_status.py" | awk '{print $1}')
+multi_agent_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+multi_agent_validator_hash=$(shasum -a 256 "$prototype/validate_multi_agent_compat.sh" | awk '{print $1}')
+jq -se --arg config_hash "$multi_agent_config_hash" \
+  --arg helper_hash "$multi_agent_helper_hash" \
+  --arg model_hash "$multi_agent_model_hash" \
+  --arg client_hash "$multi_agent_client_hash" \
+  --arg validator_hash "$multi_agent_validator_hash" '
+  map(.check) == ["config","availability","detection","lifecycle","unsupported","visibility","scope_audit","result"] and
+  .[0].evidence == {
+    result:"config: ok",isolation:"prototype-only",existing_agent_state_evidence_replaced:false
+  } and
+  (.[1].evidence.agents | map(.agent)) == ["claude","opencode","agy","gemini"] and
+  all(.[1].evidence.agents[];
+    .model_call_made == false and
+    ((.status == "available" and (.executable | length) > 0 and (.version | length) > 0) or
+     (.status == "unavailable" and .fail_closed == true))) and
+  .[2].evidence.all_passed == true and
+  (.[2].evidence.cases | map(.detected)) == ["claude","opencode","agy","gemini"] and
+  .[2].evidence.unsupported == {detected:"",fail_closed:true} and
+  (.[3].evidence.agents | map(.agent)) == ["claude","opencode","agy","gemini"] and
+  (.[3].evidence.agents | map(.events)) == [
+    {running:"prompt",question:"stop",approval:"permission",finished:"stop",failure:"failure"},
+    {running:"prompt",question:"question",approval:"permission",finished:"complete",failure:"failure"},
+    {running:"pre-invocation",question:"question",approval:"permission",finished:"stop",failure:"stop"},
+    {running:"before-agent",question:"after-agent",approval:"permission",finished:"after-agent",failure:"after-agent"}
+  ] and
+  all(.[3].evidence.agents[];
+    .deterministic == true and
+    (.states | map({semantic_state,agent_status})) == [
+      {semantic_state:"running",agent_status:"working"},
+      {semantic_state:"question",agent_status:"blocked"},
+      {semantic_state:"approval",agent_status:"blocked"},
+      {semantic_state:"finished",agent_status:"done"},
+      {semantic_state:"failure",agent_status:"done"}
+    ]) and
+  .[3].evidence.lifecycle_authority == "herdr" and
+  .[3].evidence.semantic_metadata == "display-only" and
+  .[4].evidence.unchanged == true and
+  .[4].evidence.before == .[4].evidence.after and
+  .[4].evidence.hook_exit_safe == true and .[4].evidence.input_sent == false and
+  .[5].evidence.surface == "prefix+f" and .[5].evidence.all_visible == true and
+  (.[] | select(.check == "visibility").evidence.lines) as $lines |
+  ($lines.claude | contains("running")) and
+  ($lines.opencode | contains("question")) and
+  ($lines.agy | contains("approval")) and
+  ($lines.gemini | contains("finished")) and
+  .[6].evidence.unchanged == true and
+  .[6].evidence.production_hashes_before == .[6].evidence.production_hashes_after and
+  .[6].evidence.prior_evidence_replaced == false and
+  .[6].evidence.artifact_hashes == {
+    config:$config_hash,helper:$helper_hash,model:$model_hash,client:$client_hash,validator:$validator_hash
+  } and
+  .[7].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"mac",
+    named_agents:["claude","opencode","agy","gemini"],
+    production_configuration_modified:false,integration_installed:false,migration_authorized:false
+  }
+' "$multi_agent_evidence" >/dev/null
+
+login_adapter_hash=$(shasum -a 256 "$prototype/herdr_login_attach.fish" | awk '{print $1}')
+login_fixture_hash=$(shasum -a 256 "$prototype/login_attach_fixture.sh" | awk '{print $1}')
+login_validator_hash=$(shasum -a 256 "$prototype/validate_login_attach.sh" | awk '{print $1}')
+jq -se --arg adapter_hash "$login_adapter_hash" \
+  --arg fixture_hash "$login_fixture_hash" \
+  --arg validator_hash "$login_validator_hash" '
+  map(.check) == ["decisions","scope_audit","result"] and
+  .[0].evidence == {
+    top_level_login:{launched:true,args:["--session","main"]},
+    custom_session:{launched:true,args:["--session","project-alpha"]},
+    guards:{
+      non_login:true,
+      non_interactive:true,
+      herdr_env:true,
+      herdr_pane:true,
+      tmux:true,
+      opt_out:true,
+      invalid_session:true
+    },
+    total_launches:2
+  } and
+  .[1].evidence.unchanged == true and
+  .[1].evidence.production_hashes_before == .[1].evidence.production_hashes_after and
+  .[1].evidence.artifact_hashes == {
+    adapter:$adapter_hash,
+    fixture:$fixture_hash,
+    validator:$validator_hash
+  } and
+  .[2].evidence == {
+    status:"PASS",
+    production_fish_modified:false,
+    installed:false,
+    migration_authorized:false
+  }
+' "$login_attach_evidence" >/dev/null
 
 picker_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 picker_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
@@ -263,25 +992,31 @@ jq -se \
       "resize=prefix+r",
       "fixed_split=prefix+v",
       "adaptive_split=prefix+a",
+      "equalize=prefix+=/Alt-=",
       "copy_search=prefix+s",
       "smart_close=prefix+x",
+      "close_other_panes=prefix+o/Alt-o",
       "close_tab=prefix+X",
       "tabs=prefix+c/n/p",
+      "numbered_tabs=prefix+0..9",
       "zoom=prefix+z",
       "sidebar=prefix+S",
-      "ready_prompt=prefix+b/B reserved",
+      "ready_prompt=prefix+b/B",
       "open_url=prefix+u",
       "workspace_picker=prefix+w",
+      "workspace_cycle=prefix+(/)/Ctrl-^",
       "goto=prefix+f",
       "scratch_popup=prefix+Enter",
-      "lazygit_popup=prefix+g"
+      "lazygit_popup=prefix+g",
+      "layout_menu=prefix+Space"
     ],
     result:"config: ok",
     workspace_picker:"prefix+w",
     goto:"prefix+f",
     direct_alt_ctrl_f:false,
     prefix_enter_preserved:true,
-    prefix_g_preserved:true
+    prefix_g_preserved:true,
+    prefix_space_preserved:true
   } and
 
   ($topology.workspaces | map(.label)) == ["Alpha Project", "Beta Project"] and

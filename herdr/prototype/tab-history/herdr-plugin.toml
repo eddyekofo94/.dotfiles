@@ -1,0 +1,16 @@
+id = "prototype.tab-history"
+name = "PROTOTYPE Tab History"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Throwaway exact last-tab history for the migration gate"
+platforms = ["macos"]
+
+[[actions]]
+id = "last"
+title = "Focus previous tab"
+contexts = ["pane"]
+command = ["./tab_history.sh"]
+
+[[events]]
+on = "tab.focused"
+command = ["./tab_history.sh"]
