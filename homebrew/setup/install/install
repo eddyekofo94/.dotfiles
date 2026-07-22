@@ -4,7 +4,8 @@ ensure_homebrew_installed() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "You may be asked for your sudo password to install Homebrew:"
     sudo -v
-    yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
+    /bin/sh "$repo_dir/tools/install_homebrew_verified.sh"
   fi
 }
 

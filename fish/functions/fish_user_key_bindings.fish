@@ -16,8 +16,14 @@ function fish_user_key_bindings
     bind -M insert -m default jj backward-char force-repaint
     bind -M insert -m default \cy accept-autosuggestion
 
-    # fzf keybindings (ctrl-r=history, ctrl-g=git status, ctrl-p=directory)
-    fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
+    # Sole FZF binding owner (ctrl-r=history, ctrl-g=git status,
+    # ctrl-p/ctrl-t=directory). Apply after vi bindings because they replace maps.
+    if type -q fzf_configure_bindings
+        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
+        for mode in default insert
+            bind --mode $mode \ct _fzf_search_directory
+        end
+    end
 
     #bind -M insert -m default \cf fzf_change_directory
     bind -M insert -m default \cf e

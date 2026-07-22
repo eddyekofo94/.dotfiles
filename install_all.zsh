@@ -1,5 +1,7 @@
 source ~/.dotfiles/terminal/base_directories
 
+DOTFILES_DIR=${DOTFILES_DIR:-$HOME/.dotfiles}
+
 install_brew_packages(){
     cd ~/.dotfiles/homebrew && brew bundle install
 }
@@ -13,7 +15,7 @@ ensure_homebrew_installed() {
     if ! command -v brew >/dev/null 2>&1; then
         echo "You may be asked for your sudo password to install Homebrew:"
         sudo -v
-        yes '' | /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        /bin/sh "$DOTFILES_DIR/tools/install_homebrew_verified.sh"
 
         # TODO: 2023-09-23 - Try to export a different path on MacOs
         [[ -r ~/.zshenv ]] ||
@@ -31,10 +33,11 @@ ensure_homebrew_installed
 ensure_cargo_installed(){
     if ! command -v cargo >/dev/null 2>&1; then
         echo "Cargo needs to be installed: "
- 	# /bin/bash -c -i "$(curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh)"
-	curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --no-modify-path
+	local rustup_bin_dir
+	rustup_bin_dir=$(/bin/sh "$DOTFILES_DIR/tools/ensure_rustup.sh") || return
+	export PATH="$rustup_bin_dir:$PATH"
     fi
-    cd ~/.dotfiles/rust
+    cd "$DOTFILES_DIR/rust"
     xargs < install.sh -n 1 cargo install
 }
 

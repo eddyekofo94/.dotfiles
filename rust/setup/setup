@@ -1,3 +1,5 @@
 #!/usr/bin/env sh
+set -eu
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+/bin/sh "$repo_dir/tools/ensure_rustup.sh"

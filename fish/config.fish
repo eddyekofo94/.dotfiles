@@ -43,17 +43,12 @@ if status is-login
     # TODO: See how properly do this without the error on MacOS
     if string match -q -- "WSL*" $OS
         echo "It is wsl"
-        # For Homebrew/Linuxbrew to work
-        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
         # export PYTHONPATH=:~/.local/lib/python3.11/site-packages/:~/.local/lib/python3.11/site-packages/
 
         # WSL specidic aliases & abbrs
         alias docker='docker.exe'
         alias wsl='wsl.exe'
         abbr -a -- psh 'powershell.exe'
-
-        # IMPORTANT: this seems to work on WSL, so keep it!
-        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
 
         # Fix the VPN issue: For Amadeus
         abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
@@ -88,8 +83,6 @@ if status is-login
     # visual mode, but due to fish_cursor_default, is redundant here
     set fish_cursor_visual block
 
-    # starship init fish | source
-
     # FZF
     #export FZF_DEFAULT_COMMAND='rg --files --no-ignore-vcs --no-require-git --no-ignore --hidden --follow --glob "!.git/*"'
     #export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
@@ -107,24 +100,16 @@ set __file__ $HOME/.config/fish/config.fish
 # Keeping them out of `fish -c` avoids loading unnecessary functions and event
 # handlers into short-lived script shells.
 if status is-interactive
-    # Initialize fuzzy finder.
-    if type -q fzf
-        if not test -r $__fish_cache_dir/fzf_init.fish
-            fzf --fish >$__fish_cache_dir/fzf_init.fish
-        end
-        source $__fish_cache_dir/fzf_init.fish
-
-        # Override fzf native bindings with fzf.fish plugin versions
-        # (richer previews using bat/eza, consistent styling)
-        fzf_configure_bindings --history=\cr --git_status=\cg --directory=\cp
+    # Preserve fzf's shell completion without loading its competing key binds.
+    if test -r $DOTFILES_FISH_CACHE/fzf_completion.fish
+        source $DOTFILES_FISH_CACHE/fzf_completion.fish
     end
 
     # Initialize zoxide for fast jumping with 'z'.
     if type -q zoxide
-        if not test -r $__fish_cache_dir/zoxide_init.fish
-            zoxide init --cmd cd fish >$__fish_cache_dir/zoxide_init.fish
+        if test -r $DOTFILES_FISH_CACHE/zoxide_init.fish
+            source $DOTFILES_FISH_CACHE/zoxide_init.fish
         end
-        source $__fish_cache_dir/zoxide_init.fish
     end
 
     #
@@ -136,44 +121,12 @@ if status is-interactive
     # Initialize starship.
     if type -q starship
         #set -gx STARSHIP_CONFIG $__fish_config_dir/themes/starship.toml
-        if not test -r $__fish_cache_dir/starship_init.fish
-            starship init fish --print-full-init >$__fish_cache_dir/starship_init.fish
+        if test -r $DOTFILES_FISH_CACHE/starship_init.fish
+            source $DOTFILES_FISH_CACHE/starship_init.fish
         end
-        source $__fish_cache_dir/starship_init.fish
         #enable_transience
     end
 end
-
-#
-# Theme - Catppuccin Mocha colors
-#
-
-set fish_color_normal cdd6f4
-set fish_color_command 89b4fa
-set fish_color_param f2cdcd
-set fish_color_keyword cba6f7
-set fish_color_quote a6e3a1
-set fish_color_redirection f5c2e7
-set fish_color_end fab387
-set fish_color_comment 7f849c
-set fish_color_error f38ba8
-set fish_color_gray 6c7086
-set fish_color_selection --background=313244
-set fish_color_search_match --background=313244
-set fish_color_option a6e3a1
-set fish_color_operator f5c2e7
-set fish_color_escape eba0ac
-set fish_color_autosuggestion 6c7086
-set fish_color_cancel f38ba8
-set fish_color_cwd f9e2af
-set fish_color_user 94e2d5
-set fish_color_host 89b4fa
-set fish_color_host_remote a6e3a1
-set fish_color_status f38ba8
-set fish_pager_color_progress 6c7086
-set fish_pager_color_prefix f5c2e7
-set fish_pager_color_completion cdd6f4
-set fish_pager_color_description 6c7086
 
 #  CLEAN_UP: 2024-12-29 - Remove when finished!
 #set fish_key_bindings fish_user_key_bindings
@@ -216,8 +169,8 @@ else
 end
 
 # bun
-set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH
+set --global --export BUN_INSTALL "$HOME/.bun"
+fish_add_path --global --prepend (path filter -d "$BUN_INSTALL/bin")
 
 # Added by Antigravity
-fish_add_path /Users/eddyekofo/.antigravity/antigravity/bin
+fish_add_path --global --prepend (path filter -d "$HOME/.antigravity/antigravity/bin")

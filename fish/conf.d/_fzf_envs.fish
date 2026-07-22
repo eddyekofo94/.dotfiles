@@ -39,6 +39,10 @@ end
 # fi
 
 set -gx FZF_PREVIEW_COMMAND '_fzf_preview {}'
+# fzf.fish's directory picker dispatches regular files through
+# `_fzf_preview_file`; point its supported adapter at the same canonical
+# renderer used by native FZF options so images do not fall through to bat.
+set -g fzf_preview_file_cmd '_fzf_preview'
 
 set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --height 96% \
@@ -138,4 +142,9 @@ end
 
 _fzf_catppuccin_theme
 
-set -gx FZF_PREVIEW_LINES -200
+# Clear only the retired global sentinel from already-running terminal/tmux
+# environments. Positive pane geometry belongs to fzf and must survive when a
+# Fish preview subprocess sources this file.
+if test "$FZF_PREVIEW_LINES" = -200
+    set -e FZF_PREVIEW_LINES
+end

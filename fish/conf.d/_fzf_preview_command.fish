@@ -15,15 +15,13 @@ function _fzf_preview_command --description "Print a preview for the given file 
         _fzf_preview_file "$target_path"
     else if test -f "$file_path" # regular file
         if set --query fzf_preview_file_cmd
-            # need to escape quotes to make sure eval receives file_path as a single arg
-            eval "$fzf_preview_file_cmd '$file_path'"
+            $fzf_preview_file_cmd "$file_path"
         else
             bat --style=numbers,changes --color=always "$file_path"
         end
     else if test -d "$file_path" # directory
         if set --query fzf_preview_dir_cmd
-            # see above
-            eval "$fzf_preview_dir_cmd '$file_path'"
+            $fzf_preview_dir_cmd "$file_path"
         else
             # -A list hidden files as well, except for . and ..
             # -F helps classify files by appending symbols after the file name

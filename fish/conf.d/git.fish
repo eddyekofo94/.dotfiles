@@ -6,11 +6,8 @@ function _fzf_git_status_git
         --bind='ctrl-o:execute(${EDITOR:-vim} {+})'
 end
 
-if type -q git_is_repo; and git_is_repo
-
-    set -gx get_default_branch (git branch -l master main | sed -r 's/^[* ] //' | head -n 1 )
-
-    set -gx get_current_branch (git branch --show-current )
+function get_current_branch --description 'Print the current Git branch'
+    git branch --show-current 2>/dev/null
 end
 
 abbr -a -- ga 'git add'
@@ -23,7 +20,7 @@ abbr -a -- gba 'git branch -a -v'
 abbr -a -- gban 'git branch -a -v --no-merged'
 abbr -a -- gbd 'git branch -d'
 abbr -a -- gbD 'git branch -D'
-abbr -a -- ggsup 'git branch --set-upstream-to=origin/$get_current_branch'
+abbr -a -- ggsup 'git branch --set-upstream-to=origin/(get_current_branch)'
 abbr -a -- gbl 'git blame -b -w'
 abbr -a -- gbs 'git bisect'
 abbr -a -- gbsb 'git bisect bad'
@@ -65,10 +62,10 @@ abbr -a -- gdto 'git difftool'
 abbr -a -- gignore 'git update-index --assume-unchanged'
 abbr -a -- gf 'git fetch'
 abbr -a -- gfa 'git fetch --all --prune'
-abbr -a -- gfm 'git fetch origin "$get_default_branch" --prune; and git merge FETCH_HEAD'
+abbr -a -- gfm 'git fetch origin (get_default_branch) --prune; and git merge FETCH_HEAD'
 abbr -a -- gfo 'git fetch origin'
 abbr -a -- gl 'git pull'
-abbr -a -- ggl 'git pull origin "$get_default_branch"'
+abbr -a -- ggl 'git pull origin (get_default_branch)'
 abbr -a -- gll 'git pull origin'
 abbr -a -- glr 'git pull --rebase'
 abbr -a -- glg 'git log --stat'
@@ -78,13 +75,8 @@ abbr -a -- glo 'git log --oneline --decorate --color'
 #abbr -a -- glog 'git log --oneline --decorate --color --graph'
 abbr -a -- glog 'git log --graph --pretty="%Cred%h%Creset -%C(auto)%d%Creset %s %Cgreen(%ad) %C(bold blue)<%an>%Creset" --date=short'
 abbr -a -- gloga 'git log --oneline --decorate --color --graph --all'
-abbr -a -- glom 'git log --oneline --decorate --color $get_default_branch..'
+abbr -a -- glom 'git log --oneline --decorate --color (get_default_branch)..'
 abbr -a -- glod 'git log --oneline --decorate --color dev..'
-
-# Set git log alias once (avoid running on every shell startup to prevent lock contention)
-if not git config --global --get alias.ll &>/dev/null
-    git config --global alias.ll 'log --graph --format="%C(yellow)%h%C(red)%d%C(reset) - %C(bold green)(%ar)%C(reset) %s %C(blue)<%an>%C(reset)"'
-end
 
 function fzf_git_log
     set -l selection (
@@ -116,11 +108,13 @@ abbr -a -- grl '$fzf_git_reflog'
 
 abbr -a -- gm 'git merge'
 abbr -a -- gmt 'git mergetool --no-prompt'
-abbr -a -- gmom 'git merge origin/($get_default_branch)'
+abbr -a -- gmom 'git merge origin/(get_default_branch)'
 
 function gp -d "push to remote branch, but check if it's default branch"
-    if [ $get_default_branch = $get_current_branch ]
-        echo "Error: you cannot push on the $get_default_branch branch"
+    set --local default_branch (get_default_branch)
+    set --local current_branch (get_current_branch)
+    if test "$default_branch" = "$current_branch"
+        echo "Error: you cannot push on the $default_branch branch"
         return
     else
         git push
@@ -133,11 +127,11 @@ abbr -a -- gpo 'git push origin'
 abbr -a -- gpo! 'git push --force-with-lease origin'
 abbr -a -- gpv 'git push --no-verify'
 abbr -a -- gpv! 'git push --no-verify --force-with-lease'
-abbr -a -- ggp 'git push origin $get_current_branch'
-abbr -a -- ggp! 'git push origin $get_current_branch --force-with-lease'
-abbr -a -- gpu 'git push origin $get_current_branch --set-upstream'
+abbr -a -- ggp 'git push origin (get_current_branch)'
+abbr -a -- ggp! 'git push origin (get_current_branch) --force-with-lease'
+abbr -a -- gpu 'git push origin (get_current_branch) --set-upstream'
 abbr -a -- gpoat 'git push origin --all; and git push origin --tags'
-abbr -a -- ggpnp 'git pull origin $get_current_branch; and git push origin $(get_current_branch)'
+abbr -a -- ggpnp 'git pull origin (get_current_branch); and git push origin (get_current_branch)'
 abbr -a -- gr 'git remote -vv'
 abbr -a -- gra 'git remote add'
 abbr -a -- grb 'git rebase'
@@ -221,5 +215,5 @@ abbr -a -- gwtmv 'git worktree move'
 abbr -a -- gwtpr 'git worktree prune'
 abbr -a -- gwtrm 'git worktree remove'
 abbr -a -- gwtulo 'git worktree unlock'
-abbr -a -- gmr 'git push origin $get_current_branch --set-upstream -o merge_request.create'
-abbr -a -- gmwps 'git push origin $get_current_branch --set-upstream -o merge_request.create -o merge_request.merge_when_pipeline_succeeds'
+abbr -a -- gmr 'git push origin (get_current_branch) --set-upstream -o merge_request.create'
+abbr -a -- gmwps 'git push origin (get_current_branch) --set-upstream -o merge_request.create -o merge_request.merge_when_pipeline_succeeds'

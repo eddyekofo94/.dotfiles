@@ -2,6 +2,8 @@
 # Setup Fisher for plugins.
 #
 function init_fisher
+    argparse 'i/install' -- $argv; or return
+
     set -q fisher_path || set -gx fisher_path $__fish_config_dir/.fisher
     set -q my_plugins_path || set -gx my_plugins_path $__fish_config_dir/plugins
 
@@ -15,15 +17,35 @@ function init_fisher
         set -g fisher_paths_initialized true
     end
 
-    if not test -d $fisher_path
+    if not test -d $fisher_path; and set -q _flag_install
         functions -e fisher &>/dev/null
-        mkdir -p $fisher_path
         touch $__fish_config_dir/fish_plugins
-        curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+        or return 1
+        set --local fisher_installer (mktemp)
+        set --local repo_dir (path resolve "$__fish_config_dir/..")
+        if not /bin/sh "$repo_dir/tools/fetch_fisher_verified.sh" >$fisher_installer
+            command rm -f -- $fisher_installer
+            return 1
+        end
+        builtin source $fisher_installer
+        set --local source_status $status
+        command rm -f -- $fisher_installer
+        if test $source_status -ne 0
+            return $source_status
+        end
+        mkdir -p $fisher_path
+        or return 1
         if test -s $__fish_config_dir/fish_plugins
             fisher update
         else
-            fisher install jorgebucaran/fisher
+            fisher install jorgebucaran/fisher@a04308be92daa6cfecdbb0ca58b1e8508664cff2
+        end
+        set --local install_status $status
+        if test $install_status -ne 0
+            # This invocation proved the target absent before creating it, so
+            # only its incomplete output is eligible for cleanup.
+            command find $fisher_path -depth -delete
+            return $install_status
         end
     end
 

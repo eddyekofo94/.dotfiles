@@ -1,70 +1,82 @@
-# All variables are universals here. They can be overridden with globals in config.fish
+# Checked-in globals are the deterministic owner of application environment.
+# Do not persist machine-derived values as universal variables.
 
-set -q TERM; or set -Ux TERM xterm-256color
+set -gx DOT_DIR "$HOME/.dotfiles"
+set -gx NVIM_NF true
+set -gx PAGER less
 
-set -q DOT_DIR; or set -Ux DOT_DIR "$HOME/.dotfiles"
-
-set -q NVIM_NF; or set -Ux NVIM_NF true
-
-# Set editor variables.
-set -q PAGER; or set -Ux PAGER less
-
-if command -q nvim >/dev/null 2>&1
-    set -q VISUAL; or set -Ux VISUAL nvim
-    set -q EDITOR; or set -Ux EDITOR nvim
-    set -Ux NVIM_DIR "$XDG_CONFIG_HOME/nvim"
+if command -q nvim
+    set -gx VISUAL nvim
+    set -gx EDITOR nvim
+    set -gx NVIM_DIR "$XDG_CONFIG_HOME/nvim"
 else
-    set -q VISUAL; or set -Ux VISUAL vim
-    set -q EDITOR; or set -Ux EDITOR vim
+    set -gx VISUAL vim
+    set -gx EDITOR vim
+    set -e NVIM_DIR
 end
 
-# Set browser on macOS.
-#switch (uname -a)
-#    case Darwin
-#set -q BROWSER; or set -Ux BROWSER open
-#end
-
-set unameOut (uname -a)
-
-switch $unameOut
-    case "*Microsoft*"
-        set OS WSL #wls must be first since it will have Linux in the name too
-    case "*microsoft*"
-        set OS WSL2
-    case "Linux*"
-        set OS Linux
-    case "Darwin*"
-        set OS Mac
-        set -q BROWSER; or set -Ux BROWSER open
-        # Note that the next case has a wildcard which is quoted
+set --local uname_out (uname -a)
+switch $uname_out
+    case '*Microsoft*'
+        set -g OS WSL
+    case '*microsoft*'
+        set -g OS WSL2
+    case 'Linux*'
+        set -g OS Linux
+    case 'Darwin*'
+        set -g OS Mac
+        set -gx BROWSER open
     case '*'
-        echo $unameOut
+        set -g OS Unknown
 end
 
-# XDG apps
-set -q GNUPGHOME; or set -Ux GNUPGHOME $XDG_DATA_HOME/gnupg
-set -q LESSHISTFILE; or set -Ux LESSHISTFILE $XDG_DATA_HOME/lesshst
-set -q SQLITE_HISTORY; or set -Ux SQLITE_HISTORY $XDG_DATA_HOME/sqlite_history
-set -q WORKON_HOME; or set -Ux WORKON_HOME $XDG_DATA_HOME/venvs
-set -q PYLINTHOME; or set -Ux PYLINTHOME $XDG_CACHE_HOME/pylint
+set -gx GNUPGHOME $XDG_DATA_HOME/gnupg
+set -gx LESSHISTFILE $XDG_DATA_HOME/lesshst
+set -gx SQLITE_HISTORY $XDG_DATA_HOME/sqlite_history
+set -gx WORKON_HOME $XDG_DATA_HOME/venvs
+set -gx PYLINTHOME $XDG_CACHE_HOME/pylint
 
-# Applications vars
-set -q JAVA_HOME; or set -Ux JAVA_HOME "$SDKMAN_DIR/candidates/java/current"
+set --local environment_cache "$XDG_CACHE_HOME/fish/dotfiles_environment.fish"
+if test -r "$environment_cache"
+    source "$environment_cache"
+end
 
-# cargo/rust path
-source "$HOME/.cargo/env.fish"
+set --local java_home_candidates
+if set -q JAVA_HOME; and test -d "$JAVA_HOME"
+    set --append java_home_candidates $JAVA_HOME
+end
+if set -q __dotfiles_cached_java_home
+    set --append java_home_candidates $__dotfiles_cached_java_home
+end
+if set -q SDKMAN_DIR
+    set --append java_home_candidates "$SDKMAN_DIR/candidates/java/current"
+end
+set --append java_home_candidates "$HOME/.sdkman/candidates/java/current"
 
-# Other vars
-set -q FISH_THEME; or set -Ux FISH_THEME catppuccin-mocha
+set --local resolved_java_home (__dotfiles_first_existing_directory $java_home_candidates)
+if test $status -eq 0
+    set -gx JAVA_HOME $resolved_java_home
+else
+    set -e JAVA_HOME
+end
+set -e __dotfiles_cached_java_home
 
-# LS colors using Vivid installed using Cargo
-set -q LS_COLORS; or set -Ux LS_COLORS "(vivid generate $HOME/.dotfiles/vivid/catppuccin-mocha.yml)"
+if test -r "$HOME/.cargo/env.fish"
+    source "$HOME/.cargo/env.fish"
+end
 
-# Bat a modern cat with all the goodies
-set -q BAT_CONFIG_PATH; or set -Ux BAT_CONFIG_PATH "$HOME/.dotfiles/bat/bat.conf"
+set -gx FISH_THEME catppuccin-mocha
 
-#https://github.com/gazorby/fifc
-set -q fifc_editor; or set -Ux fifc_editor $EDITOR
+set -e LS_COLORS
+if set -q __dotfiles_cached_ls_colors
+    set -gx LS_COLORS $__dotfiles_cached_ls_colors
+end
+set -e __dotfiles_cached_ls_colors
+
+set -gx BAT_CONFIG_PATH "$DOT_DIR/bat/bat.conf"
+set -gx fifc_editor $EDITOR
+
+set -gx LAZYGIT_DIR "$XDG_CONFIG_HOME/lazygit"
 
 # Image previews. chafa's format=auto picks `symbols` (block art) inside tmux,
 # because tmux sets TERM=tmux-256color and rewrites TERM_PROGRAM to "tmux", so

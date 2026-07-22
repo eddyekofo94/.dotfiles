@@ -5,7 +5,7 @@
 [init]
     defaultBranch = master
 [http]
-    sslVerify = false
+    sslVerify = true
 
 [credential "https://github.com"]
 	helper =

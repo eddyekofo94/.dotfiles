@@ -13,6 +13,9 @@ function _fzf_preview -d "fzf preview: render a path as a tree, image, hunk, or 
     string match -qr '^[0-9]+$' -- "$cols"; or set cols 120
     set -l rows $FZF_PREVIEW_LINES
     string match -qr '^[0-9]+$' -- "$rows"; or set rows 40
+    if set -q FZF_PREVIEW_TEST_REPORT_GEOMETRY
+        printf 'FZF_PREVIEW_GEOMETRY:%s,%s\n' "$cols" "$rows"
+    end
 
     # A hunk if the path has one, otherwise fall through and render the file
     # itself -- so untracked files still preview instead of coming up blank.
@@ -51,6 +54,9 @@ function _fzf_preview -d "fzf preview: render a path as a tree, image, hunk, or 
             end
 
             if test -n "$kitten_cmd"
+                if set -q FZF_PREVIEW_TEST_REPORT_GEOMETRY
+                    printf 'FZF_PREVIEW_IMAGE_PLACE:%sx%s@0x0\n' "$cols" "$rows"
+                end
                 # Shared-memory transfer keeps the terminal payload small, so a
                 # cancelled fzf preview cannot strand a partial image transfer.
                 # Production uses Ghostty's real cell geometry. Tests provide a
