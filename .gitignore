@@ -26,6 +26,11 @@ CMakeFile
 
 # Throwaway Herdr prototype runtime: downloaded binary, sockets, and session state.
 /herdr/prototype/.runtime/
+/herdr/prototype/evidence/opened-urls.log
+
+# Generated Python bytecode from local validators and helper scripts.
+**/__pycache__/
+**/*.pyc
 
 # Whole-dir backups and debug/scratch artifacts
 /fish.bak/

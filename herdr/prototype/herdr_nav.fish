@@ -14,6 +14,13 @@ function __herdr_action --argument-names action
     commandline -f repaint
 end
 
+# Keep the prototype adapter when an interactive pane starts another Fish.
+# Fish bindings and functions are process-local, so a plain nested `fish`
+# would otherwise drop every application-owned Herdr chord at once.
+function fish
+    command fish --init-command "source '$HERDR_PROTOTYPE_DIR/herdr_nav.fish'" $argv
+end
+
 for mode in default insert
     bind --mode $mode \eh '__herdr_nav h left'
     bind --mode $mode \ej '__herdr_nav j down'

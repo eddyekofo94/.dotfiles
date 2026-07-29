@@ -26,6 +26,10 @@ agent, Zsh, or tmux behavior.
 
 - Eddy wants Herdr to become the main driver. The remaining uncertainty is
   safety/readiness, not product preference.
+- On 2026-07-23, Eddy selected promotion after accepting the live image,
+  navigation, nested-Fish, and color behavior. Use the reversible staged route:
+  Herdr becomes the default while tmux remains installed and immediately
+  available as a non-nested fallback.
 - Promotion must not imply deleting tmux or its configuration. A working tmux
   path remains the rollback baseline unless Eddy later authorizes its removal.
 - The image replacement/focus lifecycle remains accepted deferred polish and is
@@ -33,6 +37,10 @@ agent, Zsh, or tmux behavior.
 - Do not treat historical green evidence as sufficient while the current
   aggregate verifier is red; refresh only the stale proof needed to bind the
   current reviewed artifacts before promotion.
+- Promotion is considered settled when the installed default, explicit tmux
+  fallback, persistent rollback/default switch, aggregate verification, clean
+  Ghostty launch, and fresh review pass. No waiting period is required, and
+  tmux removal remains a separate future decision.
 
 ## Evidence / Findings
 
@@ -92,13 +100,52 @@ agent, Zsh, or tmux behavior.
 
 ## Ready To Act
 
-Not yet. The promotion method is awaiting Eddy's decision. No production
-configuration change is authorized by this interview alone.
+Ready as of 2026-07-23. Eddy selected the reversible staged promotion. Local
+implementation, validation, review, and durable closure are authorized; commit,
+push, tmux removal, and external publication are not authorized.
 
 ## Open Questions
 
-1. Should Herdr become the default through a reversible staged promotion, with
-   tmux kept intact as an explicit fallback, or should promotion wait?
-2. What amount of normal daily use is enough before the staged promotion can be
-   considered settled rather than a trial?
+None that change implementation.
 
+## Implementation Brief
+
+- Promote the reviewed focused Herdr configuration to a tracked production
+  config while retaining the validated prototype helpers during the staged
+  period.
+- Install the pinned, hash-verified Herdr v0.7.4 binary in `~/.local/bin` and
+  link only `~/.config/herdr/config.toml`; preserve existing Herdr session and
+  log state.
+- Make top-level interactive Fish login attach to the named `main` Herdr
+  session only when the fail-closed default state is `herdr`; retain every
+  existing nested, tmux, opt-out, non-login, and non-interactive guard.
+- Provide a persistent `herdr|tmux` default switch and a fresh-Ghostty tmux
+  fallback that never nests tmux inside Herdr.
+- Sanitize the Codex-only `NO_COLOR` leak in the isolated live-trial launcher,
+  not in normal user shells.
+- Stop only when production config/install checks, the login/fallback/rollback
+  matrix, `herdr/prototype/verify.sh`, `fish/scripts/verify.sh`, a clean Ghostty
+  default launch, and fresh Standards/Fidelity review pass. Final physical
+  daily-driver acceptance remains a manual gate.
+
+## Implementation Status
+
+Awaiting User Approval as of 2026-07-23. The local staged default is active and
+the named `main` session is running. `herdr/verify.sh` and
+`fish/scripts/verify.sh` pass; the real Ghostty fallback/rollback matrix and
+preservation hashes are recorded in `promotion-validation.md`. Fresh
+Standards/Fidelity review findings were fixed through the automatic
+fix/re-review loops, affected checks rerun, and both final re-reviews report
+zero findings. The open production Herdr window needs only Eddy's final
+physical daily-driver acceptance.
+
+## Acceptance Pause
+
+On 2026-07-24, Eddy paused final daily-driver acceptance after requesting a
+feature-by-feature audit of the complete tmux configuration. The reversible
+promotion remains installed, verified, and available; it is not rolled back.
+Final acceptance is now `blocked by` the ranked parity sequence recorded in
+[`../../../docs/migrations/tmux-to-herdr-parity-audit.md`](../../../docs/migrations/tmux-to-herdr-parity-audit.md).
+The first bounded goal is `herdr-recovery-safety-parity`. This pause does not
+authorize an upgrade, integration install, commit, push, tmux removal, or
+external publication.

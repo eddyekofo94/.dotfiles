@@ -81,14 +81,14 @@ wait_prompt
 # Verify interactive-only consumers after Fish's reader has applied the custom
 # binding function. This catches shells that merely define functions without
 # wiring them into the live reader.
-send "functions -q _fzf_search_directory magic-enter fifc; and test \"\$fzf_preview_file_cmd\" = _fzf_preview; and echo FISH_PTY_STATE_OK\r"
+send "test \"\$PWD\" = \"\$FISH_PTY_FIXTURE\"; and functions -q _fzf_search_directory magic-enter fifc; and test \"\$fzf_preview_file_cmd\" = _fzf_preview; and echo FISH_PTY_STATE_OK\r"
 expect {
     -exact "\033\]133;C;" {}
     timeout { fail "interactive state command did not execute" }
 }
 expect {
     -exact "FISH_PTY_STATE_OK" {}
-    timeout { fail "interactive consumers or live bindings are missing" }
+    timeout { fail "startup changed cwd or interactive consumers are missing" }
 }
 wait_prompt
 

@@ -4,7 +4,7 @@ set -eu
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 herdr=${HERDR_BIN_PATH:-herdr}
 pane=${HERDR_PANE_ID:-${HERDR_TARGET_PANE_ID:-}}
-[ -n "$pane" ] || pane=$($herdr pane current --current | jq -er '.result.pane.pane_id')
+[ -n "$pane" ] || pane=$("$herdr" pane current --current | jq -er '.result.pane.pane_id')
 log=${HERDR_LAYOUT_MENU_LOG:-"$prototype/.runtime/layout-menu.log"}
 mkdir -p "$(dirname -- "$log")"
 saved_stty=$(stty -g)
@@ -12,7 +12,12 @@ trap 'stty "$saved_stty" 2>/dev/null || true' EXIT HUP INT TERM
 stty -echo -icanon min 1 time 0
 
 printf 'Herdr layout actions\r\n\r\n'
-printf '  e  Equalize current topology\r\n'
+printf '  +  Tiled/equalize current topology\r\n'
+printf '  _  Main horizontal (compatible topology only)\r\n'
+printf '  |  Main vertical (compatible topology only)\r\n'
+printf '  \\  Even horizontal (compatible topology only)\r\n'
+printf '  -  Even vertical (compatible topology only)\r\n'
+printf '  e  Equalize alias\r\n'
 printf '  z  Toggle focused-pane zoom\r\n'
 printf '  a  Adaptive split\r\n'
 printf '  v  Split right\r\n'
@@ -21,6 +26,26 @@ printf 'Choice: '
 
 choice=$(dd bs=1 count=1 2>/dev/null || true)
 case "$choice" in
+  +)
+    printf 'preset:tiled\t%s\n' "$pane" >>"$log"
+    HERDR_TARGET_PANE_ID="$pane" exec "$prototype/layout_preset.sh" tiled
+    ;;
+  _)
+    printf 'preset:main-horizontal\t%s\n' "$pane" >>"$log"
+    HERDR_TARGET_PANE_ID="$pane" exec "$prototype/layout_preset.sh" main-horizontal
+    ;;
+  '|')
+    printf 'preset:main-vertical\t%s\n' "$pane" >>"$log"
+    HERDR_TARGET_PANE_ID="$pane" exec "$prototype/layout_preset.sh" main-vertical
+    ;;
+  \\)
+    printf 'preset:even-horizontal\t%s\n' "$pane" >>"$log"
+    HERDR_TARGET_PANE_ID="$pane" exec "$prototype/layout_preset.sh" even-horizontal
+    ;;
+  -)
+    printf 'preset:even-vertical\t%s\n' "$pane" >>"$log"
+    HERDR_TARGET_PANE_ID="$pane" exec "$prototype/layout_preset.sh" even-vertical
+    ;;
   e)
     printf 'equalize\t%s\n' "$pane" >>"$log"
     HERDR_TARGET_PANE_ID="$pane" exec "$prototype/equalize_panes.sh"

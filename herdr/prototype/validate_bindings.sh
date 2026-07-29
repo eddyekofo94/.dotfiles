@@ -239,6 +239,25 @@ test "$zoom_transport_after" = false
 test "$close_transport_exists" -eq 0
 record alt_transport "$(jq -cn --argjson before "$transport_before" --argjson adaptive "$transport_adaptive" --argjson fixed "$transport_fixed" --argjson child_process "$transport_child_process" --argjson grandchild_process "$transport_grandchild_process" --argjson zoom_before "$zoom_transport_before" --argjson zoom_on "$zoom_transport_on" --argjson zoom_after "$zoom_transport_after" --argjson close_exists "$close_transport_exists" '{pane_count_before:$before,after_alt_n:$adaptive,after_nested_alt_v:$fixed,child_process:$child_process,grandchild_process:$grandchild_process,zoom_before:$zoom_before,zoom_on:$zoom_on,zoom_after:$zoom_after,alt_q_pane_exists_after:$close_exists}')"
 
+# Starting another interactive Fish from a configured Herdr pane must retain
+# the prototype navigation adapter. This is the real path used when a user
+# types `fish`; bindings and functions are not inherited by child shells.
+nested_tab=$($runner tab create --label nested-fish-nav --focus | jq -er '.result.tab.tab_id // .result.tab_id')
+nested_parent=$($runner pane current --current | jq -er '.result.pane.pane_id')
+nested_below=$($runner pane split "$nested_parent" --direction down --ratio 0.5 --no-focus | jq -er '.result.pane.pane_id')
+$runner pane send-text "$nested_parent" "fish" >/dev/null
+$runner pane send-keys "$nested_parent" return >/dev/null
+sleep 0.2
+nested_processes=$($runner pane process-info --pane "$nested_parent" | jq -c '.result.process_info.foreground_processes')
+printf '%s\n' "$nested_processes" | jq -e 'any(.[]; .name == "fish")' >/dev/null
+$runner pane send-keys "$nested_parent" alt+j >/dev/null
+wait_for "nested Fish Alt-j focus handoff" sh -c \
+  '[ "$("$1" --border focused cli pane list | jq -r ".result.panes[] | select(.focused).pane_id")" = "$2" ]' \
+  _ "$prototype/run.sh" "$nested_below"
+nested_focused=$($runner pane list | jq -er '.result.panes[] | select(.focused).pane_id')
+record nested_fish_navigation "$(jq -cn --arg parent "$nested_parent" --arg below "$nested_below" --arg focused "$nested_focused" --argjson processes "$nested_processes" '{command:"fish",source_pane:$parent,expected_down_pane:$below,focused_after_alt_j:$focused,foreground_processes:$processes,adapter_retained:($focused==$below)}')"
+$runner tab close "$nested_tab" >/dev/null
+
 # Alt-o is application-owned. In a Fish pane it uses the same confirmation-
 # protected Herdr helper as prefix+o; Neovim keeps its existing <M-o> mapping.
 only_tab=$($runner tab create --label close-other-pane-gate --focus | jq -er '.result.tab.tab_id // .result.tab_id')

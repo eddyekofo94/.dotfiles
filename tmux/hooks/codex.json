@@ -1,36 +1,34 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event session-start",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event prompt",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PermissionRequest": [
       {
-        "matcher": "*",
         "hooks": [
           {
-            "type": "command",
             "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event permission",
-            "timeout": 5
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "*"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event session-start",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|clear"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bash '/Users/eddyekofo/.codex/herdr-agent-state.sh' session",
+            "timeout": 10,
+            "type": "command"
           }
         ]
       }
@@ -39,9 +37,20 @@
       {
         "hooks": [
           {
-            "type": "command",
             "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event stop",
-            "timeout": 5
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent codex --event prompt",
+            "timeout": 5,
+            "type": "command"
           }
         ]
       }

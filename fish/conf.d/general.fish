@@ -13,19 +13,6 @@ abbr -a -- rmdf 'rm -irf '
 # Fish specific
 abbr --add unset 'set --erase'
 
-function mkdir -d "Create a directory and set CWD"
-    command mkdir $argv
-    if test $status = 0
-        switch $argv[(count $argv)]
-            case '-*'
-
-            case '*'
-                cd $argv[(count $argv)]
-                return
-        end
-    end
-end
-
 function make_file_executable
     chmod +x "$1" || exit
     ls -al

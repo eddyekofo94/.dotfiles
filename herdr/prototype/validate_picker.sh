@@ -291,11 +291,17 @@ for expected_line in \
   'key = "prefix+u"' \
   'key = "prefix+enter"' \
   'key = "prefix+g"' \
-  'key = "prefix+space"'
+  'key = "prefix+space"' \
+  'key = "prefix+shift+p"' \
+  'key = "prefix+shift+u"' \
+  'key = "prefix+^"' \
+  'key = "prefix+$"' \
+  'key = "prefix+shift+f"' \
+  'key = "prefix+shift+r"'
 do
   grep -Fqx "$expected_line" "$config"
 done
-test "$(grep -c '^key = ' "$config")" -eq 24
+test "$(grep -c '^key = ' "$config")" -eq 30
 grep -q '^key = "prefix+b"$' "$config"
 grep -q '^key = "prefix+shift+b"$' "$config"
 for digit in 0 1 2 3 4 5 6 7 8 9; do
@@ -305,7 +311,7 @@ if grep -Eiq '(^|["[:space:]])(alt\+ctrl\+f|ctrl\+alt\+f)(["[:space:]]|$)' "$con
   echo "direct Alt-Ctrl-f must remain absent from the picker prototype" >&2
   exit 1
 fi
-approved_bindings=$(jq -cn '["prefix=ctrl+a","focus=prefix+h/j/k/l","swap=prefix+H/J/K/L","resize=prefix+r","fixed_split=prefix+v","adaptive_split=prefix+a","equalize=prefix+=/Alt-=","copy_search=prefix+s","smart_close=prefix+x","close_other_panes=prefix+o/Alt-o","close_tab=prefix+X","tabs=prefix+c/n/p","numbered_tabs=prefix+0..9","zoom=prefix+z","sidebar=prefix+S","ready_prompt=prefix+b/B","open_url=prefix+u","workspace_picker=prefix+w","workspace_cycle=prefix+(/)/Ctrl-^","goto=prefix+f","scratch_popup=prefix+Enter","lazygit_popup=prefix+g","layout_menu=prefix+Space"]')
+approved_bindings=$(jq -cn '["prefix=ctrl+a","focus=prefix+h/j/k/l","swap=prefix+H/J/K/L","resize=prefix+r","fixed_split=prefix+v","adaptive_split=prefix+a","equalize=prefix+=/Alt-=","copy_search=prefix+s","smart_close=prefix+x","close_other_panes=prefix+o/Alt-o","close_tab=prefix+X","tabs=prefix+c/n/p","numbered_tabs=prefix+0..9","zoom=prefix+z","sidebar=prefix+S","ready_prompt=prefix+b/B","open_url=prefix+u","workspace_picker=prefix+w","workspace_cycle=prefix+(/)/Ctrl-^","goto=prefix+f","manage_objects=prefix+Shift+f","visible_references=prefix+Shift+r","scratch_popup=prefix+Enter","lazygit_popup=prefix+g","layout_menu=prefix+Space"]')
 record config "$(jq -cn --arg result "$config_result" --argjson approved "$approved_bindings" '{result:$result,workspace_picker:"prefix+w",goto:"prefix+f",direct_alt_ctrl_f:false,prefix_enter_preserved:true,prefix_g_preserved:true,prefix_space_preserved:true,approved_bindings:$approved}')"
 
 cli_a server >"$server_log_a" 2>&1 &

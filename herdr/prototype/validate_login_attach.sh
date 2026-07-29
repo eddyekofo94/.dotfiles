@@ -12,6 +12,7 @@ evidence_dir="$prototype/evidence"
 evidence="$evidence_dir/login-attach-validation.jsonl"
 evidence_tmp="$runtime/login-attach-validation.jsonl.tmp"
 log="$runtime/launches.jsonl"
+default_file="$runtime/default-multiplexer"
 
 record() {
   jq -cn --arg check "$1" --argjson evidence "$2" \
@@ -37,7 +38,9 @@ run_case() {
   before=$(launch_count)
   env -u TMUX -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_NO_AUTO_ATTACH \
     -u HERDR_LOGIN_SESSION XDG_CONFIG_HOME="$config_home" HERDR_BIN_PATH="$fixture" \
-    HERDR_LOGIN_ATTACH_LOG="$log" "$@" </dev/null >/dev/null 2>&1
+    HERDR_DEFAULT_FILE="$default_file" HERDR_LOGIN_ATTACH_LOG="$log" \
+    HERDR_SKIP_PLUGIN_ENSURE=1 \
+    "$@" </dev/null >/dev/null 2>&1
   after=$(launch_count)
   test $((after - before)) -eq "$expected_delta"
 }
@@ -46,6 +49,7 @@ rm -rf "$runtime"
 mkdir -p "$config_home/fish" "$evidence_dir"
 : >"$evidence_tmp"
 : >"$log"
+printf 'herdr\n' >"$default_file"
 printf 'source "%s"\n' "$adapter" >"$fish_config"
 production_before=$(production_hashes)
 
@@ -67,10 +71,16 @@ run_case 0 HERDR_PANE_ID=w1:p1 fish --login --interactive --command 'exit 0'
 run_case 0 TMUX=production fish --login --interactive --command 'exit 0'
 run_case 0 HERDR_NO_AUTO_ATTACH=1 fish --login --interactive --command 'exit 0'
 run_case 0 HERDR_LOGIN_SESSION='../bad' fish --login --interactive --command 'exit 0'
+printf 'tmux\n' >"$default_file"
+run_case 0 fish --login --interactive --command 'exit 0'
+printf 'invalid\n' >"$default_file"
+run_case 0 fish --login --interactive --command 'exit 0'
+rm -f "$default_file"
+run_case 0 fish --login --interactive --command 'exit 0'
 
 record decisions "$(jq -cn --argjson default "$default_args" --argjson custom "$custom_args" '
   {top_level_login:{launched:true,args:$default},custom_session:{launched:true,args:$custom},
-   guards:{non_login:true,non_interactive:true,herdr_env:true,herdr_pane:true,tmux:true,opt_out:true,invalid_session:true},
+   guards:{non_login:true,non_interactive:true,herdr_env:true,herdr_pane:true,tmux:true,opt_out:true,invalid_session:true,tmux_default:true,invalid_default:true,missing_default:true},
    total_launches:2}
 ')"
 

@@ -1,0 +1,267 @@
+onboarding = false
+
+[theme]
+name = "catppuccin"
+
+[theme.custom]
+overlay0 = "#1e1e2e"
+
+[terminal]
+default_shell = "/Users/eddyekofo/.dotfiles/herdr/prototype/prototype_shell.sh"
+shell_mode = "non_login"
+new_cwd = "follow"
+
+[keys]
+prefix = "ctrl+a"
+new_tab = "prefix+c"
+next_tab = "prefix+n"
+previous_tab = "prefix+p"
+close_tab = "prefix+shift+x"
+workspace_picker = "prefix+w"
+goto = "prefix+f"
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+split_vertical = "prefix+v"
+split_horizontal = ""
+close_pane = ""
+zoom = "prefix+z"
+resize_mode = "prefix+r"
+copy_mode = "prefix+s"
+toggle_sidebar = "prefix+shift+s"
+previous_workspace = "prefix+("
+next_workspace = "prefix+)"
+last_pane = ["prefix+tab", "ctrl+^"]
+
+[[keys.command]]
+key = "prefix+a"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
+description = "adaptive split from focused pane shape"
+
+[[keys.command]]
+key = "prefix+shift+h"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/swap_pane.sh\" left"
+description = "swap focused pane left"
+
+[[keys.command]]
+key = "prefix+shift+j"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/swap_pane.sh\" down"
+description = "swap focused pane down"
+
+[[keys.command]]
+key = "prefix+shift+k"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/swap_pane.sh\" up"
+description = "swap focused pane up"
+
+[[keys.command]]
+key = "prefix+shift+l"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/swap_pane.sh\" right"
+description = "swap focused pane right"
+
+[[keys.command]]
+key = "prefix+x"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_close.sh\""
+description = "process-aware smart pane close"
+
+[[keys.command]]
+key = "prefix+o"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/close_other_panes.sh\""
+description = "confirm close all sibling panes"
+
+[[keys.command]]
+key = "prefix+="
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/equalize_panes.sh\""
+description = "equalize pane areas without changing topology"
+
+[[keys.command]]
+key = "prefix+u"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/open_visible_url.sh\""
+description = "open newest URL visible in focused pane"
+
+[[keys.command]]
+key = "prefix+b"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\""
+description = "insert newest ready-to-paste handoff"
+
+[[keys.command]]
+key = "prefix+shift+b"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
+description = "clear Codex context and insert newest handoff"
+
+[[keys.command]]
+key = "prefix+0"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 0"
+description = "focus or create tab 0"
+
+[[keys.command]]
+key = "prefix+1"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 1"
+description = "focus or create tab 1"
+
+[[keys.command]]
+key = "prefix+2"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 2"
+description = "focus or create tab 2"
+
+[[keys.command]]
+key = "prefix+3"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 3"
+description = "focus or create tab 3"
+
+[[keys.command]]
+key = "prefix+4"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 4"
+description = "focus or create tab 4"
+
+[[keys.command]]
+key = "prefix+5"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 5"
+description = "focus or create tab 5"
+
+[[keys.command]]
+key = "prefix+6"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 6"
+description = "focus or create tab 6"
+
+[[keys.command]]
+key = "prefix+7"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 7"
+description = "focus or create tab 7"
+
+[[keys.command]]
+key = "prefix+8"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 8"
+description = "focus or create tab 8"
+
+[[keys.command]]
+key = "prefix+9"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 9"
+description = "focus or create tab 9"
+
+[[keys.command]]
+key = "prefix+enter"
+type = "popup"
+command = "exec \"${SHELL:-sh}\""
+description = "scratch shell"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "prefix+g"
+type = "popup"
+command = "command -v lazygit >/dev/null 2>&1 && exec lazygit || exec \"${SHELL:-sh}\""
+description = "lazygit"
+width = "85%"
+height = "85%"
+
+[[keys.command]]
+key = "prefix+space"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/layout_menu.sh\""
+description = "safe Herdr layout actions"
+width = 54
+height = 20
+
+[[keys.command]]
+key = "prefix+shift+p"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/pane_transfer.sh\""
+description = "send or receive a pane"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+shift+u"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/export_history.sh\""
+description = "export focused pane scrollback"
+width = "80%"
+height = 10
+
+[[keys.command]]
+key = "prefix+^"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/tab_edge.sh\" first"
+description = "focus first tab"
+
+[[keys.command]]
+key = "prefix+$"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/tab_edge.sh\" last"
+description = "focus last tab"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/manage_objects.sh\""
+description = "confirm and delete a Herdr object"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+shift+r"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/visible_reference_picker.sh\""
+description = "search recent URI path and hash references"
+width = "85%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+shift+g"
+type = "plugin_action"
+command = "prototype.golden-focus.toggle"
+description = "toggle 62 percent golden focus"
+
+[[keys.command]]
+key = "prefix+shift+w"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/../project_picker.sh\""
+description = "open or create a project workspace"
+width = "80%"
+height = "70%"
+
+[ui]
+sidebar_collapsed_mode = "hidden"
+pane_borders = true
+pane_gaps = true
+hide_tab_bar_when_single_tab = true
+confirm_close = true
+prompt_new_tab_name = false
+
+[ui.sidebar.agents]
+rows = [["state_icon", "workspace", "tab"], ["agent", "$semantic_state"]]
+
+[ui.toast]
+delivery = "off"
+
+[ui.sound]
+enabled = false
+
+[advanced]
+scrollback_limit_bytes = 10000000
+
+[experimental]
+kitty_graphics = true
+pane_history = false

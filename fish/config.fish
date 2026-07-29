@@ -54,7 +54,14 @@ if status is-login
         abbr -a -- fnet 'cd $HOME/onedrive/VPN && powershell.exe -File setup-vpn.ps1'
     end
 
-    # Auto-start tmux on login
+    # Attach the selected top-level multiplexer. Herdr's adapter fails closed to
+    # the existing tmux path when its binary, state, or session name is unsafe.
+    if test -r "$DOTFILES/herdr/prototype/herdr_login_attach.fish"
+        source "$DOTFILES/herdr/prototype/herdr_login_attach.fish"
+    end
+
+    # Auto-start tmux on login when Herdr is unavailable, opted out, or not the
+    # selected default.
     if not set -q TMUX
         if type -q tmux
             if tmux has-session 2>/dev/null

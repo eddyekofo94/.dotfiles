@@ -2,8 +2,11 @@
 
 None.
 
-The partial `fish-fzf-image-visible-geometry-regression` rollback was committed
-for recovery, but Eddy reports that live image rendering is still not working
-reliably and explicitly deferred another attempt. See
-`.working/interviews/fish-regression-audit/decisions.md` and
-`.working/UNIFIED_INTAKE.md`. Do not treat it as fixed.
+`herdr-shared-buffer-history` was durably deferred and classified
+upstream-limited on the retained Herdr v0.7.4 on 2026-07-29. Herdr's supported
+single-entry system clipboard covers ordinary copy/paste, but there is no
+native named-buffer store, chooser, lifecycle, or retention policy. No
+clipboard persistence, emulation, or production configuration was added.
+
+Next ranked decision candidate: `herdr-pane-input-lock`. It remains
+investigation-only until selected and settled.

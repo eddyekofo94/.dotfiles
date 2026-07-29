@@ -179,7 +179,51 @@ type = "popup"
 command = "exec \"$HERDR_PROTOTYPE_DIR/layout_menu.sh\""
 description = "safe Herdr layout actions"
 width = 54
-height = 12
+height = 20
+
+[[keys.command]]
+key = "prefix+shift+p"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/pane_transfer.sh\""
+description = "send or receive a pane"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+shift+u"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/export_history.sh\""
+description = "export focused pane scrollback"
+width = "80%"
+height = 10
+
+[[keys.command]]
+key = "prefix+^"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/tab_edge.sh\" first"
+description = "focus first tab"
+
+[[keys.command]]
+key = "prefix+$"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/tab_edge.sh\" last"
+description = "focus last tab"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/manage_objects.sh\""
+description = "confirm and delete a Herdr object"
+width = "80%"
+height = "70%"
+
+[[keys.command]]
+key = "prefix+shift+r"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/visible_reference_picker.sh\""
+description = "search recent URI path and hash references"
+width = "85%"
+height = "70%"
 
 [ui]
 sidebar_collapsed_mode = "hidden"

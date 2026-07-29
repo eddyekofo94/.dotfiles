@@ -19,6 +19,8 @@ url_evidence=${HERDR_URL_EVIDENCE:-"$prototype/evidence/url-validation.jsonl"}
 binding_evidence=${HERDR_BINDING_EVIDENCE:-"$prototype/evidence/binding-validation.jsonl"}
 remote_evidence=${HERDR_REMOTE_EVIDENCE:-"$prototype/evidence/remote-validation.jsonl"}
 capability_gap_evidence=${HERDR_CAPABILITY_GAP_EVIDENCE:-"$prototype/evidence/capability-gap-validation.jsonl"}
+utility_parity_evidence=${HERDR_UTILITY_PARITY_EVIDENCE:-"$prototype/evidence/utility-parity-validation.jsonl"}
+picker_reference_evidence=${HERDR_PICKER_REFERENCE_EVIDENCE:-"$prototype/evidence/picker-reference-validation.jsonl"}
 
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
@@ -41,6 +43,21 @@ test -x "$prototype/validate_bindings.sh"
 test -x "$prototype/close_other_tabs.sh"
 test -x "$prototype/close_other_panes.sh"
 test -x "$prototype/equalize_panes.sh"
+test -x "$prototype/layout_preset.sh"
+test -x "$prototype/pane_transfer.sh"
+test -x "$prototype/export_history.sh"
+test -x "$prototype/tab_edge.sh"
+test -x "$prototype/manage_objects.sh"
+test -x "$prototype/visible_reference_picker.sh"
+test -x "$prototype/visible_references.py"
+test -x "$prototype/fixtures/pane_transfer_picker_fixture.sh"
+test -x "$prototype/fixtures/picker_reference_herdr_fixture.sh"
+test -x "$prototype/fixtures/manage_picker_fixture.sh"
+test -x "$prototype/fixtures/reference_picker_fixture.sh"
+test -x "$prototype/fixtures/reference_clipboard_fixture.sh"
+test -x "$prototype/fixtures/reference_opener_fixture.sh"
+test -x "$prototype/validate_utilities.sh"
+test -x "$prototype/validate_picker_reference.sh"
 test -x "$prototype/tab-history/tab_history.sh"
 test -f "$prototype/tab-history/herdr-plugin.toml"
 test -x "$prototype/tab_client.py"
@@ -83,6 +100,8 @@ test -f "$url_evidence"
 test -f "$binding_evidence"
 test -f "$remote_evidence"
 test -f "$capability_gap_evidence"
+test -f "$utility_parity_evidence"
+test -f "$picker_reference_evidence"
 test -f "$prototype/fixtures/preview-amber.png"
 test -f "$prototype/fixtures/preview-blue.png"
 test -f "$prototype/fixtures/preview-green.png"
@@ -136,7 +155,7 @@ grep -q '^key = "prefix+u"$' "$prototype/config.toml"
 for key in h j k l; do
   grep -q "^key = \"prefix+shift+$key\"$" "$prototype/config.toml"
 done
-test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 24
+test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 30
 grep -q '^key = "prefix+b"$' "$prototype/config.toml"
 grep -q '^key = "prefix+shift+b"$' "$prototype/config.toml"
 grep -q 'ready_prompt.sh' "$prototype/config.toml"
@@ -148,7 +167,23 @@ grep -q '^key = "prefix+="$' "$prototype/config.toml"
 grep -q '^key = "prefix+space"$' "$prototype/config.toml"
 grep -q 'layout_menu.sh' "$prototype/config.toml"
 grep -q '^width = 54$' "$prototype/config.toml"
-grep -q '^height = 12$' "$prototype/config.toml"
+grep -q '^height = 20$' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+p"$' "$prototype/config.toml"
+grep -q 'pane_transfer.sh' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+u"$' "$prototype/config.toml"
+grep -q 'export_history.sh' "$prototype/config.toml"
+grep -Fq 'key = "prefix+^"' "$prototype/config.toml"
+grep -Fq 'key = "prefix+$"' "$prototype/config.toml"
+grep -q 'tab_edge.sh.*first' "$prototype/config.toml"
+grep -q 'tab_edge.sh.*last' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+f"$' "$prototype/config.toml"
+grep -q 'manage_objects.sh' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+r"$' "$prototype/config.toml"
+grep -q 'visible_reference_picker.sh' "$prototype/config.toml"
+if grep -q 'layout\.apply' "$prototype/layout_preset.sh"; then
+  echo "process-preserving layout presets must not call layout.apply" >&2
+  exit 1
+fi
 for digit in 0 1 2 3 4 5 6 7 8 9; do
   grep -q "^key = \"prefix+$digit\"$" "$prototype/config.toml"
 done
@@ -182,7 +217,7 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
-  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 21
+  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 23
   if grep -Eq '^key = "(alt|ctrl\+alt)\+(h|j|k|l)"$' \
     "$prototype/.runtime/cf/herdr/config.toml"; then
     echo "focused prototype must pass physical Alt through to pane applications" >&2
@@ -227,6 +262,8 @@ python3 -c 'import sys; compile(open(sys.argv[1]).read(), "tab_client.py", "exec
   "$prototype/tab_client.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "picker_client.py", "exec")' \
   "$prototype/picker_client.py"
+python3 -c 'import sys; compile(open(sys.argv[1]).read(), "visible_references.py", "exec")' \
+  "$prototype/visible_references.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "semantic_agent_state.py", "exec")' \
   "$prototype/semantic_agent_state.py"
 
@@ -245,7 +282,7 @@ jq -se --arg config_hash "$binding_config_hash" \
   --arg shell_action_hash "$binding_shell_action_hash" \
   --arg validator_hash "$binding_validator_hash" \
   --argjson production "$binding_production" '
-  map(.check) == ["fixed_split","adaptive_split","swap","resize","move","smart_close","zoom","visible_urls","alt_transport","close_other_panes","alt_close_tab","alt_close_other_tabs","config","scope_audit","result"] and
+  map(.check) == ["fixed_split","adaptive_split","swap","resize","move","smart_close","zoom","visible_urls","alt_transport","nested_fish_navigation","close_other_panes","alt_close_tab","alt_close_other_tabs","config","scope_audit","result"] and
   (.[0].evidence.before.panes | length) == 1 and
   .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.5 and
   .[1].evidence.layout.splits[1].direction == "down" and
@@ -262,21 +299,23 @@ jq -se --arg config_hash "$binding_config_hash" \
   .[8].evidence.after_nested_alt_v == (.[8].evidence.pane_count_before + 2) and
   .[8].evidence.zoom_before == false and .[8].evidence.zoom_on == true and .[8].evidence.zoom_after == false and
   .[8].evidence.alt_q_pane_exists_after == 0 and
-  .[9].evidence.binding == "Alt-o" and .[9].evidence.confirmation_required == true and
-  .[9].evidence.first_press_pane_count == 3 and .[9].evidence.second_press_pane_count == 1 and
-  .[10].evidence.binding == "Alt-X" and .[10].evidence.application_owner == "Fish" and
-  .[10].evidence.tab_absent == true and .[10].evidence.process_dead == true and
-  .[11].evidence.binding == "Alt-Ctrl-x" and .[11].evidence.application_owner == "Fish" and
-  .[11].evidence.tabs_after_first_press == .[11].evidence.tabs_before and
-  .[11].evidence.tabs_after_confirmation == 1 and .[11].evidence.confirmation_required == true and
-  .[12].evidence.result == "config: ok" and
-  .[13].evidence.unchanged == true and
-  .[13].evidence.production_hashes_before == $production and
-  .[13].evidence.production_hashes_after == $production and
-  .[13].evidence.artifact_hashes == {
+  .[9].evidence.command == "fish" and .[9].evidence.adapter_retained == true and
+  .[9].evidence.focused_after_alt_j == .[9].evidence.expected_down_pane and
+  .[10].evidence.binding == "Alt-o" and .[10].evidence.confirmation_required == true and
+  .[10].evidence.first_press_pane_count == 3 and .[10].evidence.second_press_pane_count == 1 and
+  .[11].evidence.binding == "Alt-X" and .[11].evidence.application_owner == "Fish" and
+  .[11].evidence.tab_absent == true and .[11].evidence.process_dead == true and
+  .[12].evidence.binding == "Alt-Ctrl-x" and .[12].evidence.application_owner == "Fish" and
+  .[12].evidence.tabs_after_first_press == .[12].evidence.tabs_before and
+  .[12].evidence.tabs_after_confirmation == 1 and .[12].evidence.confirmation_required == true and
+  .[13].evidence.result == "config: ok" and
+  .[14].evidence.unchanged == true and
+  .[14].evidence.production_hashes_before == $production and
+  .[14].evidence.production_hashes_after == $production and
+  .[14].evidence.artifact_hashes == {
     config:$config_hash,nav:$nav_hash,shell_action:$shell_action_hash,validator:$validator_hash
   } and
-  .[14].evidence == {
+  .[15].evidence == {
     status:"PASS",session:"trial-focused",
     production_configuration_modified:false,migration_authorized:false
   }
@@ -335,12 +374,17 @@ jq -se --arg root "$root" \
 
 layout_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 layout_helper_hash=$(shasum -a 256 "$prototype/layout_menu.sh" | awk '{print $1}')
+layout_preset_hash=$(shasum -a 256 "$prototype/layout_preset.sh" | awk '{print $1}')
 layout_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
 layout_validator_hash=$(shasum -a 256 "$prototype/validate_layout_menu.sh" | awk '{print $1}')
+layout_concurrent_fixture_hash=$(shasum -a 256 \
+  "$prototype/fixtures/layout_concurrent_fixture.sh" | awk '{print $1}')
 jq -se --arg config_hash "$layout_config_hash" \
   --arg helper_hash "$layout_helper_hash" \
+  --arg preset_hash "$layout_preset_hash" \
   --arg client_hash "$layout_client_hash" \
   --arg validator_hash "$layout_validator_hash" \
+  --arg concurrent_fixture_hash "$layout_concurrent_fixture_hash" \
   --argjson production "$popup_production" '
   def positive_integer: type == "number" and floor == . and . > 0;
   def valid_sentinels:
@@ -348,10 +392,18 @@ jq -se --arg config_hash "$layout_config_hash" \
     all(.[]; (.pane_id | type == "string" and length > 0) and (.pid | positive_integer)) and
     (map(.pane_id) | unique | length == 3) and
     (map(.pid) | unique | length == 3);
-  map(.check) == ["config","equalize","zoom","cancel","adaptive_split","split_right","scope_audit","result"] and
+  map(.check) == [
+    "config","equalize","main_vertical_menu","zoom","cancel",
+    "adaptive_split","split_right","preset_tiled","preset_main-horizontal",
+    "preset_main-vertical","preset_even-horizontal","preset_even-vertical",
+    "incompatible_rejection","single_pane_no_ops","concurrent_ownership",
+    "scope_audit","result"
+  ] and
   .[0].evidence == {
     result:"config: ok",binding:"prefix+Space",
-    actions:["equalize","zoom","adaptive-split","split-right","cancel"],
+    actions:["tiled","main-horizontal","main-vertical","even-horizontal",
+      "even-vertical","equalize","zoom","adaptive-split","split-right","cancel"],
+    ratio_only_presets:true,
     layout_apply_used:false
   } and
   .[1].evidence.selection == "e" and
@@ -363,30 +415,158 @@ jq -se --arg config_hash "$layout_config_hash" \
   .[1].evidence.before.second.ratio == 0.65 and
   .[1].evidence.after.ratio == 0.33333334 and
   .[1].evidence.after.second.ratio == 0.5 and
-  .[2].evidence.selection == "z" and
-  .[2].evidence.states == [false,true,false] and
+  .[2].evidence.preset == "main-vertical" and
+  .[2].evidence.ratio_only == true and
+  .[2].evidence.layout.ratio == 0.62 and
+  .[2].evidence.layout.second.ratio == 0.5 and
   .[2].evidence.processes_survived == true and
-  .[2].evidence.sentinels == .[1].evidence.sentinels and
-  .[3].evidence.selection == "q" and .[3].evidence.layout_unchanged == true and
-  .[4].evidence.selection == "a" and
-  (.[4].evidence.new_pane | type == "string" and length > 0) and
-  .[4].evidence.original_processes_survived == true and
-  .[4].evidence.sentinels == .[1].evidence.sentinels and
-  .[5].evidence.selection == "v" and
+  .[3].evidence.selection == "z" and
+  .[3].evidence.states == [false,true,false] and
+  .[3].evidence.processes_survived == true and
+  .[4].evidence.selection == "q" and .[4].evidence.layout_unchanged == true and
+  .[5].evidence.selection == "a" and
   (.[5].evidence.new_pane | type == "string" and length > 0) and
-  .[5].evidence.new_pane != .[4].evidence.new_pane and
   .[5].evidence.original_processes_survived == true and
-  .[5].evidence.sentinels == .[1].evidence.sentinels and
-  .[6].evidence == {
+  .[6].evidence.selection == "v" and
+  (.[6].evidence.new_pane | type == "string" and length > 0) and
+  .[6].evidence.new_pane != .[5].evidence.new_pane and
+  .[6].evidence.original_processes_survived == true and
+  all(.[7:12][];
+    .evidence.real_prefix_transport == true and
+    .evidence.ratio_only == true and
+    .evidence.topology_preserved == true and
+    .evidence.process_identity_preserved == true and
+    .evidence.cwd_preserved == true and
+    .evidence.focus_preserved == true and
+    (.evidence.sentinels | valid_sentinels)
+  ) and
+  .[7].evidence.preset == "tiled" and .[7].evidence.selection == "+" and
+  .[7].evidence.after.direction == "right" and .[7].evidence.after.ratio == 0.33333334 and
+  .[8].evidence.preset == "main-horizontal" and .[8].evidence.selection == "_" and
+  .[8].evidence.after.direction == "down" and .[8].evidence.after.ratio == 0.62 and
+  .[9].evidence.preset == "main-vertical" and .[9].evidence.selection == "|" and
+  .[9].evidence.after.direction == "right" and .[9].evidence.after.ratio == 0.62 and
+  .[10].evidence.preset == "even-horizontal" and .[10].evidence.selection == "\\" and
+  .[10].evidence.after.direction == "right" and .[10].evidence.after.ratio == 0.33333334 and
+  .[11].evidence.preset == "even-vertical" and .[11].evidence.selection == "-" and
+  .[11].evidence.after.direction == "down" and .[11].evidence.after.ratio == 0.33333334 and
+  .[12].evidence.requested == "even-horizontal" and
+  .[12].evidence.status == 4 and .[12].evidence.mutation == false and
+  .[12].evidence.topology_preserved == true and
+  .[12].evidence.processes_preserved == true and
+  .[13].evidence.selections == ["+","_","|","\\","-"] and
+  .[13].evidence.real_prefix_transport == true and
+  .[13].evidence.layout_unchanged == true and
+  .[13].evidence.focus_preserved == true and
+  .[13].evidence.process_preserved == true and
+  .[14].evidence.status == 5 and
+  .[14].evidence.injected_after_owned_updates == 2 and
+  .[14].evidence.foreign_ratio_preserved == true and
+  .[14].evidence.helper_did_not_claim_foreign_update == true and
+  .[14].evidence.topology_preserved == true and
+  .[14].evidence.processes_preserved == true and
+  .[15].evidence == {
     config_sha256:$config_hash,helper_sha256:$helper_hash,
+    preset_sha256:$preset_hash,
     client_sha256:$client_hash,validator_sha256:$validator_hash,
+    concurrent_fixture_sha256:$concurrent_fixture_hash,
     production_sha256:$production
   } and
-  .[7].evidence == {
+  .[16].evidence == {
     status:"PASS",session:"lm",
     production_configuration_modified:false,migration_authorized:false
   }
 ' "$layout_menu_evidence" >/dev/null
+
+utility_pane_transfer_hash=$(shasum -a 256 "$prototype/pane_transfer.sh" | awk '{print $1}')
+utility_history_hash=$(shasum -a 256 "$prototype/export_history.sh" | awk '{print $1}')
+utility_tab_edge_hash=$(shasum -a 256 "$prototype/tab_edge.sh" | awk '{print $1}')
+utility_fixture_hash=$(shasum -a 256 "$prototype/fixtures/pane_transfer_picker_fixture.sh" | awk '{print $1}')
+utility_history_swap_fixture_hash=$(shasum -a 256 \
+  "$prototype/fixtures/history_path_swap_fixture.sh" | awk '{print $1}')
+utility_validator_hash=$(shasum -a 256 "$prototype/validate_utilities.sh" | awk '{print $1}')
+utility_tmux_path=$(command -v tmux)
+utility_tmux_version=$("$utility_tmux_path" -V)
+jq -se --arg pane_transfer "$utility_pane_transfer_hash" \
+  --arg history_export "$utility_history_hash" \
+  --arg tab_edge "$utility_tab_edge_hash" \
+  --arg fixture "$utility_fixture_hash" \
+  --arg history_swap_fixture "$utility_history_swap_fixture_hash" \
+  --arg validator "$utility_validator_hash" \
+  --arg tmux_path "$utility_tmux_path" \
+  --arg tmux_version "$utility_tmux_version" \
+  --argjson production "$popup_production" '
+  def positive_integer: type == "number" and floor == . and . > 0;
+  map(.check) == [
+    "config","transfer_send","transfer_receive","transfer_rejections",
+    "transfer_cross_workspace","transfer_cross_workspace_receive",
+    "transfer_post_move_rollback","transfer_native_failure_no_op",
+    "history_export","tab_edges",
+    "popup_transport","scope_audit","result"
+  ] and
+  .[0].evidence.first_tab == "prefix+^" and
+  .[0].evidence.last_tab == "prefix+$" and
+  .[0].evidence.last_pane_preserved == ["prefix+Tab","Ctrl+^"] and
+  all(.[1:3][];
+    .evidence.terminal_preserved == true and
+    .evidence.process_preserved == true and
+    .evidence.cwd_preserved == true and
+    .evidence.focused_after == true and
+    (.evidence.sentinel_pid | positive_integer)
+  ) and
+  .[3].evidence.cancel_no_op == true and
+  .[3].evidence.self_rejected == true and
+  .[3].evidence.stale_rejected == true and
+  .[4].evidence.pane_id_namespace_remap == true and
+  .[4].evidence.terminal_preserved == true and
+  .[4].evidence.process_preserved == true and
+  .[4].evidence.cwd_preserved == true and
+  .[5].evidence.mode == "receive" and
+  .[5].evidence.process_preserved == true and
+  .[6].evidence.injected_post_move_failure == true and
+  .[6].evidence.status == 5 and
+  .[6].evidence.process_preserved == true and
+  .[7].evidence.injected_native_move_status == 42 and
+  .[7].evidence.sole_source == true and
+  .[7].evidence.guard_cleaned == true and
+  .[7].evidence.placement_unchanged == true and
+  .[7].evidence.process_preserved == true and
+  .[8].evidence.explicit_path == true and
+  .[8].evidence.mode == "0600" and
+  .[8].evidence.terminal_text_preserved == true and
+  .[8].evidence.json_like_text_preserved == true and
+  .[8].evidence.trailing_newline_preserved == true and
+  .[8].evidence.full_scrollback_over_200 == true and
+  .[8].evidence.no_clobber_refusal == true and
+  .[8].evidence.confirmed_overwrite == true and
+  .[8].evidence.path_swap_rejected == true and
+  .[8].evidence.unconfirmed_replacement_preserved == true and
+  .[8].evidence.before_open_dangling_swap_rejected == true and
+  .[8].evidence.dangling_referent_not_created == true and
+  .[8].evidence.pane_history_enabled == false and
+  .[9].evidence.real_prefix_transport == true and
+  .[9].evidence.prefix_tab_last_pane_preserved == true and
+  .[9].evidence.sentinel_processes_survived == true and
+  .[10].evidence.pane_transfer.real_fzf == true and
+  .[10].evidence.pane_transfer.cancelled == true and
+  .[10].evidence.history_export.prompted == true and
+  .[10].evidence.history_export.cancelled == true and
+  .[10].evidence.tiled_objects_unchanged == true and
+  .[11].evidence == {
+    artifact_sha256:{
+      pane_transfer:$pane_transfer,history_export:$history_export,
+      tab_edge:$tab_edge,picker_fixture:$fixture,
+      history_swap_fixture:$history_swap_fixture,validator:$validator
+    },
+    production_sha256:$production,unchanged:true
+  } and
+  .[12].evidence == {
+    status:"PASS",version:"herdr 0.7.4",session:"ut",
+    pane_history:{prototype:true,production:true},
+    tmux:{available:true,path:$tmux_path,version:$tmux_version},
+    production_configuration_modified:false
+  }
+' "$utility_parity_evidence" >/dev/null
 
 copy_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 copy_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
@@ -941,7 +1121,10 @@ jq -se --arg adapter_hash "$login_adapter_hash" \
       herdr_pane:true,
       tmux:true,
       opt_out:true,
-      invalid_session:true
+      invalid_session:true,
+      tmux_default:true,
+      invalid_default:true,
+      missing_default:true
     },
     total_launches:2
   } and
@@ -1006,6 +1189,8 @@ jq -se \
       "workspace_picker=prefix+w",
       "workspace_cycle=prefix+(/)/Ctrl-^",
       "goto=prefix+f",
+      "manage_objects=prefix+Shift+f",
+      "visible_references=prefix+Shift+r",
       "scratch_popup=prefix+Enter",
       "lazygit_popup=prefix+g",
       "layout_menu=prefix+Space"
@@ -1098,6 +1283,83 @@ jq -se \
     validation_plan_steps:7
   }
 ' "$picker_evidence" >/dev/null
+
+picker_reference_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+picker_reference_manager_hash=$(shasum -a 256 "$prototype/manage_objects.sh" | awk '{print $1}')
+picker_reference_picker_hash=$(shasum -a 256 "$prototype/visible_reference_picker.sh" | awk '{print $1}')
+picker_reference_parser_hash=$(shasum -a 256 "$prototype/visible_references.py" | awk '{print $1}')
+picker_reference_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+picker_reference_validator_hash=$(shasum -a 256 "$prototype/validate_picker_reference.sh" | awk '{print $1}')
+jq -se \
+  --arg config "$picker_reference_config_hash" \
+  --arg manager "$picker_reference_manager_hash" \
+  --arg picker "$picker_reference_picker_hash" \
+  --arg parser "$picker_reference_parser_hash" \
+  --arg client "$picker_reference_client_hash" \
+  --arg validator "$picker_reference_validator_hash" '
+  map(.check) == [
+    "parser",
+    "destructive_picker",
+    "reference_actions",
+    "config",
+    "real_transport",
+    "scope_audit",
+    "result"
+  ] and
+  .[0].evidence.newest_first == true and
+  .[0].evidence.duplicate_value_count == 1 and
+  .[0].evidence.punctuation_trimmed == true and
+  .[0].evidence.types == ["uri","path","hash"] and
+  .[1].evidence.successful_targets == ["pane","tab","workspace"] and
+  .[1].evidence.confirmation_cancel_inert == true and
+  .[1].evidence.stale_rejections == ["pane:4","tab:4","workspace:4"] and
+  .[1].evidence.picker_cancel_inert == true and
+  .[1].evidence.picker_failure_status == 42 and
+  .[1].evidence.one_target_per_invocation == true and
+  .[2].evidence.copied == ["deadbeef"] and
+  .[2].evidence.opened == [
+    "https://example.test/new?x=1",
+    "/work/project/./docs/guide.md",
+    (env.HOME + "/notes/todo.md")
+  ] and
+  .[2].evidence.relative_path_resolved_from_focused_cwd == true and
+  .[2].evidence.hash_open_status == 4 and
+  .[2].evidence.picker_cancel_inert == true and
+  .[2].evidence.picker_failure_status == 42 and
+  .[2].evidence.copy_mode_used == false and
+  .[3].evidence == {
+    result:"config: ok",
+    manage_binding:"prefix+shift+f",
+    reference_binding:"prefix+shift+r",
+    native_goto:"prefix+f",
+    copy_mode_binding_unchanged:true
+  } and
+  .[4].evidence.manage_popup_via == "prefix+shift+f" and
+  .[4].evidence.reference_popup_via == "prefix+shift+r" and
+  .[4].evidence.copied_hash == "#a1b2c3d4" and
+  .[4].evidence.parent_process_survived == true and
+  .[5].evidence.unchanged == true and
+  .[5].evidence.herdr_version == "0.7.4" and
+  .[5].evidence.pane_history == false and
+  .[5].evidence.tmux_available == true and
+  .[5].evidence.copy_mode_parity_claimed == false and
+  .[5].evidence.artifacts == {
+    config:$config,
+    manager:$manager,
+    picker:$picker,
+    parser:$parser,
+    client:$client,
+    validator:$validator
+  } and
+  .[6].evidence == {
+    status:"PASS",
+    session:"pr",
+    destructive_confirmation:true,
+    stale_target_checks:true,
+    visible_reference_types:["uri","path","hash"],
+    copy_mode_emulation:false
+  }
+' "$picker_reference_evidence" >/dev/null
 
 nvim_config=${XDG_CONFIG_HOME:-"$HOME/.config"}/nvim/lua/plugin/tmux.lua
 if [ ! -f "$nvim_config" ]; then

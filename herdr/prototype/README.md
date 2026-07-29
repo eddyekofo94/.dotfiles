@@ -79,6 +79,29 @@ toggles zoom, `S` toggles the sidebar, and `u` opens the newest HTTP(S) URL
 visible in the focused pane. `b` inserts the newest labeled agent handoff and
 `B` safely clears Codex or Claude context before inserting it.
 
+`Prefix+Shift+f` opens the separate destructive object manager. It searches
+panes, tabs, and workspaces with a metadata preview, selects exactly one target,
+requires an explicit `y`/`yes`, and re-reads the object's identity and
+descendant topology before closing it. Native `Prefix+f` remains the ordinary
+non-destructive goto path.
+
+`Prefix+Shift+r` lists URI, path, and hexadecimal-hash references extracted
+from bounded recent unwrapped focused-pane readback. Enter copies the selected
+reference; Ctrl-O opens a URI or a path resolved from the pane cwd and refuses
+hashes. This popup is deliberately outside copy mode: it is not cursor-local,
+selection-bounded, or a claim of copy-mode parity.
+
+Run the focused safety and real-prefix gate with:
+
+```sh
+./herdr/prototype/validate_picker_reference.sh
+```
+
+The resulting `evidence/picker-reference-validation.jsonl` covers parser
+ordering/deduplication, confirmation cancellation, successful pane/tab/workspace
+deletion, stale descendant/identity rejection, copy/open dispatch, failure
+paths, and real `Prefix+Shift+f` / `Prefix+Shift+r` popup transport.
+
 `adaptive_split.sh`, `smart_close.sh`, and `open_visible_url.sh` resolve the
 focused pane through `HERDR_PANE_ID` or `pane current`, then use Herdr pane
 layout, process, read, split, close, and zoom APIs. Smart close exits 75 and
@@ -213,14 +236,48 @@ Run the process-preserving layout palette gate with:
 ./herdr/prototype/validate_layout_menu.sh
 ```
 
-`prefix+Space` opens a 54×12 session-modal palette. Instead of reproducing
-tmux's named preset catalogue with destructive topology replacement, it exposes
-safe Herdr actions: `e` equalizes the current BSP, `z` toggles zoom, `a` creates
-an adaptive split, `v` splits right, and `q` cancels. The live gate proves all
-five choices through real prefix input. Equalize preserves the exact topology
-and all three sentinel PIDs; zoom cycles `false → true → false`; both split
-actions preserve the original processes; cancel leaves the layout byte-for-byte
-unchanged. `layout.apply` is deliberately absent.
+`prefix+Space` opens a 54×20 session-modal palette. It retains `e` equalize,
+`z` zoom, `a` adaptive split, `v` split right, and `q` cancel, and adds the
+tmux-menu symbols `+` tiled/equalize, `_` main-horizontal, `|` main-vertical,
+`\` even-horizontal, and `-` even-vertical.
+
+Every preset is ratio-only. Tiled/equalize keeps the current BSP topology.
+Even-horizontal and even-vertical require an already all-right or all-down
+tree. Main-horizontal requires a top main leaf above an all-right remainder;
+main-vertical requires a left main leaf beside an all-down remainder. The main
+ratio is 62%. An incompatible preset exits before mutation. The live gate
+proves all compatible shapes retain exact pane/terminal IDs, sentinel PIDs,
+cwd, topology, and focus; it also proves incompatible rejection is inert.
+`layout.apply` is deliberately absent because a v0.7.4 probe showed it replaces
+the referenced pane terminals.
+
+## Pane and tab utility parity gate
+
+Run the focused utility gate with:
+
+```sh
+./herdr/prototype/validate_utilities.sh
+```
+
+`prefix+Shift+p` opens a real fzf popup containing both send-focused and
+receive-beside-focused pane-transfer choices. The helper revalidates both pane
+IDs after selection and uses native `pane move`; cancel, self, and stale
+targets are inert. Candidates span the session. Same-workspace moves retain the
+pane ID; cross-workspace moves use Herdr's destination-workspace pane ID while
+retaining the terminal, process, cwd, and focus. `prefix+Shift+u` prompts for an
+explicit scrollback-export
+path, creates new files without clobbering, and requires `y` before replacing
+an existing path. Exports preserve API-decoded text bytes, including JSON-like
+leading text and trailing newlines, in mode `0600` files and do not enable pane
+history.
+
+`prefix+^` focuses the first tab and `prefix+$` the last tab in current
+workspace API order. They do not change `prefix+Tab` or `Ctrl+^`, which remain
+the approved last-pane bindings. The gate proves both transfer directions,
+including a cross-workspace move, preserve terminal ID, sentinel PID, cwd, and
+focus; a 320-line history export, no-clobber and confirmed overwrite; tab-edge
+order; both real popup transports; and unchanged tmux, Fish, Ghostty, and
+Neovim scope hashes.
 
 ## Copy-mode paging gate
 
