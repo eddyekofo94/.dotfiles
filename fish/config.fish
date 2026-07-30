@@ -35,8 +35,11 @@ if status is-interactive
         fnm env --use-on-cd | source
     end
 
-    # Enables vim keybindings
-    set fish_key_bindings fish_user_key_bindings
+    # Enables vim keybindings. Name the vi function here rather than
+    # fish_user_key_bindings: fish runs the user hook right after whichever
+    # function this names, and prompts (starship) only forward $fish_bind_mode
+    # when this variable names a known vi/hybrid binding function.
+    set -g fish_key_bindings fish_vi_key_bindings
 end
 
 if status is-login
