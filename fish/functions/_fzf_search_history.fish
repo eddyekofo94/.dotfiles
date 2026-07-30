@@ -32,13 +32,24 @@ function _fzf_search_history --description "Search command history. Replace the 
     set -f command_style (set_color $fish_color_command 2>/dev/null)
     set -f reset_style (set_color normal)
 
+    # Styling is a nicety, so a machine without perl passes the history through
+    # unstyled instead of losing the picker to a broken pipe. The stage below must
+    # stay `env ... $history_styler` rather than running the styler directly: `cat`
+    # is a Fish function wrapping bat here, and bat would rewrite the
+    # NUL-delimited stream. Because env is the command, env resolves `cat` through
+    # PATH to the external binary and the records pass through untouched.
+    set -f history_styler cat
+    if command -q perl
+        set -f history_styler perl -0pe 's/\A(.*? │ )(\S+)/$ENV{FZF_HISTORY_DIM}$1$ENV{FZF_HISTORY_COMMAND}$2$ENV{FZF_HISTORY_RESET}/'
+    end
+
     # Delinate commands throughout pipeline using null rather than newlines because commands can be multi-line
     set -f commands_selected (
         builtin history --null --show-time="$fzf_history_time_format │ " |
-        FZF_HISTORY_DIM="$dim_style" \
+        env FZF_HISTORY_DIM="$dim_style" \
             FZF_HISTORY_COMMAND="$command_style" \
             FZF_HISTORY_RESET="$reset_style" \
-            perl -0pe 's/\A(.*? │ )(\S+)/$ENV{FZF_HISTORY_DIM}$1$ENV{FZF_HISTORY_COMMAND}$2$ENV{FZF_HISTORY_RESET}/' |
+            $history_styler |
         _fzf_wrapper --read0 \
             --print0 \
             --multi \
