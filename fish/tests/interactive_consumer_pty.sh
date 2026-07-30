@@ -177,6 +177,20 @@ expect {
 }
 after 100
 
+# Color settings that separate processes read must live in the environment, not
+# only in global Fish variables. fish_indent renders the Ctrl-R history preview
+# as a child of the reader, so unexported theme colors leave that preview
+# monochrome while the shell itself still looks correctly highlighted. Comparing
+# byte counts avoids escaping escape sequences. LS_COLORS is the same class of
+# setting but is generated into a cache this fixture home does not have, so the
+# environment audit covers it instead.
+send "set -qgx fish_color_command; and test (printf 'echo hi\\n' | fish_indent --ansi | wc -c) -gt (printf 'echo hi\\n' | fish_indent | wc -c); and printf 'FISH_PTY_COLOR_%s\\n' ENV_OK\r"
+expect {
+    -exact "FISH_PTY_COLOR_ENV_OK" {}
+    timeout { fail "theme colors are not exported, so child previews render monochrome" }
+}
+wait_prompt
+
 # Vi mode has to reach the reader through a binding function name that
 # mode-aware prompts recognize. Starship only forwards $fish_bind_mode when
 # $fish_key_bindings names a vi/hybrid function, so naming the user hook here

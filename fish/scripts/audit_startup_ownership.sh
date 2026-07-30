@@ -32,11 +32,25 @@ if rg -n '\$get_(current|default)_branch|\$\(get_(current|default)_branch\)' \
     exit 1
 fi
 
-theme_owners=$(rg -l '^[[:space:]]*set fish_(color|pager_color)_' \
+theme_file="$package_dir/conf.d/theme.fish"
+# Match the assignment with or without scope flags so ownership keeps being
+# detected when the flags change.
+theme_pattern='^[[:space:]]*set[[:space:]]+(-[[:alnum:]]+[[:space:]]+)*fish_(color|pager_color)_'
+theme_owners=$(rg -l "$theme_pattern" \
     "$package_dir/conf.d" "$package_dir/config.fish")
-if [ "$theme_owners" != "$package_dir/conf.d/theme.fish" ]; then
+if [ "$theme_owners" != "$theme_file" ]; then
     echo 'Fish startup ownership audit: theme ownership is not singular' >&2
     printf '%s\n' "$theme_owners" >&2
+    exit 1
+fi
+
+# Separate processes read the theme from the environment rather than from Fish's
+# variable table: fish_indent --ansi renders the Ctrl-R history preview and goes
+# monochrome when these are merely global.
+unexported_theme=$(rg -n "$theme_pattern" "$theme_file" | rg -v '^[0-9]+:set -gx ' || true)
+if [ -n "$unexported_theme" ]; then
+    echo 'Fish startup ownership audit: theme colors must be exported with set -gx' >&2
+    printf '%s\n' "$unexported_theme" >&2
     exit 1
 fi
 
