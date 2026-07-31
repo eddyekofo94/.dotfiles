@@ -28,7 +28,15 @@ split_horizontal = ""
 close_pane = ""
 zoom = "prefix+z"
 resize_mode = "prefix+r"
+# Prefix+s enters copy mode; Alt+s enters it with the backward-search prompt
+# already open, so a scrollback search is one chord instead of two. The search
+# entry point comes from the reviewed source build, so it does nothing until
+# herdr/source-build/build.sh --install has run; older binaries ignore the key.
+# Copy mode has no CLI or shell entry point, so these must be native bindings
+# and cannot go through smart_action.sh: Herdr claims Alt+s globally and
+# Neovim's own <M-s> no longer sees it.
 copy_mode = "prefix+s"
+copy_mode_search = "alt+s"
 toggle_sidebar = "prefix+shift+s"
 previous_workspace = "prefix+("
 next_workspace = "prefix+)"
@@ -39,6 +47,21 @@ key = "prefix+a"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
 description = "adaptive split from focused pane shape"
+
+[[keys.command]]
+key = "alt+d"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" d split-down"
+description = "split down (forward to vim, else Herdr split)"
+
+# Alt+c rather than Alt+q so the chord matches Neovim's own <M-c> "close current
+# window". Alt+q is left unbound here, which lets Neovim's <M-q> through
+# untouched instead of Herdr intercepting it first.
+[[keys.command]]
+key = "alt+c"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" c close-pane"
+description = "smart close pane (forward to vim, else Herdr close)"
 
 [[keys.command]]
 key = "prefix+shift+h"

@@ -10,6 +10,9 @@ case "$action" in
 split-right)
   exec $herdr pane split "$pane" --direction right --ratio 0.5 --focus
   ;;
+split-down)
+  exec $herdr pane split "$pane" --direction down --ratio 0.5 --focus
+  ;;
 split-adaptive)
   HERDR_TARGET_PANE_ID=$pane exec "$prototype/adaptive_split.sh"
   ;;
