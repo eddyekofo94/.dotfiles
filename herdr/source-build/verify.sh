@@ -7,9 +7,13 @@ root=$(CDPATH= cd -- "$source_build/../.." && pwd)
 # shellcheck source=/dev/null
 . "$source_build/pins.env"
 
-test "$HERDR_SOURCE_TAG" = v0.7.4
-test "$HERDR_SOURCE_TAG_OBJECT" = 54208dc16efe15ea92d7f131439d43cbd84b489e
-test "$HERDR_SOURCE_COMMIT" = 50aaa2ec046ee26ff407c20f49de496f522512a8
+# Deliberately hardcoded rather than compared against pins.env: this is the
+# independent cross-check that catches a tampered or half-finished re-pin, so it
+# has to carry its own copy of the reviewed identity. upgrade.sh does not rewrite
+# these — bump them by hand, from `git rev-parse`, as part of accepting a release.
+test "$HERDR_SOURCE_TAG" = v0.7.5
+test "$HERDR_SOURCE_TAG_OBJECT" = 99df3ac37be6bd7be2fd2023f0d88a7a0e7a7101
+test "$HERDR_SOURCE_COMMIT" = ef4c23f5775bb8cfec05f05d0844226ff959a07a
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
 test "$(shasum -a 256 "$source_build/copy-mode-vim-muscle-memory.patch" | awk '{print $1}')" = \
@@ -31,7 +35,7 @@ fi
 bin="$source_build/.work/bin/herdr"
 test -x "$bin"
 test "$(shasum -a 256 "$bin" | awk '{print $1}')" = "$HERDR_BINARY_SHA256"
-test "$("$bin" --version)" = "herdr 0.7.4"
+test "$("$bin" --version)" = "herdr 0.7.5"
 test "$(rg -c '^pane_history = false$' "$root/herdr/config.toml")" -eq 1
 test -x "$root/herdr/tmux_fallback.sh"
 tmux -V | rg -q '^tmux '
