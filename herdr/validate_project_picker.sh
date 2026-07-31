@@ -190,8 +190,19 @@ expected=$(printf '%s\n' \
 expected=$(printf '%s\n' "$expected" "$concurrent_project" | sort)
 test "$discovered" = "$expected"
 test "$(printf '%s\n' "$discovered" | sort -u | wc -l | tr -d ' ')" -eq 8
+# The assertions above run against the real absolute paths; only the recorded
+# copy is rewritten. Every run gets a fresh mktemp root, so recording absolute
+# paths made this file differ after each verification for no reason — the diff
+# was the random directory name and nothing else. Anchoring them to <runtime>
+# keeps what the evidence actually proves (which projects were discovered, that
+# duplicate basenames stayed distinct, that the backslash path survived) and
+# drops only the part that was never meaningful.
 record discovery "$(jq -cn \
-  --argjson paths "$(printf '%s\n' "$discovered" | jq -Rsc 'split("\n")[:-1]')" \
+  --argjson paths "$(
+    printf '%s\n' "$discovered" |
+      jq -Rsc --arg runtime "$runtime" \
+        'split("\n")[:-1] | map("<runtime>" + ltrimstr($runtime))'
+  )" \
   '{roots_configurable:true,git_repositories:true,linked_external_worktree:true,
     duplicate_basenames_preserved:true,generated_dependency_pruned:true,
     fd_accelerated_when_available:true,find_fallback_exercised:true,
