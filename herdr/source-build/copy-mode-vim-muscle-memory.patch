@@ -1,0 +1,274 @@
+diff --git a/src/app/input/copy_mode.rs b/src/app/input/copy_mode.rs
+index e6c0d074..cdfc5e9d 100644
+--- a/src/app/input/copy_mode.rs
++++ b/src/app/input/copy_mode.rs
+@@ -83,6 +83,21 @@ impl AppState {
+         self.mode = Mode::Copy;
+     }
+ 
++    /// Enter copy mode with the search prompt already open, composing the
++    /// existing `enter_copy_mode` and search-prompt operations so one binding
++    /// reaches the state that copy mode's `/` and `?` keys produce.
++    pub(crate) fn enter_copy_mode_search(
++        &mut self,
++        terminal_runtimes: &TerminalRuntimeRegistry,
++        direction: CopyModeSearchDirection,
++    ) {
++        self.enter_copy_mode(terminal_runtimes);
++        if self.mode != Mode::Copy {
++            return;
++        }
++        self.open_copy_mode_search(direction);
++    }
++
+     pub(crate) fn handle_copy_mode_key(
+         &mut self,
+         terminal_runtimes: &TerminalRuntimeRegistry,
+@@ -176,10 +191,14 @@ impl AppState {
+             return;
+         };
+         match ch {
+-            'q' => self.exit_copy_mode(terminal_runtimes, false),
++            'a' | 'i' | 'q' => self.exit_copy_mode(terminal_runtimes, false),
+             'y' => self.exit_copy_mode(terminal_runtimes, true),
+             'v' | ' ' => self.begin_copy_mode_selection(terminal_runtimes),
+             'V' => self.select_copy_mode_line(terminal_runtimes),
++            'Y' => {
++                self.select_copy_mode_line(terminal_runtimes);
++                self.exit_copy_mode(terminal_runtimes, true);
++            }
+             'h' => self.move_copy_cursor(terminal_runtimes, 0, -1),
+             'j' => self.move_copy_cursor(terminal_runtimes, 1, 0),
+             'k' => self.move_copy_cursor(terminal_runtimes, -1, 0),
+@@ -1780,6 +1799,101 @@ mod tests {
+         assert_eq!(app.state.mode, Mode::Terminal);
+     }
+ 
++    #[tokio::test]
++    async fn copy_mode_a_and_i_exit_without_copying() {
++        for key in ['a', 'i'] {
++            let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++            app.state.enter_copy_mode(&app.terminal_runtimes);
++            app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char('v'), KeyModifiers::empty()));
++
++            app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char(key), KeyModifiers::empty()));
++
++            assert_eq!(app.state.mode, Mode::Terminal, "key: {key}");
++            assert!(app.state.copy_mode.is_none(), "key: {key}");
++            assert!(app.state.selection.is_none(), "key: {key}");
++            assert!(app.event_rx.try_recv().is_err(), "key: {key}");
++        }
++    }
++
++    #[tokio::test]
++    async fn copy_mode_shift_y_copies_current_line_and_exits() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 1;
++            copy_mode.cursor_col = 2;
++        }
++
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char('y'), KeyModifiers::SHIFT));
++
++        assert_eq!(copy_mode_clipboard_text(&mut app), "beta");
++        assert_eq!(app.state.mode, Mode::Terminal);
++        assert!(app.state.copy_mode.is_none());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_search_entry_opens_backward_prompt() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++
++        app.state
++            .enter_copy_mode_search(&app.terminal_runtimes, CopyModeSearchDirection::Backward);
++
++        assert_eq!(app.state.mode, Mode::Copy);
++        let prompt = app
++            .state
++            .copy_mode
++            .as_ref()
++            .and_then(|copy_mode| copy_mode.search.prompt.as_ref())
++            .expect("search prompt is open");
++        assert_eq!(prompt.direction, CopyModeSearchDirection::Backward);
++        assert!(prompt.query.is_empty());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_search_entry_accepts_a_query_like_the_question_mark_key() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++
++        app.state
++            .enter_copy_mode_search(&app.terminal_runtimes, CopyModeSearchDirection::Backward);
++        for ch in "alpha".chars() {
++            app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char(ch), KeyModifiers::empty()));
++        }
++
++        let prompt = app
++            .state
++            .copy_mode
++            .as_ref()
++            .and_then(|copy_mode| copy_mode.search.prompt.as_ref())
++            .expect("search prompt is still open");
++        assert_eq!(prompt.query, "alpha");
++    }
++
++    #[tokio::test]
++    async fn copy_mode_search_entry_matches_pressing_question_mark_after_entering() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char('?'), KeyModifiers::empty()));
++        let expected = app
++            .state
++            .copy_mode
++            .as_ref()
++            .and_then(|copy_mode| copy_mode.search.prompt.clone())
++            .expect("manual prompt is open");
++
++        let (mut direct, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++        direct
++            .state
++            .enter_copy_mode_search(&direct.terminal_runtimes, CopyModeSearchDirection::Backward);
++        let actual = direct
++            .state
++            .copy_mode
++            .as_ref()
++            .and_then(|copy_mode| copy_mode.search.prompt.clone())
++            .expect("direct prompt is open");
++
++        assert_eq!(actual, expected);
++    }
++
+     #[tokio::test]
+     async fn copy_mode_shift_v_extends_linewise_down() {
+         let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
+diff --git a/src/app/input/navigate.rs b/src/app/input/navigate.rs
+index d151b94d..77a3e9af 100644
+--- a/src/app/input/navigate.rs
++++ b/src/app/input/navigate.rs
+@@ -13,7 +13,7 @@ use ratatui::layout::Direction;
+ 
+ use crate::{
+     app::{
+-        state::{AppState, Mode},
++        state::{AppState, CopyModeSearchDirection, Mode},
+         App,
+     },
+     input::TerminalKey,
+@@ -105,7 +105,7 @@ impl App {
+             self.cancel_copy_mode_if_active();
+             self.launch_focused_scrollback_editor();
+             finish_action_context(&mut self.state, ActionContext::Prefix, previous_mode);
+-        } else if action == NavigateAction::CopyMode {
++        } else if action == NavigateAction::CopyMode || action == NavigateAction::CopyModeSearch {
+             self.cancel_copy_mode_if_active();
+             self.execute_tui_navigate_action(action, ActionContext::Prefix);
+         } else if copy_mode_survives_prefix_action(action) {
+@@ -368,6 +368,9 @@ impl App {
+             }
+             NavigateAction::EditScrollback => {}
+             NavigateAction::CopyMode => self.state.enter_copy_mode(&self.terminal_runtimes),
++            NavigateAction::CopyModeSearch => self
++                .state
++                .enter_copy_mode_search(&self.terminal_runtimes, CopyModeSearchDirection::Backward),
+             NavigateAction::Zoom => {
+                 self.zoom_focused_pane_via_api();
+                 leave_navigate_mode(&mut self.state);
+@@ -1304,6 +1307,7 @@ pub(crate) enum NavigateAction {
+     NextTab,
+     CloseTab,
+     RenamePane,
++    CopyModeSearch,
+     FocusPaneLeft,
+     FocusPaneDown,
+     FocusPaneUp,
+@@ -1439,6 +1443,7 @@ fn non_indexed_action_for_key(
+         (&kb.rename_pane, NavigateAction::RenamePane),
+         (&kb.edit_scrollback, NavigateAction::EditScrollback),
+         (&kb.copy_mode, NavigateAction::CopyMode),
++        (&kb.copy_mode_search, NavigateAction::CopyModeSearch),
+         (&kb.focus_pane_left, NavigateAction::FocusPaneLeft),
+         (&kb.focus_pane_down, NavigateAction::FocusPaneDown),
+         (&kb.focus_pane_up, NavigateAction::FocusPaneUp),
+@@ -1681,6 +1686,9 @@ pub(super) fn execute_navigate_action_in_context(
+         }
+         NavigateAction::EditScrollback => {}
+         NavigateAction::CopyMode => state.enter_copy_mode(terminal_runtimes),
++        NavigateAction::CopyModeSearch => {
++            state.enter_copy_mode_search(terminal_runtimes, CopyModeSearchDirection::Backward)
++        }
+         NavigateAction::Zoom => {
+             state.toggle_zoom();
+             leave_navigate_mode(state);
+diff --git a/src/config/keybinds.rs b/src/config/keybinds.rs
+index 29b53355..ef96b5f7 100644
+--- a/src/config/keybinds.rs
++++ b/src/config/keybinds.rs
+@@ -339,6 +339,7 @@ pub struct Keybinds {
+     pub rename_pane: ActionKeybinds,
+     pub edit_scrollback: ActionKeybinds,
+     pub copy_mode: ActionKeybinds,
++    pub copy_mode_search: ActionKeybinds,
+     pub focus_pane_left: ActionKeybinds,
+     pub focus_pane_down: ActionKeybinds,
+     pub focus_pane_up: ActionKeybinds,
+@@ -501,6 +502,7 @@ impl Config {
+             rename_pane: empty_action!(),
+             edit_scrollback: empty_action!(),
+             copy_mode: empty_action!(),
++            copy_mode_search: empty_action!(),
+             focus_pane_left: empty_action!(),
+             focus_pane_down: empty_action!(),
+             focus_pane_up: empty_action!(),
+@@ -642,6 +644,7 @@ impl Config {
+             apply_action!(keybinds.rename_pane, rename_pane, source);
+             apply_action!(keybinds.edit_scrollback, edit_scrollback, source);
+             apply_action!(keybinds.copy_mode, copy_mode, source);
++            apply_action!(keybinds.copy_mode_search, copy_mode_search, source);
+             apply_action!(keybinds.focus_pane_left, focus_pane_left, source);
+             apply_action!(keybinds.focus_pane_down, focus_pane_down, source);
+             apply_action!(keybinds.focus_pane_up, focus_pane_up, source);
+diff --git a/src/config/model.rs b/src/config/model.rs
+index 9fbca3a6..0945becd 100644
+--- a/src/config/model.rs
++++ b/src/config/model.rs
+@@ -381,6 +381,7 @@ pub struct KeysConfig {
+     pub edit_scrollback: BindingConfig,
+     /// Enter keyboard copy mode for the focused pane. Default: "prefix+[".
+     pub copy_mode: BindingConfig,
++    pub copy_mode_search: BindingConfig,
+     /// Focus the pane to the left. Default: "prefix+h".
+     pub focus_pane_left: BindingConfig,
+     /// Focus the pane below. Default: "prefix+j".
+@@ -500,6 +501,7 @@ pub(crate) struct KeysConfigOverlay {
+     edit_scrollback: Option<BindingConfig>,
+     #[serde(skip_serializing_if = "Option::is_none")]
+     copy_mode: Option<BindingConfig>,
++    copy_mode_search: Option<BindingConfig>,
+     #[serde(skip_serializing_if = "Option::is_none")]
+     focus_pane_left: Option<BindingConfig>,
+     #[serde(skip_serializing_if = "Option::is_none")]
+@@ -593,6 +595,7 @@ impl<'de> Deserialize<'de> for KeysConfig {
+         apply_field!(rename_pane);
+         apply_field!(edit_scrollback);
+         apply_field!(copy_mode);
++        apply_field!(copy_mode_search);
+         apply_field!(focus_pane_left);
+         apply_field!(focus_pane_down);
+         apply_field!(focus_pane_up);
+@@ -691,6 +694,7 @@ impl KeysConfig {
+         copy_effective_action_field!(rename_pane, keybinds.rename_pane);
+         copy_effective_action_field!(edit_scrollback, keybinds.edit_scrollback);
+         copy_effective_action_field!(copy_mode, keybinds.copy_mode);
++        copy_effective_action_field!(copy_mode_search, keybinds.copy_mode_search);
+         copy_effective_action_field!(focus_pane_left, keybinds.focus_pane_left);
+         copy_effective_action_field!(focus_pane_down, keybinds.focus_pane_down);
+         copy_effective_action_field!(focus_pane_up, keybinds.focus_pane_up);
+@@ -956,6 +960,7 @@ impl Default for KeysConfig {
+             rename_pane: BindingConfig::one("prefix+shift+p"),
+             edit_scrollback: BindingConfig::one("prefix+e"),
+             copy_mode: BindingConfig::one("prefix+["),
++            copy_mode_search: BindingConfig::empty(),
+             focus_pane_left: BindingConfig::one("prefix+h"),
+             focus_pane_down: BindingConfig::one("prefix+j"),
+             focus_pane_up: BindingConfig::one("prefix+k"),
