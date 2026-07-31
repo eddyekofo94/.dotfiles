@@ -5,8 +5,31 @@ annotated tag object, peeled commit, Rust toolchain, Zig toolchain, patch
 digest, patched-source digest, and arm64 macOS binary digest, and refuses any
 unreviewed source difference or predecessor binary. Formatting, Clippy, the
 complete copy-mode test family, and a locked release build run before the binary
-can be installed. `pins.env` records which upstream release is currently
-tracked.
+can be installed.
+
+`pins.env` is the single source of truth for Herdr's identity on this machine —
+the tracked release, the version string, and the official release digest —
+and `install.sh`, `herdr/verify.sh`, `verify_integrations.sh` and `build.sh` all
+read it rather than hardcoding a version. An upgrade is one edit to that file,
+which `upgrade.sh` makes for you.
+
+`known-binaries.txt` records which binaries this machine produced or verified.
+The install guard accepts any of them as a replaceable predecessor and refuses
+anything else, so an upgrade replacing the previous reviewed build is normal
+while an unrecognized binary in `~/.local/bin` is never silently overwritten.
+
+## Everyday use
+
+You do not normally run anything in this directory. `herdr` is wrapped by
+`fish/functions/herdr.fish`:
+
+- `herdr update` runs `herdr/update.sh --apply` instead of downloading the
+  official release over the patched build.
+- `herdr server reload-config` runs `herdr/reload.sh`, which checks the config
+  symlink, the installed binary and the plugins before reloading. Also bound to
+  `prefix+shift+c`.
+
+Everything else passes through to the real binary untouched.
 
 ## What the patch adds
 
@@ -91,13 +114,17 @@ Every other gate still runs. `upgrade.sh` uses this internally.
 
 ## Things that will bite
 
-- **`herdr update` replaces the patched binary with the official one.** Both
-  write to `~/.local/bin/herdr`. Nothing warns at the time; `herdr/verify.sh`
-  catches it afterwards through the binary digest pin. Rebuild with
-  `build.sh --install` to get the patch back.
 - **A binary older than the patch ignores `copy_mode_search` silently.** The key
   is accepted and does nothing, so `alt+s` stays inert until the reviewed build
-  is installed.
-- **This directory is not in Git.** The patch, the pins, and these scripts exist
-  only on this disk. Committing them is what makes the build reproducible after
-  a disk loss.
+  is installed. `herdr/reload.sh` checks for this and says so.
+- **An upgrade does not restart running servers.** That is deliberate — it means
+  a session's panes survive an update — but the session keeps running the old
+  binary until its server is stopped, and `reload-config` reports a protocol
+  mismatch rather than reloading. New named sessions use the new binary.
+- **A new release usually ships newer agent integrations.** The old plugin keeps
+  running and reports stale agent state; only `herdr integration status` shows
+  it. `update.sh` refreshes them; `reload.sh` warns.
+- **Bare `herdr update` outside fish still replaces the patched binary.** The
+  wrapper is a fish function, so `sh -c 'herdr update'` or a script calling
+  `~/.local/bin/herdr update` bypasses it. `herdr/verify.sh` catches the result
+  afterwards through the binary digest pin.
