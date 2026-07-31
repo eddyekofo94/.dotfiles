@@ -63,12 +63,7 @@ if ! HERDR_PROTOTYPE_DIR="$herdr_dir/prototype" \
   exit 65
 fi
 
-# 4. Provision plugins this config depends on. Idempotent.
-if [ -x "$herdr_dir/ensure_plugins.sh" ]; then
-  HERDR_BIN_PATH="$herdr_bin" "$herdr_dir/ensure_plugins.sh" >/dev/null 2>&1 || true
-fi
-
-# 5. A new Herdr often ships a newer agent-integration plugin, and the old one
+# 4. A new Herdr often ships a newer agent-integration plugin, and the old one
 #    keeps reporting agent state until it is reinstalled. Report rather than
 #    rewrite: these live under ~/.claude, ~/.codex and ~/.config/opencode, which
 #    a config reload has no business editing on its own. update.sh refreshes them.
@@ -83,30 +78,45 @@ if [ -n "$outdated" ]; then
   status=1
 fi
 
-# 6. The normal thing. Three outcomes are worth telling apart, because only one
-#    of them means "nothing to do": a reload that worked, a server still running
-#    an older binary (upgrades do not restart running servers, so this is the
-#    normal state right after an update), and no server at all.
+# 5. The normal thing, and the probe for everything that needs a live server.
+#    Three outcomes are worth telling apart, because only one means "nothing to
+#    do": a reload that worked, a server still running an older binary (upgrades
+#    do not restart running servers, so this is the normal state right after an
+#    update), and no server at all.
+#
+#    Anything that talks to the server has to come after this. A stale server
+#    answers nothing, so probing it first just spends each helper's retry budget
+#    before arriving at the same conclusion this one call reaches immediately.
 reload_out=$("$herdr_bin" server reload-config 2>&1) && reload_ok=1 || reload_ok=0
 
 if [ "$reload_ok" -eq 1 ] && ! printf '%s' "$reload_out" | grep -q '"error"'; then
+  # The server is live and current, so the plugin check can only take its fast
+  # path. Provisioning itself belongs to session creation, which is where
+  # herdr_login_attach.fish does it and where waiting for a starting server is
+  # the right behavior.
+  if [ -n "${HERDR_SESSION:-}" ] && [ -x "$herdr_dir/ensure_plugins.sh" ]; then
+    if ! HERDR_BIN_PATH="$herdr_bin" \
+         "$herdr_dir/ensure_plugins.sh" "$HERDR_SESSION" >/dev/null 2>&1; then
+      warn "could not confirm the golden-focus plugin for session $HERDR_SESSION"
+      status=1
+    fi
+  fi
   if [ "$status" -eq 0 ]; then
     echo "herdr reload: config reloaded (reviewed v$HERDR_VERSION build)"
   else
     echo "herdr reload: config reloaded, but see the warnings above" >&2
   fi
 elif printf '%s' "$reload_out" | grep -q 'protocol_mismatch'; then
-  socket=${HERDR_SOCKET_PATH:-}
-  warn "the running Herdr server is an older build than this binary"
-  warn "an upgrade deliberately leaves running servers alone, so this session is"
-  warn "still on the previous version until its server is restarted"
-  if [ -n "$socket" ]; then
-    warn "restart it with (this exits the panes on that server):"
-    warn "  HERDR_SOCKET_PATH=$socket herdr server stop"
+  # Keep this short: it renders in whatever pane the keybinding fired in, and a
+  # six-line explanation wrapping in a narrow split is harder to act on than
+  # three. The bindings are fine — this session's server just predates them.
+  warn "this session's server predates the upgrade, so config was NOT reloaded"
+  warn "new sessions already run v$HERDR_VERSION; to move this one (exits its panes):"
+  if [ -n "${HERDR_SOCKET_PATH:-}" ]; then
+    warn "  HERDR_SOCKET_PATH=$HERDR_SOCKET_PATH herdr server stop"
   else
-    warn "restart the server to pick up v$HERDR_VERSION (this exits its panes)"
+    warn "  herdr server stop"
   fi
-  warn "new named sessions already start on the new binary"
   status=1
 elif printf '%s' "$reload_out" | grep -q 'No such file\|not running\|connection refused'; then
   echo "herdr reload: no running server; config applies on next start"
