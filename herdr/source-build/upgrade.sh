@@ -17,8 +17,11 @@ set -eu
 #   upgrade.sh --tag vX.Y.Z ...    target a specific tag instead of the newest
 
 source_build=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+root=$(CDPATH= cd -- "$source_build/../.." && pwd)
 patch="$source_build/copy-mode-vim-muscle-memory.patch"
 pins="$source_build/pins.env"
+sb_verify="$source_build/verify.sh"
+known_binaries="$source_build/known-binaries.txt"
 work=${HERDR_SOURCE_BUILD_WORK:-"$source_build/.work"}
 source_dir="$work/source"
 
@@ -189,6 +192,7 @@ git -C "$staging/source" diff --stat | sed 's/^/  /'
 backup=$(mktemp -d "$work/upgrade-backup.XXXXXX")
 cp "$pins" "$backup/pins.env"
 cp "$patch" "$backup/patch"
+cp "$sb_verify" "$backup/verify.sh"
 restored=0
 restore() {
   if [ "$restored" -eq 1 ]; then
@@ -197,6 +201,7 @@ restore() {
   restored=1
   cp "$backup/pins.env" "$pins"
   cp "$backup/patch" "$patch"
+  cp "$backup/verify.sh" "$sb_verify"
   if [ -d "$backup/source" ]; then
     rm -rf -- "$source_dir"
     mv "$backup/source" "$source_dir"
@@ -219,9 +224,56 @@ fi
 mv "$staging/source" "$source_dir"
 cp "$staging/rebased.patch" "$patch"
 
+# source-build/verify.sh carries its own hardcoded copy of the reviewed identity
+# on purpose: it is the independent cross-check that catches a tampered or
+# half-finished re-pin, so reading the value it is meant to police would defeat
+# it. That only works if an upgrade actually rewrites it — leaving it stale makes
+# every later verification fail on the version comparison before it reaches a
+# single digest check, which is exactly what happened on the 0.7.4 -> 0.7.5 move.
+set_verify_literal() {
+  literal_tmp=$(mktemp "$source_build/.verify.XXXXXX")
+  awk -v name="$1" -v value="$2" '
+    index($0, "test \"$" name "\" = ") == 1 {
+      print "test \"$" name "\" = " value
+      next
+    }
+    { print }
+  ' "$sb_verify" >"$literal_tmp"
+  chmod --reference="$sb_verify" "$literal_tmp" 2>/dev/null ||
+    chmod 0755 "$literal_tmp"
+  mv "$literal_tmp" "$sb_verify"
+}
+
+target_version=${target_tag#v}
+
+# The official release binary for the new tag: install.sh's download target and
+# the fixture herdr/verify.sh uses to exercise atomic replacement.
+echo "resolving the official $target_tag release binary ..."
+official_asset=${HERDR_OFFICIAL_ASSET:-herdr-macos-aarch64}
+official_url="https://github.com/ogulcancelik/herdr/releases/download/$target_tag/$official_asset"
+if ! curl -fsSL "$official_url" -o "$staging/official" 2>/dev/null; then
+  echo "Herdr upgrade: STOPPED — no official $official_asset for $target_tag." >&2
+  echo "  $official_url" >&2
+  exit 69
+fi
+target_official_sha=$(shasum -a 256 "$staging/official" | awk '{print $1}')
+echo "official $target_tag: $target_official_sha"
+
 set_pin HERDR_SOURCE_TAG "$target_tag"
 set_pin HERDR_SOURCE_TAG_OBJECT "$target_tag_object"
 set_pin HERDR_SOURCE_COMMIT "$target_commit"
+set_pin HERDR_VERSION "$target_version"
+set_pin HERDR_OFFICIAL_SHA256 "$target_official_sha"
+
+set_verify_literal HERDR_SOURCE_TAG "$target_tag"
+set_verify_literal HERDR_SOURCE_TAG_OBJECT "$target_tag_object"
+set_verify_literal HERDR_SOURCE_COMMIT "$target_commit"
+
+if ! awk -v d="$target_official_sha" '$1 == d { f = 1 } END { exit f ? 0 : 1 }' \
+     "$known_binaries"; then
+  printf '%s  official %s release (%s)\n' \
+    "$target_official_sha" "$target_tag" "$official_asset" >>"$known_binaries"
+fi
 
 echo
 echo "running the reviewed gates against $target_tag ..."
@@ -244,3 +296,7 @@ if [ "$install_build" -eq 0 ]; then
   echo "The binary is staged but not installed. Re-run with --install to replace"
   echo "~/.local/bin/herdr, or run build.sh --install."
 fi
+echo
+echo "Changed in this repo: source-build/pins.env, the rebased patch,"
+echo "source-build/verify.sh identity, known-binaries.txt. Commit them so the"
+echo "build stays reproducible."

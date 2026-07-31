@@ -5,6 +5,7 @@ source_build=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$source_build/../.." && pwd)
 patch="$source_build/copy-mode-vim-muscle-memory.patch"
 pins="$source_build/pins.env"
+known_binaries="$source_build/known-binaries.txt"
 work=${HERDR_SOURCE_BUILD_WORK:-"$source_build/.work"}
 source_dir="$work/source"
 target_dir="$work/target"
@@ -203,42 +204,49 @@ staged=$(mktemp "$output_dir/.herdr.XXXXXX")
 install -m 0755 "$built" "$staged"
 mv "$staged" "$output"
 
+record_known_binary() {
+  digest=$1
+  label=$2
+  if [ -f "$known_binaries" ] &&
+     awk -v d="$digest" '$1 == d { found = 1 } END { exit found ? 0 : 1 }' \
+       "$known_binaries"; then
+    return
+  fi
+  printf '%s  %s\n' "$digest" "$label" >>"$known_binaries"
+}
+
+known_binary() {
+  [ -f "$known_binaries" ] || return 1
+  awk -v d="$1" '$1 == d { found = 1 } END { exit found ? 0 : 1 }' "$known_binaries"
+}
+
+# Every binary this script produces is provenance worth remembering: it becomes
+# the predecessor of the next upgrade, and a guard that only knows the official
+# release would refuse it. See known-binaries.txt.
+record_known_binary "$built_sha" "reviewed v$HERDR_VERSION source build with the copy-mode patch"
+
 if [ "$install_build" -eq 1 ]; then
-  official_sha=24992e1625dbdcb18354a59e299e4b263c312400b31396cdc07cd46ed57f24a7
   prototype_bin="$root/herdr/prototype/.runtime/bin/herdr"
   if [ -e "$prototype_bin" ]; then
     prototype_sha=$(shasum -a 256 "$prototype_bin" | awk '{print $1}')
-    case "$prototype_sha" in
-      "$HERDR_BINARY_SHA256"|"$official_sha") ;;
-      *)
-        echo "refusing to replace unrelated prototype Herdr binary" >&2
-        exit 73
-        ;;
-    esac
+    if ! known_binary "$prototype_sha"; then
+      echo "refusing to replace unrelated prototype Herdr binary" >&2
+      echo "if it is yours, add its digest to $known_binaries" >&2
+      exit 73
+    fi
   fi
 
   HERDR_INSTALL_SOURCE="$output" \
   HERDR_INSTALL_EXPECTED_SHA256="$HERDR_BINARY_SHA256" \
-  HERDR_INSTALL_REPLACE_SHA256="$official_sha" \
   HERDR_ACTIVATE=0 \
     "$root/herdr/install.sh"
 
   mkdir -p "$(dirname -- "$prototype_bin")"
-  if [ ! -e "$prototype_bin" ]; then
+  if [ ! -e "$prototype_bin" ] ||
+     [ "$(shasum -a 256 "$prototype_bin" | awk '{print $1}')" != "$HERDR_BINARY_SHA256" ]; then
     staged_prototype=$(mktemp "$(dirname -- "$prototype_bin")/.herdr.XXXXXX")
     install -m 0755 "$output" "$staged_prototype"
     mv "$staged_prototype" "$prototype_bin"
-  else
-    prototype_sha=$(shasum -a 256 "$prototype_bin" | awk '{print $1}')
-    if [ "$prototype_sha" != "$HERDR_BINARY_SHA256" ]; then
-      case "$prototype_sha" in
-        "$official_sha")
-          staged_prototype=$(mktemp "$(dirname -- "$prototype_bin")/.herdr.XXXXXX")
-          install -m 0755 "$output" "$staged_prototype"
-          mv "$staged_prototype" "$prototype_bin"
-          ;;
-      esac
-    fi
   fi
 fi
 

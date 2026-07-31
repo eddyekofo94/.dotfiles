@@ -2,10 +2,18 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-version=v0.7.4
-asset=herdr-macos-aarch64
+pins="$root/herdr/source-build/pins.env"
+known_binaries="$root/herdr/source-build/known-binaries.txt"
+
+# shellcheck source=/dev/null
+. "$pins"
+
+version=v$HERDR_VERSION
+asset=$HERDR_OFFICIAL_ASSET
 url="https://github.com/ogulcancelik/herdr/releases/download/$version/$asset"
-expected_sha256=24992e1625dbdcb18354a59e299e4b263c312400b31396cdc07cd46ed57f24a7
+expected_sha256=$HERDR_OFFICIAL_SHA256
+expected_sha256=${HERDR_INSTALL_EXPECTED_SHA256:-"$expected_sha256"}
+replace_sha256=${HERDR_INSTALL_REPLACE_SHA256:-}
 install_bin=${HERDR_INSTALL_BIN:-"$HOME/.local/bin/herdr"}
 config_dir=${HERDR_CONFIG_DIR:-"${XDG_CONFIG_HOME:-$HOME/.config}/herdr"}
 config_link="$config_dir/config.toml"
@@ -17,26 +25,48 @@ case "$activate" in
   0|1) ;;
   *) echo "HERDR_ACTIVATE must be 0 or 1" >&2; exit 64 ;;
 esac
+for digest in "$expected_sha256" ${replace_sha256:+"$replace_sha256"}; do
+  case "$digest" in
+    *[!0-9a-f]*|"")
+      echo "Herdr install SHA-256 values must be lowercase hexadecimal" >&2
+      exit 64
+      ;;
+  esac
+  if [ "${#digest}" -ne 64 ]; then
+    echo "Herdr install SHA-256 values must contain 64 characters" >&2
+    exit 64
+  fi
+done
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/herdr-install.XXXXXX")
 tmp_bin="$tmp_dir/herdr"
 staged_install=
 staged_link=
+backup_install=
 created_bin=0
 created_link=0
 cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
-  rm -rf -- "$tmp_dir"
   if [ "$status" -ne 0 ]; then
     [ -z "$staged_install" ] || rm -f -- "$staged_install"
     [ -z "$staged_link" ] || rm -f -- "$staged_link"
     [ "$created_link" -eq 0 ] || rm -f -- "$config_link"
     [ "$created_bin" -eq 0 ] || rm -f -- "$install_bin"
+    if [ -n "$backup_install" ] && [ -e "$backup_install" ]; then
+      rm -f -- "$install_bin"
+      mv "$backup_install" "$install_bin"
+      backup_install=
+    fi
   fi
+  [ -z "$backup_install" ] || rm -f -- "$backup_install"
+  rm -rf -- "$tmp_dir"
   exit "$status"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [ -n "$source_path" ]; then
   cp "$source_path" "$tmp_bin"
@@ -69,10 +99,21 @@ HERDR_BIN_PATH="$tmp_bin" \
 HERDR_CONFIG_PATH="$config_target" \
   "$tmp_bin" config check >/dev/null
 
+# A binary this machine produced or verified is a legitimate thing to replace —
+# that is what an upgrade is. Anything else still fails closed.
+known_binary() {
+  [ -f "$known_binaries" ] || return 1
+  awk -v digest="$1" '$1 == digest { found = 1 } END { exit found ? 0 : 1 }' \
+    "$known_binaries"
+}
+
 if [ -e "$install_bin" ] || [ -L "$install_bin" ]; then
   existing_sha256=$(shasum -a 256 "$install_bin" 2>/dev/null | awk '{print $1}')
-  if [ "$existing_sha256" != "$expected_sha256" ]; then
+  if [ "$existing_sha256" != "$expected_sha256" ] &&
+     { [ -z "$replace_sha256" ] || [ "$existing_sha256" != "$replace_sha256" ]; } &&
+     ! known_binary "$existing_sha256"; then
     echo "refusing to replace unrelated Herdr binary: $install_bin" >&2
+    echo "if this binary is yours, add its digest to $known_binaries" >&2
     exit 73
   fi
 fi
@@ -84,6 +125,14 @@ if [ ! -e "$install_bin" ]; then
   mv "$staged_install" "$install_bin"
   staged_install=
   created_bin=1
+elif [ "$existing_sha256" != "$expected_sha256" ]; then
+  staged_install=$(mktemp "$(dirname -- "$install_bin")/.herdr.XXXXXX")
+  install -m 0755 "$tmp_bin" "$staged_install"
+  backup_install=$(mktemp "$(dirname -- "$install_bin")/.herdr.previous.XXXXXX")
+  rm -f -- "$backup_install"
+  mv "$install_bin" "$backup_install"
+  mv "$staged_install" "$install_bin"
+  staged_install=
 fi
 if [ ! -e "$config_link" ] && [ ! -L "$config_link" ]; then
   staged_link="$config_dir/.config.toml.$$"

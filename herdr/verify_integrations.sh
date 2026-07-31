@@ -2,6 +2,10 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+# shellcheck source=/dev/null
+. "$root/herdr/source-build/pins.env"
+
 agent_home=${HERDR_AGENT_HOME:-"$HOME"}
 herdr_bin=${HERDR_BIN_PATH:-"$agent_home/.local/bin/herdr"}
 herdr_config=${HERDR_CONFIG_PATH:-"$agent_home/.config/herdr/config.toml"}
@@ -11,7 +15,7 @@ codex_hooks="$agent_home/.codex/hooks.json"
 codex_trusted_hash=sha256:4274f9bbccd603167ff51185dd1b0aff0d7a0baeaf97b494efe78bbcd969aebf
 opencode_dir="$agent_home/.config/opencode"
 
-test "$("$herdr_bin" --version)" = "herdr 0.7.4"
+test "$("$herdr_bin" --version)" = "herdr $HERDR_VERSION"
 test "$(readlink "$agent_home/.config/herdr/config.toml")" = \
   "$root/herdr/config.toml"
 rg -q '^pane_history = false$' "$herdr_config"

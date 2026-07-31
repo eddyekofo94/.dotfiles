@@ -35,7 +35,7 @@ fi
 bin="$source_build/.work/bin/herdr"
 test -x "$bin"
 test "$(shasum -a 256 "$bin" | awk '{print $1}')" = "$HERDR_BINARY_SHA256"
-test "$("$bin" --version)" = "herdr 0.7.5"
+test "$("$bin" --version)" = "herdr $HERDR_VERSION"
 test "$(rg -c '^pane_history = false$' "$root/herdr/config.toml")" -eq 1
 test -x "$root/herdr/tmux_fallback.sh"
 tmux -V | rg -q '^tmux '

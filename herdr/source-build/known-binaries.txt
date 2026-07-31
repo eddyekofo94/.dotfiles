@@ -1,0 +1,21 @@
+# Herdr binaries this machine has legitimately produced or verified.
+#
+# The install guard's real question is "did this binary come from somewhere I
+# trust?", not "is this the one official release the script was written
+# against". Pinning a single predecessor digest meant the guard fired on every
+# upgrade after the first, because from then on the binary being replaced is the
+# *previous reviewed build* — which is the most trustworthy predecessor there is.
+#
+# So provenance is recorded here instead. build.sh appends a digest whenever it
+# produces or installs one; install.sh and build.sh accept any listed digest as a
+# replaceable predecessor. Anything not listed is still refused, which is the
+# property worth keeping: an unrecognized binary in ~/.local/bin is never
+# silently overwritten.
+#
+# Lines are "<sha256>  <what it is>". Append only — deleting a line does not make
+# a binary untrustworthy, it just makes a future upgrade stop and ask.
+
+24992e1625dbdcb18354a59e299e4b263c312400b31396cdc07cd46ed57f24a7  official v0.7.4 release (herdr-macos-aarch64)
+9a1145250d65a19f7dd38ca7c445d1d888a2ee0c441402517c1aa7c7a0e4df9a  local 0.7.4 build, superseded (was installed until 2026-07-31)
+37350546b0012555943b92eaf962665de4e264395baeb44227b8015e8ff5b0d6  official v0.7.5 release (herdr-macos-aarch64)
+971b845c87cc34fa9bb4f34ff530f9126cf7f77d14a541cb976cd602c768bccb  reviewed v0.7.5 source build with the copy-mode patch
