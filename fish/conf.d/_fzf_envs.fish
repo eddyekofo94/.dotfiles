@@ -46,7 +46,7 @@ set -g fzf_preview_file_cmd '_fzf_preview'
 
 set -gx FZF_COMMON_OPTIONS "--info=inline-right \
     --height 96% \
-    --preview-window=right,55%,border-sharp,nocycle \
+    --preview-window=right,55%,border-sharp,nocycle,~1 \
     --border=none \
     --no-separator \
     --ansi \
@@ -75,7 +75,7 @@ command -v bat >/dev/null && command -v eza >/dev/null && set -gx FZF_DEFAULT_OP
 
 set -gx FZF_CTRL_T_OPTS "--min-height 30 \
     --height 85% \
-    --preview-window noborder --preview '_fzf_preview {}'"
+    --preview-window 'noborder,~1' --preview '_fzf_preview {}'"
 
 # alts: 󰛄
 # --preview='bat --color=always --style=header,grid --line-range :300 {}'

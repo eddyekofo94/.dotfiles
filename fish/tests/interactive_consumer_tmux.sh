@@ -81,8 +81,11 @@ tmux_cmd send-keys -t fish-pty:0.0 -l -- fixture.png
 tmux_cmd send-keys -t fish-pty:0.0 C-t
 wait_capture 'Directory[^>]*>'
 wait_capture "FZF_PREVIEW_GEOMETRY:$expected_geometry"
-place_geometry=$(printf '%s' "$expected_geometry" | tr ',' 'x')
-wait_capture "FZF_PREVIEW_IMAGE_PLACE:$place_geometry@0x0"
+# The preview names its target on the first row, so the image is placed one row
+# down and one row shorter than the reported pane geometry.
+place_columns=${expected_geometry%,*}
+place_rows=$((${expected_geometry#*,} - 1))
+wait_capture "FZF_PREVIEW_IMAGE_PLACE:${place_columns}x${place_rows}@0x1"
 if capture | rg -q 'Binary content from file'; then
     echo 'Fish interactive tmux: Ctrl-T sent an image to bat' >&2
     exit 1
