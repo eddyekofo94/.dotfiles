@@ -561,8 +561,10 @@ record isolation "$(jq -cn --arg foreign "$foreign_alpha_workspace" \
 
 rm -f "$driver_fifo"
 mkfifo "$driver_fifo"
-"$prototype/picker_client.py" "$herdr" "$config_home" "$config" \
-  "$session" "$prototype" "$screen" <"$driver_fifo" >"$driver_log" 2>&1 &
+env -u TMUX -u HERDR_ENV -u HERDR_PANE_ID -u HERDR_SESSION \
+  -u HERDR_SOCKET_PATH -u HERDR_WORKSPACE_ID -u HERDR_TAB_ID \
+  "$prototype/picker_client.py" "$herdr" "$config_home" "$config" \
+    "$session" "$prototype" "$screen" <"$driver_fifo" >"$driver_log" 2>&1 &
 driver_pid=$!
 exec 3>"$driver_fifo"
 wait_for "project-picker client" grep -q '^READY$' "$driver_log"

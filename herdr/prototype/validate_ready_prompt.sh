@@ -3,7 +3,7 @@ set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
-runtime="$prototype/.runtime/cr"
+runtime=$(mktemp -d /tmp/herdr-ready-prompt.XXXXXX)
 config_home="$runtime/config"
 config="$config_home/herdr/config.toml"
 session=gate-rp
@@ -66,14 +66,24 @@ cleanup() {
     wait "$server_pid" 2>/dev/null || true
   fi
   "$herdr" --session "$session" session delete "$session" --json >/dev/null 2>&1 || true
+  if [ "$status" -ne 0 ]; then
+    [ ! -s "$server_log" ] || {
+      echo "ready-prompt server log:" >&2
+      cat "$server_log" >&2
+    }
+    [ ! -s "$driver_log" ] || {
+      echo "ready-prompt client log:" >&2
+      cat "$driver_log" >&2
+    }
+  fi
   rm -f "$driver_fifo" "$evidence_tmp"
+  rm -rf "$runtime"
   exit "$status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-rm -rf "$runtime"
 mkdir -p "$config_home/herdr" "$evidence_dir" "$runtime/mock-state"
 : >"$evidence_tmp"
 production_before=$(production_hashes)
@@ -89,8 +99,19 @@ record config "$(jq -cn --arg result "$config_result" \
 
 # The Herdr port intentionally reuses the already-tested handoff grammar.
 parser_log="$runtime/parser-tests.log"
-"$root/tmux/tests/ready_prompt_test.sh" >"$parser_log"
+if ! "$root/tmux/tests/ready_prompt_test.sh" >"$parser_log" 2>&1; then
+  cat "$parser_log" >&2
+  echo "ready-prompt validation: shared parser tests failed" >&2
+  exit 1
+fi
 parser_count=$(sed -n 's/^1\.\.//p' "$parser_log" | tail -n 1)
+case "$parser_count" in
+  ''|*[!0-9]*)
+    cat "$parser_log" >&2
+    echo "ready-prompt validation: shared parser count is invalid" >&2
+    exit 1
+    ;;
+esac
 record parser "$(jq -cn --argjson checks "$parser_count" \
   '{source:"tmux/scripts/ready_prompt.sh --extract",checks:$checks,status:"PASS"}')"
 
@@ -105,7 +126,12 @@ case "$1 $2" in
     ;;
   "pane process-info")
     jq -cn --arg agent "${MOCK_AGENT:-codex}" \
-      '{result:{process_info:{foreground_processes:[{argv:[$agent],argv0:$agent,name:$agent,pid:42}]}}}'
+      --arg extra "${MOCK_EXTRA_ARG:-}" \
+      --argjson pid "${MOCK_AGENT_PID:-42}" \
+      '{result:{process_info:{foreground_processes:[{
+        argv:([$agent] + (if $extra == "" then [] else [$extra] end)),
+        argv0:$agent,name:$agent,pid:$pid
+      }]}}}'
     ;;
   "pane read")
     case " $* " in
@@ -130,6 +156,32 @@ case "$1 $2" in
     ;;
   "pane send-keys")
     printf '%s\n' "$4" >>"$MOCK_HERDR_STATE/keys"
+    if [ "$4" = ctrl+shift+y ]; then
+      request="$HERDR_PI_PILOT_CONTROL_DIR/request-${MOCK_AGENT_PID:-42}.json"
+      response="$HERDR_PI_PILOT_CONTROL_DIR/response-${MOCK_AGENT_PID:-42}.json"
+      token=$(jq -er '.token' "$request")
+      if [ -n "${MOCK_PI_HANDOFF_ERROR:-}" ]; then
+        rm -f "$request"
+        jq -cn --arg token "$token" --arg error "$MOCK_PI_HANDOFF_ERROR" \
+          '{version:1,token:$token,ok:false,error:$error}' >"$response"
+      else
+        jq -cn --arg token "$token" \
+          '{version:1,token:$token,ok:true,phase:"armed",submitted:false}' \
+          >"$response"
+      fi
+    fi
+    if [ "$4" = return ] && [ -n "${MOCK_AGENT:-}" ] && \
+        [ "${MOCK_AGENT:-}" = pi ] && \
+        [ -s "$HERDR_PI_PILOT_CONTROL_DIR/request-${MOCK_AGENT_PID:-42}.json" ]; then
+      request="$HERDR_PI_PILOT_CONTROL_DIR/request-${MOCK_AGENT_PID:-42}.json"
+      response="$HERDR_PI_PILOT_CONTROL_DIR/response-${MOCK_AGENT_PID:-42}.json"
+      token=$(jq -er '.token' "$request")
+      rm -f "$request"
+      jq -cn --arg token "$token" \
+        '{version:1,token:$token,ok:true,phase:"complete",submitted:false,
+          previousSession:"/sessions/old.jsonl",session:"/sessions/new.jsonl"}' \
+        >"$response"
+    fi
     printf '%s\n' '{"result":{}}'
     ;;
   "notification show")
@@ -155,6 +207,7 @@ run_mock() {
   MOCK_HERDR_STATE="$mock_state" MOCK_HISTORY="$history" \
     HERDR_BIN_PATH="$mock" HERDR_PANE_ID=w1:p1 \
     HERDR_READY_PROMPT_STATE_DIR="$runtime/mock-consume" \
+    HERDR_PI_PILOT_CONTROL_DIR="$runtime/pi-control" \
     HERDR_READY_PROMPT_READY_INTERVAL=0 \
     HERDR_READY_PROMPT_CLEAR_CONFIRM_INTERVAL=0 \
     "$prototype/ready_prompt.sh" "$@"
@@ -199,6 +252,38 @@ test "$(cat "$mock_state/clear-text")" = /clear
 test "$(grep -c '^return$' "$mock_state/keys")" -eq 3
 test "$(cat "$mock_state/insert-count")" -eq 4
 
+rm -f "$runtime/mock-consume/w1_p1/fingerprint"
+before_pi_insert_count=$(cat "$mock_state/insert-count")
+MOCK_AGENT=pi run_mock --clear
+test "$(tail -n 2 "$mock_state/keys" | head -n 1)" = ctrl+shift+y
+test "$(tail -n 1 "$mock_state/keys")" = return
+test "$(cat "$mock_state/insert-count")" -eq "$before_pi_insert_count"
+test ! -e "$runtime/pi-control/request-42.json"
+
+rm -f "$runtime/mock-consume/w1_p1/fingerprint"
+set +e
+MOCK_AGENT=pi MOCK_PI_HANDOFF_ERROR=editor-not-empty run_mock --clear \
+  >/dev/null 2>&1
+pi_typed_status=$?
+set -e
+unset MOCK_PI_HANDOFF_ERROR
+test "$pi_typed_status" -ne 0
+test ! -e "$runtime/pi-control/request-42.json"
+test "$(cat "$mock_state/insert-count")" -eq "$before_pi_insert_count"
+MOCK_AGENT=pi run_mock --clear
+test ! -e "$runtime/pi-control/request-42.json"
+test "$(tail -n 2 "$mock_state/keys" | head -n 1)" = ctrl+shift+y
+test "$(tail -n 1 "$mock_state/keys")" = return
+
+before_argument_calls=$(wc -l <"$mock_state/calls" | tr -d ' ')
+set +e
+MOCK_AGENT=python MOCK_EXTRA_ARG=codex run_mock >/dev/null 2>&1
+argument_status=$?
+set -e
+test "$argument_status" -ne 0
+after_argument_calls=$(wc -l <"$mock_state/calls" | tr -d ' ')
+test "$after_argument_calls" -eq $((before_argument_calls + 2))
+
 before_calls=$(wc -l <"$mock_state/calls" | tr -d ' ')
 set +e
 MOCK_AGENT=gemini run_mock --clear >/dev/null 2>&1
@@ -210,7 +295,9 @@ test "$after_calls" -eq $((before_calls + 2))
 record mock_replay "$(jq -cn --argjson duplicate_status "$duplicate_status" \
   --argjson concurrent_status "$concurrent_status" \
   --argjson unsupported_status "$unsupported_status" \
-  '{multiline_insert_exact:true,submitted:false,consume_once:true,duplicate_status:$duplicate_status,concurrent_status:$concurrent_status,clear_then_insert:true,codex_dim_placeholder_clear_then_insert:true,claude_clear_then_insert:true,unsupported_clear_status:$unsupported_status}')"
+  --argjson pi_typed_status "$pi_typed_status" \
+  --argjson argument_status "$argument_status" \
+  '{multiline_insert_exact:true,submitted:false,consume_once:true,duplicate_status:$duplicate_status,concurrent_status:$concurrent_status,clear_then_insert:true,codex_dim_placeholder_clear_then_insert:true,claude_clear_then_insert:true,pi_new_session_then_insert:true,pi_typed_composer_rejected:($pi_typed_status != 0),pi_retry_after_rejection:true,arbitrary_agent_argument_rejected:($argument_status != 0),unsupported_clear_status:$unsupported_status}')"
 
 export XDG_CONFIG_HOME="$config_home"
 export HERDR_CONFIG_PATH="$config"
@@ -218,6 +305,9 @@ export HERDR_BIN_PATH="$herdr"
 export HERDR_SESSION="$session"
 export HERDR_PROTOTYPE_DIR="$prototype"
 export HERDR_READY_PROMPT_STATE_DIR="$runtime/live-consume"
+
+unset TMUX HERDR_ENV HERDR_PANE_ID HERDR_SOCKET_PATH HERDR_WORKSPACE_ID \
+  HERDR_TAB_ID HERDR_TARGET_PANE_ID HERDR_STARTUP_CWD
 
 cli() {
   "$herdr" --session "$session" "$@"

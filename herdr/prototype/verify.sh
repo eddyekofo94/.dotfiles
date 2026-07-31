@@ -21,6 +21,7 @@ remote_evidence=${HERDR_REMOTE_EVIDENCE:-"$prototype/evidence/remote-validation.
 capability_gap_evidence=${HERDR_CAPABILITY_GAP_EVIDENCE:-"$prototype/evidence/capability-gap-validation.jsonl"}
 utility_parity_evidence=${HERDR_UTILITY_PARITY_EVIDENCE:-"$prototype/evidence/utility-parity-validation.jsonl"}
 picker_reference_evidence=${HERDR_PICKER_REFERENCE_EVIDENCE:-"$prototype/evidence/picker-reference-validation.jsonl"}
+agent_overview_evidence=${HERDR_AGENT_OVERVIEW_EVIDENCE:-"$prototype/evidence/agent-overview-validation.jsonl"}
 
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
@@ -50,18 +51,23 @@ test -x "$prototype/tab_edge.sh"
 test -x "$prototype/manage_objects.sh"
 test -x "$prototype/visible_reference_picker.sh"
 test -x "$prototype/visible_references.py"
+test -x "$prototype/agent_overview.sh"
+test -x "$prototype/agent_message_composer.py"
 test -x "$prototype/fixtures/pane_transfer_picker_fixture.sh"
 test -x "$prototype/fixtures/picker_reference_herdr_fixture.sh"
 test -x "$prototype/fixtures/manage_picker_fixture.sh"
 test -x "$prototype/fixtures/reference_picker_fixture.sh"
 test -x "$prototype/fixtures/reference_clipboard_fixture.sh"
 test -x "$prototype/fixtures/reference_opener_fixture.sh"
+test -x "$prototype/fixtures/agent_overview_herdr_fixture.sh"
 test -x "$prototype/validate_utilities.sh"
 test -x "$prototype/validate_picker_reference.sh"
+test -x "$prototype/validate_agent_overview.sh"
 test -x "$prototype/tab-history/tab_history.sh"
 test -f "$prototype/tab-history/herdr-plugin.toml"
 test -x "$prototype/tab_client.py"
 test -x "$prototype/picker_client.py"
+test -x "$prototype/copy_mode_client.py"
 test -x "$prototype/tab_move.sh"
 test -x "$prototype/validate_tabs.sh"
 test -x "$prototype/validate_picker.sh"
@@ -71,6 +77,7 @@ test -x "$prototype/semantic_agent_state.py"
 test -x "$prototype/validate_agent_states.sh"
 test -x "$prototype/validate_multi_agent_compat.sh"
 test -f "$prototype/herdr_login_attach.fish"
+test -x "$root/herdr/window_session.sh"
 test -x "$prototype/login_attach_fixture.sh"
 test -x "$prototype/validate_login_attach.sh"
 test -x "$prototype/popup_fixture.sh"
@@ -102,6 +109,7 @@ test -f "$remote_evidence"
 test -f "$capability_gap_evidence"
 test -f "$utility_parity_evidence"
 test -f "$picker_reference_evidence"
+test -f "$agent_overview_evidence"
 test -f "$prototype/fixtures/preview-amber.png"
 test -f "$prototype/fixtures/preview-blue.png"
 test -f "$prototype/fixtures/preview-green.png"
@@ -155,7 +163,7 @@ grep -q '^key = "prefix+u"$' "$prototype/config.toml"
 for key in h j k l; do
   grep -q "^key = \"prefix+shift+$key\"$" "$prototype/config.toml"
 done
-test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 30
+test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 43
 grep -q '^key = "prefix+b"$' "$prototype/config.toml"
 grep -q '^key = "prefix+shift+b"$' "$prototype/config.toml"
 grep -q 'ready_prompt.sh' "$prototype/config.toml"
@@ -180,6 +188,8 @@ grep -q '^key = "prefix+shift+f"$' "$prototype/config.toml"
 grep -q 'manage_objects.sh' "$prototype/config.toml"
 grep -q '^key = "prefix+shift+r"$' "$prototype/config.toml"
 grep -q 'visible_reference_picker.sh' "$prototype/config.toml"
+grep -q '^key = "prefix+shift+a"$' "$prototype/config.toml"
+grep -q 'agent_overview.sh' "$prototype/config.toml"
 if grep -q 'layout\.apply' "$prototype/layout_preset.sh"; then
   echo "process-preserving layout presets must not call layout.apply" >&2
   exit 1
@@ -192,10 +202,15 @@ if [ -n "$duplicates" ]; then
   printf 'duplicate prototype command binding(s):\n%s\n' "$duplicates" >&2
   exit 1
 fi
-if grep -Eq '^(key = )?"?alt\+(v|n|q|x|z)|^key = "alt\+shift\+x"' "$prototype/config.toml"; then
-  echo "application-owned Alt chords must not be global Herdr bindings" >&2
-  exit 1
-fi
+for key in h j k l v n q o = z 'shift+x' 'ctrl+x'; do
+  grep -Fq "key = \"alt+$key\"" "$prototype/config.toml"
+done
+grep -Fq 'command = "exec \"$HERDR_PROTOTYPE_DIR/smart_nav.sh\" h left"' \
+  "$prototype/config.toml"
+grep -Fq 'command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" v split-right"' \
+  "$prototype/config.toml"
+grep -Fq 'command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" ctrl+x close-other-tabs"' \
+  "$prototype/config.toml"
 if grep -Eiq '(^|["[:space:]])(alt\+ctrl\+f|ctrl\+alt\+f)(["[:space:]]|$)' \
   "$prototype/config.toml"; then
   echo "searchable picker must remain prefix-only at prefix+f" >&2
@@ -205,7 +220,7 @@ grep -q '^sidebar_collapsed_mode = "hidden"$' "$prototype/config.toml"
 grep -q '^pane_gaps = false$' "$prototype/config.toml"
 grep -q '^hide_tab_bar_when_single_tab = true$' "$prototype/config.toml"
 grep -Fq 'rows = [["state_icon", "workspace", "tab"], ["agent", "$semantic_state"]]' "$prototype/config.toml"
-grep -q '^delivery = "off"$' "$prototype/config.toml"
+grep -q '^delivery = "herdr"$' "$prototype/config.toml"
 grep -q '^enabled = false$' "$prototype/config.toml"
 
 if [ -x "$prototype/.runtime/bin/herdr" ]; then
@@ -217,12 +232,9 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
-  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 23
-  if grep -Eq '^key = "(alt|ctrl\+alt)\+(h|j|k|l)"$' \
-    "$prototype/.runtime/cf/herdr/config.toml"; then
-    echo "focused prototype must pass physical Alt through to pane applications" >&2
-    exit 1
-  fi
+  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 35
+  grep -q '^key = "alt+h"$' "$prototype/.runtime/cf/herdr/config.toml"
+  grep -q '^key = "alt+ctrl+x"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q 'bind --mode.*\\eh.*__herdr_nav h left' "$prototype/herdr_nav.fish"
   grep -q '^type = "plugin_action"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^command = "prototype.golden-focus.toggle"$' "$prototype/.runtime/cf/herdr/config.toml"
@@ -262,6 +274,8 @@ python3 -c 'import sys; compile(open(sys.argv[1]).read(), "tab_client.py", "exec
   "$prototype/tab_client.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "picker_client.py", "exec")' \
   "$prototype/picker_client.py"
+python3 -c 'import sys; compile(open(sys.argv[1]).read(), "copy_mode_client.py", "exec")' \
+  "$prototype/copy_mode_client.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "visible_references.py", "exec")' \
   "$prototype/visible_references.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "semantic_agent_state.py", "exec")' \
@@ -569,14 +583,14 @@ jq -se --arg pane_transfer "$utility_pane_transfer_hash" \
 ' "$utility_parity_evidence" >/dev/null
 
 copy_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
-copy_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
+copy_client_hash=$(shasum -a 256 "$prototype/copy_mode_client.py" | awk '{print $1}')
 copy_validator_hash=$(shasum -a 256 "$prototype/validate_copy_mode.sh" | awk '{print $1}')
 jq -se --arg config_hash "$copy_config_hash" \
   --arg client_hash "$copy_client_hash" \
   --arg validator_hash "$copy_validator_hash" \
   --argjson production "$popup_production" '
   def positive_integer: type == "number" and floor == . and . > 0;
-  map(.check) == ["config","paging","scope_audit","result"] and
+  map(.check) == ["config","paging","vim_aliases","scope_audit","result"] and
   .[0].evidence == {
     result:"config: ok",binding:"prefix+s",
     native_half_page:["Ctrl-u","Ctrl-d"],
@@ -590,11 +604,18 @@ jq -se --arg config_hash "$copy_config_hash" \
   .[1].evidence.page_up == {min:44,max:82} and
   .[1].evidence.page_down == .[1].evidence.initial and
   .[1].evidence.process_survived == true and
-  .[2].evidence == {
+  .[2].evidence.exit_without_copy == {
+    a:"COPY_MODE_NO_COPY_SENTINEL",i:"COPY_MODE_NO_COPY_SENTINEL"
+  } and
+  .[2].evidence.whole_line == "COPY_LINE_120 payload-120" and
+  (.[2].evidence.sentinel_pid | positive_integer) and
+  .[2].evidence.process_survived == true and
+  .[2].evidence.input_emulation_installed == false and
+  .[3].evidence == {
     config_sha256:$config_hash,client_sha256:$client_hash,
     validator_sha256:$validator_hash,production_sha256:$production
   } and
-  .[3].evidence == {
+  .[4].evidence == {
     status:"PASS",version:"herdr 0.7.4",session:"cm",
     production_configuration_modified:false,migration_authorized:false
   }
@@ -678,35 +699,40 @@ jq -se --arg config_hash "$remote_config_hash" \
 capability_defaults_hash=$($prototype/.runtime/bin/herdr --default-config | shasum -a 256 | awk '{print $1}')
 capability_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 capability_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
+capability_source_patch_hash=$(shasum -a 256 \
+  "$root/herdr/source-build/copy-mode-vim-muscle-memory.patch" | awk '{print $1}')
 capability_validator_hash=$(shasum -a 256 "$prototype/validate_capability_gaps.sh" | awk '{print $1}')
 jq -se --arg defaults_hash "$capability_defaults_hash" \
   --arg config_hash "$capability_config_hash" \
   --arg nav_hash "$capability_nav_hash" \
+  --arg source_patch_hash "$capability_source_patch_hash" \
   --arg validator_hash "$capability_validator_hash" \
   --argjson production "$url_production" '
   map(.check) == ["surface","alternatives","policy","scope_audit","result"] and
   .[0].evidence == {
     version:"herdr 0.7.4",default_config_sha256:$defaults_hash,
-    configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
+    upstream_configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
+    reviewed_source_extensions:["copy-line-Y"],
     absence_deterministic:true
   } and
   .[1].evidence == {
-    ordinary_selection:{keys:["v","Space","y","Enter"],evidence:"copy-mode-validation.jsonl"},
+    ordinary_selection:{keys:["v","Space","y","Y","Enter"],evidence:"copy-mode-validation.jsonl"},
     paging:{keys:["Ctrl-u","Ctrl-d","PageUp","PageDown"],evidence:"copy-mode-validation.jsonl"},
     visible_url:{key:"prefix+u",evidence:"url-validation.jsonl"},
     last_location:{keys:["prefix+Tab","Ctrl-^/Ctrl-6"],semantics:"last-pane"}
   } and
   .[2].evidence == {
-    alt_tab:"retired",rectangle_selection:"unavailable",copy_line_Y:"unavailable",
+    alt_tab:"retired",rectangle_selection:"unavailable",copy_line_Y:"reviewed-source-build",
     marks:"unavailable",prompt_jumps:"unavailable",copy_mode_O:"unavailable",
-    input_emulation_installed:false,global_alt_binding_installed:false,
-    migration_difference_requires_no_production_change:true
+    input_emulation_installed:false,global_alt_binding_installed:true,
+    production_config_change_required:false
   } and
   .[3].evidence.unchanged == true and
   .[3].evidence.production_hashes_before == $production and
   .[3].evidence.production_hashes_after == $production and
   .[3].evidence.artifact_hashes == {
-    config:$config_hash,nav:$nav_hash,validator:$validator_hash
+    config:$config_hash,nav:$nav_hash,source_patch:$source_patch_hash,
+    validator:$validator_hash
   } and
   .[4].evidence == {
     status:"PASS",production_configuration_modified:false,
@@ -1105,15 +1131,33 @@ jq -se --arg config_hash "$multi_agent_config_hash" \
 ' "$multi_agent_evidence" >/dev/null
 
 login_adapter_hash=$(shasum -a 256 "$prototype/herdr_login_attach.fish" | awk '{print $1}')
+login_allocator_hash=$(shasum -a 256 "$root/herdr/window_session.sh" | awk '{print $1}')
 login_fixture_hash=$(shasum -a 256 "$prototype/login_attach_fixture.sh" | awk '{print $1}')
 login_validator_hash=$(shasum -a 256 "$prototype/validate_login_attach.sh" | awk '{print $1}')
 jq -se --arg adapter_hash "$login_adapter_hash" \
+  --arg allocator_hash "$login_allocator_hash" \
   --arg fixture_hash "$login_fixture_hash" \
   --arg validator_hash "$login_validator_hash" '
   map(.check) == ["decisions","scope_audit","result"] and
   .[0].evidence == {
     top_level_login:{launched:true,args:["--session","main"]},
     custom_session:{launched:true,args:["--session","project-alpha"]},
+    cwd_policy:{
+      automatic_launch_home:true,
+      restored_panes_keep_session_cwd:true
+    },
+    independent_windows:{
+      concurrent_sessions:["main","window-2","window-3"],
+      no_client_restores_last:["--session","window-3"],
+      active_client_creates_new:["--session","window-4"],
+      bare_client_creates_new:["--session","window-5"],
+      final_client_exit_updates_last:true,
+      double_digit_boundary:["--session","window-10"],
+      migration_restores_highest_existing:["--session","window-7"],
+      migration_active_creates_next:["--session","window-8"],
+      reused_pid_restores_last:["--session","window-8"],
+      persistent_servers_not_stopped:true
+    },
     guards:{
       non_login:true,
       non_interactive:true,
@@ -1122,21 +1166,37 @@ jq -se --arg adapter_hash "$login_adapter_hash" \
       tmux:true,
       opt_out:true,
       invalid_session:true,
+      allocator_failure:true,
+      invalid_session_cwd_unchanged:true,
+      broad_runtime_rejected:true,
+      unsafe_existing_runtime_rejected:true,
+      unsafe_persistent_state_rejected:true,
+      symlink_lease_rejected:true,
+      concurrent_cold_start:true,
+      home_cd_failure_without_lease:true,
+      event_driven_supervisor_hup:true,
+      supervisor_no_polling:true,
+      supervisor_preserves_client_stdin:true,
+      interrupted_allocation_no_state:true,
+      internal_mode_requires_lock:true,
       tmux_default:true,
       invalid_default:true,
       missing_default:true
     },
-    total_launches:2
+    total_launches:16
   } and
   .[1].evidence.unchanged == true and
   .[1].evidence.production_hashes_before == .[1].evidence.production_hashes_after and
   .[1].evidence.artifact_hashes == {
     adapter:$adapter_hash,
+    allocator:$allocator_hash,
     fixture:$fixture_hash,
     validator:$validator_hash
   } and
   .[2].evidence == {
     status:"PASS",
+    independent_window_sessions:true,
+    session_policy:"restore-last-or-create-monotonic",
     production_fish_modified:false,
     installed:false,
     migration_authorized:false
@@ -1191,6 +1251,7 @@ jq -se \
       "goto=prefix+f",
       "manage_objects=prefix+Shift+f",
       "visible_references=prefix+Shift+r",
+      "agent_overview=prefix+Shift+a",
       "scratch_popup=prefix+Enter",
       "lazygit_popup=prefix+g",
       "layout_menu=prefix+Space"
@@ -1360,6 +1421,67 @@ jq -se \
     copy_mode_emulation:false
   }
 ' "$picker_reference_evidence" >/dev/null
+
+agent_overview_hash=$(shasum -a 256 "$prototype/agent_overview.sh" | awk '{print $1}')
+agent_composer_hash=$(shasum -a 256 "$prototype/agent_message_composer.py" | awk '{print $1}')
+agent_fixture_hash=$(shasum -a 256 "$prototype/fixtures/agent_overview_herdr_fixture.sh" | awk '{print $1}')
+agent_validator_hash=$(shasum -a 256 "$prototype/validate_agent_overview.sh" | awk '{print $1}')
+agent_production_config_hash=$(shasum -a 256 "$root/herdr/config.toml" | awk '{print $1}')
+agent_prototype_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+jq -se \
+  --arg overview "$agent_overview_hash" \
+  --arg composer "$agent_composer_hash" \
+  --arg fixture "$agent_fixture_hash" \
+  --arg validator "$agent_validator_hash" \
+  --arg production "$agent_production_config_hash" \
+  --arg prototype_config "$agent_prototype_config_hash" '
+  map(.check) == [
+    "inventory","read","focus","message","stale_safety","bindings",
+    "read_escape","implementation"
+  ] and
+  .[0].evidence.sessions == 3 and
+  .[0].evidence.fields == ["session","agent","status","cwd"] and
+  .[0].evidence.pi_discoverable == true and
+  .[0].evidence.duplicate_labels_unambiguous == true and
+  .[0].evidence.duplicate_pane_ids_unambiguous == true and
+  .[0].evidence.on_demand == true and
+  .[1].evidence == {
+    bounded_lines:200,read_only:true,focus_unchanged:true
+  } and
+  .[2].evidence.owning_session == "beta" and
+  .[2].evidence.terminal_id == "term-beta" and
+  .[2].evidence.current_window_reattached == false and
+  .[2].evidence.macos_window_raised == false and
+  .[3].evidence.exact_multiline_bracketed_paste == true and
+  .[3].evidence.submitted == false and
+  .[3].evidence.send_return == false and
+  .[3].evidence.focus_unchanged == true and
+  .[3].evidence.empty_is_noop == true and
+  .[3].evidence.unicode_backspace_valid == true and
+  .[4].evidence.changed_identity_failed_closed == true and
+  .[4].evidence.missing_session_status != 0 and
+  .[4].evidence.untrusted_token_status != 0 and
+  .[4].evidence.replacement_dispatch == false and
+  .[5].evidence.overview == "prefix+shift+a" and
+  .[5].evidence.adaptive_split == "prefix+a" and
+  .[5].evidence.workspace_picker == "prefix+w" and
+  .[5].evidence.goto == "prefix+f" and
+  .[5].evidence.command_keys == "Ghostty-owned" and
+  .[5].evidence.pane_history == false and
+  .[6].evidence == {
+    escape_returns_to_palette:true,
+    kitty_csi_u_escape_consumed:true,
+    reader:"less"
+  } and
+  .[7].evidence.hashes == {
+    overview:$overview,composer:$composer,fixture:$fixture,validator:$validator,
+    production_config:$production,prototype_config:$prototype_config
+  } and
+  .[7].evidence.remote_aggregation == false and
+  .[7].evidence.destructive_actions == false and
+  .[7].evidence.polling == false and
+  .[7].evidence.commit_or_push == false
+' "$agent_overview_evidence" >/dev/null
 
 nvim_config=${XDG_CONFIG_HOME:-"$HOME/.config"}/nvim/lua/plugin/tmux.lua
 if [ ! -f "$nvim_config" ]; then

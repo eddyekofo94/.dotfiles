@@ -16,6 +16,7 @@ driver_fifo="$runtime/client.fifo"
 driver_log="$runtime/client.log"
 screen="$runtime/screen.txt"
 server_log="$runtime/server.log"
+clipboard_before="$runtime/clipboard-before"
 
 [ -x "$herdr" ] || {
   echo "copy-mode validation requires the prototype Herdr binary" >&2
@@ -66,6 +67,10 @@ sentinel_ready() {
   cli pane process-info --pane "$1" 2>/dev/null |
     jq -e 'any(.result.process_info.foreground_processes[]?; .name == "sleep")' >/dev/null
 }
+focused_pane_ready() {
+  cli pane list 2>/dev/null |
+    jq -e 'any(.result.panes[]?; .focused == true)' >/dev/null
+}
 production_hashes() {
   jq -cn \
     --arg tmux "$(shasum -a 256 "$root/tmux/tmux.conf" | awk '{print $1}')" \
@@ -89,6 +94,9 @@ cleanup() {
     wait "$server_pid" 2>/dev/null || true
   fi
   cli session delete "$session" --json >/dev/null 2>&1 || true
+  if [ -f "$clipboard_before" ]; then
+    pbcopy <"$clipboard_before"
+  fi
   rm -f "$driver_fifo" "$evidence_tmp"
   exit "$status"
 }
@@ -98,6 +106,7 @@ trap 'exit 143' TERM
 
 rm -rf "$runtime"
 mkdir -p "$config_home/herdr" "$evidence_dir"
+pbpaste >"$clipboard_before"
 sed 's|^default_shell = .*$|default_shell = "/bin/sh"|' "$prototype/config.toml" >"$config"
 : >"$evidence_tmp"
 production_before=$(production_hashes)
@@ -109,11 +118,12 @@ server_pid=$!
 wait_for "copy-mode socket" test -S "$socket"
 rm -f "$driver_fifo"
 mkfifo "$driver_fifo"
-"$prototype/picker_client.py" "$herdr" "$config_home" "$config" \
+"$prototype/copy_mode_client.py" "$herdr" "$config_home" "$config" \
   "$session" "$prototype" "$screen" <"$driver_fifo" >"$driver_log" 2>&1 &
 driver_pid=$!
 exec 3>"$driver_fifo"
 wait_for "copy-mode client" grep -q '^READY$' "$driver_log"
+wait_for "focused copy-mode pane" focused_pane_ready
 
 pane=$(cli pane list | jq -er '.result.panes[] | select(.focused).pane_id')
 cli pane run "$pane" 'i=1; while [ "$i" -le 120 ]; do printf "COPY_LINE_%03d payload-%03d\n" "$i" "$i"; i=$((i + 1)); done; exec sleep 300' >/dev/null
@@ -159,11 +169,35 @@ record paging "$(jq -cn \
   --argjson page_down_min "$page_down_min" --argjson page_down_max "$page_down_max" \
   '{sentinel_pid:$pid,initial:{min:$initial_min,max:$initial_max},copy_entry:{min:$copy_min,max:$copy_max},half_up:{min:$half_up_min,max:$half_up_max},half_down:{min:$half_down_min,max:$half_down_max},page_up:{min:$page_up_min,max:$page_up_max},page_down:{min:$page_down_min,max:$page_down_max},process_survived:true}')"
 
+clipboard_sentinel=COPY_MODE_NO_COPY_SENTINEL
+for alias in a i; do
+  printf '%s' "$clipboard_sentinel" | pbcopy
+  send_action copy-mode
+  send_action copy-up
+  send_action copy-select
+  send_action "copy-exit-$alias"
+  test "$(pbpaste)" = "$clipboard_sentinel"
+  kill -0 "$pid"
+done
+
+printf '%s' "$clipboard_sentinel" | pbcopy
+send_action copy-mode
+send_action copy-up
+send_action copy-line-yank
+wait_for "whole-line clipboard" sh -c \
+  '[ "$(pbpaste)" = "COPY_LINE_120 payload-120" ]'
+kill -0 "$pid"
+record vim_aliases "$(jq -cn \
+  --arg no_copy "$clipboard_sentinel" \
+  --arg line "$(pbpaste)" \
+  --argjson pid "$pid" \
+  '{exit_without_copy:{a:$no_copy,i:$no_copy},whole_line:$line,sentinel_pid:$pid,process_survived:true,input_emulation_installed:false}')"
+
 production_after=$(production_hashes)
 test "$production_after" = "$production_before"
 record scope_audit "$(jq -cn \
   --arg config_hash "$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')" \
-  --arg client_hash "$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')" \
+  --arg client_hash "$(shasum -a 256 "$prototype/copy_mode_client.py" | awk '{print $1}')" \
   --arg validator_hash "$(shasum -a 256 "$prototype/validate_copy_mode.sh" | awk '{print $1}')" \
   --argjson production "$production_after" \
   '{config_sha256:$config_hash,client_sha256:$client_hash,validator_sha256:$validator_hash,production_sha256:$production}')"

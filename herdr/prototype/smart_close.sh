@@ -4,6 +4,20 @@ set -eu
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 herdr=${HERDR_BIN_PATH:-herdr}
 pane=${HERDR_TARGET_PANE_ID:-$("$prototype/focused_pane.sh")}
+
+# Never close a pane that is actively running an agent (claude, codex, ...) when
+# invoked via the guarded Alt+q path. Explain why and point at prefix+x, which
+# calls this script WITHOUT the guard and so stays a real force-close escape
+# hatch (still gated by the normal foreground-process confirmation below).
+agent=$($herdr pane current --pane "$pane" | jq -r '.result.pane.agent // ""')
+if [ -n "$agent" ] && [ "${SMART_CLOSE_PROTECT_AGENT:-}" = "1" ]; then
+  $herdr notification show "Won't close: $agent is running" \
+    --body "Alt+q is disabled for agent panes; use prefix+x to force close" \
+    --position bottom-right --sound none >/dev/null 2>&1 || true
+  printf 'smart-close: refused to close agent pane %s (%s)\n' "$pane" "$agent" >&2
+  exit 0
+fi
+
 panes=$($herdr pane list)
 tab=$($herdr pane current --pane "$pane" | jq -er '.result.pane.tab_id')
 count=$(printf '%s\n' "$panes" | jq --arg tab "$tab" \
@@ -28,8 +42,8 @@ confirm_or_close() {
     fi
   fi
   printf '%s\n%s\n' "$now" "$fingerprint" >"$state"
-  $herdr notification show "Confirm pane close" \
-    --body "$reason; press the close binding again within 5 seconds" \
+  $herdr notification show "Close pane? Press Alt+q again within 5s" \
+    --body "$reason" \
     --position bottom-right --sound none >/dev/null 2>&1 || true
   printf 'smart-close: confirmation required for %s in pane %s\n' "$reason" "$pane" >&2
   exit 75

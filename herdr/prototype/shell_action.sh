@@ -17,7 +17,8 @@ split-adaptive)
   HERDR_TARGET_PANE_ID=$pane exec "$prototype/adaptive_split.sh"
   ;;
 close-pane)
-  HERDR_TARGET_PANE_ID=$pane exec "$prototype/smart_close.sh"
+  # Guarded path (Alt+q): refuse to close panes running an agent.
+  HERDR_TARGET_PANE_ID=$pane SMART_CLOSE_PROTECT_AGENT=1 exec "$prototype/smart_close.sh"
   ;;
 close-other-panes)
   HERDR_TARGET_PANE_ID=$pane exec "$prototype/close_other_panes.sh"

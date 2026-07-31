@@ -51,8 +51,8 @@ if [ -f "$state" ]; then
 fi
 
 printf '%s %s\n' "$now" "$fingerprint" >"$state"
-$herdr notification show "Confirm close other panes" \
-  --body "Press the same binding again within five seconds" \
+$herdr notification show "Close OTHER panes? Press Alt+o again within 5s" \
+  --body "keeps the focused pane" \
   --sound none >/dev/null 2>&1 || true
 echo "close-other-panes: press again within five seconds to confirm" >&2
 exit 75

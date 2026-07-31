@@ -91,6 +91,27 @@ reference; Ctrl-O opens a URI or a path resolved from the pane cwd and refuses
 hashes. This popup is deliberately outside copy mode: it is not cursor-local,
 selection-bounded, or a claim of copy-mode parity.
 
+`Prefix+Shift+a` opens an on-demand overview of agents in every running local
+named Herdr session. Rows show session, agent, status, and cwd. Enter focuses
+the exact agent pane inside its owning session without attaching or raising the
+other Ghostty window; Ctrl-R opens a bounded read-only recent-output view;
+Ctrl-E opens an editable composer whose confirmed text is inserted through
+bracketed paste without Return or submission; Ctrl-L refreshes the inventory.
+Ghostty continues to own macOS Command shortcuts, including `Cmd-V` paste.
+Every action refreshes and verifies the session-qualified agent identity before
+dispatch, so a stopped session or replaced agent fails closed.
+
+Run its deterministic safety gate with:
+
+```sh
+./herdr/prototype/validate_agent_overview.sh
+```
+
+The resulting `evidence/agent-overview-validation.jsonl` covers repeated
+session-local pane IDs and agent labels, stale sessions and identities, bounded
+readback, owning-session focus, exact multiline insertion without Enter, and
+the unchanged native navigation and Command-key boundaries.
+
 Run the focused safety and real-prefix gate with:
 
 ```sh
@@ -292,15 +313,16 @@ The fixed 120×40 client enters copy mode through real `prefix+s` input over a
 62–100 and `Ctrl-d` returns it to 82–120; `PageUp` moves to 44–82 and
 `PageDown` returns to the live bottom. The pane's sentinel process survives the
 entire browse. This intentionally adopts Herdr's documented modifier chords
-instead of injecting tmux's plain `u/d`. Rectangle selection, copy-line `Y`,
-marks, and OSC 133 prompt jumps remain explicit upstream capability gaps in
-v0.7.4 rather than emulated key sequences.
+instead of injecting tmux's plain `u/d`. The reviewed source build additionally
+proves `a`/`i` exit without copying and `Y` copies the current line and exits.
+Rectangle selection, marks, and OSC 133 prompt jumps remain explicit upstream
+capability gaps in v0.7.4 rather than emulated key sequences.
 
 Run `validate_capability_gaps.sh` to bind those unavailable actions to the
-exact v0.7.4 default-configuration hash. The same audit proves that legacy
-`Alt-Tab` and cursor-local copy-mode `O` are retired without global bindings or
-input-emulation shims. It records the supported replacements and writes atomic
-evidence to `evidence/capability-gap-validation.jsonl`.
+exact v0.7.4 default-configuration hash and the reviewed source-patch hash. The
+same audit proves that legacy `Alt-Tab` and cursor-local copy-mode `O` remain
+retired without input-emulation shims. It records the supported replacements
+and writes atomic evidence to `evidence/capability-gap-validation.jsonl`.
 
 ## Recovery gate
 
@@ -400,12 +422,28 @@ Run the isolated login gate with:
 ./herdr/prototype/validate_login_attach.sh
 ```
 
-`herdr_login_attach.fish` launches one stable `main` named session only for an
-interactive top-level login shell. It remains inert inside Herdr (`HERDR_ENV` or
-`HERDR_PANE_ID`), inside production tmux, in non-login or non-interactive Fish,
-when `HERDR_NO_AUTO_ATTACH` is set, or when a custom session name is unsafe.
-The gate uses an isolated Fish config and fake Herdr executable; it does not
-source, edit, or install anything into production `fish/config.fish`.
+For an ordinary interactive top-level login, `herdr_login_attach.fish`
+uses a persistent most-recent automatic-session pointer. Allocation seeds the
+pointer as a crash fallback. An event-driven, PID-plus-start-identity supervisor
+waits for the Herdr client without polling, survives terminal HUP, refreshes the
+pointer when that exact automatic client exits, and removes its matching runtime
+lease, so the final session to close is restored later. When no Herdr client is
+open, the next window restores that session.
+When any Herdr client is open, the next window creates a never-before-allocated
+session: `main`, then monotonically increasing `window-N` names. Closing a
+client does not stop or delete its server. An explicit safe
+`HERDR_LOGIN_SESSION` still overrides the automatic policy.
+
+Automatic launches change to the user's valid `$HOME` before allocation. A
+restored Herdr session retains its own persisted pane cwd. The adapter remains
+inert inside Herdr (`HERDR_ENV` or `HERDR_PANE_ID`), inside production tmux, in
+non-login or non-interactive Fish, when `HERDR_NO_AUTO_ATTACH` is set, or when a
+custom session name is unsafe. The isolated gate proves concurrent monotonic
+creation, no-client restoration, migration from existing automatic sessions,
+the `window-10` boundary, PID-reuse/symlink/interruption safety, event-driven
+exit recording with no-polling and preserved-client-stdin assertions,
+persistent-state safety, and every retained guard without installing
+or changing production Fish, tmux, Ghostty, or Herdr configuration.
 
 High-quality image preview uses Herdr's experimental pane-owned raster layer.
 `native_preview.sh` reads the real fzf geometry, rejects its negative row
@@ -424,10 +462,12 @@ press again to re-enable and apply 62%. The plugin source exists only on this
 throwaway branch; its registration and mutable state stay inside the ignored
 prototype runtime.
 
-The first run downloads the official Herdr v0.7.4 macOS arm64 release into
-`.runtime/`, verifies its expected byte size, and starts the named scratch
-session `trial`. The short scratch name keeps the macOS Unix socket below its
-path-length limit. Remove `.runtime/` to wipe everything.
+The first run uses the hash-verified reviewed v0.7.4 source build when
+`../source-build/.work/bin/herdr` exists; otherwise it downloads the official
+v0.7.4 macOS arm64 release into `.runtime/` and verifies its expected byte
+size. It starts the named scratch session `trial`. The short scratch name keeps
+the macOS Unix socket below its path-length limit. Remove `.runtime/` to wipe
+only the throwaway trial state; the reviewed source-build cache is separate.
 
 To launch the normal Neovim configuration with the temporary Herdr navigation
 override from a Herdr pane:

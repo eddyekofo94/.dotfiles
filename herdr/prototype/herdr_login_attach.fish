@@ -30,9 +30,25 @@ function __herdr_login_attach --description 'Attach a top-level login shell to H
     end
 
     set -l session main
+    set -l allocator
+    set -l automatic_session 0
     if set -q HERDR_LOGIN_SESSION
         string match -qr '^[A-Za-z0-9._-]+$' -- "$HERDR_LOGIN_SESSION"; or return 0
         set session "$HERDR_LOGIN_SESSION"
+    else
+        set allocator "$HOME/.dotfiles/herdr/window_session.sh"
+        if set -q HERDR_LOGIN_SESSION_ALLOCATOR
+            set allocator "$HERDR_LOGIN_SESSION_ALLOCATOR"
+        end
+        test -x "$allocator"; or return 0
+        # Automatic new sessions always start from home. Restored Herdr
+        # sessions retain their own persisted pane cwd.
+        test -d "$HOME"; and cd -- "$HOME"; or return 0
+        set session ("$allocator" "$fish_pid" "$herdr_bin")
+        or return 0
+        test (count $session) -eq 1; or return 0
+        string match -qr '^(main|window-([2-9]|[1-9][0-9]+))$' -- "$session"; or return 0
+        set automatic_session 1
     end
 
     set -gx HERDR_PROTOTYPE_DIR "$HOME/.dotfiles/herdr/prototype"
@@ -42,6 +58,12 @@ function __herdr_login_attach --description 'Attach a top-level login shell to H
     # it after the first server starts, without delaying the client attach.
     if not set -q HERDR_SKIP_PLUGIN_ENSURE
         "$HOME/.dotfiles/herdr/ensure_plugins.sh" "$session" >/dev/null 2>&1 &
+    end
+
+    if test "$automatic_session" -eq 1
+        "$allocator" --supervise "$fish_pid" "$session" "$herdr_bin"
+        and exec /usr/bin/true
+        return 0
     end
 
     exec "$herdr_bin" --session "$session"

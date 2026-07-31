@@ -37,6 +37,87 @@ type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
 description = "adaptive split from focused pane shape"
 
+# Global tmux-style smart navigation. Herdr intercepts Alt+h/j/k/l before any
+# app (including non-adapter TUIs like Claude Code, Codex, lazygit); smart_nav.sh
+# forwards the chord to nvim/vim/ssh when that is the foreground process,
+# otherwise focuses the neighboring Herdr pane. Replicates tmux `bind -n M-h`
+# with its vim-only `$fwd` guard so Alt navigation works everywhere.
+[[keys.command]]
+key = "alt+h"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_nav.sh\" h left"
+description = "smart nav left (forward to vim, else focus pane)"
+
+[[keys.command]]
+key = "alt+j"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_nav.sh\" j down"
+description = "smart nav down (forward to vim, else focus pane)"
+
+[[keys.command]]
+key = "alt+k"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_nav.sh\" k up"
+description = "smart nav up (forward to vim, else focus pane)"
+
+[[keys.command]]
+key = "alt+l"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_nav.sh\" l right"
+description = "smart nav right (forward to vim, else focus pane)"
+
+# Global tmux-style Alt actions. Same guard as navigation: forward the chord to
+# nvim/vim/ssh when focused (so the editor keeps its own <M-*> maps), otherwise
+# perform the Herdr action. Replaces the Fish-prompt-only bindings so these work
+# inside any TUI (Claude Code, Codex, lazygit, ...).
+[[keys.command]]
+key = "alt+v"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" v split-right"
+description = "split right (forward to vim, else Herdr split)"
+
+[[keys.command]]
+key = "alt+n"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" n split-adaptive"
+description = "adaptive split (forward to vim, else Herdr split)"
+
+[[keys.command]]
+key = "alt+q"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" q close-pane"
+description = "smart close pane (forward to vim, else Herdr close)"
+
+[[keys.command]]
+key = "alt+o"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" o close-other-panes"
+description = "close sibling panes (forward to vim, else Herdr)"
+
+[[keys.command]]
+key = "alt+="
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" = equalize-panes"
+description = "equalize panes (forward to vim, else Herdr)"
+
+[[keys.command]]
+key = "alt+z"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" z zoom"
+description = "toggle zoom (forward to vim, else Herdr)"
+
+[[keys.command]]
+key = "alt+shift+x"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" shift+x close-tab"
+description = "close tab (forward to vim, else Herdr)"
+
+[[keys.command]]
+key = "alt+ctrl+x"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" ctrl+x close-other-tabs"
+description = "close other tabs (forward to vim, else Herdr)"
+
 [[keys.command]]
 key = "prefix+shift+h"
 type = "shell"
@@ -225,6 +306,14 @@ description = "search recent URI path and hash references"
 width = "85%"
 height = "70%"
 
+[[keys.command]]
+key = "prefix+shift+a"
+type = "popup"
+command = "exec \"$HERDR_PROTOTYPE_DIR/agent_overview.sh\""
+description = "discover agents across local Herdr sessions"
+width = "90%"
+height = "80%"
+
 [ui]
 sidebar_collapsed_mode = "hidden"
 pane_borders = true
@@ -237,7 +326,9 @@ prompt_new_tab_name = false
 rows = [["state_icon", "workspace", "tab"], ["agent", "$semantic_state"]]
 
 [ui.toast]
-delivery = "off"
+# in-app toasts so destructive-close confirmations ("press again within 5s") and
+# other Herdr prompts are visible. Set back to "off" to silence all pop-ups.
+delivery = "herdr"
 
 [ui.sound]
 enabled = false

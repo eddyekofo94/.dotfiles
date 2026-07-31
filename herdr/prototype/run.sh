@@ -43,20 +43,33 @@ esac
 asset=herdr-macos-aarch64
 version=v0.7.4
 expected_size=15866512
+source_build="$root/herdr/source-build"
 
 mkdir -p "$runtime/bin" "$config_home/herdr"
 
 if [ ! -x "$bin" ]; then
-  tmp="$bin.download"
-  rm -f "$tmp"
-  curl -fL "https://github.com/ogulcancelik/herdr/releases/download/$version/$asset" -o "$tmp"
-  actual_size=$(wc -c <"$tmp" | tr -d ' ')
-  if [ "$actual_size" != "$expected_size" ]; then
-    rm -f "$tmp"
-    echo "Herdr download size mismatch: expected $expected_size, got $actual_size" >&2
-    exit 1
+  reviewed_bin="$source_build/.work/bin/herdr"
+  if [ -x "$reviewed_bin" ]; then
+    # shellcheck source=/dev/null
+    . "$source_build/pins.env"
+    reviewed_sha=$(shasum -a 256 "$reviewed_bin" | awk '{print $1}')
+    if [ "$reviewed_sha" != "$HERDR_BINARY_SHA256" ]; then
+      echo "reviewed Herdr source-build binary hash mismatch" >&2
+      exit 1
+    fi
+    tmp="$bin.reviewed"
+    install -m 0755 "$reviewed_bin" "$tmp"
+  else
+    tmp="$bin.download"
+    curl -fL "https://github.com/ogulcancelik/herdr/releases/download/$version/$asset" -o "$tmp"
+    actual_size=$(wc -c <"$tmp" | tr -d ' ')
+    if [ "$actual_size" != "$expected_size" ]; then
+      rm -f "$tmp"
+      echo "Herdr download size mismatch: expected $expected_size, got $actual_size" >&2
+      exit 1
+    fi
+    chmod 0755 "$tmp"
   fi
-  chmod 0755 "$tmp"
   mv "$tmp" "$bin"
 fi
 

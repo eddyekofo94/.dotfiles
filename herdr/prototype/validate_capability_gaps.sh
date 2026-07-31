@@ -12,6 +12,7 @@ evidence_tmp=$(mktemp /tmp/herdr-capability-gap-validation.XXXXXX)
   echo "capability-gap validation requires the prototype Herdr binary" >&2
   exit 2
 }
+"$root/herdr/source-build/verify.sh" >/dev/null
 
 production_hashes() {
   jq -cn \
@@ -62,18 +63,19 @@ fi
 record surface "$(jq -cn --arg version "$version" \
   --arg defaults_sha256 "$(printf '%s\n' "$defaults" | shasum -a 256 | awk '{print $1}')" \
   '{version:$version,default_config_sha256:$defaults_sha256,
-    configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
+    upstream_configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
+    reviewed_source_extensions:["copy-line-Y"],
     absence_deterministic:true}')"
 record alternatives "$(jq -cn \
-  '{ordinary_selection:{keys:["v","Space","y","Enter"],evidence:"copy-mode-validation.jsonl"},
+  '{ordinary_selection:{keys:["v","Space","y","Y","Enter"],evidence:"copy-mode-validation.jsonl"},
     paging:{keys:["Ctrl-u","Ctrl-d","PageUp","PageDown"],evidence:"copy-mode-validation.jsonl"},
     visible_url:{key:"prefix+u",evidence:"url-validation.jsonl"},
     last_location:{keys:["prefix+Tab","Ctrl-^/Ctrl-6"],semantics:"last-pane"}}')"
 record policy "$(jq -cn \
-  '{alt_tab:"retired",rectangle_selection:"unavailable",copy_line_Y:"unavailable",
+  '{alt_tab:"retired",rectangle_selection:"unavailable",copy_line_Y:"reviewed-source-build",
     marks:"unavailable",prompt_jumps:"unavailable",copy_mode_O:"unavailable",
-    input_emulation_installed:false,global_alt_binding_installed:false,
-    migration_difference_requires_no_production_change:true}')"
+    input_emulation_installed:false,global_alt_binding_installed:true,
+    production_config_change_required:false}')"
 
 production_after=$(production_hashes)
 test "$production_after" = "$production_before"
@@ -81,9 +83,10 @@ record scope_audit "$(jq -cn --argjson before "$production_before" \
   --argjson after "$production_after" \
   --arg config "$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')" \
   --arg nav "$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')" \
+  --arg source_patch "$(shasum -a 256 "$root/herdr/source-build/copy-mode-vim-muscle-memory.patch" | awk '{print $1}')" \
   --arg validator "$(shasum -a 256 "$0" | awk '{print $1}')" \
   '{production_hashes_before:$before,production_hashes_after:$after,unchanged:($before==$after),
-    artifact_hashes:{config:$config,nav:$nav,validator:$validator}}')"
+    artifact_hashes:{config:$config,nav:$nav,source_patch:$source_patch,validator:$validator}}')"
 record result "$(jq -cn \
   '{status:"PASS",production_configuration_modified:false,
     unsupported_emulation_installed:false,migration_authorized:false}')"
