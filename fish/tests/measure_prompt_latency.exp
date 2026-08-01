@@ -1,0 +1,90 @@
+#!/usr/bin/expect -f
+
+log_user 0
+set timeout 10
+set runs [expr {[llength $argv] > 1 ? [lindex $argv 1] : 30}]
+set target_us 50000
+set target_dir [expr {[llength $argv] ? [lindex $argv 0] : [pwd]}]
+
+proc fail {message} {
+    puts stderr "Fish prompt latency: $message"
+    exit 2
+}
+
+if {![string is integer -strict $runs] || $runs < 1} {
+    fail "run count must be a positive integer"
+}
+if {![file isdirectory $target_dir]} {
+    fail "directory does not exist: $target_dir"
+}
+
+proc wait_prompt {} {
+    expect {
+        -exact "\033\]133;B\033\\" { return }
+        timeout { fail "prompt did not return" }
+    }
+}
+
+proc percentile {values fraction} {
+    set ordered [lsort -integer $values]
+    set index [expr {int(ceil($fraction * [llength $ordered])) - 1}]
+    return [lindex $ordered $index]
+}
+
+proc median {values} {
+    set ordered [lsort -integer $values]
+    set count [llength $ordered]
+    if {$count % 2} {
+        return [lindex $ordered [expr {$count / 2}]]
+    }
+    return [expr {([lindex $ordered [expr {$count / 2 - 1}]] +
+        [lindex $ordered [expr {$count / 2}]]) / 2}]
+}
+
+proc format_ms {microseconds} {
+    return [format "%.3f" [expr {$microseconds / 1000.0}]]
+}
+
+proc run_case {label target_dir prompt_setup runs} {
+    global spawn_id
+    cd $target_dir
+    spawn env TERM=xterm-256color HERDR_NO_AUTO_ATTACH=1 fish -i
+    expect_before {
+        -exact "\033\[0c" { send "\033\[?1;2c"; exp_continue }
+        -exact "\033\]11;?\033\\" {
+            send "\033\]11;rgb:1e1e/1e1e/2e2e\033\\"
+            exp_continue
+        }
+        -exact "\033\[6n" { send "\033\[24;1R"; exp_continue }
+    }
+    wait_prompt
+    if {$prompt_setup ne ""} {
+        send "$prompt_setup\r"
+        wait_prompt
+    }
+    set samples {}
+    for {set i 0} {$i < $runs} {incr i} {
+        set started [clock microseconds]
+        send "true\r"
+        wait_prompt
+        lappend samples [expr {[clock microseconds] - $started}]
+    }
+    set ordered [lsort -integer $samples]
+    set result [list [median $samples] [percentile $samples 0.95] \
+        [lindex $ordered 0] [lindex $ordered end]]
+    puts "$label runs=$runs median=[format_ms [lindex $result 0]]ms p95=[format_ms [lindex $result 1]]ms min=[format_ms [lindex $result 2]]ms max=[format_ms [lindex $result 3]]ms"
+    send "exit\r"
+    expect eof
+    return $result
+}
+
+set real [run_case real-starship $target_dir "" $runs]
+set simple [run_case isolated-simple-prompt $target_dir \
+    {function fish_prompt; printf 'P> '; end; functions -e fish_right_prompt} \
+    $runs]
+
+if {[lindex $real 1] > $target_us} {
+    puts "Fish prompt latency: RED (real p95 [format_ms [lindex $real 1]]ms > [format_ms $target_us]ms; simple control [format_ms [lindex $simple 1]]ms)"
+    exit 1
+}
+puts "Fish prompt latency: PASS"

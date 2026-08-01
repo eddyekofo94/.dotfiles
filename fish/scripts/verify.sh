@@ -28,6 +28,7 @@ fi
 "$package_dir/tests/startup_consumer_integration.sh"
 "$package_dir/tests/interactive_consumer_pty.sh"
 "$package_dir/tests/interactive_consumer_tmux.sh"
+/usr/bin/expect "$package_dir/tests/measure_prompt_latency.exp" "$repo_dir"
 
 before=$(ps -axo command= | rg -c '^(/opt/homebrew/bin/)?fish -c ' || true)
 i=0
