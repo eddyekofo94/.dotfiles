@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+
+log_user 0
+set timeout 5
+
+spawn env TERM=xterm-256color nvim
+expect {
+    -exact "\033\[?25h" {}
+    timeout {
+        puts stderr "Neovim cursor blink: startup cursor did not appear"
+        exit 2
+    }
+}
+
+after 250
+expect -timeout 0 {
+    -re {.+} { exp_continue }
+    timeout {}
+}
+
+send "i"
+expect {
+    -re {\x1b\[([1-6]) q} {
+        set code $expect_out(1,string)
+        send "\033:q!\r"
+        expect eof
+        if {$code == 1 || $code == 3 || $code == 5} {
+            puts "Neovim insert cursor blink: PASS (DECSCUSR CSI ${code} q)"
+            exit 0
+        }
+        puts "Neovim insert cursor blink: RED (steady DECSCUSR CSI ${code} q)"
+        exit 1
+    }
+    timeout {
+        puts stderr "Neovim cursor blink: no insert-mode DECSCUSR observed"
+        exit 2
+    }
+}

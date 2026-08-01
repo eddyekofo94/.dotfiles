@@ -200,6 +200,293 @@ index d151b94d..77a3e9af 100644
          NavigateAction::Zoom => {
              state.toggle_zoom();
              leave_navigate_mode(state);
+diff --git a/src/client/mod.rs b/src/client/mod.rs
+index 011de937..1eb5805d 100644
+--- a/src/client/mod.rs
++++ b/src/client/mod.rs
+@@ -87,6 +87,97 @@ struct ClientState {
+     redraw_on_focus_gained: bool,
+     /// Whether this client draws the cursor into frame cells instead of using the host cursor.
+     draw_host_cursor: bool,
++    /// Client-owned blink phase for native cursors. Outer terminal output can
++    /// otherwise keep restarting the host's blink timer during agent animation.
++    host_cursor_blink: HostCursorBlink,
++}
++
++const HOST_CURSOR_BLINK_INTERVAL: Duration = Duration::from_millis(500);
++
++#[derive(Debug)]
++struct HostCursorBlink {
++    visible: bool,
++    next_toggle: Option<std::time::Instant>,
++    focused: bool,
++    source_cursor: Option<(u8, bool)>,
++}
++
++impl Default for HostCursorBlink {
++    fn default() -> Self {
++        Self {
++            visible: true,
++            next_toggle: None,
++            focused: true,
++            source_cursor: None,
++        }
++    }
++}
++
++impl HostCursorBlink {
++    fn observe_blinking_frame(&mut self, now: std::time::Instant) {
++        self.next_toggle
++            .get_or_insert(now + HOST_CURSOR_BLINK_INTERVAL);
++    }
++
++    fn prepare_frame(&mut self, frame: &mut protocol::FrameData, now: std::time::Instant) {
++        let Some(cursor) = frame.cursor.as_mut() else {
++            self.reset();
++            return;
++        };
++
++        self.source_cursor = Some((cursor.shape, cursor.visible));
++        cursor.shape = steady_cursor_shape(cursor.shape);
++        if !self.focused {
++            self.reset_phase();
++            return;
++        }
++
++        self.observe_blinking_frame(now);
++        let _ = self.tick(now);
++        cursor.visible = self.visible;
++    }
++
++    fn tick(&mut self, now: std::time::Instant) -> Option<bool> {
++        let deadline = self.next_toggle?;
++        if now < deadline {
++            return None;
++        }
++
++        self.visible = !self.visible;
++        self.next_toggle = Some(now + HOST_CURSOR_BLINK_INTERVAL);
++        Some(self.visible)
++    }
++
++    fn reset(&mut self) {
++        self.source_cursor = None;
++        self.reset_phase();
++    }
++
++    fn reset_phase(&mut self) {
++        self.visible = true;
++        self.next_toggle = None;
++    }
++
++    fn set_focused(&mut self, focused: bool) -> Option<(u8, bool)> {
++        self.focused = focused;
++        self.reset_phase();
++        (!focused)
++            .then(|| {
++                self.source_cursor
++                    .map(|(shape, visible)| (steady_cursor_shape(shape), visible))
++            })
++            .flatten()
++    }
++}
++
++fn steady_cursor_shape(shape: u8) -> u8 {
++    match shape {
++        0 | 1 => 2,
++        3 => 4,
++        5 => 6,
++        2 | 4 | 6 => shape,
++        _ => 2,
++    }
+ }
+ 
+ #[derive(Debug, Default)]
+@@ -1300,6 +1391,7 @@ async fn run_client_loop(
+         remote_image_paste_key: config.remote_image_paste_key,
+         redraw_on_focus_gained: config.redraw_on_focus_gained,
+         draw_host_cursor,
++        host_cursor_blink: HostCursorBlink::default(),
+     };
+     debug!(?negotiated_encoding, "client render encoding active");
+     let host_mouse_capture_active = Arc::new(AtomicBool::new(state.mouse_capture_active));
+@@ -1410,6 +1502,24 @@ async fn run_client_loop(
+                     }
+                 } else {
+                     let events = crate::raw_input::parse_raw_input_bytes_sync(&data);
++                    for event in &events {
++                        let focused = match event {
++                            crate::raw_input::RawInputEvent::OuterFocusGained => Some(true),
++                            crate::raw_input::RawInputEvent::OuterFocusLost => Some(false),
++                            _ => None,
++                        };
++                        if let Some(focused) = focused {
++                            if let Some((shape, visible)) =
++                                state.host_cursor_blink.set_focused(focused)
++                            {
++                                let mut stdout = io::stdout();
++                                let _ = write!(stdout, "\x1b[{shape} q");
++                                let visibility = if visible { b"\x1b[?25h" } else { b"\x1b[?25l" };
++                                let _ = stdout.write_all(visibility);
++                                let _ = stdout.flush();
++                            }
++                        }
++                    }
+                     if crate::raw_input::events_require_host_surface_redraw(
+                         &events,
+                         state.redraw_on_focus_gained,
+@@ -1507,11 +1617,16 @@ async fn run_client_loop(
+             }
+             ClientLoopEvent::ServerMessage(msg) => match msg {
+                 ServerMessage::Frame(frame_data) => {
+-                    let frame_data = if state.draw_host_cursor {
++                    let mut frame_data = if state.draw_host_cursor {
+                         render_ansi::frame_with_drawn_cursor(frame_data)
+                     } else {
+                         frame_data
+                     };
++                    if !state.draw_host_cursor {
++                        state
++                            .host_cursor_blink
++                            .prepare_frame(&mut frame_data, std::time::Instant::now());
++                    }
+                     let encoded = if state.draw_host_cursor {
+                         state
+                             .blit_encoder
+@@ -1602,7 +1717,16 @@ async fn run_client_loop(
+                     "server closed connection",
+                 )));
+             }
+-            ClientLoopEvent::Timer => {}
++            ClientLoopEvent::Timer => {
++                if !state.draw_host_cursor {
++                    if let Some(visible) = state.host_cursor_blink.tick(std::time::Instant::now()) {
++                        let mut stdout = io::stdout();
++                        let visibility = if visible { b"\x1b[?25h" } else { b"\x1b[?25l" };
++                        let _ = stdout.write_all(visibility);
++                        let _ = stdout.flush();
++                    }
++                }
++            }
+         }
+     }
+ 
+@@ -2224,6 +2348,115 @@ mod tests {
+         ));
+     }
+ 
++    #[test]
++    fn host_cursor_blink_deadline_survives_frequent_agent_frames() {
++        let started = std::time::Instant::now();
++        let mut blink = HostCursorBlink::default();
++
++        for elapsed_ms in [0, 128, 256, 384] {
++            blink.observe_blinking_frame(started + Duration::from_millis(elapsed_ms));
++        }
++
++        assert_eq!(
++            blink.tick(started + HOST_CURSOR_BLINK_INTERVAL),
++            Some(false)
++        );
++    }
++
++    #[test]
++    fn host_cursor_blink_uses_steady_shape_and_client_visibility_phase() {
++        let started = std::time::Instant::now();
++        let mut blink = HostCursorBlink::default();
++        let mut frame = protocol::FrameData {
++            cells: Vec::new(),
++            width: 0,
++            height: 0,
++            cursor: Some(protocol::CursorState {
++                x: 0,
++                y: 0,
++                visible: true,
++                shape: 5,
++            }),
++            hyperlinks: Vec::new(),
++            graphics: Vec::new(),
++        };
++
++        blink.prepare_frame(&mut frame, started);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(6));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(true)
++        );
++
++        frame.cursor.as_mut().unwrap().shape = 5;
++        blink.prepare_frame(&mut frame, started + HOST_CURSOR_BLINK_INTERVAL);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(6));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(false)
++        );
++
++        frame.cursor.as_mut().unwrap().shape = 2;
++        frame.cursor.as_mut().unwrap().visible = false;
++        blink.prepare_frame(&mut frame, started + HOST_CURSOR_BLINK_INTERVAL);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(2));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(false)
++        );
++        assert!(blink.next_toggle.is_some());
++    }
++
++    #[test]
++    fn host_cursor_blink_follows_outer_terminal_focus() {
++        let started = std::time::Instant::now();
++        let mut blink = HostCursorBlink::default();
++        let mut frame = protocol::FrameData {
++            cells: Vec::new(),
++            width: 0,
++            height: 0,
++            cursor: Some(protocol::CursorState {
++                x: 0,
++                y: 0,
++                visible: false,
++                shape: 0,
++            }),
++            hyperlinks: Vec::new(),
++            graphics: Vec::new(),
++        };
++
++        blink.prepare_frame(&mut frame, started);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(2));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(true),
++            "focused Codex-like hidden cursor should use the client blink phase"
++        );
++
++        assert_eq!(blink.set_focused(false), Some((2, false)));
++        frame.cursor.as_mut().unwrap().shape = 0;
++        frame.cursor.as_mut().unwrap().visible = false;
++        blink.prepare_frame(&mut frame, started + HOST_CURSOR_BLINK_INTERVAL);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(2));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(false),
++            "background surface should preserve the app's hidden cursor"
++        );
++        assert_eq!(blink.tick(started + HOST_CURSOR_BLINK_INTERVAL), None);
++
++        assert_eq!(blink.set_focused(true), None);
++        frame.cursor.as_mut().unwrap().shape = 6;
++        frame.cursor.as_mut().unwrap().visible = true;
++        blink.prepare_frame(&mut frame, started + HOST_CURSOR_BLINK_INTERVAL);
++        assert_eq!(frame.cursor.as_ref().map(|cursor| cursor.shape), Some(6));
++        assert_eq!(
++            frame.cursor.as_ref().map(|cursor| cursor.visible),
++            Some(true)
++        );
++        assert!(blink.next_toggle.is_some());
++    }
++
+     #[cfg(unix)]
+     #[test]
+     fn clipboard_image_paste_bridge_triggers_on_configured_key_and_empty_paste() {
 diff --git a/src/config/keybinds.rs b/src/config/keybinds.rs
 index 29b53355..ef96b5f7 100644
 --- a/src/config/keybinds.rs

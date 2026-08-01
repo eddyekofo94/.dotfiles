@@ -146,6 +146,8 @@ check_adoption "copy_mode_search" "src/config" \
   "a bindable copy-mode-search action"
 check_adoption "'a' | 'i' | 'q'" "src/app/input/copy_mode.rs" \
   "the a/i/q copy-mode exit aliases"
+check_adoption "HostCursorBlink" "src/client/mod.rs" \
+  "client-owned native host-cursor blinking"
 if [ "$adopted" -eq 1 ]; then
   echo
   echo "Herdr upgrade: STOPPED — upstream appears to ship part of the patch."

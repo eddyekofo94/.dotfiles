@@ -33,8 +33,7 @@ Everything else passes through to the real binary untouched.
 
 ## What the patch adds
 
-Two copy-mode changes, both composed from operations Herdr already has. There is
-no injected-input path.
+Three narrow changes. There is no injected-input path.
 
 - Vim muscle memory: `a` and `i` compose the existing `q` exit-without-copy
   operation; `Y` composes the existing `V` whole-line selection and `y`
@@ -43,6 +42,10 @@ no injected-input path.
   search prompt already open, composing `enter_copy_mode` with the prompt that
   copy mode's own `?` key opens. Bound to `alt+s` in `herdr/config.toml`, it
   turns a scrollback search into one chord instead of two.
+- Client-owned focus-cursor blinking. Herdr preserves the focused pane's cursor
+  position and shape, exposes a hardware cursor when a TUI paints its own, and
+  toggles visibility every 500 ms. Ghostty focus loss restores the application's
+  steady/hidden state so background windows do not keep blinking.
 
 `pane_history = false`, Herdr recovery, production configuration, and the tmux
 fallback remain outside the patch.

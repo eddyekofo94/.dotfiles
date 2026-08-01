@@ -184,6 +184,7 @@ fi
   cargo fmt --check
   cargo clippy --all-targets --locked -- -D warnings
   cargo test --locked copy_mode_
+  cargo test --locked host_cursor_blink_
   cargo build --release --locked
 )
 
@@ -223,7 +224,8 @@ known_binary() {
 # Every binary this script produces is provenance worth remembering: it becomes
 # the predecessor of the next upgrade, and a guard that only knows the official
 # release would refuse it. See known-binaries.txt.
-record_known_binary "$built_sha" "reviewed v$HERDR_VERSION source build with the copy-mode patch"
+record_known_binary "$built_sha" \
+  "reviewed v$HERDR_VERSION source build with private patch $HERDR_PATCH_SHA256"
 
 if [ "$install_build" -eq 1 ]; then
   prototype_bin="$root/herdr/prototype/.runtime/bin/herdr"

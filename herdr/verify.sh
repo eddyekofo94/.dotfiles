@@ -212,5 +212,8 @@ if [ "${HERDR_VERIFY_AUDIT:-0}" = 1 ]; then
   "$prototype/verify.sh"
 fi
 
-git -C "$root" diff --check -- herdr fish/config.fish
+# Stored unified diffs legitimately contain one-space blank context markers;
+# source-build verification separately checks that the patch applies exactly.
+git -C "$root" diff --check -- herdr fish/config.fish \
+  ':(exclude)herdr/source-build/*.patch'
 echo "Herdr production verification: PASS"

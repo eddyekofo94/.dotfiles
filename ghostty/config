@@ -13,6 +13,7 @@ font-feature = calt
 font-feature = liga
 
 cursor-style-blink = true
+cursor-style = block
 
 cursor-color = f5e0dc
 selection-invert-fg-bg = true
@@ -21,8 +22,9 @@ selection-invert-fg-bg = true
 window-padding-x = 1
 window-padding-y = 5
 
-# Enable cursor styling from apps (neovim)
-shell-integration-features = cursor
+# Keep the shell on Ghostty's block default. TUIs such as Neovim and the
+# isolated Pi pilot may still request their own cursor shape with DECSCUSR.
+shell-integration-features = no-cursor
 
 # Window
 # window-decoration = false

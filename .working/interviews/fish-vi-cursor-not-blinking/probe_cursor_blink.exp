@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+log_user 0
+set timeout 5
+
+spawn env TERM=xterm-256color TMUX=1 HERDR_NO_AUTO_ATTACH=1 fish -l -i
+expect_before {
+    -exact "\033\[0c" { send "\033\[?1;2c"; exp_continue }
+    -exact "\033\]11;?\033\\" {
+        send "\033\]11;rgb:1e1e/1e1e/2e2e\033\\"
+        exp_continue
+    }
+    -exact "\033\[6n" { send "\033\[24;1R"; exp_continue }
+}
+
+expect {
+    -re {\x1b\[([1-6]) q} {
+        set code $expect_out(1,string)
+        send "exit\r"
+        expect eof
+        if {$code == 1 || $code == 3 || $code == 5} {
+            puts "Fish cursor blink: PASS (DECSCUSR CSI ${code} q)"
+            exit 0
+        }
+        puts "Fish cursor blink: RED (steady DECSCUSR CSI ${code} q)"
+        exit 1
+    }
+    timeout {
+        puts stderr "Fish cursor blink: no DECSCUSR sequence observed"
+        exit 2
+    }
+    eof {
+        puts stderr "Fish cursor blink: Fish exited before setting cursor"
+        exit 2
+    }
+}
