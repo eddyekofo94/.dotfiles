@@ -25,7 +25,10 @@ split_horizontal = ""
 close_pane = ""
 zoom = "prefix+z"
 resize_mode = "prefix+r"
-copy_mode = "prefix+s"
+# Mirrors the production copy-mode entry points so validate_copy_mode.sh drives
+# the same chords Eddy presses.
+copy_mode = ["prefix+s", "alt+/"]
+copy_mode_search = "alt+b"
 toggle_sidebar = "prefix+shift+s"
 previous_workspace = "prefix+("
 next_workspace = "prefix+)"
@@ -177,6 +180,12 @@ key = "prefix+shift+b"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
 description = "clear Codex context and insert newest handoff"
+
+[[keys.command]]
+key = "alt+ctrl+n"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/new_tab.sh\""
+description = "create cwd-following tab"
 
 [[keys.command]]
 key = "prefix+0"
