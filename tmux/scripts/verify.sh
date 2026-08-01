@@ -21,7 +21,6 @@ done
 tmux/tests/agent_status_integration_test.sh
 tmux/tests/application_label_test.sh
 tmux/tests/is_bare_shell_test.sh
-tmux/tests/ready_prompt_test.sh
 tmux -f tmux/tmux.conf -L dotfiles-check start-server \; kill-server
 git diff --check
 

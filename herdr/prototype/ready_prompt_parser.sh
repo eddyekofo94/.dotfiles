@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
 
-# Replay labeled agent handoffs into the current tmux pane. Parsing and agent
-# support stay intentionally narrow so uncertain states fail closed.
+# Parse labeled agent handoffs out of captured terminal scrollback.
+#
+# This is the single parser behind both consumers: Herdr's `prefix+b` replay
+# (herdr/prototype/ready_prompt.sh) and the ctrl+g prompt editor's $VISUAL
+# shim (~/.config/nvim/tools/agent_prompt_editor.sh). It reads a file and
+# writes to stdout — it owns no terminal, spawns no multiplexer, and knows
+# nothing about panes. Keeping it transport-free is what stops the two
+# callers from drifting apart.
+#
+# Parsing and agent support stay intentionally narrow so uncertain states
+# fail closed.
 
 set -u
 
-TMUX_BIN=${TMUX_BIN:-tmux}
 CAPTURE_LINES=${READY_PROMPT_CAPTURE_LINES:-2000}
-READY_ATTEMPTS=${READY_PROMPT_READY_ATTEMPTS:-50}
-READY_INTERVAL=${READY_PROMPT_READY_INTERVAL:-0.1}
-CLEAR_CONFIRM_INTERVAL=${READY_PROMPT_CLEAR_CONFIRM_INTERVAL:-0.2}
 
-extract_prompt() {
-    input=$1
-
-    tail -n "$CAPTURE_LINES" "$input" | awk '
+PARSER_AWK='
         function trim(value) {
             sub(/^[[:space:]]+/, "", value)
             sub(/[[:space:]]+$/, "", value)
@@ -99,8 +101,33 @@ extract_prompt() {
                 value ~ /^gpt-[[:alnum:]._-]+[[:space:]]/
         }
 
+        # A closeout opens at its Status line. Accept the shapes the skill
+        # contract actually produces, including a terminal bullet glyph.
+        function status_heading(value) {
+            value = trim(value)
+            sub(/^(⏺|●|•)[[:space:]]+/, "", value)
+            value = trim(value)
+            sub(/^-[[:space:]]+/, "", value)
+            sub(/^#+[[:space:]]+/, "", value)
+            sub(/^\*\*[[:space:]]*/, "", value)
+            return index(value, "Status:") == 1 || index(value, "Status**") == 1
+        }
+
+        function commit_closeout(end_nr) {
+            if (mode != "closeout" || pending_start == 0 || end_nr < pending_start) {
+                return
+            }
+            closeout_start = pending_start
+            closeout_end = end_nr
+            pending_start = 0
+            status_start = 0
+        }
+
         {
             line = $0
+            if (mode == "closeout") {
+                lines[NR] = line
+            }
 
             if (trim(line) == "READY_TO_PASTE_BEGIN_V1") {
                 saw_marker = 1
@@ -108,6 +135,9 @@ extract_prompt() {
                 marker_status = 1
                 marker_state = "collect"
                 marker_value = ""
+                if (pending_start == 0) {
+                    pending_start = (status_start > 0 ? status_start : NR)
+                }
                 next
             }
 
@@ -115,6 +145,7 @@ extract_prompt() {
                 if (trim(line) == "READY_TO_PASTE_END_V1") {
                     if (nonblank(marker_value)) {
                         marker_status = 2
+                        commit_closeout(NR)
                     }
                     marker_state = "done"
                 } else if (marker_value == "") {
@@ -130,6 +161,7 @@ extract_prompt() {
                     if (nonblank(fenced_value)) {
                         candidate = fenced_value
                         candidate_status = 2
+                        commit_closeout(NR)
                     } else {
                         candidate = ""
                         candidate_status = 1
@@ -143,6 +175,12 @@ extract_prompt() {
                 next
             }
 
+            # Only outside a prompt body: a "Status:" line inside a replayed
+            # prompt belongs to that prompt, not to a new closeout.
+            if (mode == "closeout" && state != "plain" && status_heading(line)) {
+                status_start = NR
+            }
+
             if (label_line(line)) {
                 saw_label = 1
                 label_position = NR
@@ -151,12 +189,14 @@ extract_prompt() {
                 fenced_value = ""
                 state = "waiting"
                 fallback_state = "done"
+                pending_start = (status_start > 0 ? status_start : NR)
 
                 if (label_rest != "") {
                     if (inline_prompt(label_rest)) {
                         candidate = inline_value
                         candidate_status = 2
                         state = "done"
+                        commit_closeout(NR)
                     } else {
                         state = "malformed"
                     }
@@ -167,6 +207,7 @@ extract_prompt() {
             if (state == "plain") {
                 if (terminal_chrome(line)) {
                     state = "done"
+                    commit_closeout(plain_last)
                 } else if (!nonblank(line)) {
                     plain_blank_count++
                 } else {
@@ -175,6 +216,7 @@ extract_prompt() {
                         plain_blank_count--
                     }
                     candidate = candidate "\n" line
+                    plain_last = NR
                 }
                 next
             }
@@ -228,18 +270,36 @@ extract_prompt() {
                     candidate = inline_value
                     candidate_status = 2
                     state = "done"
+                    commit_closeout(NR)
                 } else if (substr(trim(line), 1, 1) == "`") {
                     state = "malformed"
                 } else {
                     candidate = line
                     candidate_status = 2
                     plain_blank_count = 0
+                    plain_last = NR
                     state = "plain"
                 }
             }
         }
 
         END {
+            if (mode == "closeout") {
+                if (state == "plain") {
+                    commit_closeout(plain_last)
+                }
+                if (closeout_start > 0) {
+                    for (index_nr = closeout_start; index_nr <= closeout_end; index_nr++) {
+                        print lines[index_nr]
+                    }
+                    exit 0
+                }
+                if (saw_label || saw_marker) {
+                    exit 11
+                }
+                exit 10
+            }
+
             if (saw_marker && marker_position > label_position) {
                 if (marker_status != 2) {
                     exit 11
@@ -263,13 +323,31 @@ extract_prompt() {
             }
             printf "%s", candidate
         }
-    '
+'
+
+run_parser() {
+    tail -n "$CAPTURE_LINES" "$2" | awk -v mode="$1" "$PARSER_AWK"
+}
+
+extract_prompt() {
+    run_parser prompt "$1"
+}
+
+extract_closeout() {
+    run_parser closeout "$1"
 }
 
 normalize_agent() {
-    command_name=$(basename -- "$1" | tr '[:upper:]' '[:lower:]')
+    command_path=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+    case "$command_path" in
+        */@earendil-works/pi-coding-agent/*/cli.js|*/pi-coding-agent/dist/cli.js)
+            printf '%s\n' pi
+            return 0
+            ;;
+    esac
+    command_name=$(basename -- "$command_path")
     case "$command_name" in
-        codex|claude|opencode|gemini|agy)
+        codex|claude|opencode|gemini|agy|pi)
             printf '%s\n' "$command_name"
             ;;
         *)
@@ -288,12 +366,23 @@ agent_from_command_line() {
         return 0
     fi
     read -r -a command_words <<<"$command_line"
+    position=0
     for candidate in "${command_words[@]}"; do
         candidate=${candidate//\"/}
         candidate=${candidate//\'/}
-        if normalize_agent "$candidate"; then
-            return 0
+        if normalized=$(normalize_agent "$candidate" 2>/dev/null); then
+            if [ "$normalized" != pi ] || [ "$position" -eq 0 ]; then
+                printf '%s\n' "$normalized"
+                return 0
+            fi
+            case "$(printf '%s' "$candidate" | tr '[:upper:]' '[:lower:]')" in
+                */@earendil-works/pi-coding-agent/*/cli.js|*/pi-coding-agent/dist/cli.js)
+                    printf '%s\n' pi
+                    return 0
+                    ;;
+            esac
         fi
+        position=$((position + 1))
     done
     return 1
 }
@@ -404,60 +493,10 @@ agent_clear_active() {
         grep -Eq "^[[:space:]]*$prompt_glyph[[:space:]]*/clear([[:space:]]|$)"
 }
 
-wait_for_agent_ready() {
-    ready_screen=$work_dir/ready-screen.txt
-    styled_ready_screen=$work_dir/ready-screen-styled.txt
-    attempt=0
-    stable=0
-
-    while [ "$attempt" -lt "$READY_ATTEMPTS" ]; do
-        if ! "$TMUX_BIN" capture-pane -p -J -e -t "$pane" >"$styled_ready_screen"; then
-            return 1
-        fi
-        if ! perl -pe 's/\e\[[0-9;]*m//g' \
-                "$styled_ready_screen" >"$ready_screen"; then
-            return 1
-        fi
-
-        if agent_screen_ready "$pane_command" "$ready_screen" "$styled_ready_screen"; then
-            stable=$((stable + 1))
-            if [ "$stable" -ge 2 ]; then
-                return 0
-            fi
-        else
-            stable=0
-        fi
-
-        sleep "$READY_INTERVAL" || return 1
-        attempt=$((attempt + 1))
-    done
-
-    return 1
-}
-
-submit_agent_clear() {
-    clear_screen=$work_dir/clear-submit-screen.txt
-
-    "$TMUX_BIN" send-keys -t "$pane" -l '/clear' || return 1
-    "$TMUX_BIN" send-keys -t "$pane" Enter || return 1
-    sleep "$CLEAR_CONFIRM_INTERVAL" || return 1
-    "$TMUX_BIN" capture-pane -p -J -t "$pane" >"$clear_screen" || return 1
-
-    # An agent may use the first Enter to resolve its slash-command menu,
-    # leaving /clear active in the composer. Confirm it only when the command
-    # is still visible; never send a blind second Enter.
-    if agent_clear_active "$pane_command" "$clear_screen"; then
-        "$TMUX_BIN" send-keys -t "$pane" Enter || return 1
-    fi
-}
-
-show_message() {
-    "$TMUX_BIN" display-message -t "$pane" "$1"
-}
 
 case ${1:-} in
     --extract)
-        [ "$#" -eq 2 ] || { echo "usage: ready_prompt.sh --extract FILE" >&2; exit 2; }
+        [ "$#" -eq 2 ] || { echo "usage: ready_prompt_parser.sh --extract FILE" >&2; exit 2; }
         case "$CAPTURE_LINES" in
             ""|*[!0-9]*) echo "READY_PROMPT_CAPTURE_LINES must be a positive integer" >&2; exit 2 ;;
             0) echo "READY_PROMPT_CAPTURE_LINES must be a positive integer" >&2; exit 2 ;;
@@ -465,172 +504,47 @@ case ${1:-} in
         extract_prompt "$2"
         exit $?
         ;;
+    --extract-closeout)
+        [ "$#" -eq 2 ] || { echo "usage: ready_prompt_parser.sh --extract-closeout FILE" >&2; exit 2; }
+        case "$CAPTURE_LINES" in
+            ""|*[!0-9]*) echo "READY_PROMPT_CAPTURE_LINES must be a positive integer" >&2; exit 2 ;;
+            0) echo "READY_PROMPT_CAPTURE_LINES must be a positive integer" >&2; exit 2 ;;
+        esac
+        extract_closeout "$2"
+        exit $?
+        ;;
     --recognize)
-        [ "$#" -eq 2 ] || { echo "usage: ready_prompt.sh --recognize COMMAND" >&2; exit 2; }
+        [ "$#" -eq 2 ] || { echo "usage: ready_prompt_parser.sh --recognize COMMAND" >&2; exit 2; }
         recognized_agent "$2"
         exit $?
         ;;
+    --normalize)
+        [ "$#" -eq 2 ] || { echo "usage: ready_prompt_parser.sh --normalize COMMAND" >&2; exit 2; }
+        normalize_agent "$2"
+        exit $?
+        ;;
     --clear-support)
-        [ "$#" -eq 2 ] || { echo "usage: ready_prompt.sh --clear-support COMMAND" >&2; exit 2; }
+        [ "$#" -eq 2 ] || { echo "usage: ready_prompt_parser.sh --clear-support COMMAND" >&2; exit 2; }
         clear_supported_agent "$2"
         exit $?
         ;;
     --ready-screen)
         [ "$#" -eq 3 ] || [ "$#" -eq 4 ] || {
-            echo "usage: ready_prompt.sh --ready-screen AGENT FILE [STYLED_FILE]" >&2
+            echo "usage: ready_prompt_parser.sh --ready-screen AGENT FILE [STYLED_FILE]" >&2
             exit 2
         }
         agent_screen_ready "$2" "$3" "${4:-$3}"
         exit $?
         ;;
     --clear-active)
-        [ "$#" -eq 3 ] || { echo "usage: ready_prompt.sh --clear-active AGENT FILE" >&2; exit 2; }
+        [ "$#" -eq 3 ] || { echo "usage: ready_prompt_parser.sh --clear-active AGENT FILE" >&2; exit 2; }
         agent_clear_active "$2" "$3"
         exit $?
         ;;
 esac
 
-clear_first=0
-if [ "${1:-}" = "--clear" ]; then
-    clear_first=1
-    shift
-fi
-
-pane=${1:-}
-if [ -z "$pane" ]; then
-    echo "usage: ready_prompt.sh [--clear] PANE_ID" >&2
-    exit 2
-fi
-
-case "$CAPTURE_LINES" in
-    ""|*[!0-9]*|0)
-        show_message "prefix+b: invalid capture bound"
-        exit 2
-        ;;
-esac
-
-pane_agent=$("$TMUX_BIN" show-options -p -q -v -t "$pane" @agent_status_agent 2>/dev/null || true)
-pane_current_command=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_current_command}' 2>/dev/null) || {
-    show_message "prefix+b: unable to inspect current pane"
-    exit 1
-}
-pane_start_command=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_start_command}' 2>/dev/null || true)
-if pane_command=$(normalize_agent "$pane_agent" 2>/dev/null); then
-    :
-elif pane_command=$(agent_from_command_line "$pane_current_command" 2>/dev/null); then
-    :
-elif pane_command=$(agent_from_command_line "$pane_start_command" 2>/dev/null); then
-    :
-else
-    show_message "prefix+b: current pane is not a supported agent"
-    exit 1
-fi
-if [ "$clear_first" -eq 1 ] && ! clear_supported_agent "$pane_command"; then
-    show_message "prefix+B: this agent cannot safely context-clear with /clear"
-    exit 1
-fi
-pane_in_mode=$("$TMUX_BIN" display-message -p -t "$pane" '#{pane_in_mode}' 2>/dev/null) || {
-    show_message "prefix+b: unable to inspect current pane mode"
-    exit 1
-}
-if [ "$pane_in_mode" = "1" ]; then
-    if ! "$TMUX_BIN" send-keys -X -t "$pane" cancel; then
-        show_message "prefix+b: unable to exit copy mode"
-        exit 1
-    fi
-fi
-
-runtime_base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
-mkdir -p "$runtime_base" || {
-    show_message "prefix+b: unable to prepare runtime directory"
-    exit 1
-}
-socket_path=$("$TMUX_BIN" display-message -p -t "$pane" '#{socket_path}' 2>/dev/null || true)
-socket_key=$(printf '%s' "$socket_path" | cksum | awk '{print $1}')
-lock_dir="$runtime_base/tmux-ready-prompt-lock.$socket_key.${pane#%}"
-work_dir=''
-lock_acquired=0
-cleanup() {
-    status=$?
-    trap - EXIT HUP INT TERM
-    [ -z "$work_dir" ] || rm -rf -- "$work_dir"
-    if [ "$lock_acquired" -eq 1 ] && [ -d "$lock_dir" ]; then
-        rmdir "$lock_dir" 2>/dev/null || true
-    fi
-    exit "$status"
-}
-trap cleanup EXIT HUP INT TERM
-if ! mkdir "$lock_dir" 2>/dev/null; then
-    show_message "prefix+b: another replay is already active for this pane"
-    exit 75
-fi
-lock_acquired=1
-work_dir=$(mktemp -d "$runtime_base/tmux-ready-prompt.XXXXXX") || {
-    show_message "prefix+b: unable to create temporary workspace"
-    exit 1
-}
-history_file=$work_dir/history.txt
-prompt_file=$work_dir/prompt.txt
-
-if ! "$TMUX_BIN" capture-pane -p -J -S "-$CAPTURE_LINES" -t "$pane" >"$history_file"; then
-    show_message "prefix+b: unable to capture recent pane history"
-    exit 1
-fi
-
-extract_prompt "$history_file" >"$prompt_file"
-extract_status=$?
-case "$extract_status" in
-    0) ;;
-    10)
-        show_message "prefix+b: no replayable handoff found"
-        exit 1
-        ;;
-    11)
-        show_message "prefix+b: handoff is incomplete; copy the whole Ready-to-paste prompt block"
-        exit 1
-        ;;
-    *)
-        show_message "prefix+b: prompt extraction failed"
-        exit 1
-        ;;
-esac
-
-fingerprint=$(cksum <"$prompt_file" | awk '{ print $1 ":" $2 }')
-consumed=$("$TMUX_BIN" show-options -p -q -v -t "$pane" @ready_prompt_fingerprint 2>/dev/null || true)
-if [ "$clear_first" -eq 0 ] && [ "$consumed" = "$fingerprint" ]; then
-    show_message "prefix+b: newest prompt was already inserted; use prefix+B to clear and replay"
-    exit 1
-fi
-
-buffer_name=ready-prompt-${pane#%}
-if ! "$TMUX_BIN" load-buffer -b "$buffer_name" "$prompt_file"; then
-    show_message "prefix+b: unable to load extracted prompt"
-    exit 1
-fi
-if [ "$clear_first" -eq 1 ]; then
-    if ! submit_agent_clear; then
-        "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
-        show_message "prefix+B: unable to submit /clear"
-        exit 1
-    fi
-    if ! wait_for_agent_ready; then
-        "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
-        show_message "prefix+B: /clear submitted, but $pane_command did not become ready; prompt was not inserted"
-        exit 1
-    fi
-fi
-if ! "$TMUX_BIN" paste-buffer -b "$buffer_name" -t "$pane" -d; then
-    "$TMUX_BIN" delete-buffer -b "$buffer_name" 2>/dev/null || true
-    show_message "prefix+b: unable to insert extracted prompt"
-    exit 1
-fi
-if ! "$TMUX_BIN" set-option -p -t "$pane" @ready_prompt_fingerprint "$fingerprint"; then
-    show_message "prefix+b: prompt inserted, but consume-once state was not saved"
-    exit 1
-fi
-
-if [ "$clear_first" -eq 1 ]; then
-    show_message "prefix+B: /clear submitted and prompt inserted; review and press Enter"
-else
-    show_message "prefix+b: prompt inserted; review and press Enter"
-fi
+echo "usage: ready_prompt_parser.sh --extract|--extract-closeout FILE" >&2
+echo "       ready_prompt_parser.sh --recognize|--normalize|--clear-support COMMAND" >&2
+echo "       ready_prompt_parser.sh --ready-screen AGENT FILE [STYLED_FILE]" >&2
+echo "       ready_prompt_parser.sh --clear-active AGENT FILE" >&2
+exit 2

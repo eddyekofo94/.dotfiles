@@ -6,7 +6,7 @@ set -eu
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 herdr=${HERDR_BIN_PATH:-herdr}
-parser=${HERDR_READY_PROMPT_PARSER:-"$root/tmux/scripts/ready_prompt.sh"}
+parser=${HERDR_READY_PROMPT_PARSER:-"$prototype/ready_prompt_parser.sh"}
 capture_lines=${HERDR_READY_PROMPT_CAPTURE_LINES:-2000}
 ready_attempts=${HERDR_READY_PROMPT_READY_ATTEMPTS:-150}
 ready_interval=${HERDR_READY_PROMPT_READY_INTERVAL:-0.1}

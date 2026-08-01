@@ -99,7 +99,7 @@ record config "$(jq -cn --arg result "$config_result" \
 
 # The Herdr port intentionally reuses the already-tested handoff grammar.
 parser_log="$runtime/parser-tests.log"
-if ! "$root/tmux/tests/ready_prompt_test.sh" >"$parser_log" 2>&1; then
+if ! "$prototype/tests/ready_prompt_parser_test.sh" >"$parser_log" 2>&1; then
   cat "$parser_log" >&2
   echo "ready-prompt validation: shared parser tests failed" >&2
   exit 1
@@ -113,7 +113,7 @@ case "$parser_count" in
     ;;
 esac
 record parser "$(jq -cn --argjson checks "$parser_count" \
-  '{source:"tmux/scripts/ready_prompt.sh --extract",checks:$checks,status:"PASS"}')"
+  '{source:"herdr/prototype/ready_prompt_parser.sh --extract",checks:$checks,status:"PASS"}')"
 
 mock="$runtime/mock-herdr"
 cat >"$mock" <<'MOCK'

@@ -92,7 +92,7 @@ handoff_ready() {
   remainder=$(printf '%s' "$latest" | sed -E 's/^[[:space:]]*❯[[:space:]]*//')
   extract_status=0
   printf '%s\n' "$recent" | READY_PROMPT_CAPTURE_LINES=500 \
-    "$root/tmux/scripts/ready_prompt.sh" --extract /dev/stdin >/dev/null || extract_status=$?
+    "$root/herdr/prototype/ready_prompt_parser.sh" --extract /dev/stdin >/dev/null || extract_status=$?
   [ "$count" -ge 1 ] && [ -n "$latest" ] && [ -z "$remainder" ] && \
     [ "$extract_status" -eq 0 ]
 }
