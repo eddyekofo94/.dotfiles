@@ -1,4 +1,12 @@
 #!/bin/sh
+# DECISION (2026-08-03): this gate is build-local by design, not checkout-portable.
+# It verifies real install, upgrade, rollback, and refusal behaviour by running
+# actual binaries, so it needs the reviewed source build (a gitignored work
+# product) or a network fetch, and exits 2 in a fresh checkout. It was NOT split
+# into a portable text-only target: the handful of config greps here are already
+# covered by herdr/prototype/verify.sh and herdr/source-build/verify.sh, both of
+# which do run from any checkout, so a split would add a target that verifies
+# nothing new. Run this one on a machine with the build.
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
