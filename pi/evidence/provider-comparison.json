@@ -1,0 +1,85 @@
+{
+  "status": "PASS",
+  "task": "/Users/eddyekofo/.dotfiles/pi/provider-task.txt",
+  "method": "same no-tool prompt; native JSON streams; one run each",
+  "rescore": {
+    "provider_calls_repeated": false,
+    "reason": "The original scorer incorrectly required the word enabled in an otherwise exact fix-placement answer."
+  },
+  "pi": {
+    "model": {
+      "provider": "openai-codex",
+      "id": "gpt-5.5"
+    },
+    "elapsed_seconds": 6.273998,
+    "usage": {
+      "input": 605,
+      "output": 201,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "reasoning": 123,
+      "totalTokens": 806,
+      "cost": {
+        "input": 0.0030250000000000003,
+        "output": 0.00603,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "total": 0.009055
+      }
+    },
+    "answer": {
+      "bug": "Disabled occurrences are added to seen, so a later enabled occurrence of the same id can be skipped.",
+      "fix": "Move seen.add(job[\"id\"]) inside the if block immediately after selected.append(job[\"id\"]).",
+      "result": [
+        "a",
+        "b"
+      ],
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)"
+    },
+    "score": {
+      "checks": {
+        "correct_result": true,
+        "correct_fix": true,
+        "correct_bug": true,
+        "time_complexity": true,
+        "space_complexity": true
+      },
+      "passed": 5,
+      "possible": 5
+    }
+  },
+  "codex": {
+    "model": "native Codex configured model",
+    "elapsed_seconds": 15.990473,
+    "usage": {
+      "input_tokens": 22841,
+      "cached_input_tokens": 0,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 74,
+      "reasoning_output_tokens": 0
+    },
+    "monetary_cost": "not exposed by native Codex JSON stream",
+    "answer": {
+      "bug": "Disabled occurrences mark an id as seen, preventing a later enabled occurrence from being selected.",
+      "fix": "Move seen.add(job[\"id\"]) inside the if block, immediately after selected.append(job[\"id\"]).",
+      "result": [
+        "a",
+        "b"
+      ],
+      "time_complexity": "O(n)",
+      "space_complexity": "O(n)"
+    },
+    "score": {
+      "checks": {
+        "correct_result": true,
+        "correct_fix": true,
+        "correct_bug": true,
+        "time_complexity": true,
+        "space_complexity": true
+      },
+      "passed": 5,
+      "possible": 5
+    }
+  }
+}

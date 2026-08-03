@@ -1,0 +1,196 @@
+{
+  "method": "macOS /usr/bin/time -lp around version startup; no provider call; first ordered sample is distinguished from subsequent warm candidates",
+  "cache_state_controlled": false,
+  "cache_note": "The benchmark does not purge macOS filesystem caches, so the first ordered sample is not claimed to be a controlled cold start.",
+  "recorded_at_unix": 1785540323,
+  "platform": {
+    "machine": "arm64",
+    "release": "25.5.0"
+  },
+  "pi": {
+    "command": [
+      "/Users/eddyekofo/.dotfiles/pi/pilot.sh",
+      "--version"
+    ],
+    "runs": 7,
+    "samples": [
+      {
+        "run": 1,
+        "cache_class": "initial_unwarmed_order",
+        "elapsed_seconds": 3.75866,
+        "maximum_rss_bytes": 165412864
+      },
+      {
+        "run": 2,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 4.155656,
+        "maximum_rss_bytes": 166395904
+      },
+      {
+        "run": 3,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 3.221505,
+        "maximum_rss_bytes": 165855232
+      },
+      {
+        "run": 4,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 2.734684,
+        "maximum_rss_bytes": 166019072
+      },
+      {
+        "run": 5,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 2.042779,
+        "maximum_rss_bytes": 166707200
+      },
+      {
+        "run": 6,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 1.518726,
+        "maximum_rss_bytes": 166363136
+      },
+      {
+        "run": 7,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 1.635929,
+        "maximum_rss_bytes": 166100992
+      }
+    ],
+    "initial_unwarmed_order_sample": {
+      "run": 1,
+      "cache_class": "initial_unwarmed_order",
+      "elapsed_seconds": 3.75866,
+      "maximum_rss_bytes": 165412864
+    },
+    "subsequent_warm_candidate_median_elapsed_seconds": 2.388732,
+    "subsequent_warm_candidate_median_maximum_rss_bytes": 166232064,
+    "median_elapsed_seconds": 2.734684,
+    "median_maximum_rss_bytes": 166100992,
+    "peak_maximum_rss_bytes": 166707200
+  },
+  "codex": {
+    "command": [
+      "codex",
+      "--version"
+    ],
+    "runs": 7,
+    "samples": [
+      {
+        "run": 1,
+        "cache_class": "initial_unwarmed_order",
+        "elapsed_seconds": 0.219628,
+        "maximum_rss_bytes": 23330816
+      },
+      {
+        "run": 2,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.028504,
+        "maximum_rss_bytes": 23347200
+      },
+      {
+        "run": 3,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.028307,
+        "maximum_rss_bytes": 23298048
+      },
+      {
+        "run": 4,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.027445,
+        "maximum_rss_bytes": 23396352
+      },
+      {
+        "run": 5,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.026772,
+        "maximum_rss_bytes": 23281664
+      },
+      {
+        "run": 6,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.027734,
+        "maximum_rss_bytes": 23265280
+      },
+      {
+        "run": 7,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.026706,
+        "maximum_rss_bytes": 23379968
+      }
+    ],
+    "initial_unwarmed_order_sample": {
+      "run": 1,
+      "cache_class": "initial_unwarmed_order",
+      "elapsed_seconds": 0.219628,
+      "maximum_rss_bytes": 23330816
+    },
+    "subsequent_warm_candidate_median_elapsed_seconds": 0.02759,
+    "subsequent_warm_candidate_median_maximum_rss_bytes": 23322624,
+    "median_elapsed_seconds": 0.027734,
+    "median_maximum_rss_bytes": 23330816,
+    "peak_maximum_rss_bytes": 23396352
+  },
+  "claude": {
+    "command": [
+      "claude",
+      "--version"
+    ],
+    "runs": 7,
+    "samples": [
+      {
+        "run": 1,
+        "cache_class": "initial_unwarmed_order",
+        "elapsed_seconds": 0.448841,
+        "maximum_rss_bytes": 212434944
+      },
+      {
+        "run": 2,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.040783,
+        "maximum_rss_bytes": 212680704
+      },
+      {
+        "run": 3,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.040227,
+        "maximum_rss_bytes": 212664320
+      },
+      {
+        "run": 4,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.040054,
+        "maximum_rss_bytes": 212647936
+      },
+      {
+        "run": 5,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.041123,
+        "maximum_rss_bytes": 212631552
+      },
+      {
+        "run": 6,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.043335,
+        "maximum_rss_bytes": 212615168
+      },
+      {
+        "run": 7,
+        "cache_class": "subsequent_warm_candidate",
+        "elapsed_seconds": 0.040355,
+        "maximum_rss_bytes": 212647936
+      }
+    ],
+    "initial_unwarmed_order_sample": {
+      "run": 1,
+      "cache_class": "initial_unwarmed_order",
+      "elapsed_seconds": 0.448841,
+      "maximum_rss_bytes": 212434944
+    },
+    "subsequent_warm_candidate_median_elapsed_seconds": 0.040569,
+    "subsequent_warm_candidate_median_maximum_rss_bytes": 212647936,
+    "median_elapsed_seconds": 0.040783,
+    "median_maximum_rss_bytes": 212647936,
+    "peak_maximum_rss_bytes": 212680704
+  }
+}

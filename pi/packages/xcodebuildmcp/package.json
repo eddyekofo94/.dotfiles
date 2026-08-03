@@ -1,0 +1,7 @@
+{
+  "name": "pi-pilot-xcodebuildmcp",
+  "private": true,
+  "dependencies": {
+    "xcodebuildmcp": "2.7.0"
+  }
+}

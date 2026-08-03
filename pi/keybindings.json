@@ -1,0 +1,33 @@
+{
+  "tui.editor.cursorUp": [
+    "up",
+    "ctrl+p"
+  ],
+  "tui.editor.cursorDown": [
+    "down",
+    "ctrl+n"
+  ],
+  "tui.select.up": [
+    "up",
+    "ctrl+p"
+  ],
+  "tui.select.down": [
+    "down",
+    "ctrl+n"
+  ],
+  "app.model.cycleForward": [],
+  "app.model.cycleBackward": [],
+  "app.model.select": [
+    "ctrl+shift+m"
+  ],
+  "app.tree.filter.labeledOnly": [],
+  "app.session.togglePath": [
+    "ctrl+shift+p"
+  ],
+  "app.session.toggleNamedFilter": [
+    "ctrl+shift+n"
+  ],
+  "app.models.toggleProvider": [
+    "ctrl+shift+p"
+  ]
+}

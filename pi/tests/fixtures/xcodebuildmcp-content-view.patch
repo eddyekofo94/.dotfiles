@@ -1,0 +1,24 @@
+--- a/PiPilotFixturePackage/Sources/PiPilotFixtureFeature/ContentView.swift
++++ b/PiPilotFixturePackage/Sources/PiPilotFixtureFeature/ContentView.swift
+@@ -2,8 +2,19 @@
+ 
+ public struct ContentView: View {
+     public var body: some View {
+-        Text("Hello, World!")
++        ScrollView {
++            LazyVStack(spacing: 24) {
++                Text("Pi Pilot Fixture")
++                    .font(.title)
++
++                ForEach(0..<30, id: \.self) { row in
++                    Text("Validation row \(row)")
++                        .frame(maxWidth: .infinity)
++                }
++            }
++            .padding()
++        }
+     }
+-    
++
+     public init() {}
+ }

@@ -1,0 +1,92 @@
+#!/bin/sh
+set -eu
+
+pi_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# shellcheck disable=SC1091
+. "$pi_dir/pilot_paths.sh"
+
+[ ! -L "$pi_pilot_data_dir" ] && [ ! -L "$pi_pilot_state_dir" ] && \
+  [ -f "$pi_pilot_data_dir/$pi_pilot_marker" ] && \
+  [ -f "$pi_pilot_state_dir/$pi_pilot_marker" ] || {
+  echo "pi-pilot: refusing unmanaged XcodeBuildMCP paths" >&2
+  exit 1
+}
+
+command -v node >/dev/null 2>&1 || {
+  echo "pi-pilot: node is required for XcodeBuildMCP" >&2
+  exit 2
+}
+pi_pilot_verify_xcodebuildmcp || {
+  echo "pi-pilot: XcodeBuildMCP package verification failed" >&2
+  exit 1
+}
+
+for argument in "$@"; do
+  case "$argument" in
+    mcp|init|setup|upgrade|mcp-json|--socket|--socket=*|--output-format=mcp-json)
+      echo "pi-pilot: deferred XcodeBuildMCP mode rejected: $argument" >&2
+      exit 2
+      ;;
+  esac
+done
+
+for managed_directory in \
+  "$pi_pilot_xcode_runtime_dir" \
+  "$pi_pilot_xcode_runtime_dir/home" \
+  "$pi_pilot_xcode_runtime_dir/tmp" \
+  "$pi_pilot_xcode_runtime_dir/run"
+do
+  if [ -e "$managed_directory" ] || [ -L "$managed_directory" ]; then
+    [ ! -L "$managed_directory" ] && [ -d "$managed_directory" ] || {
+      echo "pi-pilot: refusing invalid XcodeBuildMCP runtime directory: $managed_directory" >&2
+      exit 1
+    }
+  fi
+done
+mkdir -p "$pi_pilot_xcode_runtime_dir/home" \
+  "$pi_pilot_xcode_runtime_dir/tmp" "$pi_pilot_xcode_runtime_dir/run"
+chmod 700 "$pi_pilot_xcode_runtime_dir" \
+  "$pi_pilot_xcode_runtime_dir/home" "$pi_pilot_xcode_runtime_dir/tmp" \
+  "$pi_pilot_xcode_runtime_dir/run"
+workspace_sha=$(printf '%s' "$PWD" | shasum -a 256 | awk '{print $1}')
+workspace_key=$(printf '%s' "$workspace_sha" | cut -c 1-12)
+socket_dir="$pi_pilot_xcode_runtime_dir/run/$workspace_key"
+if [ -e "$socket_dir" ] || [ -L "$socket_dir" ]; then
+  [ ! -L "$socket_dir" ] && [ -d "$socket_dir" ] || {
+    echo "pi-pilot: refusing invalid XcodeBuildMCP socket directory: $socket_dir" >&2
+    exit 1
+  }
+fi
+mkdir -p "$socket_dir"
+chmod 700 "$socket_dir"
+
+export HOME="$pi_pilot_xcode_runtime_dir/home"
+export TMPDIR="$pi_pilot_xcode_runtime_dir/tmp"
+export XCODEBUILDMCP_SOCKET="$socket_dir/d.sock"
+export XCODEBUILDMCP_DAEMON_LOG_PATH="$socket_dir/daemon.log"
+export XCODEBUILDMCP_SENTRY_DISABLED=true
+export SENTRY_DISABLED=true
+unset SENTRY_DSN XCODEBUILDMCP_CWD XCODEBUILDMCP_MCP_IDLE_TIMEOUT_MS \
+  XCODEBUILDMCP_DAEMON_IDLE_TIMEOUT_MS
+if [ "${PI_PILOT_XCODE_FIXTURE:-0}" = 1 ]; then
+  fixture_idle_timeout=${PI_PILOT_XCODE_FIXTURE_IDLE_TIMEOUT_MS:-1000}
+  case "$fixture_idle_timeout" in
+    ''|*[!0-9]*)
+      echo "pi-pilot: invalid fixture daemon idle timeout" >&2
+      exit 2
+      ;;
+  esac
+  [ "$fixture_idle_timeout" -ge 1000 ] && \
+    [ "$fixture_idle_timeout" -le 60000 ] || {
+    echo "pi-pilot: fixture daemon idle timeout is outside 1000-60000ms" >&2
+    exit 2
+  }
+  export XCODEBUILDMCP_DAEMON_IDLE_TIMEOUT_MS=$fixture_idle_timeout
+fi
+
+if [ "${1:-}" = doctor ]; then
+  shift
+  exec node "$pi_pilot_xcode_doctor" "$@"
+fi
+
+exec node "$pi_pilot_xcode_cli" "$@"

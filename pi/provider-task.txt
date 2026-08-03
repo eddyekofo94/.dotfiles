@@ -1,0 +1,34 @@
+Solve this bounded code-review task without using tools.
+
+Given:
+
+```python
+def select_jobs(jobs):
+    selected = []
+    seen = set()
+    for job in jobs:
+        if job["enabled"] and job["id"] not in seen:
+            selected.append(job["id"])
+        seen.add(job["id"])
+    return selected
+```
+
+Input:
+
+```json
+[
+  {"id":"a","enabled":false},
+  {"id":"a","enabled":true},
+  {"id":"b","enabled":true},
+  {"id":"b","enabled":true},
+  {"id":"c","enabled":false}
+]
+```
+
+The intended policy is "select the first enabled occurrence of every unique
+job id." Identify the semantic bug, give the corrected placement of
+`seen.add(job["id"])`, and compute the corrected result.
+
+Return exactly one compact JSON object and no Markdown, with these keys:
+`bug`, `fix`, `result`, `time_complexity`, and `space_complexity`.
+`result` must be an array. Both complexity values must use Big-O notation.

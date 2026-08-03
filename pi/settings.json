@@ -1,0 +1,39 @@
+{
+  "quietStartup": false,
+  "showHardwareCursor": true,
+  "defaultProjectTrust": "never",
+  "enableInstallTelemetry": false,
+  "enableAnalytics": false,
+  "enableSkillCommands": true,
+  "extensions": [
+    "/Users/eddyekofo/.dotfiles/pi/extensions/eddy-compat.ts"
+  ],
+  "skills": [
+    "/Users/eddyekofo/.agent-skills/skill-finish",
+    "/Users/eddyekofo/.agent-skills/herdr",
+    "/Users/eddyekofo/.dotfiles/pi/skills/xcodebuildmcp-cli",
+    "/Users/eddyekofo/.agent-skills/swift-concurrency-expert",
+    "/Users/eddyekofo/.agent-skills/swiftui-liquid-glass",
+    "/Users/eddyekofo/.agent-skills/swiftui-performance-audit",
+    "/Users/eddyekofo/.agent-skills/swiftui-view-refactor"
+  ],
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
+  },
+  "warnings": {
+    "anthropicExtraUsage": true
+  },
+  "lastChangelogVersion": "0.82.1",
+  "themes": [
+    "/Users/eddyekofo/.dotfiles/pi/themes/catppuccin-mocha.json"
+  ],
+  "theme": "catppuccin-mocha",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "medium",
+  "packages": [
+    "npm:@ff-labs/pi-fff@0.10.1"
+  ]
+}

@@ -1,0 +1,12 @@
+--- a/PiPilotFixture.xcodeproj/xcshareddata/xcschemes/PiPilotFixture.xcscheme
++++ b/PiPilotFixture.xcodeproj/xcshareddata/xcschemes/PiPilotFixture.xcscheme
+@@ -29,9 +29,6 @@
+       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+       shouldUseLaunchSchemeArgsEnv = "YES">
+       <TestPlans>
+-         <TestPlanReference
+-            reference = "container:PiPilotFixture.xctestplan">
+-         </TestPlanReference>
+          <TestPlanReference
+             reference = "container:PiPilotFixture/PiPilotFixture.xctestplan"
+             default = "YES">
