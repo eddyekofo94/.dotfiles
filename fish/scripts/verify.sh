@@ -4,6 +4,9 @@ set -eu
 package_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 repo_dir=$(CDPATH= cd -- "$package_dir/.." && pwd)
 
+"$repo_dir/agent-config/tests/install_test.sh"
+"$repo_dir/agent-config/verify.sh"
+
 /bin/sh "$repo_dir/tools/audit_transport_security.sh"
 /bin/sh "$package_dir/scripts/audit_environment.sh"
 /bin/sh "$package_dir/scripts/audit_startup_ownership.sh"
@@ -24,19 +27,25 @@ fi
 
 "$package_dir/tests/fif_integration.sh"
 "$package_dir/tests/fif_real_fzf.sh"
+"$package_dir/tests/fcat_integration.sh"
 "$package_dir/tests/fzf_preview_integration.sh"
 "$package_dir/tests/startup_consumer_integration.sh"
 "$package_dir/tests/interactive_consumer_pty.sh"
 "$package_dir/tests/interactive_consumer_tmux.sh"
 /usr/bin/expect "$package_dir/tests/measure_prompt_latency.exp" "$repo_dir"
+count_short_fish_workers() {
+    ps -axo command= |
+        awk '$0 ~ /^((\/opt\/homebrew\/bin\/)?fish) -c / { count++ }
+             END { print count + 0 }'
+}
 
-before=$(ps -axo command= | rg -c '^(/opt/homebrew/bin/)?fish -c ' || true)
+before=$(count_short_fish_workers)
 i=0
 while [ "$i" -lt 20 ]; do
     fish -i -c true >/dev/null 2>&1
     i=$((i + 1))
 done
-after=$(ps -axo command= | rg -c '^(/opt/homebrew/bin/)?fish -c ' || true)
+after=$(count_short_fish_workers)
 if [ "$after" -gt "$before" ]; then
     echo "fish verification: repeated shells left workers behind ($before -> $after)" >&2
     exit 1

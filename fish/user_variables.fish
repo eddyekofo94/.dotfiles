@@ -46,8 +46,19 @@ fish_add_path $XDG_DATA_HOME/pnpm
 
 # Editor
 set -xg EDITOR nvim
-set -xg VISUAL $EDITOR
 set -xg SUDO_EDITOR $EDITOR
+
+# An agent's ctrl+g resolves $VISUAL before $EDITOR. The shim captures the
+# pane's closeout before Neovim claims the alternate screen (after which
+# `herdr pane read` can only see Neovim), then execs nvim. Outside an agent
+# pane it is a pass-through, so `git commit` and friends are unaffected.
+# $EDITOR stays a bare `nvim` for the tools that match on the editor's name.
+set -l agent_prompt_editor $HOME/.config/nvim/tools/agent_prompt_editor.sh
+if test -x $agent_prompt_editor
+    set -xg VISUAL $agent_prompt_editor
+else
+    set -xg VISUAL $EDITOR
+end
 
 # GPG/LANG
 set -xg GPG_TTY (tty)
