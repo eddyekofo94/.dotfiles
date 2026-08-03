@@ -8,12 +8,9 @@ Source:
 
 ## Ranked Next
 
-1. `closeout-beside-the-prompt-editor`: highest leverage of the current
-   candidates and shares a seam with the existing handoff route, but not
-   selectable until Eddy settles delivery shape, capture scope, and editor.
-2. `xcode-27-beta`: potentially useful for `pi-xcode`, but lower readiness;
+1. `xcode-27-beta`: potentially useful for `pi-xcode`, but lower readiness;
    blocked by side-by-side-versus-replacement choice and Apple authentication.
-3. `herdr-pane-input-lock`: low demonstrated need and still `Spec Needed`.
+2. `herdr-pane-input-lock`: low demonstrated need and still `Spec Needed`.
 
 Not selectable now: `herdr-upstream-copy-mode-gaps` remains upstream-blocked;
 `fish-fzf-image-visible-geometry-regression` remains intentionally deferred
@@ -85,38 +82,6 @@ after unreliable live rendering.
 - `herdr-pane-input-lock`: tmux pane disable/enable has no demonstrated Herdr
   need or native equivalent and remains `Spec Needed`.
 
-- `closeout-beside-the-prompt-editor`: Eddy wants the agent's closeout visible
-  while writing the next prompt in `$EDITOR`. Proposed shape: `Ctrl+Shift+g`
-  captures the closeout, `Ctrl+g` opens `$EDITOR`, and the closeout arrives
-  either appended below a dashed separator or — preferred — in a read-only
-  vertical split on the right beside the editable prompt buffer. Recorded
-  2026-08-01; no implementation. `shares implementation seam with`
-  `herdr-ready-prompt-handoff` (`prefix+b` / `prefix+Shift+b`).
-
-  Findings so far, from read-only inspection:
-
-  - (Superseded 2026-08-02: this parser now lives at
-    `herdr/prototype/ready_prompt_parser.sh`; the tmux copy is deleted.)
-  - `tmux/scripts/ready_prompt.sh` already parses pane scrollback for the
-    `**Ready-to-paste prompt:**` marker and extracts only the fenced block.
-    Nothing extracts the whole closeout (Status, Artifacts, Verification,
-    Risks, Next move), so this needs a new or widened parser.
-  - `herdr/prototype/ready_prompt.sh` replays that block into the pane through
-    Herdr APIs. The new idea targets the `$EDITOR` buffer instead, which is a
-    different delivery seam, not a new extractor alone.
-  - `Ctrl+g` is the agent CLI's own open-in-`$EDITOR` binding, not a Herdr
-    binding, so the two chords land in different owners.
-  - A terminal cannot distinguish `Ctrl+Shift+g` from `Ctrl+g` without the
-    Kitty keyboard protocol / CSI-u. Ghostty can send it; whether Herdr and the
-    focused agent CLI both report it needs evidence before this chord is
-    promised.
-
-  Open questions for Eddy, unresolved: whether the read-only split should be
-  the only behavior or the appended-with-dashes variant is a fallback; whether
-  the captured text is the full closeout or Status/Next-move plus the prompt;
-  and which editor the split is specified for, since a read-only right-hand
-  split is a Neovim instruction, not a generic `$EDITOR` one.
-
 ## Deferred
 
 - `fish-fzf-image-visible-geometry-regression`: reopened on 2026-07-22 after
@@ -163,6 +128,30 @@ after unreliable live rendering.
   `blocked by` the ranked parity sequence rather than being discarded.
 
 ## Completed
+
+- 2026-08-03 — `closeout-beside-the-prompt-editor`: **DONE, implemented in
+  `~/.config/nvim`**, which is why this repository's record previously and
+  wrongly read "no implementation". `Ctrl+g` opens the agent's prompt file in
+  Neovim with the captured closeout beside it in a read-only `nofile`
+  `split = "right"` buffer — the preferred shape, not the appended-with-dashes
+  fallback. The three open questions are settled by that implementation: the
+  split is the only behavior, the capture is the whole closeout, and the editor
+  is Neovim specifically.
+
+  `~/.config/nvim` commits: `a1fc4fe2` (`lua/plugin/agent-prompt.lua`,
+  `tools/agent_prompt_editor.sh`, specs and fixtures) and `172d3942`
+  (detection widened past Claude Code to Pi, Codex, and OpenCode via the
+  `AI_AGENT` convention, per-runtime markers, and `$TMPDIR` versus `/tmp`
+  roots). Dotfiles owns only the entry point: `fish/user_variables.fish` routes
+  `VISUAL` through the shim and stays a pass-through outside an agent pane, so
+  `git commit` is unaffected (`b35c1199`).
+
+  `Ctrl+Shift+g` was never needed — the shim captures during the existing
+  `Ctrl+g`, so the CSI-u chord-distinguishability risk recorded here is moot.
+  Verified 2026-08-03: 16/16 shim tests and `~/.config/nvim/tools/verify.sh`
+  green at 0 warnings / 0 errors. `shares implementation seam with`
+  `herdr-ready-prompt-handoff` (`prefix+b` / `prefix+Shift+b`), which still
+  owns replay into the pane.
 
 - 2026-08-03 — `herdr-alt-ctrl-n-new-tab`: **DONE**. Ghostty
   `Left Option+Control+n` creates exactly one focused cwd-following tab in the
