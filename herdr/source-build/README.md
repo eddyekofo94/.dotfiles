@@ -33,14 +33,22 @@ Everything else passes through to the real binary untouched.
 
 ## What the patch adds
 
-Three narrow changes. There is no injected-input path.
+Four narrow changes. There is no injected-input path.
 
 - Vim muscle memory: `a` and `i` compose the existing `q` exit-without-copy
   operation; `Y` composes the existing `V` whole-line selection and `y`
   copy-and-exit operations.
+- Vim's pending-command buffer: a typed count repeats the next motion (`2j`,
+  `10l`, `3w`, `2n`) and makes `V`, `Y`, and a selection-less `y` linewise over
+  that many lines (`2Y` is Vim's `2yy`). `z` opens a two-key sequence whose only
+  member is `zz`, which scrolls the cursor's line to the middle of the viewport
+  by composing the existing scroll-offset operations. Esc discards a half-typed
+  count or `z` without touching the selection or the search; the overlay echoes
+  the pending keys the way Vim's `showcmd` does. A leading `0` stays the
+  line-start motion, and counts are capped at 9999.
 - A bindable `copy_mode_search` action that enters copy mode with the backward
   search prompt already open, composing `enter_copy_mode` with the prompt that
-  copy mode's own `?` key opens. Bound to `alt+s` in `herdr/config.toml`, it
+  copy mode's own `?` key opens. Bound to `alt+b` in `herdr/config.toml`, it
   turns a scrollback search into one chord instead of two.
 - Client-owned focus-cursor blinking. Herdr preserves the focused pane's cursor
   position and shape, exposes a hardware cursor when a TUI paints its own, and

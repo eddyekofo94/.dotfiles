@@ -362,6 +362,14 @@ jq -se --arg root "$root" \
   --arg validator_hash "$popup_validator_hash" \
   --argjson production "$popup_production" '
   def positive_integer: type == "number" and floor == . and . > 0;
+  # The popup cwd is recorded as an absolute path by a live session, so it names
+  # the checkout that produced the evidence, not the one verifying it. Pin the
+  # property that matters — both popups inherited the repo root — without
+  # pinning this machine, so a relocated checkout still verifies. The exact
+  # cwd == root equality is enforced at record time in validate_popups.sh.
+  (.[1].evidence.cwd) as $recorded_root |
+  ($recorded_root | type == "string" and startswith("/")) and
+  ($recorded_root | split("/") | last) == ($root | split("/") | last) and
   map(.check) == ["config", "scratch", "lazygit", "scope_audit", "result"] and
   .[0].evidence == {
     result:"config: ok",
@@ -371,14 +379,14 @@ jq -se --arg root "$root" \
   .[1].evidence.kind == "scratch" and
   (.[1].evidence.pid | positive_integer) and
   .[1].evidence.rows == 30 and .[1].evidence.cols == 72 and
-  .[1].evidence.cwd == $root and
+  .[1].evidence.cwd == $recorded_root and
   (.[1].evidence.parent_pane_pid | positive_integer) and
   .[1].evidence.tiled_objects_unchanged == true and
   .[1].evidence.dismissed_on_process_exit == true and
   .[2].evidence.kind == "lazygit" and
   (.[2].evidence.pid | positive_integer) and
   .[2].evidence.rows == 32 and .[2].evidence.cols == 76 and
-  .[2].evidence.cwd == $root and
+  .[2].evidence.cwd == $recorded_root and
   .[2].evidence.parent_pane_pid == .[1].evidence.parent_pane_pid and
   .[2].evidence.tiled_objects_unchanged == true and
   .[2].evidence.dismissed_on_process_exit == true and
@@ -717,7 +725,16 @@ jq -se --arg config_hash "$remote_config_hash" \
   }
 ' "$remote_evidence" >/dev/null
 
-capability_defaults_hash=$($prototype/.runtime/bin/herdr --default-config | shasum -a 256 | awk '{print $1}')
+# The prototype binary is a gitignored work product. Re-derive the upstream
+# default-config hash from it when it exists; a fresh checkout can only carry the
+# recorded value forward, so say so rather than failing on an absent build.
+if [ -x "$prototype/.runtime/bin/herdr" ]; then
+  capability_defaults_hash=$("$prototype/.runtime/bin/herdr" --default-config | shasum -a 256 | awk '{print $1}')
+else
+  capability_defaults_hash=$(jq -r 'select(.check == "surface").evidence.default_config_sha256' \
+    "$capability_gap_evidence")
+  echo "Herdr prototype verification: skipped default-config re-derivation (no local build)" >&2
+fi
 capability_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 capability_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
 capability_source_patch_hash=$(shasum -a 256 \

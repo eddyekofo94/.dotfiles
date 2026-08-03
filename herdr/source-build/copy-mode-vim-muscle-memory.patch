@@ -1,8 +1,68 @@
+diff --git a/src/app/api/panes.rs b/src/app/api/panes.rs
+index 483d73a5..3c79ddca 100644
+--- a/src/app/api/panes.rs
++++ b/src/app/api/panes.rs
+@@ -2542,6 +2542,7 @@ mod tests {
+             entry_offset_from_bottom: 0,
+             selection: None,
+             search: Default::default(),
++            pending: Default::default(),
+         });
+         let source_public = app.public_pane_id(0, source).unwrap();
+         let target_public = app.public_pane_id(0, target).unwrap();
+@@ -3189,6 +3190,7 @@ mod tests {
+             entry_offset_from_bottom: 0,
+             selection: None,
+             search: Default::default(),
++            pending: Default::default(),
+         });
+         let source_public = app.public_pane_id(0, source).unwrap();
+ 
+diff --git a/src/app/api/plugins/mod.rs b/src/app/api/plugins/mod.rs
+index d7a7b0ed..838ceeda 100644
+--- a/src/app/api/plugins/mod.rs
++++ b/src/app/api/plugins/mod.rs
+@@ -1443,6 +1443,7 @@ platforms = ["linux", "macos"]
+             entry_offset_from_bottom: 4,
+             selection: None,
+             search: crate::app::state::CopyModeSearchState::default(),
++            pending: Default::default(),
+         };
+         app.state.mode = crate::app::Mode::Copy;
+         app.state.copy_mode = Some(copy_mode.clone());
 diff --git a/src/app/input/copy_mode.rs b/src/app/input/copy_mode.rs
-index e6c0d074..cdfc5e9d 100644
+index e6c0d074..f92cd8e7 100644
 --- a/src/app/input/copy_mode.rs
 +++ b/src/app/input/copy_mode.rs
-@@ -83,6 +83,21 @@ impl AppState {
+@@ -2,7 +2,10 @@ use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+ 
+ use crate::{
+     app::{
+-        state::{CopyModeSearchDirection, CopyModeSearchPrompt, CopyModeSelection, CopyModeState},
++        state::{
++            CopyModePending, CopyModeSearchDirection, CopyModeSearchPrompt, CopyModeSelection,
++            CopyModeState,
++        },
+         App, AppState, Mode,
+     },
+     input::TerminalKey,
+@@ -10,6 +13,10 @@ use crate::{
+     terminal::TerminalRuntimeRegistry,
+ };
+ 
++/// Upper bound on a typed count. Keeps a leaned-on digit key from turning into
++/// an unbounded motion loop; far past any realistic scrollback jump.
++const COPY_MODE_MAX_COUNT: u32 = 9_999;
++
+ impl App {
+     pub(crate) fn handle_copy_mode_key(&mut self, key: TerminalKey) {
+         if key.kind == KeyEventKind::Release {
+@@ -79,10 +86,26 @@ impl AppState {
+                 geometry: Some((info.inner_rect.width, info.inner_rect.height)),
+                 ..Default::default()
+             },
++            pending: CopyModePending::default(),
+         });
          self.mode = Mode::Copy;
      }
  
@@ -24,23 +84,319 @@ index e6c0d074..cdfc5e9d 100644
      pub(crate) fn handle_copy_mode_key(
          &mut self,
          terminal_runtimes: &TerminalRuntimeRegistry,
-@@ -176,10 +191,14 @@ impl AppState {
+@@ -91,6 +114,18 @@ impl AppState {
+         if self.handle_copy_mode_search_prompt_key(terminal_runtimes, key) {
+             return;
+         }
++        if self.accumulate_copy_mode_pending(key) {
++            return;
++        }
++        let pending = self.take_copy_mode_pending();
++        if pending.operator == Some('z') {
++            // Vim consumes the whole `z` sequence; only `zz` does anything here.
++            if copy_mode_command_char(key) == Some('z') {
++                self.center_copy_mode_cursor(terminal_runtimes);
++            }
++            return;
++        }
++        let count = pending.repeat();
+         match key.code {
+             KeyCode::Esc => {
+                 let should_clear = self.copy_mode.as_ref().is_some_and(|copy_mode| {
+@@ -122,27 +157,27 @@ impl AppState {
+                 return;
+             }
+             KeyCode::Left => {
+-                self.move_copy_cursor(terminal_runtimes, 0, -1);
++                self.repeat_copy_cursor(terminal_runtimes, 0, -1, count);
+                 return;
+             }
+             KeyCode::Down => {
+-                self.move_copy_cursor(terminal_runtimes, 1, 0);
++                self.repeat_copy_cursor(terminal_runtimes, 1, 0, count);
+                 return;
+             }
+             KeyCode::Up => {
+-                self.move_copy_cursor(terminal_runtimes, -1, 0);
++                self.repeat_copy_cursor(terminal_runtimes, -1, 0, count);
+                 return;
+             }
+             KeyCode::Right => {
+-                self.move_copy_cursor(terminal_runtimes, 0, 1);
++                self.repeat_copy_cursor(terminal_runtimes, 0, 1, count);
+                 return;
+             }
+             KeyCode::PageUp => {
+-                self.scroll_copy_mode_page(terminal_runtimes, -1, false);
++                self.repeat_copy_mode_page(terminal_runtimes, -1, false, count);
+                 return;
+             }
+             KeyCode::PageDown => {
+-                self.scroll_copy_mode_page(terminal_runtimes, 1, false);
++                self.repeat_copy_mode_page(terminal_runtimes, 1, false, count);
+                 return;
+             }
+             KeyCode::Home => {
+@@ -158,16 +193,16 @@ impl AppState {
+ 
+         match (key.code, key.modifiers) {
+             (KeyCode::Char('b'), mods) if mods.contains(KeyModifiers::CONTROL) => {
+-                self.scroll_copy_mode_page(terminal_runtimes, -1, false)
++                self.repeat_copy_mode_page(terminal_runtimes, -1, false, count)
+             }
+             (KeyCode::Char('f'), mods) if mods.contains(KeyModifiers::CONTROL) => {
+-                self.scroll_copy_mode_page(terminal_runtimes, 1, false)
++                self.repeat_copy_mode_page(terminal_runtimes, 1, false, count)
+             }
+             (KeyCode::Char('u'), mods) if mods.contains(KeyModifiers::CONTROL) => {
+-                self.scroll_copy_mode_page(terminal_runtimes, -1, true)
++                self.repeat_copy_mode_page(terminal_runtimes, -1, true, count)
+             }
+             (KeyCode::Char('d'), mods) if mods.contains(KeyModifiers::CONTROL) => {
+-                self.scroll_copy_mode_page(terminal_runtimes, 1, true)
++                self.repeat_copy_mode_page(terminal_runtimes, 1, true, count)
+             }
+             _ => {}
+         }
+@@ -176,14 +211,20 @@ impl AppState {
              return;
          };
          match ch {
 -            'q' => self.exit_copy_mode(terminal_runtimes, false),
 +            'a' | 'i' | 'q' => self.exit_copy_mode(terminal_runtimes, false),
++            // A counted `y` with nothing selected is Vim's `2yy`: yank whole
++            // lines. Without a count it stays the plain copy-selection-and-exit.
++            'y' if pending.count.is_some() && self.copy_mode_selection().is_none() => {
++                self.yank_copy_mode_lines(terminal_runtimes, count)
++            }
              'y' => self.exit_copy_mode(terminal_runtimes, true),
              'v' | ' ' => self.begin_copy_mode_selection(terminal_runtimes),
-             'V' => self.select_copy_mode_line(terminal_runtimes),
-+            'Y' => {
-+                self.select_copy_mode_line(terminal_runtimes);
-+                self.exit_copy_mode(terminal_runtimes, true);
+-            'V' => self.select_copy_mode_line(terminal_runtimes),
+-            'h' => self.move_copy_cursor(terminal_runtimes, 0, -1),
+-            'j' => self.move_copy_cursor(terminal_runtimes, 1, 0),
+-            'k' => self.move_copy_cursor(terminal_runtimes, -1, 0),
+-            'l' => self.move_copy_cursor(terminal_runtimes, 0, 1),
++            'V' => self.select_copy_mode_lines(terminal_runtimes, count),
++            'Y' => self.yank_copy_mode_lines(terminal_runtimes, count),
++            'h' => self.repeat_copy_cursor(terminal_runtimes, 0, -1, count),
++            'j' => self.repeat_copy_cursor(terminal_runtimes, 1, 0, count),
++            'k' => self.repeat_copy_cursor(terminal_runtimes, -1, 0, count),
++            'l' => self.repeat_copy_cursor(terminal_runtimes, 0, 1, count),
+             'g' => self.copy_mode_history_top(terminal_runtimes),
+             'G' => self.copy_mode_history_bottom(terminal_runtimes),
+             '0' => self.copy_mode_line_edge(terminal_runtimes, false),
+@@ -191,17 +232,203 @@ impl AppState {
+             '^' => self.copy_mode_first_non_blank(terminal_runtimes),
+             '/' => self.open_copy_mode_search(CopyModeSearchDirection::Forward),
+             '?' => self.open_copy_mode_search(CopyModeSearchDirection::Backward),
+-            'n' => self.repeat_copy_mode_search(terminal_runtimes, false),
+-            'N' => self.repeat_copy_mode_search(terminal_runtimes, true),
+-            'w' => self.copy_mode_word_motion(terminal_runtimes, WordMotion::NextStart),
+-            'b' => self.copy_mode_word_motion(terminal_runtimes, WordMotion::PreviousStart),
+-            'e' => self.copy_mode_word_motion(terminal_runtimes, WordMotion::NextEnd),
+-            '{' => self.copy_mode_paragraph(terminal_runtimes, -1),
+-            '}' => self.copy_mode_paragraph(terminal_runtimes, 1),
++            'n' => self.repeat_copy_mode(count, |state| {
++                state.repeat_copy_mode_search(terminal_runtimes, false)
++            }),
++            'N' => self.repeat_copy_mode(count, |state| {
++                state.repeat_copy_mode_search(terminal_runtimes, true)
++            }),
++            'w' => self.repeat_copy_mode(count, |state| {
++                state.copy_mode_word_motion(terminal_runtimes, WordMotion::NextStart)
++            }),
++            'b' => self.repeat_copy_mode(count, |state| {
++                state.copy_mode_word_motion(terminal_runtimes, WordMotion::PreviousStart)
++            }),
++            'e' => self.repeat_copy_mode(count, |state| {
++                state.copy_mode_word_motion(terminal_runtimes, WordMotion::NextEnd)
++            }),
++            '{' => self.repeat_copy_mode(count, |state| {
++                state.copy_mode_paragraph(terminal_runtimes, -1)
++            }),
++            '}' => self.repeat_copy_mode(count, |state| {
++                state.copy_mode_paragraph(terminal_runtimes, 1)
++            }),
+             _ => {}
+         }
+     }
+ 
++    /// Absorb a key into the pending-command buffer. Returns `true` when the
++    /// key belonged to the buffer rather than to a copy-mode command: a count
++    /// digit, the `z` that opens a `z` sequence, or the Esc that discards a
++    /// half-typed command without disturbing the selection or search.
++    fn accumulate_copy_mode_pending(&mut self, key: TerminalKey) -> bool {
++        let Some(copy_mode) = self.copy_mode.as_mut() else {
++            return false;
++        };
++        if key.code == KeyCode::Esc {
++            if !copy_mode.pending.is_active() {
++                return false;
 +            }
-             'h' => self.move_copy_cursor(terminal_runtimes, 0, -1),
-             'j' => self.move_copy_cursor(terminal_runtimes, 1, 0),
-             'k' => self.move_copy_cursor(terminal_runtimes, -1, 0),
-@@ -1780,6 +1799,101 @@ mod tests {
++            copy_mode.pending = CopyModePending::default();
++            return true;
++        }
++        if copy_mode.pending.operator.is_some() {
++            return false;
++        }
++        let Some(ch) = copy_mode_command_char(key) else {
++            return false;
++        };
++        if ch == 'z' {
++            copy_mode.pending.operator = Some('z');
++            return true;
++        }
++        let Some(digit) = ch.to_digit(10) else {
++            return false;
++        };
++        // A leading `0` is the line-edge motion, not a count, exactly as in Vim.
++        if digit == 0 && copy_mode.pending.count.is_none() {
++            return false;
++        }
++        let next = copy_mode
++            .pending
++            .count
++            .unwrap_or(0)
++            .saturating_mul(10)
++            .saturating_add(digit)
++            .min(COPY_MODE_MAX_COUNT);
++        copy_mode.pending.count = Some(next);
++        true
++    }
++
++    fn take_copy_mode_pending(&mut self) -> CopyModePending {
++        self.copy_mode
++            .as_mut()
++            .map(|copy_mode| std::mem::take(&mut copy_mode.pending))
++            .unwrap_or_default()
++    }
++
++    fn copy_mode_selection(&self) -> Option<CopyModeSelection> {
++        self.copy_mode
++            .as_ref()
++            .and_then(|copy_mode| copy_mode.selection)
++    }
++
++    /// Run a copy-mode operation `count` times, stopping early if copy mode is
++    /// left in the middle (a motion can close a vanished pane).
++    fn repeat_copy_mode(&mut self, count: u32, mut op: impl FnMut(&mut Self)) {
++        for _ in 0..count {
++            if self.copy_mode.is_none() {
++                return;
++            }
++            op(self);
++        }
++    }
++
++    fn repeat_copy_cursor(
++        &mut self,
++        terminal_runtimes: &TerminalRuntimeRegistry,
++        row_delta: i16,
++        col_delta: i16,
++        count: u32,
++    ) {
++        self.repeat_copy_mode(count, |state| {
++            state.move_copy_cursor(terminal_runtimes, row_delta, col_delta)
++        });
++    }
++
++    fn repeat_copy_mode_page(
++        &mut self,
++        terminal_runtimes: &TerminalRuntimeRegistry,
++        direction: i16,
++        half_page: bool,
++        count: u32,
++    ) {
++        self.repeat_copy_mode(count, |state| {
++            state.scroll_copy_mode_page(terminal_runtimes, direction, half_page)
++        });
++    }
++
++    /// Select `count` whole lines starting at the cursor line, composing the
++    /// existing single-line selector with the existing downward motion so the
++    /// result is identical to `V` followed by `j` that many times.
++    fn select_copy_mode_lines(&mut self, terminal_runtimes: &TerminalRuntimeRegistry, count: u32) {
++        self.select_copy_mode_line(terminal_runtimes);
++        self.repeat_copy_cursor(terminal_runtimes, 1, 0, count.saturating_sub(1));
++    }
++
++    fn yank_copy_mode_lines(&mut self, terminal_runtimes: &TerminalRuntimeRegistry, count: u32) {
++        self.select_copy_mode_lines(terminal_runtimes, count);
++        self.exit_copy_mode(terminal_runtimes, true);
++    }
++
++    /// Vim's `zz`: scroll the pane so the cursor's text line sits on the middle
++    /// viewport row, leaving the cursor on the same line it was already on.
++    fn center_copy_mode_cursor(&mut self, terminal_runtimes: &TerminalRuntimeRegistry) {
++        let Some(copy_mode) = self.copy_mode.as_ref() else {
++            return;
++        };
++        let pane_id = copy_mode.pane_id;
++        let cursor_row = copy_mode.cursor_row;
++        let Some(info) = self.pane_info_by_id(pane_id).cloned() else {
++            self.exit_copy_mode(terminal_runtimes, false);
++            return;
++        };
++        let height = info.inner_rect.height;
++        if height == 0 {
++            return;
++        }
++        let target_row = height.saturating_sub(1) / 2;
++        if target_row == cursor_row {
++            return;
++        }
++
++        let next_cursor_row = if cursor_row > target_row {
++            // Cursor below centre: show newer lines, which lowers the offset.
++            let lines = usize::from(cursor_row - target_row);
++            match self.pane_scroll_metrics(terminal_runtimes, pane_id) {
++                Some(metrics) => {
++                    let applied = lines.min(metrics.offset_from_bottom);
++                    self.set_pane_scroll_offset(
++                        terminal_runtimes,
++                        pane_id,
++                        metrics.offset_from_bottom - applied,
++                    );
++                    cursor_row.saturating_sub(applied.min(u16::MAX as usize) as u16)
++                }
++                None => {
++                    self.scroll_pane_down(terminal_runtimes, pane_id, lines);
++                    target_row
++                }
++            }
++        } else {
++            // Cursor above centre: show older lines, which raises the offset.
++            let lines = usize::from(target_row - cursor_row);
++            match self.pane_scroll_metrics(terminal_runtimes, pane_id) {
++                Some(metrics) => {
++                    let room = metrics
++                        .max_offset_from_bottom
++                        .saturating_sub(metrics.offset_from_bottom);
++                    let applied = lines.min(room);
++                    self.set_pane_scroll_offset(
++                        terminal_runtimes,
++                        pane_id,
++                        metrics.offset_from_bottom.saturating_add(applied),
++                    );
++                    cursor_row.saturating_add(applied.min(u16::MAX as usize) as u16)
++                }
++                None => {
++                    self.scroll_pane_up(terminal_runtimes, pane_id, lines);
++                    target_row
++                }
++            }
++        };
++
++        if let Some(copy_mode) = self.copy_mode.as_mut() {
++            copy_mode.cursor_row = next_cursor_row.min(height.saturating_sub(1));
++        }
++        self.sync_copy_mode_selection(terminal_runtimes);
++    }
++
+     fn handle_copy_mode_search_prompt_key(
+         &mut self,
+         terminal_runtimes: &TerminalRuntimeRegistry,
+@@ -1780,6 +2007,303 @@ mod tests {
          assert_eq!(app.state.mode, Mode::Terminal);
      }
  
@@ -139,6 +495,208 @@ index e6c0d074..cdfc5e9d 100644
 +        assert_eq!(actual, expected);
 +    }
 +
++    fn copy_mode_pending(app: &App) -> CopyModePending {
++        app.state.copy_mode.as_ref().expect("copy mode").pending
++    }
++
++    fn copy_mode_inner_height(app: &App, pane_id: crate::layout::PaneId) -> u16 {
++        app.state
++            .pane_info_by_id(pane_id)
++            .expect("pane info")
++            .inner_rect
++            .height
++    }
++
++    fn plain(ch: char) -> TerminalKey {
++        TerminalKey::new(KeyCode::Char(ch), KeyModifiers::empty())
++    }
++
++    #[tokio::test]
++    async fn copy_mode_count_prefix_repeats_a_motion() {
++        let (mut app, _) = app_with_copy_screen(b"alpha beta gamma\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 0;
++        }
++
++        app.handle_copy_mode_key(plain('3'));
++        assert_eq!(copy_mode_pending(&app).count, Some(3));
++
++        app.handle_copy_mode_key(plain('l'));
++
++        let copy_mode = app.state.copy_mode.as_ref().expect("copy mode");
++        assert_eq!(copy_mode.cursor_col, 3);
++        assert_eq!(copy_mode.pending, CopyModePending::default());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_multi_digit_count_accumulates_and_zero_stays_a_motion() {
++        let (mut app, _) = app_with_copy_screen(b"alpha beta gamma delta\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 0;
++        }
++
++        app.handle_copy_mode_key(plain('1'));
++        app.handle_copy_mode_key(plain('0'));
++        assert_eq!(copy_mode_pending(&app).count, Some(10));
++        app.handle_copy_mode_key(plain('l'));
++        assert_eq!(
++            app.state.copy_mode.as_ref().expect("copy mode").cursor_col,
++            10
++        );
++
++        // A leading `0` is still the line-start motion, not a count digit.
++        app.handle_copy_mode_key(plain('0'));
++        let copy_mode = app.state.copy_mode.as_ref().expect("copy mode");
++        assert_eq!(copy_mode.cursor_col, 0);
++        assert_eq!(copy_mode.pending, CopyModePending::default());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_escape_clears_pending_command_without_dropping_selection() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 0;
++        }
++        app.handle_copy_mode_key(plain('v'));
++
++        app.handle_copy_mode_key(plain('2'));
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Esc, KeyModifiers::empty()));
++
++        let copy_mode = app.state.copy_mode.as_ref().expect("copy mode");
++        assert_eq!(app.state.mode, Mode::Copy);
++        assert_eq!(copy_mode.pending, CopyModePending::default());
++        assert!(
++            copy_mode.selection.is_some(),
++            "selection survives the clear"
++        );
++
++        // A second Esc, with nothing pending, still clears the selection.
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Esc, KeyModifiers::empty()));
++        assert_eq!(app.state.mode, Mode::Copy);
++        assert!(app
++            .state
++            .copy_mode
++            .as_ref()
++            .expect("copy mode")
++            .selection
++            .is_none());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_escape_after_z_discards_the_sequence() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++
++        app.handle_copy_mode_key(plain('z'));
++        assert_eq!(copy_mode_pending(&app).operator, Some('z'));
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Esc, KeyModifiers::empty()));
++
++        assert_eq!(app.state.mode, Mode::Copy);
++        assert_eq!(copy_mode_pending(&app), CopyModePending::default());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_zz_centers_the_cursor_line_in_the_viewport() {
++        let bytes = numbered_lines_bytes(64);
++        let (mut app, pane_id) = app_with_copy_scrollback(&bytes);
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        let height = copy_mode_inner_height(&app, pane_id);
++        let target = height.saturating_sub(1) / 2;
++        assert!(target > 0, "fixture viewport must have a middle row");
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++        }
++        assert_eq!(copy_mode_offset_from_bottom(&app, pane_id), 0);
++
++        app.handle_copy_mode_key(plain('z'));
++        app.handle_copy_mode_key(plain('z'));
++
++        let copy_mode = app.state.copy_mode.as_ref().expect("copy mode");
++        assert_eq!(copy_mode.cursor_row, target);
++        assert_eq!(copy_mode.pending, CopyModePending::default());
++        assert_eq!(
++            copy_mode_offset_from_bottom(&app, pane_id),
++            usize::from(target),
++            "the viewport scrolled back so the cursor line kept its text"
++        );
++    }
++
++    #[tokio::test]
++    async fn copy_mode_zz_at_the_live_bottom_leaves_the_view_alone() {
++        let bytes = numbered_lines_bytes(64);
++        let (mut app, pane_id) = app_with_copy_scrollback(&bytes);
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        let bottom = copy_mode_inner_height(&app, pane_id).saturating_sub(1);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = bottom;
++        }
++
++        app.handle_copy_mode_key(plain('z'));
++        app.handle_copy_mode_key(plain('z'));
++
++        assert_eq!(copy_mode_offset_from_bottom(&app, pane_id), 0);
++        assert_eq!(
++            app.state.copy_mode.as_ref().expect("copy mode").cursor_row,
++            bottom,
++            "there is no newer content to scroll into view"
++        );
++    }
++
++    #[tokio::test]
++    async fn copy_mode_counted_shift_y_copies_that_many_lines() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 0;
++        }
++
++        app.handle_copy_mode_key(plain('2'));
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char('y'), KeyModifiers::SHIFT));
++
++        assert_eq!(copy_mode_clipboard_text(&mut app), "alpha\nbeta");
++        assert_eq!(app.state.mode, Mode::Terminal);
++        assert!(app.state.copy_mode.is_none());
++    }
++
++    #[tokio::test]
++    async fn copy_mode_counted_y_without_a_selection_copies_whole_lines() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 2;
++        }
++
++        app.handle_copy_mode_key(plain('2'));
++        app.handle_copy_mode_key(plain('y'));
++
++        assert_eq!(copy_mode_clipboard_text(&mut app), "alpha\nbeta");
++        assert_eq!(app.state.mode, Mode::Terminal);
++    }
++
++    #[tokio::test]
++    async fn copy_mode_counted_shift_v_selects_that_many_lines() {
++        let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
++        app.state.enter_copy_mode(&app.terminal_runtimes);
++        if let Some(copy_mode) = app.state.copy_mode.as_mut() {
++            copy_mode.cursor_row = 0;
++            copy_mode.cursor_col = 2;
++        }
++
++        app.handle_copy_mode_key(plain('3'));
++        app.handle_copy_mode_key(TerminalKey::new(KeyCode::Char('v'), KeyModifiers::SHIFT));
++        app.handle_copy_mode_key(plain('y'));
++
++        assert_eq!(copy_mode_clipboard_text(&mut app), "alpha\nbeta\ngamma");
++    }
++
      #[tokio::test]
      async fn copy_mode_shift_v_extends_linewise_down() {
          let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
@@ -200,6 +758,50 @@ index d151b94d..77a3e9af 100644
          NavigateAction::Zoom => {
              state.toggle_zoom();
              leave_navigate_mode(state);
+diff --git a/src/app/state.rs b/src/app/state.rs
+index f8395cbd..5a6c30dd 100644
+--- a/src/app/state.rs
++++ b/src/app/state.rs
+@@ -939,6 +939,39 @@ pub(crate) struct CopyModeState {
+     pub entry_offset_from_bottom: usize,
+     pub selection: Option<CopyModeSelection>,
+     pub search: CopyModeSearchState,
++    pub pending: CopyModePending,
++}
++
++/// Vim's pending-command buffer: the count typed before a motion (`2j`) and the
++/// first key of a multi-key sequence (`z` of `zz`). Esc discards it without
++/// touching the selection, exactly as Vim discards a half-typed command.
++#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
++pub(crate) struct CopyModePending {
++    pub count: Option<u32>,
++    pub operator: Option<char>,
++}
++
++impl CopyModePending {
++    pub fn is_active(&self) -> bool {
++        self.count.is_some() || self.operator.is_some()
++    }
++
++    /// The repeat count a motion should use; 1 when nothing was typed.
++    pub fn repeat(&self) -> u32 {
++        self.count.unwrap_or(1).max(1)
++    }
++
++    /// What the copy-mode overlay echoes back, mirroring Vim's pending display.
++    pub fn display(&self) -> String {
++        let mut text = String::new();
++        if let Some(count) = self.count {
++            text.push_str(&count.to_string());
++        }
++        if let Some(operator) = self.operator {
++            text.push(operator);
++        }
++        text
++    }
+ }
+ 
+ #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 diff --git a/src/client/mod.rs b/src/client/mod.rs
 index 011de937..1eb5805d 100644
 --- a/src/client/mod.rs
@@ -559,3 +1161,26 @@ index 9fbca3a6..0945becd 100644
              focus_pane_left: BindingConfig::one("prefix+h"),
              focus_pane_down: BindingConfig::one("prefix+j"),
              focus_pane_up: BindingConfig::one("prefix+k"),
+diff --git a/src/ui/menus.rs b/src/ui/menus.rs
+index 763c0ea8..514e3c28 100644
+--- a/src/ui/menus.rs
++++ b/src/ui/menus.rs
+@@ -104,9 +104,18 @@ pub(super) fn render_copy_mode_overlay(app: &AppState, frame: &mut Frame, area:
+             } else {
+                 ("esc", " clear  q exit")
+             };
++        // Echo the half-typed command (`2`, `z`) the way Vim's showcmd does, so
++        // a pending count is visible before the motion lands.
++        let pending = copy_mode.pending.display();
++        let pending_span = if pending.is_empty() {
++            Span::raw("")
++        } else {
++            Span::styled(format!("{pending}  "), key)
++        };
+         Line::from(vec![
+             Span::styled(" COPY ", mode_style),
+             Span::raw(" "),
++            pending_span,
+             Span::styled("h/j/k/l w/b/e { }", key),
+             Span::styled(" move  ", dim),
+             Span::styled("/ ?", key),

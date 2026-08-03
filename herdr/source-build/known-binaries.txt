@@ -21,3 +21,4 @@
 971b845c87cc34fa9bb4f34ff530f9126cf7f77d14a541cb976cd602c768bccb  reviewed v0.7.5 source build with the copy-mode patch
 502dcdecfa5f4d74f1d8f2b3f5e18087b2b13ac16ce3d999b5be09237af360a0  reviewed v0.7.5 source build with app-requested cursor blink patch
 1d844e9d354863878ee55b0190449db3585a76db3718651fda54801e4bcabf41  reviewed v0.7.5 source build with focus-owned cursor blink patch
+7949b02ca3aebc92816ad7e8ddee339e56489de7df4e5e62b40beb4c5be819ab  reviewed v0.7.5 source build with private patch d305114bae2f43bf687f0d027043af8f2b819e99c27aa5e8b00dc8aeade01541
