@@ -25,6 +25,7 @@ test "$(shasum -a 256 "$HOME/.local/bin/herdr" | awk '{print $1}')" = \
   "$HERDR_BINARY_SHA256"
 fish --no-config -n "$prototype/herdr_login_attach.fish"
 test -x "$herdr_dir/window_session.sh"
+test -x "$prototype/new_tab.sh"
 rg -q 'window_session\.sh' "$prototype/herdr_login_attach.fish"
 rg -q 'ensure_plugins\.sh.*\$session' "$prototype/herdr_login_attach.fish"
 rg -q 'plugin_id=prototype\.golden-focus' "$herdr_dir/ensure_plugins.sh"
@@ -75,6 +76,7 @@ test "$(shasum -a 256 "$tmp/bin/herdr" | awk '{print $1}')" = \
 test "$(readlink "$tmp/config/config.toml")" = "$herdr_dir/config.toml"
 test "$(rg -c '^pane_history = false$' "$herdr_dir/config.toml")" -eq 1
 for binding in \
+  'alt+ctrl+n' \
   'prefix+shift+a' \
   'prefix+shift+p' \
   'prefix+shift+u' \
@@ -83,6 +85,12 @@ for binding in \
 do
   test "$(rg -Fxc "key = \"$binding\"" "$herdr_dir/config.toml")" -eq 1
 done
+rg -q '^command = "exec \\"\$HERDR_PROTOTYPE_DIR/new_tab\.sh\\""$' \
+  "$herdr_dir/config.toml"
+if rg -q '^key = "alt\+t"$' "$herdr_dir/config.toml"; then
+  echo "Alt-t must remain application-owned and unbound in Herdr" >&2
+  exit 1
+fi
 rg -q '^command = "exec \\"\$HERDR_PROTOTYPE_DIR/pane_transfer\.sh\\""$' \
   "$herdr_dir/config.toml"
 rg -q '^command = "exec \\"\$HERDR_PROTOTYPE_DIR/export_history\.sh\\""$' \
@@ -192,6 +200,10 @@ test "$(cat "$tmp/config/default-multiplexer")" = herdr
 
 clean_multiplexer_env "$herdr_dir/validate_project_picker.sh"
 "$herdr_dir/verify_integrations.sh"
+
+# The handoff parser is shared by prefix+b replay and the ctrl+g prompt editor,
+# so its suite is an everyday check: it needs no server and no prototype binary.
+"$prototype/tests/ready_prompt_parser_test.sh" >/dev/null
 
 # The tmux-to-Herdr parity audit. Its evidence files are dated records of what
 # was validated on a specific Herdr release, so it asserts that release's version

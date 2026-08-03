@@ -5,7 +5,7 @@ set -eu
 #
 # `herdr update` downloads the official release straight over ~/.local/bin/herdr.
 # That silently discards the reviewed source build, and with it the copy-mode
-# patch — alt+s keeps being accepted as a binding and stops doing anything, with
+# patch — alt+b keeps being accepted as a binding and stops doing anything, with
 # nothing to explain why. This runs the equivalent update through the reviewed
 # path instead: find the newest upstream release, rebase the patch onto it, run
 # the gates, re-pin, install, then verify the result.

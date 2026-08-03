@@ -193,6 +193,68 @@ record vim_aliases "$(jq -cn \
   --argjson pid "$pid" \
   '{exit_without_copy:{a:$no_copy,i:$no_copy},whole_line:$line,sentinel_pid:$pid,process_survived:true,input_emulation_installed:false}')"
 
+# Alt+/ reaches copy mode without the prefix, and a typed count makes Y linewise
+# over that many lines the way Vim's 2yy does.
+printf '%s' "$clipboard_sentinel" | pbcopy
+send_action copy-mode-alt
+send_action copy-up
+send_action copy-up
+send_action copy-count-2
+send_action copy-line-yank
+wait_for "counted whole-line clipboard" sh -c \
+  '[ "$(pbpaste)" = "COPY_LINE_119 payload-119
+COPY_LINE_120 payload-120" ]'
+counted_yank=$(pbpaste)
+kill -0 "$pid"
+
+# Esc discards a half-typed count instead of leaving copy mode, so the Y that
+# follows is the plain one-line yank again.
+printf '%s' "$clipboard_sentinel" | pbcopy
+send_action copy-mode
+send_action copy-up
+send_action copy-count-2
+send_action copy-esc
+send_action copy-line-yank
+wait_for "pending-count discarded clipboard" sh -c \
+  '[ "$(pbpaste)" = "COPY_LINE_120 payload-120" ]'
+pending_cleared_yank=$(pbpaste)
+kill -0 "$pid"
+
+# Alt+b opens copy mode with the backward search prompt already accepting input.
+printf '%s' "$clipboard_sentinel" | pbcopy
+send_action copy-search-alt
+send_action type:payload-118
+send_action enter
+send_action copy-line-yank
+wait_for "backward search clipboard" sh -c \
+  '[ "$(pbpaste)" = "COPY_LINE_118 payload-118" ]'
+search_yank=$(pbpaste)
+kill -0 "$pid"
+
+# zz pulls the cursor's line to the middle of the viewport, so the window slides
+# toward the newer lines it was sitting above.
+send_action copy-mode
+send_action copy-page-up
+center_before_min=$(screen_min)
+center_before_max=$(screen_max)
+send_action copy-center
+center_after_min=$(screen_min)
+center_after_max=$(screen_max)
+test "$center_after_min" -gt "$center_before_min"
+test "$center_after_max" -gt "$center_before_max"
+send_action copy-quit
+kill -0 "$pid"
+record vim_pending_commands "$(jq -cn \
+  --arg counted "$counted_yank" \
+  --arg pending_cleared "$pending_cleared_yank" \
+  --arg search "$search_yank" \
+  --argjson center_before_min "$center_before_min" \
+  --argjson center_before_max "$center_before_max" \
+  --argjson center_after_min "$center_after_min" \
+  --argjson center_after_max "$center_after_max" \
+  --argjson pid "$pid" \
+  '{alt_slash_entry_counted_yank:$counted,escape_discards_count:$pending_cleared,alt_b_backward_search:$search,center:{before:{min:$center_before_min,max:$center_before_max},after:{min:$center_after_min,max:$center_after_max}},sentinel_pid:$pid,process_survived:true,input_emulation_installed:false}')"
+
 production_after=$(production_hashes)
 test "$production_after" = "$production_before"
 record scope_audit "$(jq -cn \
@@ -201,6 +263,6 @@ record scope_audit "$(jq -cn \
   --arg validator_hash "$(shasum -a 256 "$prototype/validate_copy_mode.sh" | awk '{print $1}')" \
   --argjson production "$production_after" \
   '{config_sha256:$config_hash,client_sha256:$client_hash,validator_sha256:$validator_hash,production_sha256:$production}')"
-record result "$(jq -cn '{status:"PASS",version:"herdr 0.7.4",session:"cm",production_configuration_modified:false,migration_authorized:false}')"
+record result "$(jq -cn '{status:"PASS",version:"herdr 0.7.5",session:"cm",production_configuration_modified:false,migration_authorized:false}')"
 mv "$evidence_tmp" "$evidence"
 printf 'Herdr copy-mode validation: PASS (%s)\n' "$evidence"

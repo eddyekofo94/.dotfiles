@@ -16,6 +16,9 @@ import time
 
 KEYS = {
     "create": b"\x01c",
+    # Ghostty/Kitty CSI-u: n with Alt+Ctrl (1 + Alt 2 + Ctrl 4 = modifier 7).
+    "alt-ctrl-new-tab": b"\x1b[110;7u",
+    "alt-t": b"\x1b[116;3u",
     "next": b"\x01n",
     "previous": b"\x01p",
     "index1": b"\x011",

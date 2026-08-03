@@ -48,11 +48,11 @@ version=$($herdr --version)
 # as "copy" that legitimately describe Herdr's supported ordinary copy mode.
 if printf '%s\n' "$defaults" | grep -Eiq \
   'rectangle[_-]?select|copy[_-]?line|copy[_-]?url|open[_-]?url|set[_-]?mark|goto[_-]?mark|prompt[_-]?jump|osc[ _-]?133'; then
-  echo "v0.7.4 now exposes a previously unavailable capability; re-audit the tracker" >&2
+  echo "v0.7.5 now exposes a previously unavailable capability; re-audit the tracker" >&2
   exit 1
 fi
 
-grep -Fq 'copy_mode = "prefix+s"' "$prototype/config.toml"
+grep -Eq '^copy_mode = (\["prefix\+s".*\]|"prefix\+s")$' "$prototype/config.toml"
 grep -Fq 'last_pane = ["prefix+tab", "ctrl+^"]' "$prototype/config.toml"
 if grep -Eiq 'alt\+tab|9;3u|rectangle[_-]?select|copy[_-]?line|set[_-]?mark|goto[_-]?mark|prompt[_-]?jump|osc[ _-]?133' \
   "$prototype/config.toml" "$prototype/herdr_nav.fish"; then

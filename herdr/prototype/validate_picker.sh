@@ -189,7 +189,10 @@ screen_line() {
 
 overlay_text() {
   screen=$1
-  awk '/┌/{inside=1} inside{print} /└/{inside=0}' "$screen"
+  # Terminate on the overlay's bottom-right corner, not on a bare `└`: tree
+  # rows render last children as `└──`, which would truncate the overlay at
+  # the first elbow and hide every result below it.
+  awk '/┌/{inside=1} inside{print} /┘/{inside=0}' "$screen"
 }
 
 overlay_has() {
@@ -277,7 +280,7 @@ for expected_line in \
   'close_pane = ""' \
   'zoom = "prefix+z"' \
   'resize_mode = "prefix+r"' \
-  'copy_mode = "prefix+s"' \
+  'copy_mode = ["prefix+s", "alt+/"]' \
   'toggle_sidebar = "prefix+shift+s"' \
   'previous_workspace = "prefix+("' \
   'next_workspace = "prefix+)"' \
@@ -302,7 +305,7 @@ for expected_line in \
 do
   grep -Fqx "$expected_line" "$config"
 done
-test "$(grep -c '^key = ' "$config")" -eq 43
+test "$(grep -c '^key = ' "$config")" -eq 44
 grep -q '^key = "prefix+b"$' "$config"
 grep -q '^key = "prefix+shift+b"$' "$config"
 for digit in 0 1 2 3 4 5 6 7 8 9; do
@@ -428,7 +431,11 @@ overlay_lacks "$screen_a" "Foreign Session B"
 overlay_result_has "$screen_a" "BLOCKED SENTINEL"
 overlay_result_has "$screen_a" "DONE SENTINEL"
 current_line=$(overlay_line "$screen_a" "BLOCKED SENTINEL")
-printf '%s\n' "$current_line" | grep -q '→.*◆'
+# 0.7.5 dropped the `→` selection arrow; the current pane is marked by the `◆`
+# gutter glyph alone. The claim under test is unchanged — the goto overlay opens
+# with the current pane marked — but the highlighted row itself is now conveyed
+# only by reverse video, which this plain-text capture cannot see.
+printf '%s\n' "$current_line" | grep -q '◆'
 record open_bindings "$(jq -cn --arg workspace_line "$workspace_line" --arg workspace_focus "$workspace_picker_focus" --arg current_line "$current_line" '{workspace_picker:{binding:"prefix+w",line:$workspace_line,search_overlay:false,focused_workspace_after_down_enter:$workspace_focus},goto:{binding:"prefix+f",line:$current_line,search_overlay:true,current_selected:true}}')"
 
 send_a search

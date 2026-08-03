@@ -40,7 +40,7 @@ if [ -x "$herdr_bin" ]; then
   bin_sha=$(shasum -a 256 "$herdr_bin" | awk '{print $1}')
   if [ "$bin_sha" != "$HERDR_BINARY_SHA256" ]; then
     warn "$herdr_bin is not the reviewed v$HERDR_VERSION build"
-    warn "custom copy-mode bindings such as alt+s will be inert"
+    warn "custom copy-mode bindings such as alt+b will be inert"
     warn "run: sh herdr/update.sh   (rebuilds and reinstalls the patched build)"
     status=1
   fi

@@ -28,15 +28,15 @@ split_horizontal = ""
 close_pane = ""
 zoom = "prefix+z"
 resize_mode = "prefix+r"
-# Prefix+s enters copy mode; Alt+s enters it with the backward-search prompt
-# already open, so a scrollback search is one chord instead of two. The search
-# entry point comes from the reviewed source build, so it does nothing until
-# herdr/source-build/build.sh --install has run; older binaries ignore the key.
-# Copy mode has no CLI or shell entry point, so these must be native bindings
-# and cannot go through smart_action.sh: Herdr claims Alt+s globally and
-# Neovim's own <M-s> no longer sees it.
-copy_mode = "prefix+s"
-copy_mode_search = "alt+s"
+# Prefix+s and Alt+/ enter copy mode; Alt+b enters it with the backward-search
+# prompt already open, so a scrollback search is one chord instead of two. The
+# search entry point comes from the reviewed source build, so it does nothing
+# until herdr/source-build/build.sh --install has run; older binaries ignore the
+# key. Copy mode has no CLI or shell entry point, so these must be native
+# bindings and cannot go through smart_action.sh: Herdr claims Alt+/ and Alt+b
+# globally and Neovim's own <M-/> and <M-b> no longer see them.
+copy_mode = ["prefix+s", "alt+/"]
+copy_mode_search = "alt+b"
 toggle_sidebar = "prefix+shift+s"
 previous_workspace = "prefix+("
 next_workspace = "prefix+)"
@@ -93,10 +93,13 @@ type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" n split-adaptive"
 description = "adaptive split (forward to vim, else Herdr split)"
 
+# Alt+s splits down, freed up by moving the copy-mode search entry to Alt+b.
+# Alt+d is deliberately left unbound so it falls through to Neovim and other
+# TUIs instead of Herdr claiming it.
 [[keys.command]]
-key = "alt+d"
+key = "alt+s"
 type = "shell"
-command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" d split-down"
+command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" s split-down"
 description = "split down (forward to vim, else Herdr split)"
 
 # Alt+c rather than Alt+q so the chord matches Neovim's own <M-c> "close current
@@ -209,6 +212,12 @@ key = "prefix+shift+b"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
 description = "clear Codex context and insert newest handoff"
+
+[[keys.command]]
+key = "alt+ctrl+n"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/new_tab.sh\""
+description = "create cwd-following tab"
 
 [[keys.command]]
 key = "prefix+0"

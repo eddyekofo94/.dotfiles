@@ -29,6 +29,13 @@ picker_client.KEYS.update(
         "copy-exit-a": b"a",
         "copy-exit-i": b"i",
         "copy-line-yank": b"Y",
+        # Alt chords arrive as ESC + the character, which is how Ghostty sends
+        # them and how Herdr's native bindings see them.
+        "copy-mode-alt": b"\x1b/",
+        "copy-search-alt": b"\x1bb",
+        "copy-count-2": b"2",
+        "copy-esc": b"\x1b",
+        "copy-center": b"zz",
     }
 )
 

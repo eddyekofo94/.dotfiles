@@ -217,7 +217,8 @@ while [ "$expected" -le 4 ]; do
 done
 created=$(cli tab list | jq -c '.result.tabs')
 printf '%s\n' "$created" | jq -e 'length == 4 and all(.[]; .pane_count == 1)' >/dev/null
-record create "$(jq -cn --argjson tabs "$created" --argjson sentinels "$sentinels" '{tabs:$tabs,sentinels:$sentinels}')"
+record create "$(jq -cn --argjson tabs "$created" --argjson sentinels "$sentinels" \
+  '{prefix_binding:"prefix+c",tabs:$tabs,sentinels:$sentinels}')"
 
 t1=$(printf '%s\n' "$created" | jq -er '.[0].tab_id')
 t2=$(printf '%s\n' "$created" | jq -er '.[1].tab_id')
@@ -353,6 +354,43 @@ printf '%s\n' "$target_pids" | jq -r '.[]' | while IFS= read -r pid; do
   wait_for "closed other-tab sentinel $pid" pid_dead "$pid"
 done
 record close_others "$(jq -cn --arg survivor "$t2" --argjson survivor_pid "$survivor_pid" --argjson first_tabs "$first_press_tabs" --argjson foreign_tabs "$foreign_press_tabs" --argjson alias_tabs "$alias_press_tabs" --arg foreign_session "$foreign_session" --argjson target_pids "$target_pids" '{first_press_preserved_tabs:$first_tabs,missing_session_failed_closed:true,foreign_first_press_preserved_tabs:$foreign_tabs,foreign_session_namespace:$foreign_session,same_session_distinct_socket_preserved_tabs:$alias_tabs,survivor_tab:$survivor,survivor_pid:$survivor_pid,closed_target_pids:$target_pids,confirmation_required:true,session_and_socket_scoped_confirmation:true}')"
+
+# Exercise Ghostty's Kitty CSI-u transport only after the original lifecycle
+# sequence, so the disposable tab cannot perturb numbered-tab identities.
+source_details=$(cli pane current --pane "$survivor_pane" | jq -c '.result.pane')
+source_workspace=$(printf '%s\n' "$source_details" | jq -er '.workspace_id')
+source_cwd=$(printf '%s\n' "$source_details" | jq -er \
+  '.foreground_cwd // .cwd')
+send_action alt-ctrl-new-tab
+wait_for "Alt-Ctrl-n new tab" tab_count_is 2
+alt_tab=$(focused_tab)
+alt_details=$(cli tab get "$alt_tab" | jq -c '.result.tab')
+alt_pane=$(pane_for_tab "$alt_tab")
+alt_pane_details=$(cli pane current --pane "$alt_pane" | jq -c '.result.pane')
+alt_cwd=$(printf '%s\n' "$alt_pane_details" | jq -er \
+  '.foreground_cwd // .cwd')
+printf '%s\n' "$alt_details" | jq -e \
+  --arg workspace "$source_workspace" \
+  '.workspace_id == $workspace and .focused == true and .pane_count == 1' >/dev/null
+test "$alt_cwd" = "$source_cwd"
+
+# Alt-t remains application-owned: the same transport must not create or focus
+# a Herdr tab.
+send_action alt-t
+sleep 0.2
+test "$(cli tab list | jq '.result.tabs | length')" -eq 2
+test "$(focused_tab)" = "$alt_tab"
+cli tab close "$alt_tab" >/dev/null
+wait_for "Alt-Ctrl-n tab cleanup" tab_count_is 1
+wait_for "return after Alt-Ctrl-n cleanup" focused_is "$t2"
+record alt_new_tab "$(jq -cn \
+  --arg tab "$alt_tab" --arg workspace "$source_workspace" \
+  --arg source_cwd "$source_cwd" --arg created_cwd "$alt_cwd" \
+  '{binding:"alt+ctrl+n",transport:"kitty-csi-u-110;7u",
+    created_tab:$tab,workspace:$workspace,source_cwd:$source_cwd,
+    created_cwd:$created_cwd,focused:true,single_new_tab:true,
+    alt_t:{binding:"alt+t",transport:"kitty-csi-u-116;3u",
+      tab_count_unchanged:true,focus_unchanged:true}}')"
 
 record result "$(jq -cn --arg session "$session" '{status:"PASS",session:$session,production_configuration_modified:false,migration_authorized:false}')"
 mv "$evidence_tmp" "$evidence"
