@@ -92,6 +92,12 @@ install_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 install_link claude-closeout-hook \
   "$agent_home/.claude/hooks/closeout.sh" "$config_dir/claude/closeout.sh"
+# closeout.sh resolves its helpers next to itself, so they need their own links
+# rather than riding along with the shell entry point.
+install_link claude-closeout-length \
+  "$agent_home/.claude/hooks/closeout_length.py" "$config_dir/claude/closeout_length.py"
+install_link claude-closeout-capture \
+  "$agent_home/.claude/hooks/closeout_capture.py" "$config_dir/claude/closeout_capture.py"
 install_link claude-response-memory \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md"

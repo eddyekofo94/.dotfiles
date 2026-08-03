@@ -8,6 +8,12 @@ case "${1:-context}" in
     # repeatedly, so this rejects the turn and makes it re-send a shorter one.
     exec python3 "$(dirname -- "$0")/closeout_length.py"
     ;;
+  capture)
+    # Save the closeout for the ctrl+g prompt editor while it is still
+    # knowable. Scraping the pane later fails: `herdr pane read` returns about
+    # one viewport, and the agent has redrawn by then.
+    exec python3 "$(dirname -- "$0")/closeout_capture.py"
+    ;;
   context)
     # This branch reads nothing from the hook payload; drain it so the writer
     # never blocks. Must not happen before `length`, which needs that payload.
