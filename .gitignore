@@ -28,6 +28,15 @@ CMakeFile
 /herdr/prototype/.runtime/
 /herdr/prototype/evidence/opened-urls.log
 
+# Reproducible Herdr source-build checkout, Cargo target, and built binary.
+# Pins, patch, builder, and review records remain tracked.
+/herdr/source-build/.work/
+
+# Isolated Pi validation runtime: disposable auth/session state, Herdr logs,
+# downloaded binaries, and rollback fixtures. Durable proof belongs in
+# /pi/evidence/ instead.
+/pi/.runtime/
+
 # Generated Python bytecode from local validators and helper scripts.
 **/__pycache__/
 **/*.pyc

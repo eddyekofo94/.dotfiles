@@ -1,0 +1,5 @@
+# A .patch file is a diff, so its context lines carry the leading space of the
+# diff format. `git diff --check` reads those as trailing whitespace on every
+# blank context line and fails a gate that has nothing to fix. Exempt the
+# reviewed Herdr patch from whitespace checking rather than mangling the diff.
+herdr/source-build/*.patch -whitespace
