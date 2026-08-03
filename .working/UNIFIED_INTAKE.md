@@ -3,15 +3,119 @@
 ## Active
 
 None.
+Source:
+`.working/interviews/fish-vi-cursor-not-blinking/observations.md`.
+
+## Ranked Next
+
+1. `closeout-beside-the-prompt-editor`: highest leverage of the current
+   candidates and shares a seam with the existing handoff route, but not
+   selectable until Eddy settles delivery shape, capture scope, and editor.
+2. `xcode-27-beta`: potentially useful for `pi-xcode`, but lower readiness;
+   blocked by side-by-side-versus-replacement choice and Apple authentication.
+3. `herdr-pane-input-lock`: low demonstrated need and still `Spec Needed`.
+
+Not selectable now: `herdr-upstream-copy-mode-gaps` remains upstream-blocked;
+`fish-fzf-image-visible-geometry-regression` remains intentionally deferred
+after unreliable live rendering.
 
 ## Investigating
 
-- `herdr-upstream-copy-mode-gaps`: rectangle selection, copy-line, marks,
-  prompt jumps, selection-bounded search, and cursor-local URL opening are
-  `blocked by` absent Herdr primitives in the installed v0.7.4 and are not
-  advertised by v0.7.5. Do not emulate them through injected input.
+- `agent-closeout-length-violations`: OPEN, severity high (Eddy abandoned a
+  session over it). Area: agent response contract. Found in: Claude Code,
+  repeatedly; Codex complied after one instruction.
+
+  Observed: responses exceed the `pi/AGENTS.md` budget of 15 body lines plus a
+  one-line-per-section closeout. Five recorded instances; the 2026-08-03 nvim
+  commit session produced a ~30-line report and Eddy left for Codex mid-task.
+  Expected: same facts, inside the budget.
+
+  Confirmed: the instruction is delivered every turn — `agent-config/claude/
+  closeout.sh context` injects the Response Style section on
+  `UserPromptSubmit`, and it is present in the offending transcripts. So this
+  is not a missing-context bug. Provisional cause, not proven: the model
+  treats a large task as license for a large report; the recorded triggers are
+  multi-repo work, surfaced blockers, and multi-commit work (one bullet per
+  commit).
+
+  Correction applied 2026-08-03, required: `agent-config/claude/
+  closeout_length.py`, wired as a `Stop` hook via `closeout.sh length`. It
+  blocks a turn whose body exceeds 15 non-blank lines or whose closeout
+  exceeds 12, returns the actual counts, and forces a re-send. `stop_hook_
+  active` prevents a loop; unparseable input is a silent no-op. Not yet
+  observed firing in a live session — that is the open validation step.
+
+  Optional, not proven: no equivalent enforcement exists for Codex, which has
+  not needed it. Whether the caps (15/12) are the right numbers is Eddy's
+  call.
+
+  `shares implementation seam with` `agent-skill-context-cleanup` (both govern
+  what reaches the agent each turn). Remote mirror: pending — no hosted issue
+  filed; the durable record is here.
+
+- `fish-vi-cursor-not-blinking`: `resolved by`
+  `terminal-cursor-blink-ownership`. Ghostty's effective config enables cursor
+  blinking, but login Fish vi mode sets `fish_cursor_default=block`,
+  `fish_cursor_insert=line`, `fish_cursor_replace_one=underscore`, and
+  `fish_cursor_visual=block` without Fish's required `blink` suffix. Fish's
+  mode-aware cursor escape therefore overrides the terminal default with a
+  steady shape. The same ownership pattern affects Neovim modes whose
+  `guicursor` entries omit blink timing. Source:
+  `.working/interviews/fish-vi-cursor-not-blinking/observations.md`.
+
+- `fish-ll-git-latency`: `symptom of` RubyandRiver Git metadata conflict
+  artifacts and stale locking, not an eza-specific defect. The selected
+  in-place index-lock repair resolves the reproduced latency without changing
+  `ll`; broader conflict artifacts remain a recurrence risk, not authorized
+  cleanup. Source:
+  `.working/interviews/fish-ll-git-latency/observations.md`.
+
+- `xcode-27-beta`: Eddy requested upgrading from Xcode 26.6 for `pi-xcode`.
+  Apple currently publishes Xcode 27 only as beta 4; the Mac is already on the
+  latest stable Xcode 26.6. A beta installation needs an explicit
+  side-by-side-versus-replacement decision and Apple Developer download
+  authentication. No toolchain change has been made.
+
+- `herdr-upstream-copy-mode-gaps`: rectangle selection, marks, prompt jumps,
+  selection-bounded search, and cursor-local URL opening remain `blocked by`
+  absent Herdr primitives in v0.7.4 and are not advertised by v0.7.5. Distinct
+  copy-line `Y` is `resolved by` the completed reviewed source-build goal, and
+  counts plus `zz` are `resolved by` `herdr-copy-mode-pending-commands`. Do
+  not emulate the remaining gaps through injected input.
 - `herdr-pane-input-lock`: tmux pane disable/enable has no demonstrated Herdr
   need or native equivalent and remains `Spec Needed`.
+
+- `closeout-beside-the-prompt-editor`: Eddy wants the agent's closeout visible
+  while writing the next prompt in `$EDITOR`. Proposed shape: `Ctrl+Shift+g`
+  captures the closeout, `Ctrl+g` opens `$EDITOR`, and the closeout arrives
+  either appended below a dashed separator or — preferred — in a read-only
+  vertical split on the right beside the editable prompt buffer. Recorded
+  2026-08-01; no implementation. `shares implementation seam with`
+  `herdr-ready-prompt-handoff` (`prefix+b` / `prefix+Shift+b`).
+
+  Findings so far, from read-only inspection:
+
+  - (Superseded 2026-08-02: this parser now lives at
+    `herdr/prototype/ready_prompt_parser.sh`; the tmux copy is deleted.)
+  - `tmux/scripts/ready_prompt.sh` already parses pane scrollback for the
+    `**Ready-to-paste prompt:**` marker and extracts only the fenced block.
+    Nothing extracts the whole closeout (Status, Artifacts, Verification,
+    Risks, Next move), so this needs a new or widened parser.
+  - `herdr/prototype/ready_prompt.sh` replays that block into the pane through
+    Herdr APIs. The new idea targets the `$EDITOR` buffer instead, which is a
+    different delivery seam, not a new extractor alone.
+  - `Ctrl+g` is the agent CLI's own open-in-`$EDITOR` binding, not a Herdr
+    binding, so the two chords land in different owners.
+  - A terminal cannot distinguish `Ctrl+Shift+g` from `Ctrl+g` without the
+    Kitty keyboard protocol / CSI-u. Ghostty can send it; whether Herdr and the
+    focused agent CLI both report it needs evidence before this chord is
+    promised.
+
+  Open questions for Eddy, unresolved: whether the read-only split should be
+  the only behavior or the appended-with-dashes variant is a fallback; whether
+  the captured text is the full closeout or Status/Next-move plus the prompt;
+  and which editor the split is specified for, since a read-only right-hand
+  split is a Neovim instruction, not a generic `$EDITOR` one.
 
 ## Deferred
 
@@ -60,6 +164,140 @@ None.
 
 ## Completed
 
+- 2026-08-03 — `herdr-alt-ctrl-n-new-tab`: **DONE**. Ghostty
+  `Left Option+Control+n` creates exactly one focused cwd-following tab in the
+  current workspace; `Prefix+c` stays native and `Alt-t` stays unbound in Herdr.
+  Focused CSI-u transport coverage, `validate_tabs.sh`, full Herdr/Fish gates,
+  and fresh review at Standards 0 / Fidelity 0 passed. Eddy accepted the
+  physical chord on 2026-08-03. `resolved by`
+  `.working/interviews/herdr-alt-ctrl-n-new-tab/decisions.md`.
+
+- 2026-08-01 — `terminal-cursor-blink-ownership`: **DONE**. Herdr now owns a
+  500 ms blink phase for the focused Ghostty surface, including default,
+  steady, and hidden TUI cursors such as Codex. Focus loss restores the source
+  steady/hidden state so background panes/windows do not blink; position and
+  shape remain intact. Focused tests, full Herdr/Fish gates, and fresh final
+  review passed at Standards 0 / Fidelity 0. Eddy accepted physical
+  multi-window behavior. No push. `resolved by`
+  `.working/interviews/fish-vi-cursor-not-blinking/closure.md`.
+
+- 2026-08-01 — `fish-prompt-return-latency`: **DONE**. RubyandRiver remains at
+  its exact path. A stale zero-byte Git index lock was quarantined recoverably,
+  reducing repeated Git status from 0.85 seconds to 0.01-0.02 seconds and
+  unchanged `ll --git` to 0.02-0.06 seconds. Starship Git status is restored.
+  Both Git-bearing prompt gates pass near 31 ms p95, full Fish verification
+  passes, Eddy accepted physical Ghostty behavior, and fresh final review
+  passed at Standards 0 / Fidelity 0. Remaining File Provider conflict
+  artifacts are recorded recurrence risk. No push. `resolved by`
+  `.working/interviews/fish-prompt-return-latency/closure.md`.
+
+- 2026-08-01 — `pi-global-response-style-parity`: **DONE**. One canonical
+  repository rule source now serves Codex directly, Claude through its import
+  adapter and source-reading hook, and Pi through its exact isolated-config
+  symlink. Safe all-target migration preflight, fail-closed Pi launch checks,
+  private concurrent verification state/evidence, overlapping validator
+  coverage, full Pi/Fish gates, real no-provider context discovery, and fresh
+  final review passed at Standards 0 / Fidelity 0. The reviewed Herdr pin,
+  physical/device gates, deferred scope, and no-commit/no-push boundary remain
+  intact. `resolved by`
+  `.working/interviews/pi-global-response-style-parity/closure.md`.
+
+- 2026-07-31 — `pi-lazy-mcp-and-ios-tooling`: **DONE**. The opt-in Pi pilot
+  owns a lifecycle-script-disabled, lockfile- and hash-verified
+  `xcodebuildmcp@2.7.0` installation, telemetry-disabled CLI-only wrapper,
+  exact official CLI skill, and four canonical shared Swift/SwiftUI skills.
+  MCP/init/setup/upgrade/socket/MCP-output paths fail closed. Disposable
+  SwiftUI doctor/discovery/build/test/build-and-run/screenshot/gesture,
+  automatic daemon idle cleanup, marker-owned rollback, full Pi/Fish gates,
+  live install checks, and fresh review passed at Standards 0 / Fidelity 0.
+  Physical-device/tactile gates remain manual. MCP adapter/server mode,
+  ambient MCP discovery, Xcode 27, and default-agent promotion remain deferred.
+  No commit or push. `resolved by`
+  `.working/interviews/pi-lazy-mcp-and-ios-tooling/closure.md`.
+- 2026-07-31 — `fish-fcat-selected-path`: **DONE**. `fcat` prints only the
+  selected file's copyable home-relative path in subtle `brblack`, followed by
+  one blank line and unchanged contents; outside-home paths remain canonical
+  absolute paths. The physical RubyandRiver failure was a `symptom of` VCS
+  ignore handling: scoped `--no-ignore-vcs` now exposes ignored local files
+  while `.git` remains explicitly excluded. Query-derived producer coverage,
+  `.git` guards, focused/full Fish verification, the exact real-fzf PTY route,
+  and fresh final review passed at Standards 0 / Fidelity 0. Eddy reloaded
+  `fcat` and accepted physical colour/copy behavior on 2026-07-31. No commit or
+  push. `resolved by`
+  `.working/interviews/fish-fcat-selected-path/closure.md`.
+- 2026-08-01 — `herdr-copy-mode-pending-commands`: **AWAITING CONFIRMATION**.
+  Copy mode gained Vim's pending-command buffer: a typed count repeats the next
+  motion and makes `V`, `Y`, and a selection-less `y` linewise over that many
+  lines; `zz` centres the cursor's line; Esc discards a half-typed count or `z`
+  without clearing the selection or search. `copy_mode` is now `prefix+s` plus
+  `alt+/`, `copy_mode_search` moved to `alt+b`, and `alt+s` became a second
+  split-down chord and `alt+d` was unbound. Eight new focused Rust tests, extended PTY
+  clipboard/viewport evidence, the reviewed rebuild and re-pin, and full
+  Herdr/Fish gates passed; fresh Standards/Fidelity review did not run. No
+  commit or push. Physical acceptance in a newly created session is still
+  Eddy's. Source:
+  `.working/interviews/herdr-copy-mode-pending-commands/closure.md`.
+- 2026-07-31 — `herdr-copy-mode-vim-muscle-memory`: **DONE**. The reviewed
+  exact-v0.7.4 source build adds copy-mode `a` and `i` as exit-without-copy
+  aliases for `q`, and `Y` as composed whole-line selection plus
+  copy-and-exit. Exact tag, commit, toolchain, patch, patched-source, and binary
+  hashes are pinned; the installer is atomic and fail-closed. Focused Rust and
+  disposable PTY tests, full Herdr/Fish gates, and fresh Standards/Fidelity
+  review passed. Eddy accepted physical `Prefix+s` then `a`, `i`, and `Y` in a
+  newly created session on 2026-07-31. `pane_history = false`, recovery,
+  tmux fallback, and the no-input-emulation boundary remain intact. No commit
+  or push. `resolved by`
+  `.working/interviews/herdr-copy-mode-vim-muscle-memory/closure.md`.
+- 2026-07-30 — `pi-isolated-pilot`: **DONE**. The pinned, isolated,
+  reversible Pi 0.82.1 pilot now has Catppuccin Mocha, a `❯` prompt,
+  branch-local prompt history, Ctrl-P/Ctrl-N list and history navigation,
+  Ctrl-Shift-M model selection, resilient Ctrl-L clear/redraw, mode-aware
+  hardware cursor behavior, recency-ranked slash suggestions, pinned FFF
+  `@` completion, and retained Herdr handoff/session integration. Automated
+  Pi/Fish/ready-prompt gates and fresh Standards/Fidelity reviews passed.
+  Eddy confirmed every applicable physical item, including `Prefix+b` and
+  `Prefix+B`. Pi remains opt-in; no MCP/iOS packages, promotion, commit, or
+  push occurred. `resolved by`
+  `.working/interviews/pi-isolated-pilot/closure.md`.
+- 2026-07-29 — `herdr-cross-session-agent-overview`: **DONE**. Every physical
+  Ghostty window remains attached to its independent named Herdr session, while
+  `Prefix+A` discovers agents across all running local sessions and shows
+  session, agent, status, and cwd. Bounded Read returns cleanly on bare and
+  Kitty CSI-u Escape; Focus targets the exact pane inside its owning session
+  without reattaching or raising a window; Message supports physical multiline
+  `Cmd-V` and inserts exact text without Return, submission, or focus change.
+  Stale targets fail closed. Full Herdr/Fish verification, physical two-window
+  QA, and fresh final review passed at Standards 0 / Fidelity 0.
+  `pane_history = false`, recovery, independent-window allocation, and tmux
+  fallback remain intact. No commit or push. `resolved by`
+  `.working/interviews/herdr-cross-session-agent-overview/closure.md`.
+- 2026-07-29 — `herdr-independent-ghostty-windows`: **DONE**. Native Ghostty
+  `Command-N` now creates independent named Herdr sessions instead of mirroring
+  `main`. A no-client launch restores the last retained automatic session;
+  while a client is active, New Window creates a never-before-used monotonic
+  `window-N` session from `$HOME`. HUP-resistant PID-plus-start-identity leases,
+  private locked runtime state, recovery, explicit overrides, nesting guards,
+  `pane_history = false`, and tmux fallback are preserved. Deterministic gates,
+  full Herdr/Fish verification, and fresh Standards/Fidelity review passed.
+  Final physical close-all/reopen restored `window-7`, then a concurrent second
+  window created `window-9`; the windows remained independently navigable and
+  writable. No commit or push. `resolved by`
+  `.working/interviews/herdr-independent-ghostty-windows/closure.md`.
+- 2026-07-29 — `herdr-independent-ghostty-windows`: **superseded closure**;
+  the independent-window and cwd behavior passed, but Eddy then clarified the
+  restore-versus-create lifecycle. The earlier record: native Ghostty `Command-N`
+  gives each ordinary top-level window the lowest inactive
+  persistent named Herdr session (`main`, then `window-N`) instead of mirroring
+  an occupied session. Meaningful Ghostty cwd inheritance is retained; a root
+  `/` launch falls back to `$HOME` before allocation. Eddy's pictured retained
+  `window-3` was repaired to `~`, and fresh physical `window-4` started at
+  `$HOME`. Explicit named-session overrides, recovery, all guards, and tmux
+  fallback remain intact. Focused regressions cover cwd success/failure and
+  guard inertness as well as concurrency, reuse, safety, and `window-10`. Full
+  Herdr/Fish verification and physical QA passed; final review closed at
+  Standards 0 / Fidelity 0. No commit or push.
+  `resolved by`
+  `.working/interviews/herdr-independent-ghostty-windows/closure.md`.
 - 2026-07-29 — `herdr-shared-buffer-history`: **durably deferred and
   upstream-limited** on the retained Herdr v0.7.4. The live tmux server's
   `choose-buffer` surface is a genuine 50-entry auto-named in-memory buffer
