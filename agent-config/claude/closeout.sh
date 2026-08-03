@@ -14,7 +14,13 @@ case "${1:-context}" in
     cat >/dev/null 2>&1 || true
     source_file=/Users/eddyekofo/.dotfiles/pi/AGENTS.md
     [ -r "$source_file" ] || exit 1
-    awk '/^## Response Style / { emit = 1 } emit' "$source_file" |
+    # The prose contract says "aim under 15"; the Stop hook rejects at exact
+    # numbers it never stated. Append them, generated from the check's own
+    # constants, so the budget is known before the turn instead of after it.
+    {
+      awk '/^## Response Style / { emit = 1 } emit' "$source_file"
+      python3 "$(dirname -- "$0")/closeout_length.py" --contract
+    } |
       jq -Rs '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:.}}'
     ;;
   *)
