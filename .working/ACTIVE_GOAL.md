@@ -1,6 +1,40 @@
 # Active Goal
 
-None.
+`pi-compaction-continuity-fixture` — selected 2026-08-03 when Eddy authorized
+continuing the Pi migration. `pi/verify.sh` is red and blocks every other Pi
+item, so it is the first slice.
+
+**Diagnosed, not yet fixed.** `pi/tests/session_validation.py:282` fails with
+`missing=['pi-global-response-style-parity', '256b38f...', 'canonical
+repository', 'concurrency-safe', 'physical-device', 'fresh Standards/Fidelity
+review']`. Four of ten sentinels survive.
+
+Cause: the test runs with `cwd=ROOT`, so `loopRecords`
+(`pi/extensions/eddy-compat.ts:182`) reads this repository's live
+`.working/ACTIVE_GOAL.md`, takes the **first** backticked slug in it, and loads
+`.working/interviews/<slug>/decisions.md`. The sentinels were written when
+`pi-global-response-style-parity` was the active goal. That goal closed, the
+document moved on, and the first slug became
+`ready-prompt-parser-relocation` — whose record lives under
+`herdr/.working/interviews/closeout-prompt-authoring/`, not
+`.working/interviews/`. The lookup misses, `decisions` is empty, and every
+sentinel sourced from it disappears. Compaction itself is deterministic and
+correct; no model quality is involved.
+
+Two defects, both real:
+
+1. Test: it asserts against mutable repository prose, so closing any goal can
+   redden an unrelated gate. Fix is a fixture `.working/` tree so the test
+   proves behavior instead of today's content.
+2. Product: first-backticked-slug-wins selects a *closed* goal from what is
+   effectively a closure log, and the missing decisions file degrades silently
+   to "No matching decisions record found". Real continuity loss in daily Pi
+   use, not only under test. Fix is to prefer a candidate slug whose
+   `decisions.md` exists.
+
+Stop condition: `pi/verify.sh` green, the test independent of which goal is
+active, and slug selection covered by a case where the first slug has no
+record.
 
 `ready-prompt-parser-relocation` closed 2026-08-02. The shared handoff parser
 moved from `tmux/scripts/ready_prompt.sh` to
