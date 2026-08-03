@@ -9,6 +9,16 @@ if command -q nvim
     set -gx VISUAL nvim
     set -gx EDITOR nvim
     set -gx NVIM_DIR "$XDG_CONFIG_HOME/nvim"
+
+    # An agent's ctrl+g resolves $VISUAL before $EDITOR. The shim captures the
+    # pane's closeout before Neovim claims the alternate screen -- after which
+    # `herdr pane read` can only see Neovim -- then execs nvim. Outside an
+    # agent pane it is a pass-through, so `git commit` and friends behave
+    # normally. $EDITOR stays a bare `nvim` for tools matching on the name.
+    set -l agent_prompt_editor "$NVIM_DIR/tools/agent_prompt_editor.sh"
+    if test -x $agent_prompt_editor
+        set -gx VISUAL $agent_prompt_editor
+    end
 else
     set -gx VISUAL vim
     set -gx EDITOR vim
