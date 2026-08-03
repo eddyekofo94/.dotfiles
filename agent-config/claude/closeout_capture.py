@@ -31,7 +31,78 @@ def target_path():
     return base / f"agent-prompt-turn-closeout.{slug}.md"
 
 
+def find_transcript(session_id):
+    """Locate a session's transcript without needing the hook payload.
+
+    The editor shim runs as a child of the agent, so it inherits the session
+    id but never sees a Stop payload. Reading the transcript directly means the
+    closeout works in sessions that started before this hook existed, instead
+    of only in ones launched afterwards.
+    """
+    if not session_id:
+        return None
+    root = Path.home() / ".claude" / "projects"
+    for candidate in root.glob(f"*/{session_id}.jsonl"):
+        return candidate
+    return None
+
+
+def last_closeout(path):
+    """The newest assistant message that actually carries a closeout.
+
+    Not simply the newest message: the shim runs while the turn that triggered
+    it is still being written, and tool-only turns carry no closeout either.
+    Either would otherwise read as "nothing to show".
+    """
+    found = None
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                continue
+            if entry.get("type") != "assistant":
+                continue
+            content = entry.get("message", {}).get("content")
+            if not isinstance(content, list):
+                continue
+            text = "".join(
+                block.get("text", "")
+                for block in content
+                if isinstance(block, dict) and block.get("type") == "text"
+            ).strip()
+            if not text:
+                continue
+            _, closeout = split_at_closeout(text)
+            if closeout:
+                found = closeout
+    return found
+
+
+def print_closeout(session_id):
+    path = find_transcript(session_id)
+    if not path:
+        return 1
+    try:
+        closeout = last_closeout(path)
+    except OSError:
+        return 1
+    if not closeout:
+        return 1
+    sys.stdout.write("\n".join(closeout).rstrip() + "\n")
+    return 0
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--print":
+        session = sys.argv[2] if len(sys.argv) > 2 else os.environ.get(
+            "CLAUDE_CODE_SESSION_ID"
+        )
+        return print_closeout(session)
+
     try:
         payload = json.load(sys.stdin)
     except ValueError:
