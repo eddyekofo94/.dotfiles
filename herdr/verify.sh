@@ -44,6 +44,18 @@ verify_source=${HERDR_VERIFY_SOURCE:-}
 if [ -z "$verify_source" ] && [ -x "$prepared_bin" ]; then
   verify_source=$prepared_bin
 fi
+# Everything below exercises real install/upgrade/rollback behaviour against real
+# binaries, so unlike the source-build and prototype gates this one cannot be
+# made checkout-portable — it needs the reviewed build (a gitignored work
+# product) or a network fetch. Say that plainly instead of failing later with an
+# unreadable "Permission denied" on a zero-byte download.
+if [ -z "$verify_source" ] && [ ! -x "$prepared_bin" ]; then
+  echo "Herdr production verification requires the reviewed source build at" >&2
+  echo "  $prepared_bin" >&2
+  echo "Build it (herdr/source-build), or point HERDR_VERIFY_SOURCE at a binary" >&2
+  echo "matching HERDR_BINARY_SHA256 or HERDR_OFFICIAL_SHA256." >&2
+  exit 2
+fi
 verify_sha=$HERDR_OFFICIAL_SHA256
 if [ -n "$verify_source" ]; then
   source_sha=$(shasum -a 256 "$verify_source" | awk '{print $1}')
