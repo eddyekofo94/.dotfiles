@@ -23,6 +23,13 @@ Prototype: [`../../herdr/prototype/README.md`](../../herdr/prototype/README.md)
 ## Migration gate
 
 Do not remove tmux or retire its configuration during the staged promotion.
+
+**Exception, 2026-08-02:** Eddy explicitly lifted this for the handoff replay
+path only — "move fully to herdr now, tmux on my path will confuse things."
+`tmux/scripts/ready_prompt.sh` and the `prefix+b` / `prefix+B` binds are
+deleted; the parser lives at `herdr/prototype/ready_prompt_parser.sh`. The rest
+of tmux, including the Fish login fallback at `fish/config.fish:66-80`, is
+untouched and still governed by the rule above.
 Prototype and production evidence must include commands/readback; appearance
 and interaction feel require screenshots and user approval.
 
@@ -105,7 +112,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | `prefix+Enter` | Scratch-shell popup | Herdr popup command | [x] Real prefix input opened an 80% session-modal fixture with a 72×30 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
 | `prefix+g` | Lazygit popup | Herdr popup command | [x] Real prefix input opened an 85% session-modal fixture with a 76×32 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
 | `prefix+[` / `PageUp` / `Alt-Escape` | Copy mode | Herdr copy mode aliases | [x] `prefix+[` and `Alt-Escape` configured; `PageUp` omitted to preserve shell/TUI behavior. |
-| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | native `v`/Space selection and `y`/Enter yank; retire rectangle and copy-line aliases | [x] **VERIFIED DIFFERENCE:** ordinary `v/e/y` selection copied the exact sentinel to `pbpaste`. `capability-gap-validation.jsonl` binds the v0.7.4 default configuration hash and proves rectangle selection and distinct copy-line `Y` are absent, with no input emulation installed. |
+| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | reviewed v0.7.4 source build keeps native `v`/Space selection and `y`/Enter yank, adds `Y` by composing native `V` then `y`, and retires rectangle selection | [x] `copy-mode-validation.jsonl` proves actual shifted `Y` input copies the exact current line and exits. The pinned source patch has focused Rust coverage and installs no input emulation. Rectangle selection remains unavailable. |
 | copy `u/d`, marks, prompt jumps | half pages, marks, OSC 133 prompts | native `Ctrl-u/d` and `PageUp/Down`; retire unavailable extras | [x] **VERIFIED DIFFERENCE:** `copy-mode-validation.jsonl` proves real `prefix+s`, `Ctrl-u/d`, and `PageUp/Down` input over 120 lines, including exact viewport movement and live-process survival. The capability audit proves marks and OSC 133 prompt jumps are absent from the v0.7.4 configurable surface and are not emulated. |
 | `prefix+u`, copy `O` | Open URL | custom pane-read helper; retire cursor-local alias | [x] **VERIFIED DIFFERENCE:** `url-validation.jsonl` proves real `prefix+u` transport and exact zero/one/newest-of-many behavior with a non-launching opener fixture. The capability audit proves copy-mode cursor URL opening is absent from the v0.7.4 configurable surface and no input-emulation shim is installed. |
 | `prefix+b/B` | Ready-prompt replay / clear replay | Herdr pane inspection/read plus bracketed `send-text`; uppercase waits after Codex or Claude `/clear` | [x] `prefix+b/B` are isolated shell commands. The validator proves exact extraction, pane-local consume-once state, no implicit Enter, live non-execution, stable-ready waiting, and fail-closed clear support for agents other than Codex and Claude. |
@@ -492,10 +499,11 @@ only on documentation or assumed API parity.
 - 2026-07-18: the remaining optional legacy-key differences were converted
   from indirect partial claims into a hash-bound v0.7.4 capability audit.
   Rectangle selection, copy-line `Y`, marks, OSC 133 prompt jumps, cursor-local
-  copy-mode `O`, and direct `Alt-Tab` are deterministically unavailable or
-  retired, with supported selection/paging/URL/last-pane replacements recorded
-  and no input-emulation shims installed. Production configuration and migration
-  status did not change.
+  copy-mode `O`, and direct `Alt-Tab` were deterministically unavailable or
+  retired in the official binary, with supported
+  selection/paging/URL/last-pane replacements recorded and no input-emulation
+  shims installed. The 2026-07-30 reviewed source build later resolved only
+  copy-line `Y`; the other gaps remain.
 - 2026-07-23: a live fzf-to-lower-pane handoff exposed that manually running
   `fish` inside a prototype pane dropped all `Alt-h/j/k/l` navigation because
   Fish bindings and functions are process-local. The prototype adapter now
@@ -513,6 +521,13 @@ only on documentation or assumed API parity.
   non-nested tmux window; use `herdr/set_default.sh tmux` for persistent
   rollback and `herdr/set_default.sh herdr` to restore Herdr. Run
   `herdr/verify.sh` and `fish/scripts/verify.sh` after startup changes.
+- 2026-07-30: a reviewed private source build remains pinned to the exact
+  annotated v0.7.4 tag object and peeled commit. Copy mode now aliases `a` and
+  `i` to native `q` exit-without-copy and composes `Y` from native `V` whole-line
+  selection plus `y` copy-and-exit. The source patch, patched file, Rust/Zig
+  toolchains, and arm64 macOS binary are hash-verified; no input emulation,
+  pane-history change, recovery change, tmux removal, or version upgrade is
+  involved.
 - 2026-07-27: project-oriented entry is complete. `Prefix+Shift+w` opens the
   Git repository/worktree picker inside the current Herdr session while native
   `Prefix+w` remains existing-workspace navigation. The implementation uses

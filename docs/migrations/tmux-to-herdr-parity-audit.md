@@ -79,20 +79,21 @@ The detailed evidence for these features is in
 
 ## Upstream-limited copy-mode features
 
-Herdr v0.7.4 and the v0.7.5 published feature list do not expose faithful
-equivalents for:
+Herdr v0.7.4 and the v0.7.5 published feature list do not expose configurable
+faithful equivalents for:
 
 - rectangle selection (`Ctrl-v`);
-- distinct copy-current-line (`Y`);
 - marks and jump-to-mark;
 - OSC 133 previous/next prompt jumps;
 - selection-bounded forward/backward search;
 - cursor-local URL opening (`O`);
 - tmux's copy-mode-local broad URI/path/hash search.
 
+The reviewed private v0.7.4 source build now supplies distinct
+copy-current-line (`Y`) by composing the existing `V` and `y` operations.
 Ordinary selection, yank, search, half-page/page movement, scrollback, and the
-newest-visible URL helper are already covered. The missing primitives should be
-tracked upstream or revisited after a release that explicitly adds them. Input
+newest-visible URL helper are already covered. The remaining primitives should
+be tracked upstream or revisited after a release that explicitly adds them. Input
 emulation would be brittle and is not an acceptable implementation.
 
 ## Upstream-limited outer-title parity
