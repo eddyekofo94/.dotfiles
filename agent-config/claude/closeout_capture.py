@@ -31,20 +31,36 @@ def target_path():
     return base / f"agent-prompt-turn-closeout.{slug}.md"
 
 
-def find_transcript(session_id):
-    """Locate a session's transcript without needing the hook payload.
+def project_dir(cwd=None):
+    """Claude's per-project transcript directory for a working directory.
 
-    The editor shim runs as a child of the agent, so it inherits the session
-    id but never sees a Stop payload. Reading the transcript directly means the
-    closeout works in sessions that started before this hook existed, instead
-    of only in ones launched afterwards.
+    The slug is the absolute path with every non-alphanumeric run replaced by a
+    dash, e.g. /Users/x/.dotfiles -> -Users-x--dotfiles.
     """
-    if not session_id:
-        return None
+    path = Path(cwd or os.getcwd()).resolve()
+    slug = re.sub(r"[^A-Za-z0-9]", "-", str(path))
+    return Path.home() / ".claude" / "projects" / slug
+
+
+def find_transcript(session_id, cwd=None):
+    """Locate the transcript to read the closeout from.
+
+    Prefers the exact session. Falls back to the project's most recently
+    written transcript, because the editor is not always launched from a
+    process that inherited the agent's environment -- ctrl+g can land in a
+    pane with no CLAUDE_CODE_SESSION_ID at all, and keying only on the id
+    makes the feature silently unavailable there.
+    """
     root = Path.home() / ".claude" / "projects"
-    for candidate in root.glob(f"*/{session_id}.jsonl"):
-        return candidate
-    return None
+    if session_id:
+        for candidate in root.glob(f"*/{session_id}.jsonl"):
+            return candidate
+
+    directory = project_dir(cwd)
+    transcripts = sorted(
+        directory.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    return transcripts[0] if transcripts else None
 
 
 def last_closeout(path):
@@ -82,9 +98,10 @@ def last_closeout(path):
     return found
 
 
-def print_closeout(session_id):
-    path = find_transcript(session_id)
+def print_closeout(session_id, cwd=None):
+    path = find_transcript(session_id, cwd)
     if not path:
+        sys.stderr.write(f"no transcript under {project_dir(cwd)}\n")
         return 1
     try:
         closeout = last_closeout(path)
@@ -101,7 +118,8 @@ def main():
         session = sys.argv[2] if len(sys.argv) > 2 else os.environ.get(
             "CLAUDE_CODE_SESSION_ID"
         )
-        return print_closeout(session)
+        cwd = sys.argv[3] if len(sys.argv) > 3 else None
+        return print_closeout(session or None, cwd)
 
     try:
         payload = json.load(sys.stdin)
