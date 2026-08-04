@@ -1,6 +1,7 @@
 const LIMITS = {
   activeGoal: 2500,
   decisions: 9000,
+  decisionsSource: 256,
   previousSummary: 2000,
   olderContextTail: 3500,
   fileOperations: 1000,
@@ -23,9 +24,41 @@ function boundedHeadAndTail(value, limit) {
   return `${text.slice(0, headLength)}${marker}${text.slice(-tailLength)}`;
 }
 
+const GOAL_SLUG = /`([a-z0-9][a-z0-9-]{0,126})`/g;
+
+// ACTIVE_GOAL.md accumulates closure entries below the open goal, so the first
+// backticked slug is often a goal whose record has been retired. Take the first
+// slug that still owns a usable decisions record rather than the first slug
+// outright. The winner can still be a closed goal when the open one owns no
+// record, so buildLoopCompaction names the record it loaded.
+export function selectGoalRecordSlug(activeGoal, hasRecord) {
+  const considered = [];
+  const seen = new Set();
+  for (const match of String(activeGoal ?? "").matchAll(GOAL_SLUG)) {
+    const slug = match[1];
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    considered.push(slug);
+    if (hasRecord(slug)) return { slug, considered };
+  }
+  return { slug: "", considered };
+}
+
+// "Usable", not "existing": a record can also be unreadable, a symlink, or
+// missing every section compaction carries. Naming a cause we did not check
+// would be its own silent wrong answer.
+export function missingGoalRecordSummary(considered) {
+  if (!considered.length) return "";
+  return (
+    "No usable decisions record for any goal named in ACTIVE_GOAL.md: " +
+    considered.join(", ")
+  );
+}
+
 export function buildLoopCompaction({
   activeGoal,
   decisions,
+  decisionsSource,
   previousSummary,
   olderContext,
   fileOperations,
@@ -47,6 +80,10 @@ export function buildLoopCompaction({
     ),
     "",
     "## Settled decisions, exclusions, verification, and manual gates",
+    // Name the record that was loaded. The selected slug is not always the open
+    // goal, so an unlabelled section can read as current when it is not.
+    `Source: ${bounded(decisionsSource || "no decisions record loaded", LIMITS.decisionsSource)}`,
+    "",
     bounded(decisions || "No matching decisions record found", LIMITS.decisions),
     "",
     "## Previous compaction continuity",

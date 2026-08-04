@@ -4,37 +4,52 @@
 continuing the Pi migration. `pi/verify.sh` is red and blocks every other Pi
 item, so it is the first slice.
 
-**Diagnosed, not yet fixed.** `pi/tests/session_validation.py:282` fails with
-`missing=['pi-global-response-style-parity', '256b38f...', 'canonical
-repository', 'concurrency-safe', 'physical-device', 'fresh Standards/Fidelity
-review']`. Four of ten sentinels survive.
+**Fixed 2026-08-04; `pi/verify.sh` is green end to end.**
 
-Cause: the test runs with `cwd=ROOT`, so `loopRecords`
-(`pi/extensions/eddy-compat.ts:182`) reads this repository's live
-`.working/ACTIVE_GOAL.md`, takes the **first** backticked slug in it, and loads
+Cause: the test ran with `cwd=ROOT`, so `loopRecords`
+(`pi/extensions/eddy-compat.ts`) read this repository's live
+`.working/ACTIVE_GOAL.md`, took the **first** backticked slug in it, and loaded
 `.working/interviews/<slug>/decisions.md`. The sentinels were written when
 `pi-global-response-style-parity` was the active goal. That goal closed, the
-document moved on, and the first slug became
-`ready-prompt-parser-relocation` — whose record lives under
-`herdr/.working/interviews/closeout-prompt-authoring/`, not
-`.working/interviews/`. The lookup misses, `decisions` is empty, and every
-sentinel sourced from it disappears. Compaction itself is deterministic and
-correct; no model quality is involved.
+document moved on, and the first slug no longer owned a record here. The lookup
+missed, `decisions` was empty, and every sentinel sourced from it disappeared.
+Compaction itself is deterministic and correct; no model quality is involved.
 
-Two defects, both real:
+Two defects, both real, both fixed:
 
-1. Test: it asserts against mutable repository prose, so closing any goal can
-   redden an unrelated gate. Fix is a fixture `.working/` tree so the test
-   proves behavior instead of today's content.
-2. Product: first-backticked-slug-wins selects a *closed* goal from what is
-   effectively a closure log, and the missing decisions file degrades silently
-   to "No matching decisions record found". Real continuity loss in daily Pi
-   use, not only under test. Fix is to prefer a candidate slug whose
-   `decisions.md` exists.
+1. Test: it asserted against mutable repository prose, so closing any goal could
+   redden an unrelated gate. Now runs against
+   `pi/tests/fixtures/loop-records/.working/`, and its sentinels live only in
+   that fixture's decisions record — the seed prompt was stripped of them so the
+   conversation tail cannot satisfy the assertion.
+2. Product: first-backticked-slug-wins selected a *closed* goal from what is
+   effectively a closure log. `selectGoalRecordSlug`
+   (`pi/extensions/compaction-core.mjs`) now takes the first slug that owns a
+   *usable* `decisions.md` — one that yields the sections compaction carries —
+   and when none does the summary names every slug it tried instead of
+   degrading silently.
 
-Stop condition: `pi/verify.sh` green, the test independent of which goal is
-active, and slug selection covered by a case where the first slug has no
-record.
+The fixture lists a record-less slug first, so the integration gate fails if
+selection regresses to first-slug-wins — confirmed by reverting the selection
+and watching all eleven sentinels drop. `pi/tests/compat_core_test.mjs` covers
+selection directly.
+
+Fresh Standards/Fidelity review, 2026-08-04, found the fix incomplete against
+this repository's own records and it was fixed in place: the open goal owned no
+`decisions.md`, so selection fell through to the *closed*
+`pi-global-response-style-parity` record and rendered it as settled decisions
+with nothing naming its origin. `buildLoopCompaction` now emits a `Source:` line
+naming the record it loaded, that line is an integration sentinel, and this goal
+owns `.working/interviews/pi-compaction-continuity-fixture/decisions.md`. The
+standalone-run diagnostic was also extended from one compaction site to all
+three. Re-review: Standards 0 blocking, Fidelity 0 blocking.
+
+Third, found while diagnosing: `pi/tests/session_validation.py` cannot run
+standalone. Production `keepRecentTokens` is 20000, so a fixture-sized session
+is entirely recent and manual compaction refuses with "Nothing to compact
+(session too small)", losing the summary and every sentinel with it — a failure
+that looks identical to the record bug. `pi/validate_sessions.sh` is the
+supported entry point; the validator now says so when the summary is empty.
 
 `ready-prompt-parser-relocation` closed 2026-08-02. The shared handoff parser
 moved from `tmux/scripts/ready_prompt.sh` to

@@ -2,8 +2,8 @@
   "status": "PASS",
   "provider": "deterministic offline fixture",
   "named_sessions": {
-    "alpha": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.W2IGVr/state/sessions/2026-07-31T23-28-53-723Z_pilot-alpha.jsonl",
-    "beta": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.W2IGVr/state/sessions/2026-07-31T23-28-56-192Z_pilot-beta.jsonl",
+    "alpha": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.yxCsif/state/sessions/2026-08-04T01-08-38-817Z_pilot-alpha.jsonl",
+    "beta": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.yxCsif/state/sessions/2026-08-04T01-08-41-109Z_pilot-beta.jsonl",
     "independent": true,
     "alpha_restored_name": "pilot-alpha",
     "resume_locator": "session JSONL path"
@@ -14,8 +14,8 @@
     "source_jsonl_retained": true,
     "pre_compaction_entry_ids_retained": true,
     "sentinels": [
-      "pi-global-response-style-parity",
-      "256b38fbe0067fb51bde5c275def7eabe3ba2aa0c6e5070572f814c12d2f27ce",
+      "pi-compaction-fixture-decisions-record",
+      "41fb04ce914c46d715fc257091c024f753678f69b19ec480c5ec35a560746580",
       "canonical repository",
       "concurrency-safe",
       "commit",
@@ -23,7 +23,8 @@
       "Claude",
       "pi/verify.sh",
       "physical-device",
-      "fresh Standards/Fidelity review"
+      "fresh Standards/Fidelity review",
+      "Source: .working/interviews/pi-compaction-fixture-active/decisions.md"
     ],
     "all_sentinels_preserved": true,
     "repeated_compaction_preserved_active_skill": true,
@@ -34,7 +35,7 @@
     "reason": "threshold",
     "temporary_reserve_tokens": 20000,
     "temporary_keep_recent_tokens": 1,
-    "session": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.W2IGVr/state/sessions/2026-07-31T23-28-59-746Z_pilot-threshold.jsonl",
+    "session": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.yxCsif/state/sessions/2026-08-04T01-08-44-699Z_pilot-threshold.jsonl",
     "all_sentinels_preserved": true
   }
 }

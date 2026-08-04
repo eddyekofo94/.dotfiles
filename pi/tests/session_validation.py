@@ -15,12 +15,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PI = ROOT / "pi" / "pilot.sh"
 PROVIDER = ROOT / "pi" / "tests" / "mock_provider.ts"
+# The pilot reads loop records from the nearest .working/ above its cwd. Run
+# against a fixture tree so this gate asserts compaction behavior instead of
+# whatever this repository's live planning prose currently says. The fixture
+# lists a closed, record-less goal first, so it also covers slug selection
+# skipping a slug that owns no decisions.md.
+FIXTURE_CWD = ROOT / "pi" / "tests" / "fixtures" / "loop-records"
 EVIDENCE = Path(
     os.environ.get("PI_PILOT_EVIDENCE_DIR", ROOT / "pi" / "evidence")
 ) / "session-validation.json"
+# Every sentinel below lives in the fixture decisions record, never in the
+# conversation tail, so a summary can only keep them by loading that record.
 SENTINELS = [
-    "pi-global-response-style-parity",
-    "256b38fbe0067fb51bde5c275def7eabe3ba2aa0c6e5070572f814c12d2f27ce",
+    "pi-compaction-fixture-decisions-record",
+    "41fb04ce914c46d715fc257091c024f753678f69b19ec480c5ec35a560746580",
     "canonical repository",
     "concurrency-safe",
     "commit",
@@ -29,8 +37,29 @@ SENTINELS = [
     "pi/verify.sh",
     "physical-device",
     "fresh Standards/Fidelity review",
+    # Provenance: proves the summary names the record it loaded, so a closed
+    # goal's decisions can never read as the open goal's.
+    "Source: .working/interviews/pi-compaction-fixture-active/decisions.md",
 ]
 OPEN_RPCS: list["Rpc"] = []
+# Production keepRecentTokens is 20000, so a fixture-sized session is entirely
+# recent and every compaction refuses with "Nothing to compact". That failure
+# looks exactly like a lost decisions record, so say the real cause instead.
+STANDALONE_HINT = (
+    "Run this validator through pi/validate_sessions.sh, which lowers "
+    "keepRecentTokens so a fixture-sized session can compact at all."
+)
+
+
+def require_summary(event: dict, label: str) -> str:
+    summary = (event.get("result") or {}).get("summary", "")
+    if event.get("aborted") or not summary:
+        raise RuntimeError(
+            f"{label} produced no summary: "
+            f"{event.get('errorMessage') or 'no error reported'}. "
+            f"{STANDALONE_HINT}"
+        )
+    return summary
 
 
 class Rpc:
@@ -49,7 +78,7 @@ class Rpc:
                 "eddy-fixture/fixture",
                 *args,
             ],
-            cwd=ROOT,
+            cwd=FIXTURE_CWD,
             env=env,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -194,11 +223,12 @@ def main() -> int:
     cleanup_probe.terminate_safely()
     if cleanup_probe.process.poll() is None:
         raise RuntimeError(f"RPC cleanup probe left child {cleanup_pid} running")
+    # Deliberately free of sentinel strings: obligations must reach the summary
+    # through the fixture decisions record, not through the conversation tail.
     seed = (
-        "Active goal pi-compaction-fixture. Preserve dirty work. Do not commit "
-        "or push. Keep Codex and Claude fallbacks. Verification is pi/verify.sh. "
-        "Physical two-window Ghostty QA remains a human gate. The active skill "
-        "is feature-plan. Next stage is fresh Standards and Fidelity review."
+        "Active goal pi-compaction-fixture. Preserve dirty work. Keep the "
+        "established constraints and human gates. The active skill is "
+        "feature-plan. Next stage is the recorded review."
     )
 
     alpha = Rpc("--session-id", "pilot-alpha", "--name", "pilot-alpha")
@@ -256,6 +286,7 @@ def main() -> int:
         lambda event: event.get("type") == "compaction_end",
         "manual compaction",
     )
+    summary = require_summary(compacted, "manual compaction")
     resumed_after = state(resumed)
     resumed.prompt("Continuation after the first compaction.")
     second_start = len(resumed.events)
@@ -273,17 +304,15 @@ def main() -> int:
         lambda event: event.get("type") == "compaction_end",
         "second manual compaction",
     )
+    second_summary = require_summary(second_compacted, "second manual compaction")
     resumed.close()
 
-    result = compacted.get("result") or {}
-    summary = result.get("summary", "")
     missing = [sentinel for sentinel in SENTINELS if sentinel not in summary]
     if compacted.get("reason") != "manual" or missing:
         raise RuntimeError(
             f"compaction continuity failed, reason={compacted.get('reason')}, "
             f"missing={missing}"
         )
-    second_summary = (second_compacted.get("result") or {}).get("summary", "")
     for required_section in [
         "## Active skill\nfeature-plan",
         "## Validation Plan",
@@ -347,10 +376,23 @@ def main() -> int:
     ]
     threshold_state = state(threshold)
     threshold_file = Path(threshold_state["sessionFile"])
+    attempts = [
+        event
+        for event in threshold.events
+        if event.get("type") == "compaction_end"
+    ]
     threshold.close()
     if not threshold_events:
-        raise RuntimeError("temporary threshold did not force automatic compaction")
-    threshold_summary = (threshold_events[-1].get("result") or {}).get("summary", "")
+        detail = (
+            attempts[-1].get("errorMessage") if attempts else "none was attempted"
+        )
+        raise RuntimeError(
+            "temporary threshold did not force automatic compaction: "
+            f"{detail or 'no error reported'}. {STANDALONE_HINT}"
+        )
+    threshold_summary = require_summary(
+        threshold_events[-1], "threshold compaction"
+    )
     threshold_missing = [
         sentinel for sentinel in SENTINELS if sentinel not in threshold_summary
     ]

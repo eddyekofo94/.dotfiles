@@ -23,7 +23,11 @@ import {
   parseHandoffRequest,
   transformSkillInput,
 } from "./compat-core.mjs";
-import { buildLoopCompaction } from "./compaction-core.mjs";
+import {
+  buildLoopCompaction,
+  missingGoalRecordSummary,
+  selectGoalRecordSlug,
+} from "./compaction-core.mjs";
 import { extractPromptHistory } from "./ui-core.mjs";
 
 // Keep this rule in the extension entrypoint: Pi's /reload can retain imported
@@ -179,6 +183,10 @@ function selectedDecisionSections(markdown: string) {
   return selected.join("\n");
 }
 
+function recordPath(slug: string) {
+  return path.join(".working", "interviews", slug, "decisions.md");
+}
+
 function loopRecords(cwd: string) {
   let directory = path.resolve(cwd);
   for (;;) {
@@ -186,24 +194,41 @@ function loopRecords(cwd: string) {
       path.join(directory, ".working", "ACTIVE_GOAL.md"),
     );
     if (activeGoal) {
-      const match = activeGoal.match(/`([a-z0-9][a-z0-9-]{0,126})`/);
-      const decisions = match
-        ? selectedDecisionSections(
-            readRegularFile(
-              path.join(
-                directory,
-                ".working",
-                "interviews",
-                match[1],
-                "decisions.md",
-              ),
-            ),
-          )
-        : "";
-      return { activeGoal, decisions };
+      // A slug only counts when its record yields the sections compaction
+      // carries. An unreadable, symlinked, or heading-less decisions.md would
+      // otherwise win and then render as "No matching decisions record found".
+      const sections = new Map<string, string>();
+      const sectionsFor = (slug: string) => {
+        let cached = sections.get(slug);
+        if (cached === undefined) {
+          cached = selectedDecisionSections(
+            readRegularFile(path.join(directory, recordPath(slug))),
+          );
+          sections.set(slug, cached);
+        }
+        return cached;
+      };
+      const { slug, considered } = selectGoalRecordSlug(
+        activeGoal,
+        (candidate: string) => sectionsFor(candidate) !== "",
+      );
+      if (!slug) {
+        return {
+          activeGoal,
+          decisions: missingGoalRecordSummary(considered),
+          decisionsSource: "",
+        };
+      }
+      return {
+        activeGoal,
+        decisions: sectionsFor(slug),
+        decisionsSource: recordPath(slug),
+      };
     }
     const parent = path.dirname(directory);
-    if (parent === directory) return { activeGoal: "", decisions: "" };
+    if (parent === directory) {
+      return { activeGoal: "", decisions: "", decisionsSource: "" };
+    }
     directory = parent;
   }
 }

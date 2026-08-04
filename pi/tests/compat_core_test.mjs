@@ -6,7 +6,11 @@ import {
   parseHandoffRequest,
   transformSkillInput,
 } from "../extensions/compat-core.mjs";
-import { buildLoopCompaction } from "../extensions/compaction-core.mjs";
+import {
+  buildLoopCompaction,
+  missingGoalRecordSummary,
+  selectGoalRecordSlug,
+} from "../extensions/compaction-core.mjs";
 
 assert.deepEqual(enabledSkills(), ["herdr", "skill-finish"]);
 assert.deepEqual(transformSkillInput("ordinary prompt"), {
@@ -169,6 +173,7 @@ assert.throws(() =>
 const compacted = buildLoopCompaction({
   activeGoal: "Goal: pi-compaction-fixture",
   decisions: "Preserve dirty work. Do not commit or push.",
+  decisionsSource: ".working/interviews/pi-compaction-fixture/decisions.md",
   previousSummary: "Earlier state",
   olderContext: "Physical two-window Ghostty QA",
   fileOperations: "pi/verify.sh",
@@ -181,10 +186,28 @@ for (const sentinel of [
   "Physical two-window Ghostty QA",
   "pi/verify.sh",
   "feature-plan",
+  "Source: .working/interviews/pi-compaction-fixture/decisions.md",
 ]) {
   assert.ok(compacted.includes(sentinel), `compaction lost ${sentinel}`);
 }
 assert.ok(compacted.length < 15000);
+
+// The no-record diagnostic must survive into the rendered summary; an unnamed
+// decisions section is exactly the silent degradation this replaced.
+assert.equal(missingGoalRecordSummary([]), "");
+const unrecorded = buildLoopCompaction({
+  activeGoal: "Goal: pi-compaction-fixture",
+  decisions: missingGoalRecordSummary(["retired-goal", "open-goal"]),
+  decisionsSource: "",
+  previousSummary: "",
+  olderContext: "",
+  fileOperations: "",
+  activeSkill: "feature-plan",
+});
+assert.ok(unrecorded.includes("Source: no decisions record loaded"));
+for (const slug of ["retired-goal", "open-goal"]) {
+  assert.ok(unrecorded.includes(slug), `no-record summary lost ${slug}`);
+}
 
 const oversizedGoal = buildLoopCompaction({
   activeGoal: `${"x".repeat(2700)}
@@ -207,5 +230,32 @@ for (const sentinel of [
     `bounded active goal lost tail obligation: ${sentinel}`,
   );
 }
+
+const closureLog = `# Active Goal
+
+\`retired-goal\` closed yesterday and its record was removed.
+\`open-goal\` is the goal that still owns a decisions record.
+\`open-goal\` is mentioned twice.
+`;
+const withRecords = new Set(["open-goal"]);
+const selected = selectGoalRecordSlug(closureLog, (slug) =>
+  withRecords.has(slug),
+);
+assert.equal(selected.slug, "open-goal");
+assert.deepEqual(selected.considered, ["retired-goal", "open-goal"]);
+
+const noRecord = selectGoalRecordSlug(closureLog, () => false);
+assert.equal(noRecord.slug, "");
+assert.deepEqual(noRecord.considered, ["retired-goal", "open-goal"]);
+
+assert.equal(
+  selectGoalRecordSlug("first \`only-goal\` here", (slug) => slug === "only-goal")
+    .slug,
+  "only-goal",
+);
+assert.deepEqual(selectGoalRecordSlug("no slugs at all", () => true), {
+  slug: "",
+  considered: [],
+});
 
 console.log("Pi compatibility core: PASS");
