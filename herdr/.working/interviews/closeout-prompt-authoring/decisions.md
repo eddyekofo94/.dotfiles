@@ -193,10 +193,31 @@ The nvim spec suite was reporting 16 of 17 passes: a closeout autocmd outliving
 its test fired during teardown and quit the run, skipping the rest silently.
 Fixed in `after_each`.
 
-Still unconfirmed: codex, and pi. Pi is detected (`PI_CODING_AGENT`,
-`PI_PILOT_` are in both marker lists) and its prompt file only has to land
-under `$TMPDIR`, but that pi prefers `$VISUAL` over `$EDITOR` — the assumption
-the whole shim rests on — is confirmed for claude-code only.
+## Pi confirmed from the pinned build (2026-08-04)
+
+Read out of the pinned Pi 0.82.1 binary, not its documentation:
+
+- `externalEditorCommand || process.env.VISUAL || process.env.EDITOR || "nano"`
+  — `$VISUAL` wins, so the shim is reached. `pi/settings.json` pins no
+  `externalEditor`, which would otherwise take precedence over both.
+- `mkdtempSync(join(tmpdir(), "pi-editor-"))` then `prompt.md` — the prompt
+  lands under `$TMPDIR`, which is what detection requires.
+- `spawn(editor, [...editorArgs, filePath], { stdio: "inherit", shell: false })`
+  — exactly one file argument, which is the other half of detection.
+- `pilot.sh` exports `PI_CODING_AGENT_DIR` and `PI_PILOT_CONTROL_DIR`, both
+  matched by the shim's marker prefixes.
+- The parser recognises the pilot by basename `pi`, and the pilot binary is
+  `…/versions/0.82.1/pi`.
+
+One behavioural difference from claude-code: Pi discards the edited prompt
+unless the editor exits 0. `:wq` and the last-window `quitall!` both do; `:cq`
+deliberately does not.
+
+Pi uses the pane-scrollback capture, not the transcript reader — the latter is
+claude-specific.
+
+Gated offline in `pi/verify.sh`; the visual half is `pi/MANUAL_QA.md`.
+Codex remains unconfirmed.
 
 ## Parser relocation (2026-08-02)
 

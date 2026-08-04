@@ -373,6 +373,37 @@ if PI_PILOT_DATA_DIR="$tamper_data" PI_PILOT_STATE_DIR="$tamper_state" \
   exit 1
 fi
 
+# Ctrl+G prompt editing with the closeout beside it rests on three facts about
+# the pinned build, and the nvim shim that captures the closeout rejects the
+# launch silently -- a plain editor opens -- if any of them stops holding. Pi
+# must resolve $VISUAL before $EDITOR, write its prompt under the OS temp dir,
+# and pass it as the sole argument. Documentation asserts only the first.
+pi_editor_strings="$runtime/pi-editor-strings.txt"
+strings -a "$pi_pilot_binary" >"$pi_editor_strings"
+grep -Fq 'process.env.VISUAL || process.env.EDITOR' "$pi_editor_strings" || {
+  echo "pi-pilot: pinned build no longer prefers \$VISUAL" >&2
+  exit 1
+}
+grep -Fq '"pi-editor-"' "$pi_editor_strings" || {
+  echo "pi-pilot: pinned build no longer writes the prompt under the temp dir" >&2
+  exit 1
+}
+# A configured `externalEditor` takes precedence over $VISUAL, which would
+# route Ctrl+G past the shim entirely.
+jq -e 'has("externalEditor") | not' "$pi_dir/settings.json" >/dev/null || {
+  echo "pi-pilot: settings.json pins externalEditor, bypassing the shim" >&2
+  exit 1
+}
+# The launcher exports the markers the shim gates on; without one it falls
+# through to a plain editor for every Pi launch.
+grep -q 'export PI_CODING_AGENT_DIR=' "$pi_dir/pilot.sh"
+# The shim itself lives in the Neovim config, a separate repository.
+pi_prompt_shim="${XDG_CONFIG_HOME:-$HOME/.config}/nvim/tools/agent_prompt_editor.sh"
+test -x "$pi_prompt_shim" || {
+  echo "pi-pilot: prompt-editor shim missing or not executable: $pi_prompt_shim" >&2
+  exit 1
+}
+
 cmp -s "$pi_dir/integrations/herdr-agent-state.ts" \
   "$pi_pilot_config_dir/extensions/herdr-agent-state.ts"
 grep -q 'HERDR_INTEGRATION_VERSION=5' \

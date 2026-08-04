@@ -64,6 +64,29 @@ Automated fixtures must not be used to mark this checklist complete.
   independent window/session.
 - [x] Confirm normal macOS `Cmd+V` paste still works.
 
+## Agent prompt editor (Ctrl+G)
+
+The offline gate in `pi/verify.sh` proves the pinned build still prefers
+`$VISUAL`, writes its prompt under the temp dir, and that nothing pins
+`externalEditor`. It cannot prove what the split actually looks like.
+
+- [ ] With a completed closeout on screen, press `Ctrl+G`. Confirm Neovim opens
+  with the prompt above and the whole closeout, ready-to-paste block included,
+  in a read-only window below.
+- [ ] Confirm `@` completes repository paths, not paths under the temp dir the
+  prompt file lives in.
+- [ ] Type nothing and press `u`. Confirm one undo empties the seeded prompt.
+- [ ] Yank a line from the closeout window and confirm it pastes into the
+  prompt.
+- [ ] Run `:wq`. Confirm Neovim exits completely, with no leftover split, and
+  the edited prompt appears in the Pi editor without submission.
+- [ ] Press `Alt+h`/`Alt+j`/`Alt+k`/`Alt+l`. Confirm they move between the two
+  Neovim windows and hand off to the neighboring Herdr pane at the edge.
+- [ ] Press `Alt+s` to split the Herdr pane, then close that split. Confirm the
+  closeout window returns to roughly the share of the frame it opened with.
+- [ ] Open `Ctrl+G` from an ordinary shell in the same pane. Confirm no closeout
+  split appears, since only an agent launch exports one.
+
 ## Rollback
 
 - [x] Preview with `./pi/rollback.sh`.
