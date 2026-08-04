@@ -393,6 +393,51 @@ else
     printf '# skipping closeout fixtures: %s is unreadable\n' "$closeout_fixture"
 fi
 
+# Claude's TUI strips the Markdown fence, so a rendered prompt runs straight
+# into the duration line and the optional recap block below it.
+claude_recap=$TMP_ROOT/claude-recap.txt
+printf '%s\n' \
+    '⏺ **Status:** DONE' \
+    '  **Next move:** review the diff' \
+    '' \
+    '  **Ready-to-paste prompt:**' \
+    '' \
+    '  Review the uncommitted diff and report Standards and Fidelity findings.' \
+    '  Stop when both axes are clean and the gate is still green.' \
+    '' \
+    '  ✻ Crunched for 11m 20s' \
+    '' \
+    '  ※ recap: Goal was fixing the red test; next is the review.' \
+    '    (disable recaps in /config)' \
+    '' \
+    '❯ ' >"$claude_recap"
+assert_extract 'Claude duration and recap chrome end a rendered prompt' \
+    $'  Review the uncommitted diff and report Standards and Fidelity findings.\n  Stop when both axes are clean and the gate is still green.' \
+    "$claude_recap"
+
+claude_recap_only=$TMP_ROOT/claude-recap-only.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '' \
+    'Re-run the gate and report the result.' \
+    '' \
+    '※ recap: the duration line scrolled off, the recap did not.' \
+    '  (disable recaps in /config)' >"$claude_recap_only"
+assert_extract 'recap block alone still ends a rendered prompt' \
+    'Re-run the gate and report the result.' "$claude_recap_only"
+
+duration_prose=$TMP_ROOT/duration-prose.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '' \
+    'Run the soak for 30m and record the result.' \
+    'Keep this line even though it reads like a duration.' \
+    '' \
+    '✻ Crunched for 4s' >"$duration_prose"
+assert_extract 'ASCII prose mentioning a duration survives the chrome rule' \
+    $'Run the soak for 30m and record the result.\nKeep this line even though it reads like a duration.' \
+    "$duration_prose"
+
 printf '1..%d\n' "$((passed + failed))"
 if [ "$failed" -ne 0 ]; then
     printf '%d test(s) failed\n' "$failed" >&2

@@ -92,13 +92,27 @@ PARSER_AWK='
             return remainder == "" && length(value) >= 8
         }
 
+        # Claude closes a response with a duration line ("✻ Crunched for
+        # 11m 20s") and may follow it with a recap block. The glyph and the
+        # verb both rotate, so key on the shape that does not: a leading
+        # non-ASCII glyph plus a "for <duration>" tail. Requiring both keeps
+        # ordinary prompt prose out of the match.
+        function claude_chrome(value) {
+            if (value ~ /^[ -~]/) {
+                return index(value, "(disable recaps") == 1
+            }
+            return value ~ /[[:space:]]for[[:space:]]+[0-9]+[hms]/ || \
+                index(value, "※") == 1
+        }
+
         function terminal_chrome(value) {
             value = trim(value)
             return horizontal_divider(value) || \
                 value ~ /^─.*Worked for/ || \
                 value ~ /^━.*Worked for/ || \
                 value ~ /^[›❯][[:space:]]/ || \
-                value ~ /^gpt-[[:alnum:]._-]+[[:space:]]/
+                value ~ /^gpt-[[:alnum:]._-]+[[:space:]]/ || \
+                claude_chrome(value)
         }
 
         # A closeout opens at its Status line. Accept the shapes the skill
