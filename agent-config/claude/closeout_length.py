@@ -6,9 +6,9 @@ recorded violations show that instructions and memory notes do not hold, so the
 budget is enforced here instead: an over-long turn is blocked once, with the
 actual counts, and the model has to re-send a shorter one.
 
-Blocks at most once per turn (`stop_hook_active` guards the loop), and stays
-silent on anything it cannot parse -- a broken transcript must never wedge a
-session.
+Blocks at most once per turn (`stop_hook_active` guards the loop), never twice
+for the same message, and stays silent on anything it cannot parse -- a broken
+transcript must never wedge a session.
 """
 
 import json
@@ -58,7 +58,15 @@ def contract():
     return CONTRACT.format(body=BODY_MAX, closeout=CLOSEOUT_MAX, width=WIDTH)
 
 
-def last_assistant_text(path):
+def last_assistant_entry(path):
+    """The final assistant text in the transcript, and the entry's uuid.
+
+    The uuid is what makes a stale read detectable. The transcript is written
+    asynchronously, so at Stop time this can still return the *previous* turn's
+    message; without an identity to compare, that read is indistinguishable from
+    a re-send that ignored the budget.
+    """
+    uuid = ""
     text = None
     with open(path, encoding="utf-8") as handle:
         for line in handle:
@@ -81,8 +89,14 @@ def last_assistant_text(path):
             ]
             joined = "".join(parts).strip()
             if joined:
+                uuid = entry.get("uuid") or ""
                 text = joined
-    return text
+    return uuid, text
+
+
+def last_assistant_text(path):
+    """Just the text. `closeout_capture` imports this; keep it returning a str."""
+    return last_assistant_entry(path)[1]
 
 
 def split_at_closeout(text):
@@ -109,27 +123,35 @@ def count(lines):
     return total
 
 
-def blocks(path):
-    """Consecutive rejections issued for the current turn.
+def load_state(path):
+    """Consecutive rejections for the current turn, and the message they hit.
 
-    Counted from a marker this hook leaves in a sidecar file keyed to the
-    transcript, since the payload carries only a boolean.
+    Kept in a sidecar file keyed to the transcript, since the payload carries
+    only a boolean. A file left by an older version holds a bare count and names
+    no message, which reads as "nothing has been blocked yet" -- the safe way to
+    be wrong, because it costs one honest measurement rather than a false one.
     """
     try:
         with open(state_path(path), encoding="utf-8") as handle:
-            return int(handle.read().strip() or 0)
+            state = json.loads(handle.read() or "{}")
     except (OSError, ValueError):
-        return 0
+        return 0, ""
+    if not isinstance(state, dict):
+        return 0, ""
+    try:
+        return int(state.get("blocks", 0)), str(state.get("uuid", "") or "")
+    except (TypeError, ValueError):
+        return 0, ""
 
 
 def state_path(path):
     return path + ".closeout-blocks"
 
 
-def record(path, value):
+def record(path, blocked, uuid):
     try:
         with open(state_path(path), "w", encoding="utf-8") as handle:
-            handle.write(str(value))
+            json.dump({"blocks": blocked, "uuid": uuid}, handle)
     except OSError:
         pass
 
@@ -148,19 +170,38 @@ def main():
     if not transcript:
         return 0
 
+    blocked, blocked_uuid = load_state(transcript)
+
+    # A false `stop_hook_active` is the start of a fresh turn, so the budget
+    # starts fresh too. Without this the count is a lifetime total: four
+    # over-long turns in a row spend it, and from then on every re-send passes
+    # unmeasured. The uuid survives -- it is the stale-read guard below, and a
+    # new turn is exactly when the transcript is most likely to be behind.
+    if not payload.get("stop_hook_active"):
+        blocked = 0
+
     # Deliberately not `return 0` on stop_hook_active. Bailing there was the
     # hole: the first over-long turn was blocked and the re-send -- which was
     # usually still over -- went straight through unchecked. Consecutive blocks
     # are bounded instead, so a model that cannot get under the budget cannot
     # wedge the session either.
-    if payload.get("stop_hook_active") and blocks(transcript) >= MAX_BLOCKS:
+    if payload.get("stop_hook_active") and blocked >= MAX_BLOCKS:
         return 0
 
     try:
-        text = last_assistant_text(transcript)
+        uuid, text = last_assistant_entry(transcript)
     except OSError:
         return 0
     if not text:
+        return 0
+
+    # Never reject the same message twice. Seeing the one already blocked means
+    # the re-send has not reached the transcript yet, so measuring again would
+    # quote the rejected turn's own counts back at a reply that already fixed
+    # them -- a loop no amount of cutting can clear. Observed: an 11-line and
+    # then a 10-line closeout both rejected as "14 lines". Letting an unseen
+    # re-send through is the lesser failure, and MAX_BLOCKS already concedes it.
+    if uuid and uuid == blocked_uuid:
         return 0
 
     body, closeout = split_at_closeout(text)
@@ -175,9 +216,9 @@ def main():
             f"closeout is {closeout_lines} lines, cap is {CLOSEOUT_MAX}"
         )
     if not problems:
-        record(transcript, 0)
+        record(transcript, 0, "")
         return 0
-    record(transcript, blocks(transcript) + 1)
+    record(transcript, blocked + 1, uuid)
 
     reason = (
         "Response rejected: " + "; ".join(problems) + ". "
