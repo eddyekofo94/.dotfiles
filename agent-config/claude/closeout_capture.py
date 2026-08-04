@@ -7,7 +7,11 @@ agent has redrawn the pane, so the closeout has usually scrolled out of reach.
 The agent, however, knows exactly what it just printed -- so record it here, at
 the end of the turn, and let the editor shim read a file instead of guessing.
 
-Pane-scoped, because two agents in two panes must never show each other's work.
+Scoped to pane *and* session. Pane alone is not enough: pane ids are reused, so
+a finished session leaves a file that the next agent in that pane reads as its
+own. The session id makes the record unambiguous, the Stop hook drops the other
+sessions' files for its pane, and SessionEnd removes its own on the way out.
+
 Silent on anything unparseable: a broken transcript must not wedge a session.
 """
 
@@ -22,13 +26,68 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from closeout_length import last_assistant_text, split_at_closeout  # noqa: E402
 
 
-def target_path():
+PREFIX = "agent-prompt-turn-closeout"
+# Scratch the ctrl+g shim writes beside the record, named per pane rather than
+# per session. Cleared with the record so a dead session leaves nothing behind.
+DERIVED = (
+    "agent-prompt-seed.{}.txt",
+    "agent-prompt-capture.{}.txt",
+    "agent-prompt-closeout.{}.md",
+    "agent-prompt-transcript.{}.md",
+)
+
+
+def slugify(value):
+    return re.sub(r"[^A-Za-z0-9._-]", "_", value)
+
+
+def temp_base():
+    return Path(os.environ.get("TMPDIR") or tempfile.gettempdir())
+
+
+def target_path(session):
     pane = os.environ.get("HERDR_PANE_ID")
     if not pane:
         return None
-    slug = re.sub(r"[^A-Za-z0-9._-]", "_", pane)
-    base = Path(os.environ.get("TMPDIR") or tempfile.gettempdir())
-    return base / f"agent-prompt-turn-closeout.{slug}.md"
+    session = slugify(session or "nosession")
+    return temp_base() / f"{PREFIX}.{slugify(pane)}.{session}.md"
+
+
+def prune(keep):
+    """Drop every other record for this pane, and the pre-session filename.
+
+    A pane hosts one live agent at a time, so any record here under another
+    session id belongs to a session that has ended -- exactly the file that was
+    being served to its successor.
+    """
+    pane = os.environ.get("HERDR_PANE_ID")
+    if not pane:
+        return
+    base = temp_base()
+    stale = list(base.glob(f"{PREFIX}.{slugify(pane)}.*.md"))
+    stale.append(base / f"{PREFIX}.{slugify(pane)}.md")
+    for path in stale:
+        if path == keep:
+            continue
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def cleanup(session):
+    """SessionEnd: remove this session's record wherever it was written."""
+    base = temp_base()
+    paths = list(base.glob(f"{PREFIX}.*.{slugify(session)}.md")) if session else []
+    pane = os.environ.get("HERDR_PANE_ID")
+    if pane:
+        paths.extend(base / name.format(slugify(pane)) for name in DERIVED)
+    for path in paths:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    return 0
 
 
 def project_dir(cwd=None):
@@ -121,14 +180,25 @@ def main():
         cwd = sys.argv[3] if len(sys.argv) > 3 else None
         return print_closeout(session or None, cwd)
 
+    end = len(sys.argv) > 1 and sys.argv[1] == "--session-end"
+
     try:
         payload = json.load(sys.stdin)
     except ValueError:
-        return 0
+        payload = {}
 
-    path = target_path()
+    session = payload.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID")
+
+    if end:
+        return cleanup(session)
+
+    path = target_path(session)
     if not path:
         return 0
+
+    # Even a turn that records nothing proves this pane now belongs to this
+    # session, so the previous occupant's record goes either way.
+    prune(path)
 
     transcript = payload.get("transcript_path")
     if not transcript:

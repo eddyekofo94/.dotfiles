@@ -14,6 +14,11 @@ case "${1:-context}" in
     # one viewport, and the agent has redrawn by then.
     exec python3 "$(dirname -- "$0")/closeout_capture.py"
     ;;
+  end)
+    # Drop this session's closeout when it ends, so the next agent in the pane
+    # is never handed a finished session's work.
+    exec python3 "$(dirname -- "$0")/closeout_capture.py" --session-end
+    ;;
   context)
     # This branch reads nothing from the hook payload; drain it so the writer
     # never blocks. Must not happen before `length`, which needs that payload.
