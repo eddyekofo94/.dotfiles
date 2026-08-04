@@ -171,8 +171,32 @@ Shipped:
 - `~/.config/fish/user_variables.fish` — `VISUAL` points at the shim;
   `EDITOR`/`SUDO_EDITOR` stay `nvim`.
 
-Automated validation is green (68 parser tests, 11 nvim specs, 10 shim tests,
-`tools/verify.sh`). Manual QA below is still unconfirmed.
+Automated validation is green (68 parser tests, 19 nvim specs, 10 shim tests,
+`tools/verify.sh`).
+
+## Manual QA confirmed for claude-code (2026-08-04)
+
+Eddy confirmed live: ctrl+g shows prompt above / closeout below, `:wq` returns
+to the agent, `@` completes repo files, Alt+h/j/k/l moves inside Neovim and
+hands off to the neighbouring Herdr pane at the edge.
+
+Two defects the live run exposed, both fixed:
+
+- `:wq` closed the prompt window and left the closeout holding the pane, so
+  returning to the agent took a second close. The closeout's lifetime is now
+  tied to the prompt window's, quitting outright when it is the last window.
+- A Herdr split (Alt+s) squeezed the pane past what `winfixheight` could
+  absorb; Neovim shrank the closeout and never gave the rows back. The window
+  now records its share of the frame and restores it on `VimResized`.
+
+The nvim spec suite was reporting 16 of 17 passes: a closeout autocmd outliving
+its test fired during teardown and quit the run, skipping the rest silently.
+Fixed in `after_each`.
+
+Still unconfirmed: codex, and pi. Pi is detected (`PI_CODING_AGENT`,
+`PI_PILOT_` are in both marker lists) and its prompt file only has to land
+under `$TMPDIR`, but that pi prefers `$VISUAL` over `$EDITOR` — the assumption
+the whole shim rests on — is confirmed for claude-code only.
 
 ## Parser relocation (2026-08-02)
 
