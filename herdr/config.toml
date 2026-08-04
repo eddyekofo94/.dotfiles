@@ -87,11 +87,16 @@ type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" v split-right"
 description = "split right (forward to vim, else Herdr split)"
 
+# Alt+n and Alt+s are Herdr-first: they split the *pane*, never the Neovim
+# window, so the chord means one thing everywhere. Deliberately not routed
+# through smart_action.sh — forwarding them made Neovim's `<C-w>n` / `<C-w>s`
+# win inside the editor, which is the one place a Herdr split is most wanted.
+# Alt+v still forwards (see above), so an in-editor split stays available.
 [[keys.command]]
 key = "alt+n"
 type = "shell"
-command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" n split-adaptive"
-description = "adaptive split (forward to vim, else Herdr split)"
+command = "exec \"$HERDR_PROTOTYPE_DIR/shell_action.sh\" split-adaptive"
+description = "adaptive Herdr split (never forwarded to vim)"
 
 # Alt+s splits down, freed up by moving the copy-mode search entry to Alt+b.
 # Alt+d is deliberately left unbound so it falls through to Neovim and other
@@ -99,8 +104,8 @@ description = "adaptive split (forward to vim, else Herdr split)"
 [[keys.command]]
 key = "alt+s"
 type = "shell"
-command = "exec \"$HERDR_PROTOTYPE_DIR/smart_action.sh\" s split-down"
-description = "split down (forward to vim, else Herdr split)"
+command = "exec \"$HERDR_PROTOTYPE_DIR/shell_action.sh\" split-down"
+description = "split Herdr pane down (never forwarded to vim)"
 
 # Alt+c rather than Alt+q so the chord matches Neovim's own <M-c> "close current
 # window". Alt+q is left unbound here, which lets Neovim's <M-q> through
