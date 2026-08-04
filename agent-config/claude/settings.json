@@ -1,0 +1,169 @@
+{
+  "env": {
+    "VISUAL": "/Users/eddyekofo/.config/nvim/tools/agent_prompt_editor.sh",
+    "AGENT_PROMPT_DEBUG": "/tmp/agent-prompt-debug.log"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(*)"
+    ]
+  },
+  "model": "opus",
+  "skillOverrides": {
+    "app-store-changelog": "user-invocable-only",
+    "ask-eddy": "user-invocable-only",
+    "codebase-design": "user-invocable-only",
+    "codex-first": "off",
+    "domain-modeling": "user-invocable-only",
+    "git-guardrails-claude-code": "user-invocable-only",
+    "handoff": "off",
+    "implement": "off",
+    "improve-codebase-architecture": "off",
+    "ios-debugger-agent": "user-invocable-only",
+    "mattpocock-skill-sync": "user-invocable-only",
+    "project-skill-audit": "user-invocable-only",
+    "prototype": "user-invocable-only",
+    "refactor": "user-invocable-only",
+    "resolving-merge-conflicts": "user-invocable-only",
+    "single-dev-server": "user-invocable-only",
+    "swift-concurrency-expert": "on",
+    "swiftui-liquid-glass": "on",
+    "swiftui-performance-audit": "on",
+    "swiftui-ui-patterns": "user-invocable-only",
+    "swiftui-view-refactor": "on",
+    "tdd": "user-invocable-only",
+    "teach": "off",
+    "wayfinder": "off",
+    "wizard": "user-invocable-only",
+    "writing-great-skills": "off"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event permission",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event question",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event permission",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event session-end",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" end",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event session-start",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/eddyekofo/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event stop",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" length",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" capture",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event failure",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$HOME/.dotfiles/tmux/scripts/agent_status.py\" hook --agent claude --event prompt",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" context",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
+}

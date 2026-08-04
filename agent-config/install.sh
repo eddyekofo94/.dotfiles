@@ -85,6 +85,14 @@ preflight_link claude-response-memory \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md" \
   0d9f6751da5da36bef7adda108c51d8f86c6a0ebe836c705487ecb1f59911845
+# Claude Code and `herdr integration install` rewrite settings.json in place,
+# so the link survives their edits and their changes land as reviewable repo
+# diffs. A writer that swapped in a fresh file instead would leave a regular
+# file here, and verify.sh would fail on the unmanaged link.
+preflight_link claude-settings \
+  "$agent_home/.claude/settings.json" \
+  "$config_dir/claude/settings.json" \
+  6942780acf9eeca5065a5d295e77e3915a1661623e7e8942b365c8b85c456cdd
 
 install_link codex-agents \
   "$agent_home/.codex/AGENTS.md" "$repo_dir/pi/AGENTS.md"
@@ -101,6 +109,8 @@ install_link claude-closeout-capture \
 install_link claude-response-memory \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md"
+install_link claude-settings \
+  "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
 
 AGENT_CONFIG_HOME="$agent_home" "$config_dir/verify.sh"
 echo 'agent config installation: PASS'

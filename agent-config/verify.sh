@@ -20,6 +20,7 @@ verify_link "$agent_home/.claude/hooks/closeout.sh" "$config_dir/claude/closeout
 verify_link \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md"
+verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
 
 [ -x "$config_dir/claude/closeout.sh" ]
 [ "$(cat "$config_dir/claude/CLAUDE.md")" = \
@@ -31,18 +32,21 @@ grep -Fq '## Closeout' "$repo_dir/pi/AGENTS.md"
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"
 
-# Without the SessionEnd hook, a finished session's closeout stays in the temp
-# directory and the next agent to take that pane id inherits it. settings.json
-# is Eddy's own file rather than a managed link, so this asserts the live
-# install only; the installer's sandbox home has no settings.json to check.
-if [ -z "${AGENT_CONFIG_HOME:-}" ]; then
-  jq -e '
-    [.hooks.SessionEnd[]?.hooks[]?.command] | any(contains("closeout.sh\" end"))
-  ' "$agent_home/.claude/settings.json" >/dev/null || {
-    echo "agent-config: SessionEnd does not run the closeout cleanup" >&2
-    exit 1
-  }
-fi
+# settings.json is what actually wires the closeout hooks up, so a restore that
+# recovers the scripts but not their registrations is a silent no-op. Each entry
+# is asserted through the managed link, which covers the sandbox home too.
+jq -e '
+  ([.hooks.SessionEnd[]?.hooks[]?.command] |
+    any(contains("closeout.sh\" end"))) and
+  ([.hooks.Stop[]?.hooks[]?.command] |
+    any(contains("closeout.sh\" length")) and
+    any(contains("closeout.sh\" capture"))) and
+  ([.hooks.UserPromptSubmit[]?.hooks[]?.command] |
+    any(contains("closeout.sh\" context")))
+' "$agent_home/.claude/settings.json" >/dev/null || {
+  echo "agent-config: settings.json does not register the closeout hooks" >&2
+  exit 1
+}
 
 hook_json=$(printf '' | "$config_dir/claude/closeout.sh" context)
 jq -e '

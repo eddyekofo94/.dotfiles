@@ -8,6 +8,14 @@
 - Claude's prompt hook extracts the response/closeout sections from that same
   source; it does not maintain another rule copy.
 
+`~/.claude/settings.json` is a managed link too, because the closeout scripts do
+nothing until its hook entries register them. Claude Code and
+`herdr integration install` rewrite that file in place rather than replacing it,
+so their edits follow the link and land as reviewable repository diffs — expect
+`/model`, plugin, and integration changes to show up as working-tree changes
+here. A writer that swapped in a fresh file would leave an unmanaged regular
+file, which `verify.sh` fails on.
+
 Install reviewed links:
 
 ```sh
