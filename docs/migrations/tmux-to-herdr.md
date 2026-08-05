@@ -540,3 +540,29 @@ only on documentation or assumed API parity.
   full Herdr/Fish verification, and fresh closure review pass (Standards 0 /
   Fidelity 0). Herdr remains v0.7.4 with `pane_history = false`; tmux remains
   installed and available.
+- 2026-08-05: v0.7.5 leaves the `pane.graphics.set` handler byte-identical but
+  does reopen the deferred image prototype elsewhere. At the pinned tag object
+  `99df3ac3` and commit `ef4c23f5` recorded in
+  [`pins.env`](../../herdr/source-build/pins.env), `src/app/api/pane_graphics.rs`
+  — which holds `handle_pane_graphics_set`, `set_pane_graphics_layer`, and
+  `handle_pane_graphics_clear` — has the same Git blob
+  `7851f69a8f55c948d68b8baefbd5c3b5c645f59f` as v0.7.4. That is a handler-blob
+  claim only, not whole-subsystem parity, and the rest of the graphics path did
+  move. `src/kitty_graphics.rs`, `src/server/headless/pane_graphics.rs`, and
+  `src/server/render_stream.rs` now thread a `TabSurfaceView` argument instead of
+  reading `app.view.pane_infos` directly; `TabSurfaceView` borrows that same
+  `pane_infos` slice, so those three are the mechanical continuation of the
+  `8dcb75a5` tab-surface extraction already reviewed on 2026-07-17.
+  `src/api/server/pane_graphics_stream.rs` separately gained a peer-disconnect
+  (EINVAL) race fix. The material change is elsewhere: vendored
+  `libghostty-vt` kitty graphics storage adds process-global **generation
+  stamps** (`graphics_storage.zig`, +299 lines), and `src/ghostty/mod.rs`
+  (+390/-140) consumes them as texture-cache staleness keys. Upstream documents
+  the image stamp as changing on retransmission of the same image ID, so
+  "texture caches must key staleness on this value rather than on size
+  heuristics" — which is exactly the Round 8 stale-raster-on-replacement seam.
+  The 2026-07-17 retry trigger (an upstream change that explicitly touches
+  `pane.graphics.set` replacement or focus/resize composition) is therefore
+  **met** for the replacement/cache half. The Round 8 gaps remain unretested and
+  the black focus redraw is untouched by this release; whether to spend a retry
+  round on the prototype is an open decision, not a settled deferral.
