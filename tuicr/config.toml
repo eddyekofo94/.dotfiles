@@ -1,0 +1,12 @@
+# tuicr - code review TUI, opened from Herdr `prefix+g` as a 92% popup.
+# Unknown keys are warned about and ignored by tuicr, so keep this to settings
+# the installed binary actually reads.
+
+# The popup is wide enough for two columns, so default to the split view instead
+# of toggling it on every launch. `:diff` still switches back to unified for a
+# narrow pane or a long single-file diff.
+diff_view = "side-by-side"
+
+# Match ghostty/config, which pins catppuccin-mocha rather than following the
+# system appearance, so the popup does not change palette against its terminal.
+theme = "catppuccin-mocha"
