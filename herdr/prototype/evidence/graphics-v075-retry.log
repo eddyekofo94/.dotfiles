@@ -1,0 +1,9 @@
+2026-08-05T15:04:08Z start pane=w1:p2 args=preview-blue.png preview=29x14
+2026-08-05T15:04:08Z start pane=w1:p2 args=--worker-set 1785942248-82465-set preview-blue.png preview=29x14
+{"id":"prototype-graphics-set","result":{"type":"ok"}}
+2026-08-05T15:05:40Z start pane=w1:p2 args=preview-amber.png preview=29x14
+2026-08-05T15:05:40Z start pane=w1:p2 args=--worker-set 1785942340-83267-set preview-amber.png preview=29x14
+{"id":"prototype-graphics-set","result":{"type":"ok"}}
+2026-08-05T15:05:44Z start pane=w1:p2 args=preview-green.png preview=29x14
+2026-08-05T15:05:44Z start pane=w1:p2 args=--worker-set 1785942344-83320-set preview-green.png preview=29x14
+{"id":"prototype-graphics-set","result":{"type":"ok"}}
