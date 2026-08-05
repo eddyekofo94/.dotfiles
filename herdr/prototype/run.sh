@@ -40,18 +40,23 @@ case "$border_style" in
     ;;
 esac
 
-asset=herdr-macos-aarch64
-version=v0.7.4
-expected_size=15866512
 source_build="$root/herdr/source-build"
+
+# pins.env is the single source of truth for which Herdr this machine runs.
+# Reading it here (rather than hardcoding a version) keeps the download
+# fallback on the same release as the reviewed source build: a stale constant
+# here would silently hand a prototype trial the wrong binary whenever the
+# cached one is missing, which invalidates any version-specific evidence.
+# shellcheck source=/dev/null
+. "$source_build/pins.env"
+asset=$HERDR_OFFICIAL_ASSET
+version=$HERDR_SOURCE_TAG
 
 mkdir -p "$runtime/bin" "$config_home/herdr"
 
 if [ ! -x "$bin" ]; then
   reviewed_bin="$source_build/.work/bin/herdr"
   if [ -x "$reviewed_bin" ]; then
-    # shellcheck source=/dev/null
-    . "$source_build/pins.env"
     reviewed_sha=$(shasum -a 256 "$reviewed_bin" | awk '{print $1}')
     if [ "$reviewed_sha" != "$HERDR_BINARY_SHA256" ]; then
       echo "reviewed Herdr source-build binary hash mismatch" >&2
@@ -62,10 +67,10 @@ if [ ! -x "$bin" ]; then
   else
     tmp="$bin.download"
     curl -fL "https://github.com/ogulcancelik/herdr/releases/download/$version/$asset" -o "$tmp"
-    actual_size=$(wc -c <"$tmp" | tr -d ' ')
-    if [ "$actual_size" != "$expected_size" ]; then
+    actual_sha=$(shasum -a 256 "$tmp" | awk '{print $1}')
+    if [ "$actual_sha" != "$HERDR_OFFICIAL_SHA256" ]; then
       rm -f "$tmp"
-      echo "Herdr download size mismatch: expected $expected_size, got $actual_size" >&2
+      echo "Herdr download hash mismatch: expected $HERDR_OFFICIAL_SHA256, got $actual_sha" >&2
       exit 1
     fi
     chmod 0755 "$tmp"
