@@ -33,7 +33,11 @@ untouched and still governed by the rule above.
 Prototype and production evidence must include commands/readback; appearance
 and interaction feel require screenshots and user approval.
 
-**Current v0.7.4 verdict (2026-07-23): STAGED DAILY-DRIVER PROMOTION ACTIVE.**
+**Current verdict (approved 2026-07-23, carried to the reviewed v0.7.5 source
+build): STAGED DAILY-DRIVER PROMOTION ACTIVE.** The build in use is pinned by
+`herdr/source-build/pins.env`; rows below still name v0.7.4 wherever their
+evidence has not been re-recorded since, and those version labels are part of
+the claim rather than decoration.
 All required core rows have deterministic evidence or explicit user approval.
 Golden-ratio focus, physical navigation, visual density, application-owned Alt
 transport, and image rendering are approved. Tmux remains installed and
@@ -112,7 +116,7 @@ effective tmux prefix entry is `Ctrl-a` (`prefix` itself is `None`, with
 | `prefix+Enter` | Scratch-shell popup | Herdr popup command | [x] Real prefix input opened an 80% session-modal fixture with a 72×30 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
 | `prefix+g` | Lazygit popup | Herdr popup command | [x] Real prefix input opened an 85% session-modal fixture with a 76×32 inner PTY, inherited cwd, clean dismissal, and unchanged tiled layout/processes. |
 | `prefix+[` / `PageUp` / `Alt-Escape` | Copy mode | Herdr copy mode aliases | [x] `prefix+[` and `Alt-Escape` configured; `PageUp` omitted to preserve shell/TUI behavior. |
-| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | reviewed v0.7.4 source build keeps native `v`/Space selection and `y`/Enter yank, adds `Y` by composing native `V` then `y`, and retires rectangle selection | [x] `copy-mode-validation.jsonl` proves actual shifted `Y` input copies the exact current line and exits. The pinned source patch has focused Rust coverage and installs no input emulation. Rectangle selection remains unavailable. |
+| copy `v`, `Ctrl-v`, `y`, `Y` | select/rectangle/copy | reviewed v0.7.5 source build keeps native `v`/Space selection and `y`/Enter yank, adds `Y` by composing native `V` then `y`, and retires rectangle selection | [x] `copy-mode-validation.jsonl` proves actual shifted `Y` input copies the exact current line and exits. The pinned source patch has focused Rust coverage and installs no input emulation. Rectangle selection remains unavailable. |
 | copy `u/d`, marks, prompt jumps | half pages, marks, OSC 133 prompts | native `Ctrl-u/d` and `PageUp/Down`; retire unavailable extras | [x] **VERIFIED DIFFERENCE:** `copy-mode-validation.jsonl` proves real `prefix+s`, `Ctrl-u/d`, and `PageUp/Down` input over 120 lines, including exact viewport movement and live-process survival. The capability audit proves marks and OSC 133 prompt jumps are absent from the v0.7.4 configurable surface and are not emulated. |
 | `prefix+u`, copy `O` | Open URL | custom pane-read helper; retire cursor-local alias | [x] **VERIFIED DIFFERENCE:** `url-validation.jsonl` proves real `prefix+u` transport and exact zero/one/newest-of-many behavior with a non-launching opener fixture. The capability audit proves copy-mode cursor URL opening is absent from the v0.7.4 configurable surface and no input-emulation shim is installed. |
 | `prefix+b/B` | Ready-prompt replay / clear replay | Herdr pane inspection/read plus bracketed `send-text`; uppercase waits after Codex or Claude `/clear` | [x] `prefix+b/B` are isolated shell commands. The validator proves exact extraction, pane-local consume-once state, no implicit Enter, live non-execution, stable-ready waiting, and fail-closed clear support for agents other than Codex and Claude. |
