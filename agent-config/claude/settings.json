@@ -120,12 +120,12 @@
           },
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/closeout.sh\" length",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" capture",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "\"$HOME/.claude/hooks/closeout.sh\" capture",
+            "command": "\"$HOME/.claude/hooks/closeout.sh\" length",
             "timeout": 10
           }
         ]
@@ -161,7 +161,8 @@
   },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "mattpocock-skills@claude-plugins-official": true
   },
   "skipDangerousModePermissionPrompt": true,
   "inputNeededNotifEnabled": true,
