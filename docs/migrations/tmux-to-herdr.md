@@ -8,6 +8,7 @@ equivalence require user confirmation.
 
 Primary research: [`../research/herdr-primary-sources.md`](../research/herdr-primary-sources.md)
 Prototype: [`../../herdr/prototype/README.md`](../../herdr/prototype/README.md)
+Binding audit: [`tmux-herdr-binding-audit.md`](tmux-herdr-binding-audit.md)
 
 ## Status legend
 
