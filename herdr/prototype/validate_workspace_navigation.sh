@@ -157,6 +157,6 @@ record scope_audit "$(jq -cn \
   --arg validator_hash "$(shasum -a 256 "$prototype/validate_workspace_navigation.sh" | awk '{print $1}')" \
   --argjson production "$production_after" \
   '{config_sha256:$config_hash,client_sha256:$client_hash,validator_sha256:$validator_hash,production_sha256:$production}')"
-record result "$(jq -cn '{status:"PASS",version:"herdr 0.7.5",session:"wn",model:"workspaces-within-session",production_configuration_modified:false,migration_authorized:false}')"
+record result "$(jq -cn --arg version "$("$herdr" --version)" '{status:"PASS",version:$version,session:"wn",model:"workspaces-within-session",production_configuration_modified:false,migration_authorized:false}')"
 mv "$evidence_tmp" "$evidence"
 printf 'Herdr workspace-navigation validation: PASS (%s)\n' "$evidence"

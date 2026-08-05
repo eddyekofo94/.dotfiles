@@ -613,8 +613,8 @@ record scope_audit "$(jq -cn \
   '{unchanged:true,production_state:$production,
     artifact_sha256:{picker:$picker_hash,validator:$validator_hash,
       client:$client_hash,config:$config_hash}}')"
-record result "$(jq -cn \
-  '{status:"PASS",version:"herdr 0.7.4",session:"project-picker",
+record result "$(jq -cn --arg version "$("$herdr" --version)" \
+  '{status:"PASS",version:$version,session:"project-picker",
     pane_history:false,tmux_available:true,herdr_upgraded:false,
     git_worktrees_created:false,production_runtime_modified:false}')"
 

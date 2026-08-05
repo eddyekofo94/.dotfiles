@@ -124,7 +124,7 @@ head_commit=$(git -C "$source_dir" rev-parse HEAD)
 if [ "$tag_object" != "$HERDR_SOURCE_TAG_OBJECT" ] ||
    [ "$tag_commit" != "$HERDR_SOURCE_COMMIT" ] ||
    [ "$head_commit" != "$HERDR_SOURCE_COMMIT" ]; then
-  echo "Herdr source identity does not match the reviewed v0.7.4 pin" >&2
+  echo "Herdr source identity does not match the reviewed $HERDR_SOURCE_TAG pin" >&2
   exit 66
 fi
 
