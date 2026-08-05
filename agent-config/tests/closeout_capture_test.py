@@ -75,11 +75,15 @@ def main():
         payload = json.dumps({"transcript_path": str(path), "session_id": "s1"})
         result = run([], env, payload)
         expect(result.returncode == 0, "the hook exited non-zero", result)
-        expect(target.exists(), "no closeout was written", result)
+        expect(target.exists(), "no record was written", result)
+        # The body is the half the next prompt actually answers -- the checks to
+        # run, the files named, the question asked. Cutting at Status drops it.
+        captured = target.read_text(encoding="utf-8")
         expect(
-            target.read_text(encoding="utf-8").startswith("**Status:** DONE"),
-            "the captured text did not start at the Status line",
+            captured.startswith("Body line."),
+            "the captured text did not start at the top of the message",
         )
+        expect("**Status:** DONE" in captured, "the captured text lost the closeout")
 
         expect(not stale.exists(), "a finished session's record survived")
         expect(not legacy.exists(), "the pre-session filename survived")
@@ -90,8 +94,8 @@ def main():
         result = run([], env, payload)
         expect(result.returncode == 0, "a closeout-less turn errored", result)
         expect(
-            target.read_text(encoding="utf-8").startswith("**Status:** DONE"),
-            "a closeout-less turn erased the previous closeout",
+            target.read_text(encoding="utf-8").startswith("Body line."),
+            "a closeout-less turn erased the previous record",
         )
 
         # Two panes, two sessions: neither prune nor cleanup may reach the other.
@@ -116,8 +120,8 @@ def main():
         )
         expect(result.returncode == 0, "--print found no closeout", result)
         expect(
-            result.stdout.startswith("**Status:** DONE"),
-            "--print did not emit the closeout",
+            result.stdout.startswith("Body.") and "**Status:** DONE" in result.stdout,
+            "--print did not emit the whole message",
         )
 
     print("closeout capture hook: PASS")

@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Stop hook: save the turn's closeout while it is still knowable.
+"""Stop hook: save the turn's final message while it is still knowable.
+
+Records the *whole* message, not only the closeout. The closeout names the
+artifacts but not the questions the prompt has to answer -- the two device
+checks, the file and line a QA row refers to, the option being chosen between
+-- all of which sit in the body above `Status:`. Writing from ctrl+g with only
+the closeout on screen meant re-reading the pane, which is exactly what this
+record exists to avoid. A closeout is still what marks a turn as answerable,
+so it remains the gate; it is no longer the cut.
 
 Scraping the pane at ctrl+g time does not work. `herdr pane read` returns about
 one viewport regardless of `--lines`, and by the moment the editor launches the
@@ -122,12 +130,13 @@ def find_transcript(session_id, cwd=None):
     return transcripts[0] if transcripts else None
 
 
-def last_closeout(path):
-    """The newest assistant message that actually carries a closeout.
+def last_turn(path):
+    """The newest assistant message that actually carries a closeout, whole.
 
     Not simply the newest message: the shim runs while the turn that triggered
     it is still being written, and tool-only turns carry no closeout either.
-    Either would otherwise read as "nothing to show".
+    Either would otherwise read as "nothing to show". The closeout decides
+    *which* message this is; the text returned is all of it.
     """
     found = None
     with open(path, encoding="utf-8") as handle:
@@ -153,22 +162,22 @@ def last_closeout(path):
                 continue
             _, closeout = split_at_closeout(text)
             if closeout:
-                found = closeout
+                found = text
     return found
 
 
-def print_closeout(session_id, cwd=None):
+def print_turn(session_id, cwd=None):
     path = find_transcript(session_id, cwd)
     if not path:
         sys.stderr.write(f"no transcript under {project_dir(cwd)}\n")
         return 1
     try:
-        closeout = last_closeout(path)
+        turn = last_turn(path)
     except OSError:
         return 1
-    if not closeout:
+    if not turn:
         return 1
-    sys.stdout.write("\n".join(closeout).rstrip() + "\n")
+    sys.stdout.write(turn.rstrip() + "\n")
     return 0
 
 
@@ -178,7 +187,7 @@ def main():
             "CLAUDE_CODE_SESSION_ID"
         )
         cwd = sys.argv[3] if len(sys.argv) > 3 else None
-        return print_closeout(session or None, cwd)
+        return print_turn(session or None, cwd)
 
     end = len(sys.argv) > 1 and sys.argv[1] == "--session-end"
 
@@ -219,10 +228,10 @@ def main():
         return 0
 
     try:
-        # The closeout is verbatim agent output; keep it readable by its author.
+        # Verbatim agent output; keep it readable by its author.
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write("\n".join(closeout).rstrip() + "\n")
+            handle.write(text.rstrip() + "\n")
     except OSError:
         return 0
 
