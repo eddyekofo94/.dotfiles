@@ -248,6 +248,48 @@ an official release or preview explicitly changes `pane.graphics.set`
 replacement or focus/resize composition. This is deferred polish, not a
 migration gate.
 
+### v0.7.5 retry decision (2026-08-05)
+
+**Trigger fired, for one gap only.** The 2026-07-17 retry condition is met on the
+replacement/cache half: vendored `libghostty-vt` adds process-global generation
+stamps and `src/ghostty/mod.rs` keys texture-cache staleness on them, upstream
+documenting that a same-ID retransmission with identical dimensions, format, and
+data length previously escaped size-heuristic cache keys. Round 8's symptom —
+a new selection painting the *prior* fixture — is that failure exactly, and
+`herdr/prototype/native_preview.sh` pre-fits every fixture to the cell box, so
+its replacements do present near-identical dimensions. Nothing in v0.7.5 touches
+focus or resize composition: the `pane.graphics.set` handler blob is unchanged
+and the compositor edits are the `8dcb75a5` tab-surface extraction plus its
+v0.7.5 continuation (`render_stream.rs` deletions are code moved into
+`crate::ui` helpers, not behavior).
+
+**Decision: retry, scoped to the replacement gap.** Cost is low — this machine
+already runs the reviewed v0.7.5 build (`herdr --version` → 0.7.5), and the
+Round 8 harness, fixtures, and screenshot procedure are intact, so no rebuild
+and no new prototype code are required. The black focus redraw is observed and
+recorded in the same run but is **not** retested as a fix candidate; it has no
+upstream change behind it and stays deferred regardless of outcome.
+
+**Validation plan:**
+
+1. Confirm the running binary matches `pins.env` before capturing anything.
+2. Run the Round 8 image round unchanged under `./herdr/prototype/live_ghostty.sh`
+   with the same fixtures, cycling selection green → amber → blue.
+3. Capture replacement screenshots at the same points as
+   [`native-preview-cycle-amber`](../../herdr/prototype/screenshots/native-preview-cycle-amber.png)
+   and [`native-preview-cycle-blue`](../../herdr/prototype/screenshots/native-preview-cycle-blue.png),
+   plus a focus-change capture for the observation-only row.
+4. Log every request/response to prototype evidence as in Round 8.
+
+**Stop condition:** each captured raster matches its selected fixture with no
+prior-frame residue, or the stale raster reproduces on v0.7.5. Either way the
+gap row is updated with the new captures.
+
+**Acceptance is the user's.** Replacement smoothness is visual and subjective;
+the row stays `AWAITING USER` until Eddy confirms the captures. A pass promotes
+the replacement gap only — the focus-redraw gap remains an accepted,
+non-blocking deferral, and pane graphics remain experimental upstream.
+
 ### Round 9 — approved binding policy implementation
 
 The isolated prototype implements the approved table without changing tmux,
@@ -564,5 +606,6 @@ only on documentation or assumed API parity.
   The 2026-07-17 retry trigger (an upstream change that explicitly touches
   `pane.graphics.set` replacement or focus/resize composition) is therefore
   **met** for the replacement/cache half. The Round 8 gaps remain unretested and
-  the black focus redraw is untouched by this release; whether to spend a retry
-  round on the prototype is an open decision, not a settled deferral.
+  the black focus redraw is untouched by this release. The retry decision is
+  settled in [v0.7.5 retry decision](#v075-retry-decision-2026-08-05): retry the
+  replacement gap on the existing harness, keep the focus-redraw gap deferred.
