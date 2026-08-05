@@ -249,6 +249,17 @@ when their command exits, and leave the tiled pane, tab, workspace, layout, and
 sentinel process unchanged. The gate does not launch a production shell or
 lazygit instance and does not authorize migration.
 
+The `lazygit` fixture kind names the popup slot, not the tool. Production
+`prefix+g` now launches `tuicr --working-tree`; the prototype config keeps the
+`lazygit` payload deliberately. The gate sed-substitutes `popup_fixture.sh` for
+that command before the server starts, so it never runs either tool, and what it
+proves — 85%×85% geometry, a 76×32 inner PTY, inherited cwd, dismissal on
+process exit, tiled objects unchanged — is identical for any full-screen git TUI.
+`prototype/config.toml` is sha256-pinned by sixteen gates, so retitling the
+payload would force sixteen live re-validations that prove nothing new. Swapping
+the production git TUI is not a prototype change; only a change to the popup
+contract itself (binding, type, or geometry) re-opens this gate.
+
 ## Layout palette gate
 
 Run the process-preserving layout palette gate with:

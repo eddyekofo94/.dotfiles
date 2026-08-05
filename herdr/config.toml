@@ -295,8 +295,8 @@ height = "80%"
 [[keys.command]]
 key = "prefix+g"
 type = "popup"
-command = "command -v lazygit >/dev/null 2>&1 && exec lazygit || exec \"${SHELL:-sh}\""
-description = "lazygit"
+command = "command -v tuicr >/dev/null 2>&1 && exec tuicr --working-tree || exec \"${SHELL:-sh}\""
+description = "tuicr"
 width = "85%"
 height = "85%"
 
