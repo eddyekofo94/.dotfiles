@@ -123,7 +123,10 @@ rg -q '^command = "exec \\"\$HERDR_PROTOTYPE_DIR/tab_edge\.sh\\" last"$' \
 rg -q '^command = "exec \\"\$HERDR_PROTOTYPE_DIR/agent_overview\.sh\\""$' \
   "$herdr_dir/config.toml"
 rg -q '^height = 20$' "$herdr_dir/config.toml"
-rg -Fqx 'last_pane = ["prefix+tab", "ctrl+^"]' "$herdr_dir/config.toml"
+rg -Fqx 'last_pane = ["ctrl+^"]' "$herdr_dir/config.toml"
+# prefix+Tab is tmux's last *window*, so it must reach the tab-history plugin
+# rather than last_pane, which would silently win the duplicate.
+rg -Fqx 'command = "prototype.tab-history.last"' "$herdr_dir/config.toml"
 
 HERDR_BIN_PATH="$herdr_dir/fixtures/herdr-plugin-client.sh" \
 HERDR_PLUGIN_FIXTURE_STATE="$tmp/plugin-fixture-state" \

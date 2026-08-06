@@ -304,8 +304,9 @@ leading text and trailing newlines, in mode `0600` files and do not enable pane
 history.
 
 `prefix+^` focuses the first tab and `prefix+$` the last tab in current
-workspace API order. They do not change `prefix+Tab` or `Ctrl+^`, which remain
-the approved last-pane bindings. The gate proves both transfer directions,
+workspace API order. They do not change `Ctrl+^`, which remains the approved
+last-pane binding; `prefix+Tab` is tmux's last *window* and now drives the
+tab-history plugin instead. The gate proves both transfer directions,
 including a cross-workspace move, preserve terminal ID, sentinel PID, cwd, and
 focus; a 320-line history export, no-clobber and confirmed overwrite; tab-edge
 order; both real popup transports; and unchanged tmux, Fish, Ghostty, and
@@ -366,8 +367,8 @@ navigation uses first-class workspaces inside one session. Real `prefix+(`/`)`
 input cycles three workspaces in both directions with wrapping. `Ctrl-^`
 (the same terminal byte as `Ctrl-6`) invokes native `last_pane` and toggles
 between panes in different workspaces. All three sentinel processes survive.
-`prefix+Tab` remains an additional last-pane binding outside the tab-history
-gate.
+`prefix+Tab` is the tab-history binding, not a second last-pane one: the native
+`last_pane` default on that key is removed so the plugin action is reachable.
 
 ## Ready-prompt replay gate
 

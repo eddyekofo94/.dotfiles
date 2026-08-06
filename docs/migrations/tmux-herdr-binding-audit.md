@@ -37,9 +37,9 @@ Status values: **COVERED** (a Herdr key or native surface does the same job),
 | prefix `C-x` | kill all other windows | `alt+ctrl+x` close other tabs |
 | prefix `_`; root `M-^` | first window | `prefix+^` focus first tab |
 | root `M-$` | last window | `prefix+$` focus last tab |
-| root `M-w` `M-W` | `select-pane -t :.+/-` | native `prefix+tab` / `prefix+shift+tab` |
-| root `M-p`; prefix `C-6` `C-^` | last pane / last client | `prefix+Tab` last-pane navigation |
-| root `M-Tab` | last window | `alt+tab` focus previous tab, via the tab-history plugin; Herdr claims the chord globally, so it never reaches a pane app |
+| root `M-w` `M-W` | `select-pane -t :.+/-` | native `prefix+shift+tab` |
+| root `M-p`; prefix `C-6` `C-^` | last pane / last client | `Ctrl-^` last-pane navigation |
+| root `M-Tab`; prefix `Tab` | last window | `prefix+Tab` focus previous tab, via the tab-history plugin; the native `prefix+tab` last-pane default is removed so the plugin action is not shadowed |
 | root `M-r` `M-R` | `swap-pane -D/-U` | `prefix+shift+h/j/k/l` directional swap |
 | prefix `+` `,` `.` `>`; root `M--` `M-+` `M-<` `M->` `M-,` | incremental resize chords | native `prefix+r` resize mode; `alt+=` / `prefix+=` equalize |
 | prefix `J` | `join-pane` from another window | `prefix+shift+p` send or receive a pane |
