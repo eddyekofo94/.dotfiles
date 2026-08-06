@@ -36,7 +36,8 @@ test -x "$herdr_dir/window_session.sh"
 test -x "$prototype/new_tab.sh"
 rg -q 'window_session\.sh' "$prototype/herdr_login_attach.fish"
 rg -q 'ensure_plugins\.sh.*\$session' "$prototype/herdr_login_attach.fish"
-rg -q 'plugin_id=prototype\.golden-focus' "$herdr_dir/ensure_plugins.sh"
+rg -q 'prototype\.golden-focus:golden-focus' "$herdr_dir/ensure_plugins.sh"
+rg -q 'prototype\.tab-history:tab-history' "$herdr_dir/ensure_plugins.sh"
 
 fallback_args=$(
   HERDR_GHOSTTY_OPEN=/bin/echo \
@@ -127,7 +128,10 @@ rg -Fqx 'last_pane = ["prefix+tab", "ctrl+^"]' "$herdr_dir/config.toml"
 HERDR_BIN_PATH="$herdr_dir/fixtures/herdr-plugin-client.sh" \
 HERDR_PLUGIN_FIXTURE_STATE="$tmp/plugin-fixture-state" \
   "$herdr_dir/ensure_plugins.sh" review-test
-test "$(cat "$tmp/plugin-fixture-state")" = 2
+# Every plugin a keybinding depends on, linked, and the retry path taken once.
+test "$(sed -n '1p' "$tmp/plugin-fixture-state")" = 1
+test "$(sed -n '2p' "$tmp/plugin-fixture-state")" = \
+  ' prototype.golden-focus prototype.tab-history'
 
 # Refusal and config-validation failures must not alter either live target.
 mkdir -p "$tmp/refusal/bin" "$tmp/refusal/config"

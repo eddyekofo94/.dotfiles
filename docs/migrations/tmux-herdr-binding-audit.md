@@ -39,6 +39,7 @@ Status values: **COVERED** (a Herdr key or native surface does the same job),
 | root `M-$` | last window | `prefix+$` focus last tab |
 | root `M-w` `M-W` | `select-pane -t :.+/-` | native `prefix+tab` / `prefix+shift+tab` |
 | root `M-p`; prefix `C-6` `C-^` | last pane / last client | `prefix+Tab` last-pane navigation |
+| root `M-Tab` | last window | `alt+tab` focus previous tab, via the tab-history plugin; Herdr claims the chord globally, so it never reaches a pane app |
 | root `M-r` `M-R` | `swap-pane -D/-U` | `prefix+shift+h/j/k/l` directional swap |
 | prefix `+` `,` `.` `>`; root `M--` `M-+` `M-<` `M->` `M-,` | incremental resize chords | native `prefix+r` resize mode; `alt+=` / `prefix+=` equalize |
 | prefix `J` | `join-pane` from another window | `prefix+shift+p` send or receive a pane |
@@ -53,7 +54,6 @@ Status values: **COVERED** (a Herdr key or native surface does the same job),
 | --- | --- | --- |
 | root `M-C-h/j/k/l`, `M-C-n`, `M-C-o`, `M-C-p`, `M-C-q`, `M-C-s`, `M-C-v`, `M-C-z`, `M-C-c`, `M-C-x`, `M-C-f`, `M-C-6`, `M-C-^`, `M-C-Tab` | nested-tmux passthrough layer | Retired with the nesting model: Herdr runs unnested, so the second Ctrl-Alt tier has nothing to address |
 | root `M-C-Up` `M-C-Down` | enter/exit passthrough mode | Retired; remote work uses native `herdr --remote` thin-client attach |
-| root `M-Tab` | last window | Retired in favor of proven `prefix+Tab` / `Ctrl-^` last-pane navigation |
 | root `M-t` | `select-pane -t 1` | Retired; absolute pane indices are not part of the Herdr model, which addresses panes by direction or navigator |
 
 ## UNMAPPED

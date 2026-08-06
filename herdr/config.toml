@@ -336,6 +336,16 @@ type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/tab_edge.sh\" last"
 description = "focus last tab"
 
+# tmux's root `M-Tab` (last window), restored on Herdr's tab. Herdr claims
+# alt+tab globally, so it never reaches Neovim or any other pane app: the chord
+# always moves between tabs and never between windows or panes. `prefix+Tab`
+# stays on last_pane, which is the pane-level counterpart, not a duplicate.
+[[keys.command]]
+key = "alt+tab"
+type = "plugin_action"
+command = "prototype.tab-history.last"
+description = "focus previous tab"
+
 [[keys.command]]
 key = "prefix+shift+f"
 type = "popup"
