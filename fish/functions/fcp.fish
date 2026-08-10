@@ -5,7 +5,7 @@ function fcp -d "fzf find and copy file path"
     set -lx FZF_DEFAULT_COMMAND "$fd_base --type f --type d"
 
     set -l files (
-      fzf --query="$argv" --multi --select-1 --exit-0 \
+      fzf --query=(string join " " -- $argv) --multi --select-1 --exit-0 \
           --prompt="All> " \
           --bind="$fzf_bind" \
           --preview '_fzf_preview {}' \
@@ -15,16 +15,15 @@ function fcp -d "fzf find and copy file path"
     if test (count $files) -gt 0
         set -l full_paths
         for file in $files
-            set -a full_paths (realpath "$file")
+            set -a full_paths (path resolve -- "$file")
         end
 
-        # Escape paths to handle spaces and special characters properly
-        set -l escaped_paths (string escape -- $full_paths)
-        # Join paths with a space so they can be pasted as arguments in a single line
-        set -l joined_escaped (string join " " $escaped_paths)
+        # Escape paths to handle spaces and special characters properly,
+        # then join with a space so they paste as arguments on a single line
+        set -l joined_escaped (string join " " (string escape -- $full_paths))
 
         # Copy to clipboard without a trailing newline
-        echo -n $joined_escaped | pbcopy
+        echo -n $joined_escaped | clipcopy
 
         # Append the copy command to history so the user can recopy it with ctrl+r
         set -l double_escaped (string escape -- $joined_escaped)
