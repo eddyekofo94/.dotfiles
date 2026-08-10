@@ -1,4 +1,16 @@
 function fcp -d "fzf find and copy file path"
+    # Muscle memory: paths pasted in (ctrl+t and friends) are targets, not a query
+    if test (count $argv) -gt 0
+        set -l all_exist true
+        for arg in $argv
+            test -e "$arg"; or set all_exist false
+        end
+        if test $all_exist = true
+            cppwd $argv
+            return $status
+        end
+    end
+
     set -l fd_base "fd --strip-cwd-prefix --hidden --follow --exclude .git"
     set -l fzf_bind "ctrl-x:transform:fish -c 'if test \"\$FZF_PROMPT\" = \"All> \"; echo \"change-prompt(Files> )+reload($fd_base --type f)\"; else if test \"\$FZF_PROMPT\" = \"Files> \"; echo \"change-prompt(Dirs> )+reload($fd_base --type d)\"; else; echo \"change-prompt(All> )+reload($fd_base --type f --type d)\"; end'"
 
