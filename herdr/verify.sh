@@ -24,9 +24,20 @@ clean_multiplexer_env() {
     -u HERDR_TARGET_PANE_ID -u HERDR_STARTUP_CWD "$@"
 }
 
+# install.sh ends by calling install_tab_status.sh, which — unlike the binary and
+# config it stages under HERDR_INSTALL_BIN/HERDR_CONFIG_DIR — writes to the real
+# ~/.local/bin and ~/Library/LaunchAgents and bootstraps the live launch agent.
+# Every install.sh run below is a sandboxed rehearsal, so switch that tail off
+# globally; the dedicated tab-status block near the end calls the installer
+# directly with its own temp-dir overrides instead.
+export HERDR_INSTALL_TAB_STATUS=0
+
 for script in "$herdr_dir"/*.sh; do
   sh -n "$script"
 done
+# The switch above only isolates the gate if install.sh actually honours it.
+rg -q 'HERDR_INSTALL_TAB_STATUS:-1' "$herdr_dir/install.sh"
+rg -q 'install_tab_status\.sh' "$herdr_dir/install.sh"
 "$source_build/verify.sh"
 test -x "$HOME/.local/bin/herdr"
 test "$(shasum -a 256 "$HOME/.local/bin/herdr" | awk '{print $1}')" = \
@@ -97,7 +108,7 @@ test "$(shasum -a 256 "$tmp/bin/herdr" | awk '{print $1}')" = \
 test "$(readlink "$tmp/config/config.toml")" = "$herdr_dir/config.toml"
 test "$(rg -c '^pane_history = false$' "$herdr_dir/config.toml")" -eq 1
 for binding in \
-  'alt+ctrl+n' \
+  'alt+ctrl+t' \
   'prefix+shift+a' \
   'prefix+shift+p' \
   'prefix+shift+u' \
@@ -224,6 +235,58 @@ HERDR_CONFIG_DIR="$tmp/config" "$herdr_dir/set_default.sh" tmux >/dev/null
 test "$(cat "$tmp/config/default-multiplexer")" = tmux
 HERDR_CONFIG_DIR="$tmp/config" "$herdr_dir/set_default.sh" herdr >/dev/null
 test "$(cat "$tmp/config/default-multiplexer")" = herdr
+
+# Tab-position stamper. The launch agent runs the tracked script directly from
+# the checkout, so the exec bit has to survive in git rather than be restored by
+# a chmod the installer happens to do; assert that before running the installer,
+# which would otherwise repair it and hide the regression.
+test -x "$herdr_dir/tab_status.sh"
+test "$(git -C "$root" ls-files -s herdr/tab_status.sh | awk '{print $1}')" = 100755
+
+# Render the launch agent into a temp dir. The installer lints internally; lint
+# again here so a template that only fails outside the installer's plutil branch
+# still fails the gate, and reject any placeholder the sed script forgot.
+tab_status_label=com.eddyekofo.herdr-tab-status
+mkdir -p "$tmp/tab-status/bin" "$tmp/tab-status/agents"
+HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/herdr-tab-status" \
+HERDR_LAUNCH_AGENT_DIR="$tmp/tab-status/agents" \
+HERDR_TAB_STATUS_LOG="$tmp/tab-status/$tab_status_label.log" \
+HERDR_TAB_STATUS_INTERVAL=3 \
+HERDR_TAB_STATUS_BOOTSTRAP=0 \
+  "$herdr_dir/install_tab_status.sh" >/dev/null
+rendered_plist="$tmp/tab-status/agents/$tab_status_label.plist"
+plutil -lint "$rendered_plist" >/dev/null
+# Named individually: the template's own comment mentions "@PLACEHOLDERS@", so a
+# generic @[A-Z_]+@ sweep matches prose that is supposed to survive rendering.
+if rg -q '@(LABEL|SCRIPT|INTERVAL|BIN_DIR|LOG)@' "$rendered_plist"; then
+  echo "rendered plist still contains an unsubstituted placeholder" >&2
+  exit 1
+fi
+rg -Fq "<string>$herdr_dir/tab_status.sh</string>" "$rendered_plist"
+rg -Fq "<string>$tmp/tab-status/bin:" "$rendered_plist"
+test "$(readlink "$tmp/tab-status/bin/herdr-tab-status")" = "$herdr_dir/tab_status.sh"
+
+# The installer adopts only its own link, so a wrong one must be refused rather
+# than silently repointed.
+ln -sf /usr/bin/false "$tmp/tab-status/bin/herdr-tab-status"
+if HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/herdr-tab-status" \
+    HERDR_LAUNCH_AGENT_DIR="$tmp/tab-status/agents" \
+    HERDR_TAB_STATUS_LOG="$tmp/tab-status/$tab_status_label.log" \
+    HERDR_TAB_STATUS_BOOTSTRAP=0 \
+      "$herdr_dir/install_tab_status.sh" >/dev/null 2>&1; then
+  echo "tab-status installer unexpectedly replaced an unrelated link" >&2
+  exit 1
+fi
+test "$(readlink "$tmp/tab-status/bin/herdr-tab-status")" = /usr/bin/false
+
+# And the live link on PATH: the plist bakes ~/.local/bin in, so `herdr` and the
+# stamper both have to resolve from there.
+live_tab_status=${HERDR_TAB_STATUS_BIN:-"$HOME/.local/bin/herdr-tab-status"}
+if [ "$(readlink "$live_tab_status" 2>/dev/null)" != "$herdr_dir/tab_status.sh" ]; then
+  echo "$live_tab_status must be a symlink to $herdr_dir/tab_status.sh" >&2
+  echo "run herdr/install_tab_status.sh" >&2
+  exit 1
+fi
 
 clean_multiplexer_env "$herdr_dir/validate_project_picker.sh"
 "$herdr_dir/verify_integrations.sh"

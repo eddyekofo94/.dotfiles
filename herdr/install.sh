@@ -146,6 +146,12 @@ if [ "$activate" -eq 1 ]; then
   HERDR_CONFIG_DIR="$config_dir" "$root/herdr/set_default.sh" herdr >/dev/null
 fi
 
+# Last, and separately: the tab-position stamper needs no network and no
+# release binary, so it stays runnable on its own from a clean checkout.
+if [ "${HERDR_INSTALL_TAB_STATUS:-1}" -eq 1 ]; then
+  "$root/herdr/install_tab_status.sh"
+fi
+
 printf 'installed %s at %s\n' "$($install_bin --version)" "$install_bin"
 printf 'config: %s -> %s\n' "$config_link" "$config_target"
 printf 'the first named-session attach provisions the tracked golden-focus plugin\n'
