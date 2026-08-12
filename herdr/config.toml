@@ -4,7 +4,13 @@ onboarding = false
 name = "catppuccin"
 
 [theme.custom]
-overlay0 = "#1e1e2e"
+# overlay0 is Herdr's dim-text token, not a border token — ~92 render sites use
+# it for secondary text, including the second line of the agent-finished toast
+# (workspace · index · tab label). It used to be pinned to #1e1e2e, which is
+# Catppuccin's *base*, so every one of those sites drew text in the background
+# colour and vanished. Kept at Catppuccin Mocha's real overlay0: dim enough to
+# recede, readable against panel_bg. (Eddy, 2026-08-12)
+overlay0 = "#6c7086"
 
 [terminal]
 default_shell = "/Users/eddyekofo/.dotfiles/herdr/prototype/prototype_shell.sh"
