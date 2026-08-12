@@ -14,8 +14,15 @@ new_cwd = "follow"
 [keys]
 prefix = "ctrl+a"
 new_tab = "prefix+c"
-next_tab = "prefix+n"
-previous_tab = "prefix+p"
+# Alt+Ctrl+n/p mirror Prefix+n/p so tab stepping is a single chord, matching the
+# Alt+Ctrl+t new-tab chord below. Herdr claims them globally (no vim forward):
+# tab movement means one thing in every app.
+#
+# Alt+Ctrl+Left/Right are the same two actions under the arrows, for when the
+# hand is already off the home row. Left is previous, Right is next. macOS binds
+# bare Ctrl+Left/Right to Mission Control spaces; adding Alt clears that.
+next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]
+previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]
 close_tab = "prefix+shift+x"
 workspace_picker = "prefix+w"
 goto = "prefix+f"
@@ -221,7 +228,7 @@ command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
 description = "clear Codex context and insert newest handoff"
 
 [[keys.command]]
-key = "alt+ctrl+n"
+key = "alt+ctrl+t"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/new_tab.sh\""
 description = "create cwd-following tab"
@@ -230,61 +237,61 @@ description = "create cwd-following tab"
 key = "prefix+0"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 0"
-description = "focus or create tab 0"
+description = "focus tab at position 0"
 
 [[keys.command]]
 key = "prefix+1"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 1"
-description = "focus or create tab 1"
+description = "focus tab at position 1"
 
 [[keys.command]]
 key = "prefix+2"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 2"
-description = "focus or create tab 2"
+description = "focus tab at position 2"
 
 [[keys.command]]
 key = "prefix+3"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 3"
-description = "focus or create tab 3"
+description = "focus tab at position 3"
 
 [[keys.command]]
 key = "prefix+4"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 4"
-description = "focus or create tab 4"
+description = "focus tab at position 4"
 
 [[keys.command]]
 key = "prefix+5"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 5"
-description = "focus or create tab 5"
+description = "focus tab at position 5"
 
 [[keys.command]]
 key = "prefix+6"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 6"
-description = "focus or create tab 6"
+description = "focus tab at position 6"
 
 [[keys.command]]
 key = "prefix+7"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 7"
-description = "focus or create tab 7"
+description = "focus tab at position 7"
 
 [[keys.command]]
 key = "prefix+8"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 8"
-description = "focus or create tab 8"
+description = "focus tab at position 8"
 
 [[keys.command]]
 key = "prefix+9"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/numbered_tab.sh\" 9"
-description = "focus or create tab 9"
+description = "focus tab at position 9"
 
 [[keys.command]]
 key = "prefix+enter"
