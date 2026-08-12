@@ -3,7 +3,10 @@ set -eu
 
 source_build=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$source_build/../.." && pwd)
-patch="$source_build/copy-mode-vim-muscle-memory.patch"
+# The patch series is pinned in pins.env alongside the digests it produces, so
+# build.sh and upgrade.sh cannot disagree about what "the reviewed patch" is.
+# Assigned after pins.env is sourced, below.
+patches=
 pins="$source_build/pins.env"
 known_binaries="$source_build/known-binaries.txt"
 work=${HERDR_SOURCE_BUILD_WORK:-"$source_build/.work"}
@@ -48,6 +51,12 @@ repin_pin() {
 # shellcheck source=/dev/null
 . "$pins"
 
+patches=${HERDR_PATCH_SERIES:-}
+if [ -z "$patches" ]; then
+  echo "pins.env defines no HERDR_PATCH_SERIES" >&2
+  exit 65
+fi
+
 if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ]; then
   echo "reviewed Herdr binary pin requires arm64 macOS" >&2
   exit 69
@@ -89,7 +98,18 @@ require_sha256 HERDR_PATCH_SHA256 "$HERDR_PATCH_SHA256"
 require_sha256 HERDR_PATCHED_SOURCE_SHA256 "$HERDR_PATCHED_SOURCE_SHA256"
 require_sha256 HERDR_BINARY_SHA256 "$HERDR_BINARY_SHA256"
 
-actual_patch_sha=$(shasum -a 256 "$patch" | awk '{print $1}')
+cat_patches() {
+  for patch_name in $patches; do
+    patch_path="$source_build/$patch_name"
+    if [ ! -f "$patch_path" ]; then
+      echo "missing reviewed patch: $patch_path" >&2
+      exit 66
+    fi
+    cat "$patch_path"
+  done
+}
+
+actual_patch_sha=$(cat_patches | shasum -a 256 | awk '{print $1}')
 if [ "$actual_patch_sha" != "$HERDR_PATCH_SHA256" ]; then
   if [ "$repin" -eq 1 ]; then
     repin_pin HERDR_PATCH_SHA256 "$actual_patch_sha"
@@ -128,12 +148,15 @@ if [ "$tag_object" != "$HERDR_SOURCE_TAG_OBJECT" ] ||
   exit 66
 fi
 
-if git -C "$source_dir" apply --check "$patch" 2>/dev/null; then
-  git -C "$source_dir" apply "$patch"
-elif ! git -C "$source_dir" apply --reverse --check "$patch" 2>/dev/null; then
-  echo "Herdr source is neither the pinned base nor the exact reviewed patch" >&2
-  exit 73
-fi
+for patch_name in $patches; do
+  patch_path="$source_build/$patch_name"
+  if git -C "$source_dir" apply --check "$patch_path" 2>/dev/null; then
+    git -C "$source_dir" apply "$patch_path"
+  elif ! git -C "$source_dir" apply --reverse --check "$patch_path" 2>/dev/null; then
+    echo "Herdr source is neither the pinned base nor the reviewed patch: $patch_name" >&2
+    exit 73
+  fi
+done
 
 actual_diff_sha=$(
   git -C "$source_dir" diff --binary --no-ext-diff |
@@ -143,8 +166,13 @@ if [ "$actual_diff_sha" != "$HERDR_PATCH_SHA256" ]; then
   echo "Herdr source has changes beyond the reviewed patch" >&2
   exit 73
 fi
+# Was the digest of copy_mode.rs alone, which stopped describing the tree once
+# the series touched more than one feature. Now every file the series modifies,
+# in sorted order, so a patch that lands in the wrong file still trips this.
 patched_source_sha=$(
-  shasum -a 256 "$source_dir/src/app/input/copy_mode.rs" | awk '{print $1}'
+  cd "$source_dir" &&
+    git diff --name-only | LC_ALL=C sort | tr '\n' '\0' | xargs -0 cat |
+    shasum -a 256 | awk '{print $1}'
 )
 if [ "$patched_source_sha" != "$HERDR_PATCHED_SOURCE_SHA256" ]; then
   if [ "$repin" -eq 1 ]; then

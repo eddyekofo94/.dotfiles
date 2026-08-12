@@ -1,0 +1,71 @@
+diff --git a/src/ui/mobile.rs b/src/ui/mobile.rs
+index 10b58af0..3bc6410b 100644
+--- a/src/ui/mobile.rs
++++ b/src/ui/mobile.rs
+@@ -244,10 +244,12 @@ pub(crate) fn render_mobile_toast_banner(
+         return;
+     }
+ 
+-    let dot_color = match toast.kind {
++    // Same triage colours as the desktop toast (see ui/status.rs): red is
++    // blocked on a human, green is done, blue is informational.
++    let kind_color = match toast.kind {
+         ToastKind::NeedsAttention => p.red,
+-        ToastKind::Finished => p.blue,
+-        ToastKind::UpdateInstalled => p.accent,
++        ToastKind::Finished => p.green,
++        ToastKind::UpdateInstalled => p.blue,
+     };
+     let banner = mobile_toast_banner_rect(area, offset_for_warning);
+     let bg = p.surface0;
+@@ -257,12 +259,12 @@ pub(crate) fn render_mobile_toast_banner(
+     frame.render_widget(
+         Paragraph::new(Line::from(vec![
+             Span::styled(" ", Style::default().bg(bg)),
+-            Span::styled("●", Style::default().fg(dot_color).bg(bg)),
++            Span::styled("●", Style::default().fg(kind_color).bg(bg)),
+             Span::styled(" ", Style::default().bg(bg)),
+             Span::styled(
+                 mobile_toast_title(toast),
+                 Style::default()
+-                    .fg(p.text)
++                    .fg(kind_color)
+                     .bg(bg)
+                     .add_modifier(Modifier::BOLD),
+             ),
+diff --git a/src/ui/status.rs b/src/ui/status.rs
+index ede38b85..d09413fd 100644
+--- a/src/ui/status.rs
++++ b/src/ui/status.rs
+@@ -87,10 +87,14 @@ pub(super) fn render_toast_notification(
+     position: ToastHerdrPosition,
+     p: &Palette,
+ ) {
+-    let dot_color = match toast.kind {
++    // Triage colour, not decoration: the toast is read from across the room and
++    // the colour alone has to rank it. Red is blocked on a human, green is done
++    // and can wait, blue is informational. It tints the title too, so the signal
++    // does not depend on picking out a one-cell dot.
++    let kind_color = match toast.kind {
+         ToastKind::NeedsAttention => p.red,
+-        ToastKind::Finished => p.blue,
+-        ToastKind::UpdateInstalled => p.accent,
++        ToastKind::Finished => p.green,
++        ToastKind::UpdateInstalled => p.blue,
+     };
+     let toast_area = toast_notification_rect(area, toast, offset_for_warning, position);
+ 
+@@ -110,11 +114,11 @@ pub(super) fn render_toast_notification(
+         Layout::vertical([Constraint::Length(1), Constraint::Length(1)]).areas(inner);
+ 
+     let title = Line::from(vec![
+-        Span::styled("●", Style::default().fg(dot_color)),
++        Span::styled("●", Style::default().fg(kind_color)),
+         Span::raw(" "),
+         Span::styled(
+             &toast.title,
+-            Style::default().fg(p.text).add_modifier(Modifier::BOLD),
++            Style::default().fg(kind_color).add_modifier(Modifier::BOLD),
+         ),
+     ]);
+     let context = Line::from(vec![

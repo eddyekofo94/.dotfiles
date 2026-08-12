@@ -31,9 +31,21 @@ You do not normally run anything in this directory. `herdr` is wrapped by
 
 Everything else passes through to the real binary untouched.
 
-## What the patch adds
+## What the patch series adds
 
-Four narrow changes. There is no injected-input path.
+`HERDR_PATCH_SERIES` in `pins.env` lists the reviewed patch files in apply
+order, which is also `git diff` order (sorted by path), so the concatenation is
+what `HERDR_PATCH_SHA256` pins. Each file owns a disjoint set of source paths so
+it can be re-reviewed, rebased, or dropped on its own at the next upstream tag.
+
+Five narrow changes across two patch files. There is no injected-input path.
+
+`toast-triage-colours.patch` — Toast triage colours, in both the desktop
+(`ui/status.rs`) and mobile (`ui/mobile.rs`) renderers: red is blocked on a
+human, green is done, blue is informational, and the title carries the colour so
+the signal is not a single cell.
+
+`copy-mode-vim-muscle-memory.patch`:
 
 - Vim muscle memory: `a` and `i` compose the existing `q` exit-without-copy
   operation; `Y` composes the existing `V` whole-line selection and `y`
@@ -56,7 +68,7 @@ Four narrow changes. There is no injected-input path.
   steady/hidden state so background windows do not keep blinking.
 
 `pane_history = false`, Herdr recovery, production configuration, and the tmux
-fallback remain outside the patch.
+fallback remain outside the series.
 
 ## Everyday commands
 

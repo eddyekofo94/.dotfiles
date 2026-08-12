@@ -16,8 +16,15 @@ test "$HERDR_SOURCE_TAG_OBJECT" = 99df3ac37be6bd7be2fd2023f0d88a7a0e7a7101
 test "$HERDR_SOURCE_COMMIT" = ef4c23f5775bb8cfec05f05d0844226ff959a07a
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
-test "$(shasum -a 256 "$source_build/copy-mode-vim-muscle-memory.patch" | awk '{print $1}')" = \
-  "$HERDR_PATCH_SHA256"
+# The series is the unit that is pinned: HERDR_PATCH_SHA256 is the digest of the
+# concatenation, which is also the whole-tree diff build.sh checks against.
+test "$HERDR_PATCH_SERIES" = \
+  "copy-mode-vim-muscle-memory.patch toast-triage-colours.patch"
+test "$(
+  for patch_name in $HERDR_PATCH_SERIES; do
+    cat "$source_build/$patch_name"
+  done | shasum -a 256 | awk '{print $1}'
+)" = "$HERDR_PATCH_SHA256"
 rg -q "^\\+            'a' \\| 'i' \\| 'q' => self\\.exit_copy_mode\\(terminal_runtimes, false\\),$" \
   "$source_build/copy-mode-vim-muscle-memory.patch"
 rg -q "^\\+            'Y' => self\\.yank_copy_mode_lines\\(terminal_runtimes, count\\),$" \
@@ -45,6 +52,24 @@ if rg -q 'pane_history|tmux_fallback|send-keys|send-text|input emulation' \
   echo "copy-mode source patch crossed its approved seam" >&2
   exit 1
 fi
+
+# The toast triage colours: red is blocked on a human, green is done, blue is
+# informational, and the title carries the colour so the signal is not one cell.
+# Named here so a re-pin cannot quietly revert them to the upstream mapping.
+toast_patch="$source_build/toast-triage-colours.patch"
+# Red is already upstream's mapping, so it appears as patch context rather than
+# an addition; assert it survives in both renderers instead of that we add it.
+test "$(rg -c '^[ +]        ToastKind::NeedsAttention => p\.red,$' "$toast_patch")" -eq 2
+test "$(rg -c '^\+        ToastKind::Finished => p\.green,$' "$toast_patch")" -eq 2
+test "$(rg -c '^\+        ToastKind::UpdateInstalled => p\.blue,$' "$toast_patch")" -eq 2
+rg -q '^\+            Style::default\(\)\.fg\(kind_color\)\.add_modifier\(Modifier::BOLD\),$' \
+  "$toast_patch"
+# Desktop and mobile toasts must not drift apart into two colour languages.
+test "$(rg -c '^\+    let kind_color = match toast\.kind \{$' "$toast_patch")" -eq 2
+# The toast patch owns only the two renderers; anything else is a seam crossing.
+test "$(rg -c '^diff --git ' "$toast_patch")" -eq 2
+rg -q '^diff --git a/src/ui/mobile\.rs ' "$toast_patch"
+rg -q '^diff --git a/src/ui/status\.rs ' "$toast_patch"
 
 # The built binary is a gitignored work product, so a fresh checkout cannot have
 # it. Skip only the binary identity checks in that case; everything above is

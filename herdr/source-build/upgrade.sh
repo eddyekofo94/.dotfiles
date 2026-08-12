@@ -18,7 +18,9 @@ set -eu
 
 source_build=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$source_build/../.." && pwd)
-patch="$source_build/copy-mode-vim-muscle-memory.patch"
+# The patch series comes from pins.env so this script and build.sh cannot
+# disagree about what "the reviewed patch" is. Set after pins.env is sourced.
+patches=
 pins="$source_build/pins.env"
 sb_verify="$source_build/verify.sh"
 known_binaries="$source_build/known-binaries.txt"
@@ -56,6 +58,12 @@ fi
 
 # shellcheck source=/dev/null
 . "$pins"
+
+patches=${HERDR_PATCH_SERIES:-}
+if [ -z "$patches" ]; then
+  echo "pins.env defines no HERDR_PATCH_SERIES" >&2
+  exit 65
+fi
 
 # Newest release tag by version order. Tags that are not vMAJOR.MINOR.PATCH are
 # ignored so release candidates and moving tags cannot be selected by accident.
@@ -156,8 +164,10 @@ if [ "$adopted" -eq 1 ]; then
   exit 75
 fi
 
-echo "applying the reviewed patch with a three-way merge ..."
-if ! git -C "$staging/source" apply --3way "$patch" 2>"$staging/apply.err"; then
+echo "applying the reviewed patch series with a three-way merge ..."
+if ! for patch_name in $patches; do
+  git -C "$staging/source" apply --3way "$source_build/$patch_name" || exit $?
+done 2>"$staging/apply.err"; then
   conflicts=$(git -C "$staging/source" diff --name-only --diff-filter=U || true)
   echo
   echo "Herdr upgrade: STOPPED — the reviewed patch does not apply to $target_tag." >&2
@@ -180,7 +190,37 @@ git -C "$staging/source" reset --quiet
 # file no longer describes the tree: its context lines have moved. Regenerate it
 # from the merged result, which is what build.sh hashes, and show the shape of
 # the rebased patch so a human can still recognize their own change.
-git -C "$staging/source" diff --binary --no-ext-diff >"$staging/rebased.patch"
+# Regenerated per patch, from the paths that patch owns, so the series survives
+# the rebase as a series instead of collapsing into one unreviewable blob. The
+# owned paths are read from the pre-rebase file: a three-way merge moves context
+# lines, never which files a change touches.
+for patch_name in $patches; do
+  patch_paths=$(
+    awk '/^diff --git a\// { sub(/^diff --git a\//, ""); sub(/ b\/.*$/, ""); print }' \
+      "$source_build/$patch_name"
+  )
+  if [ -z "$patch_paths" ]; then
+    echo "Herdr upgrade: STOPPED — $patch_name names no files." >&2
+    exit 70
+  fi
+  # shellcheck disable=SC2086
+  git -C "$staging/source" diff --binary --no-ext-diff -- $patch_paths \
+    >"$staging/rebased.$patch_name"
+done
+cat_rebased() {
+  for patch_name in $patches; do
+    cat "$staging/rebased.$patch_name"
+  done
+}
+cat_rebased >"$staging/rebased.patch"
+# A per-patch regeneration can silently drop a hunk that moved between files;
+# the whole-tree diff is the authority, so require the series to reconstruct it.
+if ! git -C "$staging/source" diff --binary --no-ext-diff |
+    diff -q - "$staging/rebased.patch" >/dev/null; then
+  echo "Herdr upgrade: STOPPED — the regenerated series does not reconstruct" >&2
+  echo "the rebased tree. A change moved between files; rebase by hand." >&2
+  exit 70
+fi
 if [ ! -s "$staging/rebased.patch" ]; then
   echo "Herdr upgrade: STOPPED — the rebased patch is empty." >&2
   echo "That means $target_tag already contains the reviewed change." >&2
@@ -193,7 +233,10 @@ git -C "$staging/source" diff --stat | sed 's/^/  /'
 # Everything below can fail, so keep what is needed to put the build back.
 backup=$(mktemp -d "$work/upgrade-backup.XXXXXX")
 cp "$pins" "$backup/pins.env"
-cp "$patch" "$backup/patch"
+mkdir -p "$backup/patches"
+for patch_name in $patches; do
+  cp "$source_build/$patch_name" "$backup/patches/$patch_name"
+done
 cp "$sb_verify" "$backup/verify.sh"
 restored=0
 restore() {
@@ -202,7 +245,9 @@ restore() {
   fi
   restored=1
   cp "$backup/pins.env" "$pins"
-  cp "$backup/patch" "$patch"
+  for patch_name in $patches; do
+    cp "$backup/patches/$patch_name" "$source_build/$patch_name"
+  done
   cp "$backup/verify.sh" "$sb_verify"
   if [ -d "$backup/source" ]; then
     rm -rf -- "$source_dir"
@@ -224,7 +269,9 @@ if [ -d "$source_dir" ]; then
   mv "$source_dir" "$backup/source"
 fi
 mv "$staging/source" "$source_dir"
-cp "$staging/rebased.patch" "$patch"
+for patch_name in $patches; do
+  cp "$staging/rebased.$patch_name" "$source_build/$patch_name"
+done
 
 # source-build/verify.sh carries its own hardcoded copy of the reviewed identity
 # on purpose: it is the independent cross-check that catches a tampered or
