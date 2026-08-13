@@ -118,6 +118,30 @@ if ! rg --fixed-strings --line-regexp --quiet -- '--transfer-mode=memory' "$mock
     exit 1
 fi
 
+# gss previews git status entries, so an image there must reach the same
+# painter rather than bat/delta, placed below its own two-row status header.
+gss_args="$tmp_dir/gss-kitten.args"
+gss_output="$tmp_dir/gss-preview.out"
+(
+    cd "$tmp_dir"
+    env PATH="$mock_bin:$PATH" FZF_TEST_KITTEN_ARGS="$gss_args" \
+        FZF_PREVIEW_COLUMNS=20 FZF_PREVIEW_LINES=8 \
+        fish --no-config -c '
+            set -p fish_function_path "$argv[1]/functions"
+            source "$argv[1]/functions/git/gss.fish"
+            __gss_preview "?? fixture.png"
+        ' "$package_dir" >"$gss_output"
+)
+if ! rg --fixed-strings --line-regexp --quiet -- '--place=20x6@0x2' "$gss_args"; then
+    echo 'fzf preview integration: gss image preview lost its placement' >&2
+    exit 1
+fi
+if LC_ALL=C rg -a -q 'Binary content|Binary files' "$gss_output"; then
+    echo 'fzf preview integration: gss image reached a text renderer' >&2
+    exit 1
+fi
+rg --fixed-strings --quiet 'fixture.png' "$gss_output"
+
 env FZF_PREVIEW_COLUMNS=20 FZF_PREVIEW_LINES=8 FZF_PREVIEW_TEST_WINDOW_SIZE=1 \
     fish --no-config -c '
         set -p fish_function_path "$argv[1]/functions"

@@ -62,13 +62,10 @@ function _fzf_preview -d "fzf preview: render a path as a tree, image, hunk, or 
     if test "$as" = auto
         if test -d "$target"
             set as dir
+        else if _fzf_preview_is_image "$target"
+            set as image
         else
-            switch (string lower (path extension "$target"))
-                case .png .jpg .jpeg .gif .webp .bmp .tif .tiff .avif .jxl .qoi .svg .ico
-                    set as image
-                case '*'
-                    set as text
-            end
+            set as text
         end
     end
 
@@ -77,37 +74,8 @@ function _fzf_preview -d "fzf preview: render a path as a tree, image, hunk, or 
             eza -T -L 2 --color=always -- "$target"
 
         case image
-            set -l kitten_cmd (command -s kitten)
-            if test -z "$kitten_cmd"; and test -x /Applications/kitty.app/Contents/MacOS/kitten
-                set kitten_cmd /Applications/kitty.app/Contents/MacOS/kitten
-            end
-
-            if test -n "$kitten_cmd"
-                if set -q FZF_PREVIEW_TEST_REPORT_GEOMETRY
-                    printf 'FZF_PREVIEW_IMAGE_PLACE:%sx%s@0x%s\n' "$cols" "$body_rows" "$header_rows"
-                end
-                # Shared-memory transfer keeps the terminal payload small, so a
-                # cancelled fzf preview cannot strand a partial image transfer.
-                # Production uses Ghostty's real cell geometry. Tests provide a
-                # deterministic substitute because their pseudo-terminal cannot
-                # answer pixel-size queries.
-                set -l window_size_arg
-                if set -q FZF_PREVIEW_TEST_WINDOW_SIZE
-                    set -l pixel_width (math "$cols * 10")
-                    set -l pixel_height (math "$body_rows * 20")
-                    set window_size_arg --use-window-size="$cols,$body_rows,$pixel_width,$pixel_height"
-                end
-
-                "$kitten_cmd" icat --clear --transfer-mode=memory \
-                    --unicode-placeholder --stdin=no --scale-up $window_size_arg \
-                    --place=$cols"x"$body_rows"@0x"$header_rows "$target" \
-                    | perl -0777 -pe 's/\n[^\n]*\z/\e[m\n/s'
-            else if type -q chafa
-                chafa -f symbols --colors full --animate=off --polite=on \
-                    --size=$cols"x"$body_rows "$target"
-            else
-                file -b -- "$target"
-            end
+            _fzf_preview_image --cols $cols --rows $body_rows \
+                --offset $header_rows -- "$target"
 
         case text
             if string match -qr '^[0-9]+$' -- "$_flag_line"

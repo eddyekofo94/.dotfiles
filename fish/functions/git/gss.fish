@@ -114,6 +114,20 @@ function __gss_preview --argument-names line
         return
     end
 
+    # An image has no readable diff and no text body: bat prints a binary
+    # warning and delta prints "Binary files differ". Paint it instead, through
+    # the same previewer the file pickers use.
+    if test -f "$resolved_path"; and _fzf_preview_is_image "$resolved_path"
+        set -l cols $FZF_PREVIEW_COLUMNS
+        string match -qr '^[0-9]+$' -- "$cols"; or set cols 80
+        set -l rows $FZF_PREVIEW_LINES
+        string match -qr '^[0-9]+$' -- "$rows"; or set rows 40
+        # The status line and its blank separator above own two pane rows.
+        _fzf_preview_image --cols $cols --rows (math "max(1, $rows - 2)") \
+            --offset 2 -- "$resolved_path"
+        return
+    end
+
     set -l index_status (string sub -s 1 -l 1 -- "$file_status")
     set -l worktree_status (string sub -s 2 -l 1 -- "$file_status")
 
