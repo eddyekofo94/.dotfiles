@@ -1,5 +1,5 @@
 diff --git a/src/ui/status.rs b/src/ui/status.rs
-index a7399285..b2adaf07 100644
+index a7399285..5d8083db 100644
 --- a/src/ui/status.rs
 +++ b/src/ui/status.rs
 @@ -87,10 +87,14 @@ pub(super) fn render_toast_notification(
@@ -34,3 +34,66 @@ index a7399285..b2adaf07 100644
          ),
      ]);
      let context = Line::from(vec![
+@@ -193,10 +197,26 @@ pub(super) fn render_config_diagnostic(frame: &mut Frame, area: Rect, message: &
+     }
+ }
+ 
++// The default "dots" spinner used by most CLI tools (ora, yarn, cargo, …),
++// one Unicode cell wide so the agent list stays column-aligned.
++const WORKING_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
++const WORKING_SPINNER_FRAME_MS: u128 = 80;
++
++fn working_spinner_frame(now_ms: u128) -> &'static str {
++    let index = (now_ms / WORKING_SPINNER_FRAME_MS) as usize % WORKING_SPINNER_FRAMES.len();
++    WORKING_SPINNER_FRAMES[index]
++}
++
+ pub(super) fn state_dot(state: AgentState, seen: bool, p: &Palette) -> (&'static str, Style) {
+     match (state, seen) {
+         (AgentState::Blocked, _) => ("●", Style::default().fg(p.red)),
+-        (AgentState::Working, _) => ("●", Style::default().fg(p.yellow)),
++        (AgentState::Working, _) => {
++            let now_ms = std::time::SystemTime::now()
++                .duration_since(std::time::UNIX_EPOCH)
++                .map(|d| d.as_millis())
++                .unwrap_or(0);
++            (working_spinner_frame(now_ms), Style::default().fg(p.yellow))
++        }
+         (AgentState::Idle, false) => ("●", Style::default().fg(p.teal)),
+         (AgentState::Idle, true) => ("○", Style::default().fg(p.green)),
+         (AgentState::Unknown, _) => ("·", Style::default().fg(p.overlay0)),
+@@ -249,7 +269,6 @@ mod tests {
+         let palette = Palette::catppuccin();
+         for (state, seen, symbol, color) in [
+             (AgentState::Blocked, true, "●", palette.red),
+-            (AgentState::Working, true, "●", palette.yellow),
+             (AgentState::Idle, false, "●", palette.teal),
+             (AgentState::Idle, true, "○", palette.green),
+             (AgentState::Unknown, true, "·", palette.overlay0),
+@@ -260,6 +279,26 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn working_state_uses_the_default_dots_spinner() {
++        let palette = Palette::catppuccin();
++        let (symbol, style) = state_dot(AgentState::Working, true, &palette);
++        assert!(WORKING_SPINNER_FRAMES.contains(&symbol));
++        assert_eq!(style.fg, Some(palette.yellow));
++    }
++
++    #[test]
++    fn working_spinner_frame_cycles_through_all_frames_and_repeats() {
++        let frames: Vec<&str> = (0..WORKING_SPINNER_FRAMES.len() as u128)
++            .map(|i| working_spinner_frame(i * WORKING_SPINNER_FRAME_MS))
++            .collect();
++        assert_eq!(frames, WORKING_SPINNER_FRAMES.to_vec());
++        assert_eq!(
++            working_spinner_frame(0),
++            working_spinner_frame(WORKING_SPINNER_FRAMES.len() as u128 * WORKING_SPINNER_FRAME_MS)
++        );
++    }
++
+     #[test]
+     fn toast_rect_uses_configured_corner() {
+         let area = Rect::new(10, 20, 100, 40);
