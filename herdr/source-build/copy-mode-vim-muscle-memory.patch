@@ -758,6 +758,69 @@ index 68941e66..596c0d7c 100644
          NavigateAction::Zoom => {
              state.toggle_zoom();
              leave_navigate_mode(state);
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index d049c0f2..c67016b5 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -33,6 +33,9 @@ use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ 
+ const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(16);
++// Must match WORKING_SPINNER_FRAME_MS in ui/status.rs — this is what forces a
++// redraw often enough for that frame index to actually advance on screen.
++pub(crate) const WORKING_SPINNER_TICK_INTERVAL: Duration = Duration::from_millis(80);
+ pub(crate) const SELECTION_AUTOSCROLL_INTERVAL: Duration = Duration::from_millis(30);
+ const RESIZE_POLL_INTERVAL: Duration = Duration::from_millis(100);
+ const GIT_REMOTE_STATUS_REFRESH_INTERVAL: Duration = Duration::from_millis(1500);
+@@ -107,6 +110,7 @@ pub struct App {
+     pub(crate) config_diagnostic_deadline: Option<Instant>,
+     pub(crate) toast_deadline: Option<Instant>,
+     pub(crate) copy_feedback_deadline: Option<Instant>,
++    pub(crate) spinner_deadline: Option<Instant>,
+     pub(crate) last_api_notification_at: Option<Instant>,
+     pub(crate) last_git_remote_status_refresh: Instant,
+     pub(crate) last_git_repo_discovery_refresh: Instant,
+@@ -722,6 +726,7 @@ impl App {
+             config_diagnostic_deadline: None,
+             toast_deadline: None,
+             copy_feedback_deadline: None,
++            spinner_deadline: None,
+             last_api_notification_at: None,
+             state,
+             terminal_runtimes: restored_terminal_runtimes,
+diff --git a/src/app/runtime.rs b/src/app/runtime.rs
+index e05b9599..94b2473b 100644
+--- a/src/app/runtime.rs
++++ b/src/app/runtime.rs
+@@ -341,6 +341,20 @@ impl App {
+             changed = true;
+         }
+ 
++        let has_working_agent = self
++            .state
++            .terminals
++            .values()
++            .any(|terminal| terminal.state == crate::detect::AgentState::Working);
++        if has_working_agent {
++            if self.spinner_deadline.is_none_or(|deadline| now >= deadline) {
++                self.spinner_deadline = Some(now + super::WORKING_SPINNER_TICK_INTERVAL);
++                changed = true;
++            }
++        } else {
++            self.spinner_deadline = None;
++        }
++
+         if self
+             .selection_autoscroll_deadline
+             .is_some_and(|deadline| now >= deadline)
+@@ -600,6 +614,7 @@ impl App {
+             self.session_save_deadline,
+             self.selection_autoscroll_deadline,
+             self.selection_highlight_clear_deadline,
++            self.spinner_deadline,
+             render_deadline,
+         ]
+         .into_iter()
 diff --git a/src/app/state.rs b/src/app/state.rs
 index e6c23c4c..80d0cb0c 100644
 --- a/src/app/state.rs
