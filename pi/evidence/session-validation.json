@@ -2,8 +2,8 @@
   "status": "PASS",
   "provider": "deterministic offline fixture",
   "named_sessions": {
-    "alpha": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.FTKkaP/state/sessions/2026-08-04T12-26-13-344Z_pilot-alpha.jsonl",
-    "beta": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.FTKkaP/state/sessions/2026-08-04T12-26-15-582Z_pilot-beta.jsonl",
+    "alpha": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.91Ap8q/state/sessions/2026-08-06T15-14-18-663Z_pilot-alpha.jsonl",
+    "beta": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.91Ap8q/state/sessions/2026-08-06T15-14-21-024Z_pilot-beta.jsonl",
     "independent": true,
     "alpha_restored_name": "pilot-alpha",
     "resume_locator": "session JSONL path"
@@ -35,7 +35,7 @@
     "reason": "threshold",
     "temporary_reserve_tokens": 20000,
     "temporary_keep_recent_tokens": 1,
-    "session": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.FTKkaP/state/sessions/2026-08-04T12-26-19-098Z_pilot-threshold.jsonl",
+    "session": "/Users/eddyekofo/.dotfiles/pi/.runtime/sessions.91Ap8q/state/sessions/2026-08-06T15-14-24-632Z_pilot-threshold.jsonl",
     "all_sentinels_preserved": true
   }
 }

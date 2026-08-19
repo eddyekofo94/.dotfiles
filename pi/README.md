@@ -16,9 +16,11 @@ explicitly listed canonical skills in `pi/settings.json`; `$herdr` and
 `$skill-finish` are accepted aliases for Pi's native `/skill:...` commands.
 
 Global response and closeout rules have one repository source at
-`pi/AGENTS.md`. `pi/install.sh` owns its exact isolated-config symlink and
-`pi/pilot.sh` rejects missing, regular, or retargeted instruction state.
-Codex and Claude adapters are managed separately by `agent-config/install.sh`.
+`agent-config/AGENTS.md`; `pi/AGENTS.md` is a compat symlink to it that this
+pilot's own scripts read. `pi/install.sh` owns its exact isolated-config
+symlink and `pi/pilot.sh` rejects missing, regular, or retargeted instruction
+state. Codex and Claude adapters are managed separately by
+`agent-config/install.sh` and point at `agent-config/AGENTS.md` directly.
 
 The pilot is intentionally not available as a plain `pi` command and it does
 not read or write `~/.pi`. Start named work explicitly:
