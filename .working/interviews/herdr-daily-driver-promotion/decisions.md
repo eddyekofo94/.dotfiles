@@ -65,6 +65,41 @@ agent, Zsh, or tmux behavior.
 - The worktree already contains extensive user-owned Herdr, Fish, tmux, and
   workflow changes. A later implementation must use an explicit allowlist and
   preserve unrelated dirt.
+- On 2026-08-12, two audit-gate defects were found while confirming the
+  production gate against the `semantic_agent_state.py --session` fix. Both are
+  about how the gate is invoked and cleaned up, not about parity coverage.
+  1. **Fixed.** `HERDR_VERIFY_AUDIT=1` is owned by `herdr/verify.sh`, but
+     `herdr/prototype/verify.sh` silently ignored it, so
+     `HERDR_VERIFY_AUDIT=1 sh herdr/prototype/verify.sh` printed PASS having run
+     no audit at all — fail-open, and the invocation `.working/ACTIVE_GOAL.md`
+     itself documented. The prototype gate now exits 2 and names the owning
+     gate; `herdr/verify.sh` clears the flag when it delegates downward.
+  2. **Fixed 2026-08-12.** A failed audit validator left its
+     `herdr/prototype/.runtime/bin/herdr server` running. The next audit run
+     then collides with the orphan and fails somewhere else entirely — observed
+     as `layout-menu validation timed out: single-pane popup dismissed`, then as
+     a silent exit 4 after login-attach, while `validate_layout_menu.sh` passed
+     standalone. Killing the two orphaned servers made the full gate green
+     (exit 0) with no new leak. So a single red audit run poisons every
+     subsequent run with a *different, misleading* failure, and the recorded
+     cause of a red audit gate could not be trusted until the orphans were
+     cleared. Traps were the wrong fix: `kill -9` runs no trap, and 8 of the 14
+     validators never killed the server at all, relying on `session stop`
+     succeeding. `herdr/prototype/server_lifecycle.sh` instead moves teardown
+     off the dying shell onto a watchdog subshell that outlives it, with a
+     startup sweep as the backstop for a watchdog that was itself killed; all
+     16 validators source it. It **keys on the socket, not a server pid**, so
+     the guard can be armed *before* the server launches — a pid-keyed guard
+     could only be armed on the line after `server_pid=$!`, and a SIGKILL
+     landing in that window leaked the server anyway (observed). It **detaches
+     stdin** as well as stdout/stderr, because these validators drive a PTY
+     client that reads the script's stdin; a background subshell holding that
+     descriptor starves the client and the gate times out on "initial pane"
+     (observed, then isolated by disabling only the guard). Both helpers signal
+     only processes whose command line matches the `/.runtime/bin/herdr …
+     server` runtime path, so neither can touch production
+     `~/.local/bin/herdr`. Verified: `HERDR_VERIFY_AUDIT=1 sh herdr/verify.sh`
+     exits 0.
 
 ## Tradeoffs / Risks
 
@@ -76,9 +111,17 @@ agent, Zsh, or tmux behavior.
 - Prototype automation is extensive, but only ordinary daily work exposes
   timing, long-session, and subjective workflow friction. The rollout should
   therefore distinguish "default" from "tmux removed."
-- The aggregate verifier's stale hash evidence is a promotion blocker until
-  refreshed and green, even though it does not currently indicate a behavioral
-  failure.
+- **Resolved 2026-08-12.** The aggregate verifier's stale hash evidence was a
+  promotion blocker until refreshed and green, even though it never indicated a
+  behavioral failure. It is now refreshed: `verify.sh` recomputes the
+  `config.toml` / `herdr_nav.fish` / `shell_action.sh` / `validate_bindings.sh`
+  hashes live and asserts them against `binding-validation.jsonl`, all four
+  match the current artifacts, and the same run asserts the production
+  tmux/Fish/Ghostty/Neovim hashes unchanged before and after. Verified:
+  `HERDR_VERIFY_AUDIT=1 sh herdr/verify.sh` exits 0 with prototype and
+  production verification PASS. This blocker no longer gates promotion; the
+  remaining gate is the live Ghostty daily-work trial plus explicit
+  authorization.
 
 ## Validation Plan
 
@@ -130,6 +173,9 @@ None that change implementation.
 
 ## Implementation Status
 
+**DONE 2026-08-12** — Eddy accepted Herdr as the daily driver after the live
+Ghostty trial (see below). Prior state, retained for history:
+
 Awaiting User Approval as of 2026-07-23. The local staged default is active and
 the named `main` session is running. `herdr/verify.sh` and
 `fish/scripts/verify.sh` pass; the real Ghostty fallback/rollback matrix and
@@ -138,6 +184,40 @@ Standards/Fidelity review findings were fixed through the automatic
 fix/re-review loops, affected checks rerun, and both final re-reviews report
 zero findings. The open production Herdr window needs only Eddy's final
 physical daily-driver acceptance.
+
+### Live Ghostty trial — 2026-08-12
+
+Launched via `sh herdr/prototype/launch_live_ghostty.sh`. Automated state at
+launch: `sh herdr/prototype/verify.sh` exits 0 (PASS, all four `config: ok`) on
+the pre-trial worktree; the trial session `trial-focused` came up with the
+expected three panes (`w1:p1` nvim focused, `w1:p2` fzf preview, `w1:p3` QA
+notes) on a fresh session directory, and only the prototype runtime server was
+started — production `~/.local/bin/herdr` was untouched.
+
+One prep defect observed, not fixed: `prepare_live_trial.sh`'s scripted
+`vsplit` (line 66) did not land. The script had already exited and the trial
+Neovim still reported one window; issuing the same `--remote-expr` afterwards
+produced two. So the `sleep 1.5` after the socket answers races Neovim's config
+load, and the trial can start without the second Neovim window that the
+Alt-h/l application-boundary check depends on. Recovered by hand for this run.
+
+**Closed 2026-08-12.** Eddy ended the trial with "close this trial I am happy
+with herdr now" — the final physical daily-driver acceptance this goal was
+waiting on, given as a whole-experience judgement rather than a per-check
+report, so no individual hand check is recorded as separately proved. The trial
+window and its `trial-focused` prototype server were stopped; production
+`~/.local/bin/herdr` kept running throughout. The staged promotion stands as
+installed: Herdr is the default, tmux remains the untouched fallback, and its
+removal is still a separate future decision. The Acceptance Pause below is
+resolved by this acceptance — the parity sequence it named is no longer an
+acceptance gate, and any remaining parity items are ordinary backlog.
+
+Hand checks handed over at launch, offered but not individually reported: Neovim
+Alt-h/j/k/l across the Neovim/Herdr boundary, fzf preview navigation and image
+redraw on resize, Alt-v / Alt-n / Alt-z / Alt-q / Alt-X pane and tab lifecycle,
+`prefix+shift+g` golden focus, copy mode and search, detach/reattach, a real
+Codex/Claude pane with ready-prompt replay, and ordinary daily work long enough
+to expose timing and long-session friction.
 
 ## Acceptance Pause
 

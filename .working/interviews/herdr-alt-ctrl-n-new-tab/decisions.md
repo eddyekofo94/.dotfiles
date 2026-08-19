@@ -42,7 +42,15 @@ Status: Awaiting physical Ghostty acceptance
 - Physical Ghostty `Left Option+Control+n`, then current-workspace, cwd, focus,
   and exactly-one-tab confirmation.
 
-## Closure
+## Superseded
+
+**2026-08-12.** The new-tab chord moved from `Alt-Ctrl-n` to `Alt-Ctrl-t` so
+`Alt-Ctrl-n`/`Alt-Ctrl-p` could become direct next/previous tab chords. Every
+other contract item above still holds unchanged: one focused cwd-following tab,
+native `Prefix+c` preserved, plain `Alt-t` still application-owned. See
+`.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`.
+
+## Closure (original)
 
 **DONE, 2026-08-03.** Eddy physically confirmed `Left Option+Control+n` in
 Ghostty: the chord works. The open gate above is satisfied; implementation,

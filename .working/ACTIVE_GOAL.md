@@ -51,6 +51,12 @@ is entirely recent and manual compaction refuses with "Nothing to compact
 that looks identical to the record bug. `pi/validate_sessions.sh` is the
 supported entry point; the validator now says so when the summary is empty.
 
+Re-verified 2026-08-06: `pi/verify.sh` green end to end. Hermeticity proven
+empirically, not just by construction — this repository's live
+`.working/ACTIVE_GOAL.md` was replaced with an unrelated, record-less slug and
+`pi/validate_sessions.sh` still passed, so the gate no longer depends on which
+goal is active. Closed DONE.
+
 `ready-prompt-parser-relocation` closed 2026-08-02. The shared handoff parser
 moved from `tmux/scripts/ready_prompt.sh` to
 `herdr/prototype/ready_prompt_parser.sh`; the tmux replay driver, its test
@@ -60,8 +66,9 @@ now resolve to one parser. Source:
 ("Parser relocation").
 
 **Blocked, pre-existing, not caused by that goal:**
-`herdr/prototype/verify.sh` (the deep audit gate, `HERDR_VERIFY_AUDIT=1`) is
-red because two goals awaiting Eddy's physical confirmation landed config
+The deep audit gate (`HERDR_VERIFY_AUDIT=1 sh herdr/verify.sh` — the flag is
+owned by `herdr/verify.sh`, *not* `herdr/prototype/verify.sh`, which now refuses
+it) was red because two goals awaiting Eddy's physical confirmation landed config
 changes without regenerating their evidence:
 
 - `herdr-copy-mode-pending-commands` made `copy_mode` an array — assertion

@@ -8,9 +8,13 @@ Source:
 
 ## Ranked Next
 
-1. `xcode-27-beta`: potentially useful for `pi-xcode`, but lower readiness;
+1. `herdr-copy-mode-pending-commands`: highest readiness. Implemented and gated
+   since 2026-08-01, but its fresh Standards/Fidelity review never ran, which
+   is the only agent-owned step between it and closure. Eddy's physical
+   acceptance in a new session remains separate and his.
+2. `xcode-27-beta`: potentially useful for `pi-xcode`, but lower readiness;
    blocked by side-by-side-versus-replacement choice and Apple authentication.
-2. `herdr-pane-input-lock`: low demonstrated need and still `Spec Needed`.
+3. `herdr-pane-input-lock`: low demonstrated need and still `Spec Needed`.
 
 Not selectable now: `herdr-upstream-copy-mode-gaps` remains upstream-blocked;
 `fish-fzf-image-visible-geometry-regression` remains intentionally deferred
@@ -39,8 +43,11 @@ after unreliable live rendering.
   closeout_length.py`, wired as a `Stop` hook via `closeout.sh length`. It
   blocks a turn whose body exceeds 15 non-blank lines or whose closeout
   exceeds 12, returns the actual counts, and forces a re-send. `stop_hook_
-  active` prevents a loop; unparseable input is a silent no-op. Not yet
-  observed firing in a live session — that is the open validation step.
+  active` prevents a loop; unparseable input is a silent no-op. First observed
+  firing live on 2026-08-13 in the gss image-preview session: it rejected a
+  16-line and then a 14-line closeout, reported both counts, and the third send
+  fit. The open validation step is satisfied; whether 15/12 are the right caps
+  is still Eddy's call.
 
   Optional, not proven: no equivalent enforcement exists for Codex, which has
   not needed it. Whether the caps (15/12) are the right numbers is Eddy's
@@ -128,6 +135,16 @@ after unreliable live rendering.
   `blocked by` the ranked parity sequence rather than being discarded.
 
 ## Completed
+
+- 2026-08-13 — `fish-gss-image-preview`: **DONE**. `gss` previewed a changed
+  image through delta and bat, so a PNG came up as "Binary files differ" plus a
+  bat binary-content warning. The kitten/chafa painter and the extension test
+  moved out of `_fzf_preview` into `_fzf_preview_image` and
+  `_fzf_preview_is_image`; `__gss_preview` now calls both, offset by the two
+  rows its status header owns. Deleted images still fall through to the diff
+  path. Regression coverage asserts the placement and the absent text
+  fallback; full `fish/scripts/verify.sh` passed and Eddy accepted the physical
+  render. Committed and pushed as `4579aa7d`.
 
 - 2026-08-03 — `closeout-beside-the-prompt-editor`: **DONE, implemented in
   `~/.config/nvim`**, which is why this repository's record previously and
