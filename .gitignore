@@ -41,6 +41,10 @@ CMakeFile
 **/__pycache__/
 **/*.pyc
 
+# Archived Claude Code session transcripts (session_archive.py): full
+# conversation content from unrelated projects, never belongs in git.
+/agent-config/evidence/session_archive/
+
 # Whole-dir backups and debug/scratch artifacts
 /fish.bak/
 /fish/debug_reports/

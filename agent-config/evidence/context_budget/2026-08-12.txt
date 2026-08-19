@@ -1,0 +1,10 @@
+Launch-context token budget check (estimated, see docstring)
+  global AGENTS.md: ~2869 tok
+  BibleStandard: AGENTS+CLAUDE.md: ~4469 tok
+  BibleStandard: MEMORY.md: ~1836 tok
+  BibleStandard: total: ~6305 tok
+  .dotfiles: AGENTS+CLAUDE.md
+  .dotfiles: MEMORY.md
+  .dotfiles: total
+
+All within budget.

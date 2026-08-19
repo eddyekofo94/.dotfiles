@@ -14,7 +14,7 @@ verify_link() {
   }
 }
 
-verify_link "$agent_home/.codex/AGENTS.md" "$repo_dir/pi/AGENTS.md"
+verify_link "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
 verify_link "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 verify_link "$agent_home/.claude/hooks/closeout.sh" "$config_dir/claude/closeout.sh"
 verify_link \
@@ -24,10 +24,10 @@ verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.jso
 
 [ -x "$config_dir/claude/closeout.sh" ]
 [ "$(cat "$config_dir/claude/CLAUDE.md")" = \
-  '@/Users/eddyekofo/.dotfiles/pi/AGENTS.md' ]
+  '@/Users/eddyekofo/.dotfiles/agent-config/AGENTS.md' ]
 grep -Fq '## Response Style (highest priority)' \
-  "$repo_dir/pi/AGENTS.md"
-grep -Fq '## Closeout' "$repo_dir/pi/AGENTS.md"
+  "$repo_dir/agent-config/AGENTS.md"
+grep -Fq '## Closeout' "$repo_dir/agent-config/AGENTS.md"
 
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"

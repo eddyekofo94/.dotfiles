@@ -1,1 +1,1 @@
-@/Users/eddyekofo/.dotfiles/pi/AGENTS.md
+@/Users/eddyekofo/.dotfiles/agent-config/AGENTS.md

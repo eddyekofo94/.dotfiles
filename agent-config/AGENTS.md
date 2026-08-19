@@ -95,3 +95,10 @@ No exemptions — read-only answers, questions, refusals and one-line tweaks all
 still end with it. `prefix+b` / `prefix+B` insert that last block into the next
 prompt, so a missing one breaks the workflow. If nothing changed, say so in
 Status and Artifacts and still give a Next move and prompt.
+
+When a ticket is finished — `DONE`, branch contained in `main`, clean tree, no
+manual check outstanding — the session closes itself: run `herdr-goal-done`. It
+sweeps the worktree, opens the next goal's tab (`/deliver <ID>`, or `/todo` when
+nothing ranks), and closes this one. Report what it opened. Where a condition is
+not met, name it instead of closing. `skill-finish` §Finished ticket owns the
+conditions; Bible Standard FS-130 D3 owns the flip from offering to running.

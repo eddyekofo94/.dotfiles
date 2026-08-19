@@ -20,7 +20,7 @@ mkdir -p "$fixture/home/.codex" "$fixture/home/.claude/hooks" \
 partial="$fixture/partial"
 mkdir -p "$partial/home/.codex" "$partial/home/.claude/hooks" \
   "$partial/home/.claude/projects/-Users-eddyekofo--dotfiles/memory"
-cp "$repo_dir/pi/AGENTS.md" "$partial/home/.codex/AGENTS.md"
+cp "$repo_dir/agent-config/AGENTS.md" "$partial/home/.codex/AGENTS.md"
 cp "$config_dir/claude/CLAUDE.md" "$partial/home/.claude/CLAUDE.md"
 printf 'unreviewed hook\n' >"$partial/home/.claude/hooks/closeout.sh"
 cp "$config_dir/claude/response-concision.md" \
@@ -58,7 +58,7 @@ AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
 
 # A reviewed exact source file can migrate to a managed link.
 rm "$fixture/home/.codex/AGENTS.md"
-cp "$repo_dir/pi/AGENTS.md" "$fixture/home/.codex/AGENTS.md"
+cp "$repo_dir/agent-config/AGENTS.md" "$fixture/home/.codex/AGENTS.md"
 AGENT_CONFIG_HOME="$fixture/home" \
 AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
   "$config_dir/install.sh" >/dev/null
@@ -74,7 +74,7 @@ if AGENT_CONFIG_HOME="$fixture/home" \
   exit 1
 fi
 rm "$fixture/home/.codex/AGENTS.md"
-ln -s "$repo_dir/pi/AGENTS.md" "$fixture/home/.codex/AGENTS.md"
+ln -s "$repo_dir/agent-config/AGENTS.md" "$fixture/home/.codex/AGENTS.md"
 rm "$fixture/home/.claude/CLAUDE.md"
 printf 'unreviewed\n' >"$fixture/home/.claude/CLAUDE.md"
 if AGENT_CONFIG_HOME="$fixture/home" \

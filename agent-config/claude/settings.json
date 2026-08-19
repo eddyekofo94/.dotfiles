@@ -4,11 +4,43 @@
     "AGENT_PROMPT_DEBUG": "/tmp/agent-prompt-debug.log"
   },
   "permissions": {
-    "allow": [
-      "Bash(*)"
-    ]
+    "allow": [],
+    "deny": [
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "DesignSync",
+      "NotebookEdit",
+      "SendMessage",
+      "PushNotification",
+      "RemoteTrigger",
+      "ReportFindings",
+      "ScheduleWakeup",
+      "AskUserQuestion",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "TaskCreate",
+      "TaskGet",
+      "TaskList",
+      "TaskOutput",
+      "TaskStop",
+      "TaskUpdate",
+      "Monitor",
+      "EnterWorktree",
+      "ExitWorktree",
+      "ListAgents",
+      "SendUserFile",
+      "EndConversation",
+      "ListMcpResourcesTool",
+      "ReadMcpResourceTool",
+      "ReadMcpResourceDirTool",
+      "mcp__computer-use",
+      "mcp__claude-in-chrome"
+    ],
+    "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "sonnet",
+  "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "app-store-changelog": "user-invocable-only",
     "ask-eddy": "user-invocable-only",
@@ -37,6 +69,7 @@
     "wizard": "user-invocable-only",
     "writing-great-skills": "off"
   },
+  "disableBundledSkills": true,
   "hooks": {
     "Notification": [
       {
@@ -159,12 +192,54 @@
       }
     ]
   },
+  "disableRemoteControl": true,
+  "disableWorkflows": true,
+  "disableArtifact": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline-command.sh\""
+  },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "mattpocock-skills@claude-plugins-official": false
   },
+  "effortLevel": "high",
+  "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Primary use of Claude Code**: software development",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: private (github.com/eddyekofo94/BibleStandard, confirmed via gh)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: main is the default branch; no classic branch protection listed and rulesets not queryable here — treat main as protected out of caution",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Source control**: The trusted repo (github.com:eddyekofo94/BibleStandard.git) and its remote(s) only — no additional orgs configured",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar; repo contains tools/reader_architecture_allowlist.json and tools/release_rights_allowlist.json which by name suggest access/rights control lists worth treating as sensitive",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development (iOS app workflow for Bible Standard — grill/plan/build/deliver loop via custom skills and subagents)",
+      "**Trusted repo**: /Users/eddyekofo/Programming/Projects/BibleStandardGroup/BibleStandard (github.com:eddyekofo94/BibleStandard.git), private — confidential material (including the allowlist files above) is fine to commit here; secrets and personal/entrusted sensitive data are never cleared into it by visibility alone",
+      "**Org-specific CLIs**: None configured — project-local tooling observed (herdr, herdr-goal-done, wt) is repo/workflow tooling, not an org-wide CLI",
+      "routine under this project's tools/, .working/, and project/ prefixes for workflow scripts (features_index.py, repo_lock.py, session_worktree.py, workflow_status.py) is expected day-to-day activity in this repo"
+    ]
+  },
+  "disabledMcpServers": [
+    "computer-use",
+    "claude-in-chrome"
+  ]
 }

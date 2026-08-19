@@ -71,7 +71,7 @@ install_link() {
 
 preflight_link codex-agents \
   "$agent_home/.codex/AGENTS.md" \
-  "$repo_dir/pi/AGENTS.md" \
+  "$repo_dir/agent-config/AGENTS.md" \
   8af457a0fbc10cce7d15d22558ffac1c18528e0539323ce9ac27ea1b06f91fa3
 preflight_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" \
@@ -95,7 +95,7 @@ preflight_link claude-settings \
   6942780acf9eeca5065a5d295e77e3915a1661623e7e8942b365c8b85c456cdd
 
 install_link codex-agents \
-  "$agent_home/.codex/AGENTS.md" "$repo_dir/pi/AGENTS.md"
+  "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
 install_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 install_link claude-closeout-hook \

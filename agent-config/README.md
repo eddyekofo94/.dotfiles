@@ -1,10 +1,13 @@
 # Global Agent Configuration
 
-`pi/AGENTS.md` is the single canonical global rule source.
+`agent-config/AGENTS.md` is the single canonical global rule source.
 
 - Codex: `~/.codex/AGENTS.md` symlinks directly to it.
-- Claude: `~/.claude/CLAUDE.md` symlinks a one-line supported import adapter.
-- Pi pilot: `$PI_CODING_AGENT_DIR/AGENTS.md` symlinks directly to it.
+- Claude: `~/.claude/CLAUDE.md` symlinks a one-line supported import adapter
+  that points at it.
+- Pi pilot: `$PI_CODING_AGENT_DIR/AGENTS.md` symlinks to `pi/AGENTS.md`, a
+  compat symlink the pilot's own scripts read; `pi/AGENTS.md` itself symlinks
+  to `agent-config/AGENTS.md`, so there is still exactly one file to edit.
 - Claude's prompt hook extracts the response/closeout sections from that same
   source; it does not maintain another rule copy.
 
