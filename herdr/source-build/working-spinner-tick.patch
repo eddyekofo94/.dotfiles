@@ -1,0 +1,215 @@
+diff --git a/src/app/mod.rs b/src/app/mod.rs
+index d049c0f2..52729ffb 100644
+--- a/src/app/mod.rs
++++ b/src/app/mod.rs
+@@ -33,6 +33,10 @@ use std::sync::Arc;
+ use std::time::{Duration, Instant};
+ 
+ const MIN_RENDER_INTERVAL: Duration = Duration::from_millis(16);
++// Must match WORKING_SPINNER_FRAME_MS in ui/status.rs: the spinner glyph is a
++// function of wall-clock time, so this is what forces the redraws that let the
++// frame index actually advance on screen.
++pub(crate) const WORKING_SPINNER_TICK_INTERVAL: Duration = Duration::from_millis(120);
+ pub(crate) const SELECTION_AUTOSCROLL_INTERVAL: Duration = Duration::from_millis(30);
+ const RESIZE_POLL_INTERVAL: Duration = Duration::from_millis(100);
+ const GIT_REMOTE_STATUS_REFRESH_INTERVAL: Duration = Duration::from_millis(1500);
+@@ -107,6 +111,7 @@ pub struct App {
+     pub(crate) config_diagnostic_deadline: Option<Instant>,
+     pub(crate) toast_deadline: Option<Instant>,
+     pub(crate) copy_feedback_deadline: Option<Instant>,
++    pub(crate) spinner_deadline: Option<Instant>,
+     pub(crate) last_api_notification_at: Option<Instant>,
+     pub(crate) last_git_remote_status_refresh: Instant,
+     pub(crate) last_git_repo_discovery_refresh: Instant,
+@@ -722,6 +727,7 @@ impl App {
+             config_diagnostic_deadline: None,
+             toast_deadline: None,
+             copy_feedback_deadline: None,
++            spinner_deadline: None,
+             last_api_notification_at: None,
+             state,
+             terminal_runtimes: restored_terminal_runtimes,
+diff --git a/src/app/runtime.rs b/src/app/runtime.rs
+index e05b9599..660ddccf 100644
+--- a/src/app/runtime.rs
++++ b/src/app/runtime.rs
+@@ -351,6 +351,9 @@ impl App {
+ 
+         changed |= self.clear_due_selection_highlight(now);
+ 
++        let dots_visible = self.working_dots_visible();
++        changed |= self.sync_working_spinner_deadline(now, dots_visible);
++
+         self.start_git_status_refresh_if_due(now);
+ 
+         if self
+@@ -385,6 +388,49 @@ impl App {
+         changed
+     }
+ 
++    /// True when the last frame put a surface carrying agent state dots on
++    /// screen. The compact collapsed sidebar still draws them, so this cannot
++    /// key off `sidebar_collapsed`; only `SidebarCollapsedModeConfig::Hidden`
++    /// leaves a zero-width sidebar rect. Mobile is a width-derived view of the
++    /// same state rather than a separate client, so its header counts too.
++    pub(crate) fn working_dots_visible(&self) -> bool {
++        self.state.view.sidebar_rect.width > 0 || self.state.view.mobile_header_rect.height > 0
++    }
++
++    /// Arms the redraw tick that lets the Working spinner advance, and reports
++    /// whether this call moved it.
++    ///
++    /// Both scheduling loops must call this: `App::handle_scheduled_tasks` for a
++    /// directly attached terminal, and `handle_scheduled_tasks_headless` for the
++    /// client/server deployment, which is the one that actually runs day to day.
++    /// An earlier attempt armed the deadline in `App` alone; the headless server
++    /// never calls that function, so the spinner was dead in the real build and
++    /// the feature was reverted. One helper, two callers, so they cannot drift.
++    ///
++    /// Cleared when nothing is Working or no client can see a dot, so an idle
++    /// session and a hidden sidebar both cost nothing.
++    pub(crate) fn sync_working_spinner_deadline(
++        &mut self,
++        now: Instant,
++        dots_visible: bool,
++    ) -> bool {
++        let animating = dots_visible
++            && self
++                .state
++                .terminals
++                .values()
++                .any(|terminal| terminal.state == crate::detect::AgentState::Working);
++        if !animating {
++            self.spinner_deadline = None;
++            return false;
++        }
++        if self.spinner_deadline.is_none_or(|deadline| now >= deadline) {
++            self.spinner_deadline = Some(now + super::WORKING_SPINNER_TICK_INTERVAL);
++            return true;
++        }
++        false
++    }
++
+     /// Clears temporary copied-token highlights, such as after double-click copy.
+     pub(crate) fn clear_due_selection_highlight(&mut self, now: Instant) -> bool {
+         if self
+@@ -600,6 +646,7 @@ impl App {
+             self.session_save_deadline,
+             self.selection_autoscroll_deadline,
+             self.selection_highlight_clear_deadline,
++            self.spinner_deadline,
+             render_deadline,
+         ]
+         .into_iter()
+diff --git a/src/server/headless.rs b/src/server/headless.rs
+index f72d1a94..2eb2e12f 100644
+--- a/src/server/headless.rs
++++ b/src/server/headless.rs
+@@ -4381,6 +4381,14 @@ impl HeadlessServer {
+ 
+         changed |= self.app.clear_due_selection_highlight(now);
+ 
++        // The tick that advances the Working spinner. This call is the whole
++        // reason the first attempt at the feature was reverted: it armed the
++        // deadline only in `App::handle_scheduled_tasks`, which the server never
++        // runs. There is no point animating for nobody, so an attached client is
++        // part of the gate alongside the dot surface being on screen.
++        let dots_visible = self.has_app_client() && self.app.working_dots_visible();
++        changed |= self.app.sync_working_spinner_deadline(now, dots_visible);
++
+         if self.has_app_client() {
+             self.app.start_git_status_refresh_if_due(now);
+         }
+@@ -6590,6 +6598,92 @@ next_tab = ""
+             }));
+     }
+ 
++    fn headless_server_with_working_agent() -> HeadlessServer {
++        let mut server = test_headless_server();
++        server.app.state.workspaces = vec![crate::workspace::Workspace::test_new("one")];
++        server.app.state.active = Some(0);
++        server.app.state.ensure_test_terminals();
++        for terminal in server.app.state.terminals.values_mut() {
++            terminal.state = crate::detect::AgentState::Working;
++        }
++        server.app.state.view.sidebar_rect = Rect::new(0, 0, 26, 20);
++        server
++    }
++
++    fn attach_test_app_client(server: &mut HeadlessServer) {
++        let (tx, _control_rx, _rx) = test_client_writer();
++        server.clients.insert(
++            1,
++            ClientConnection::new(
++                (120, 40),
++                crate::kitty_graphics::HostCellSize::default(),
++                crate::terminal_theme::TerminalTheme::default(),
++                None,
++                1,
++                RenderEncoding::SemanticFrame,
++                Some(tx),
++            ),
++        );
++    }
++
++    // The test the reverted attempt did not have. It armed the spinner deadline
++    // in `App::handle_scheduled_tasks` only, proved it with a test against that
++    // function, and shipped a spinner that never moved under the server the
++    // machine actually runs. This asserts the headless loop, so removing the
++    // call there fails the build instead of the eye.
++    #[test]
++    fn working_spinner_tick_arms_in_the_headless_scheduled_tasks() {
++        let mut server = headless_server_with_working_agent();
++        attach_test_app_client(&mut server);
++
++        let now = Instant::now();
++        assert!(server.handle_scheduled_tasks_headless(now, false));
++        let armed = server.app.spinner_deadline.expect("spinner deadline armed");
++        assert_eq!(armed, now + crate::app::WORKING_SPINNER_TICK_INTERVAL);
++
++        assert!(!server.handle_scheduled_tasks_headless(now, false));
++        assert_eq!(server.app.spinner_deadline, Some(armed));
++
++        assert!(server.handle_scheduled_tasks_headless(armed, false));
++        assert_eq!(
++            server.app.spinner_deadline,
++            Some(armed + crate::app::WORKING_SPINNER_TICK_INTERVAL)
++        );
++    }
++
++    #[test]
++    fn working_spinner_tick_stays_idle_without_an_attached_client() {
++        let mut server = headless_server_with_working_agent();
++
++        assert!(!server.handle_scheduled_tasks_headless(Instant::now(), false));
++        assert_eq!(server.app.spinner_deadline, None);
++    }
++
++    #[test]
++    fn working_spinner_tick_stays_idle_while_the_dot_surface_is_hidden() {
++        let mut server = headless_server_with_working_agent();
++        attach_test_app_client(&mut server);
++        // What `sidebar_collapsed_mode = "hidden"` leaves behind after a render.
++        server.app.state.view.sidebar_rect = Rect::new(0, 0, 0, 20);
++        server.app.state.view.mobile_header_rect = Rect::default();
++
++        assert!(!server.handle_scheduled_tasks_headless(Instant::now(), false));
++        assert_eq!(server.app.spinner_deadline, None);
++    }
++
++    #[test]
++    fn working_spinner_tick_clears_when_the_last_agent_stops_working() {
++        let mut server = headless_server_with_working_agent();
++        attach_test_app_client(&mut server);
++        assert!(server.handle_scheduled_tasks_headless(Instant::now(), false));
++
++        for terminal in server.app.state.terminals.values_mut() {
++            terminal.state = crate::detect::AgentState::Idle;
++        }
++        assert!(!server.handle_scheduled_tasks_headless(Instant::now(), false));
++        assert_eq!(server.app.spinner_deadline, None);
++    }
++
+     #[test]
+     fn headless_scheduled_tasks_clears_disabled_agent_manifest_update_deadline() {
+         let mut server = test_headless_server();

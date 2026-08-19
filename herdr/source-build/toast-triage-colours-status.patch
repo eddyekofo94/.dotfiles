@@ -1,5 +1,5 @@
 diff --git a/src/ui/status.rs b/src/ui/status.rs
-index a7399285..b2adaf07 100644
+index a7399285..e5ec2b0a 100644
 --- a/src/ui/status.rs
 +++ b/src/ui/status.rs
 @@ -87,10 +87,14 @@ pub(super) fn render_toast_notification(
@@ -34,3 +34,80 @@ index a7399285..b2adaf07 100644
          ),
      ]);
      let context = Line::from(vec![
+@@ -193,10 +197,32 @@ pub(super) fn render_config_diagnostic(frame: &mut Frame, area: Rect, message: &
+     }
+ }
+ 
++// The default "dots" spinner most CLI tools use, one Unicode cell wide so the
++// agent list stays column-aligned. The phase is a pure function of wall-clock
++// time: clients blit frames and have no widget layer, so there is nothing to
++// push a phase to — what matters is that some loop keeps asking for a redraw,
++// which is what App::sync_working_spinner_deadline guarantees.
++const WORKING_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
++// Must match WORKING_SPINNER_TICK_INTERVAL in app/mod.rs. 120ms rather than the
++// conventional 80ms because every tick costs a full render for every attached
++// client, and an agent is Working for most of a working day.
++const WORKING_SPINNER_FRAME_MS: u128 = 120;
++
++fn working_spinner_frame(now_ms: u128) -> &'static str {
++    let index = (now_ms / WORKING_SPINNER_FRAME_MS) as usize % WORKING_SPINNER_FRAMES.len();
++    WORKING_SPINNER_FRAMES[index]
++}
++
+ pub(super) fn state_dot(state: AgentState, seen: bool, p: &Palette) -> (&'static str, Style) {
+     match (state, seen) {
+         (AgentState::Blocked, _) => ("●", Style::default().fg(p.red)),
+-        (AgentState::Working, _) => ("●", Style::default().fg(p.yellow)),
++        (AgentState::Working, _) => {
++            let now_ms = std::time::SystemTime::now()
++                .duration_since(std::time::UNIX_EPOCH)
++                .map(|d| d.as_millis())
++                .unwrap_or(0);
++            (working_spinner_frame(now_ms), Style::default().fg(p.yellow))
++        }
+         (AgentState::Idle, false) => ("●", Style::default().fg(p.teal)),
+         (AgentState::Idle, true) => ("○", Style::default().fg(p.green)),
+         (AgentState::Unknown, _) => ("·", Style::default().fg(p.overlay0)),
+@@ -249,7 +275,6 @@ mod tests {
+         let palette = Palette::catppuccin();
+         for (state, seen, symbol, color) in [
+             (AgentState::Blocked, true, "●", palette.red),
+-            (AgentState::Working, true, "●", palette.yellow),
+             (AgentState::Idle, false, "●", palette.teal),
+             (AgentState::Idle, true, "○", palette.green),
+             (AgentState::Unknown, true, "·", palette.overlay0),
+@@ -260,6 +285,34 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn working_spinner_replaces_the_static_working_dot() {
++        let palette = Palette::catppuccin();
++        let (symbol, style) = state_dot(AgentState::Working, true, &palette);
++        assert!(WORKING_SPINNER_FRAMES.contains(&symbol));
++        assert_eq!(style.fg, Some(palette.yellow));
++    }
++
++    #[test]
++    fn working_spinner_frame_cycles_through_all_frames_and_repeats() {
++        let frames: Vec<&str> = (0..WORKING_SPINNER_FRAMES.len() as u128)
++            .map(|i| working_spinner_frame(i * WORKING_SPINNER_FRAME_MS))
++            .collect();
++        assert_eq!(frames, WORKING_SPINNER_FRAMES.to_vec());
++        assert_eq!(
++            working_spinner_frame(0),
++            working_spinner_frame(WORKING_SPINNER_FRAMES.len() as u128 * WORKING_SPINNER_FRAME_MS)
++        );
++    }
++
++    #[test]
++    fn working_spinner_frame_interval_matches_the_redraw_tick() {
++        assert_eq!(
++            WORKING_SPINNER_FRAME_MS,
++            crate::app::WORKING_SPINNER_TICK_INTERVAL.as_millis()
++        );
++    }
++
+     #[test]
+     fn toast_rect_uses_configured_corner() {
+         let area = Rect::new(10, 20, 100, 40);
