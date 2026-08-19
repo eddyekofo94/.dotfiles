@@ -31,7 +31,8 @@ Status values: **COVERED** (a Herdr key or native surface does the same job),
 | prefix `1` `3` `4` `5` `6` `8` `9`; root `M-1`…`M-9` | select or create numbered window | `prefix+0..9` custom commands (focus or create tab N) |
 | prefix `j` `k` `l` | `select-pane -D/-U/-R` | native `prefix+j/k/l`, plus `alt+j/k/l` smart-nav |
 | root `M-Up` `M-Down` `M-Left` `M-Right` | directional focus with Vim forwarding | `alt+h/j/k/l` smart-nav (arrow aliases retired) |
-| prefix `C-n` | new window at cwd | `alt+ctrl+n` cwd-following tab; native `prefix+c` |
+| prefix `C-n` | new window at cwd | `alt+ctrl+t` cwd-following tab; native `prefix+c` |
+| prefix `n` `p` | next / previous window | `alt+ctrl+n` / `alt+ctrl+p`; native `prefix+n/p` |
 | prefix `C-s` `C-v` | stacked / side-by-side split | `alt+s`, `alt+v`; native `prefix+minus`, `prefix+v` |
 | prefix `C-o` | `kill-pane -a` | `prefix+o` confirm close all sibling panes |
 | prefix `C-x` | kill all other windows | `alt+ctrl+x` close other tabs |
