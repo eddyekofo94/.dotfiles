@@ -9,6 +9,7 @@ pane. Exercise the hook as Claude Code actually runs it.
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,7 @@ BODY_ONLY = "Tool-only turn. Nothing settled yet.\n"
 
 
 def transcript(path, messages):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with Path(path).open("w", encoding="utf-8") as handle:
         for text in messages:
             handle.write(
@@ -62,6 +64,9 @@ def main():
         root = Path(directory)
         env = dict(os.environ, HERDR_PANE_ID=PANE, TMPDIR=str(root))
         env.pop("CLAUDE_CODE_SESSION_ID", None)
+        # The suite runs inside a Herdr pane; its session must not leak into
+        # the pane-only cases, which cover the no-Herdr-session fallback.
+        env.pop("HERDR_SESSION", None)
         target = root / "agent-prompt-turn-closeout._42.s1.md"
 
         # A pane id is reused by whatever agent starts in it next. The record
@@ -110,6 +115,48 @@ def main():
         expect(not seed.exists(), "session end left the derived seed")
         expect(other.exists(), "session end reached another pane's record")
 
+        # Two Herdr sessions -- independent Ghostty windows -- at the *same* pane
+        # id, sharing one $TMPDIR. This is the live hit-and-miss: each window's
+        # Stop hook used to prune the other window's record as "the previous
+        # occupant". With the Herdr session in the name, neither reaches the
+        # other, and the pane-only files from before scoping are still swept.
+        win_a = dict(env, HERDR_SESSION="window-43")
+        win_b = dict(env, HERDR_SESSION="window-44")
+        rec_a = root / "agent-prompt-turn-closeout.window-43._42.sA.md"
+        rec_b = root / "agent-prompt-turn-closeout.window-44._42.sB.md"
+        legacy = root / "agent-prompt-turn-closeout._42.sOld.md"
+        legacy.write_text("**Status:** DONE — pane-only era\n", encoding="utf-8")
+
+        path = transcript(root / "a.jsonl", ["Window A.\n\n" + CLOSEOUT])
+        result = run([], win_a, json.dumps({"transcript_path": str(path), "session_id": "sA"}))
+        expect(result.returncode == 0, "window A hook exited non-zero", result)
+        expect(rec_a.exists(), "window A wrote no session-scoped record", result)
+        expect(not legacy.exists(), "the pane-only record survived a scoped claim")
+
+        path = transcript(root / "b.jsonl", ["Window B.\n\n" + CLOSEOUT])
+        result = run([], win_b, json.dumps({"transcript_path": str(path), "session_id": "sB"}))
+        expect(result.returncode == 0, "window B hook exited non-zero", result)
+        expect(rec_b.exists(), "window B wrote no session-scoped record", result)
+        expect(rec_a.exists(), "window B's claim pruned window A's live record")
+        expect(
+            rec_a.read_text(encoding="utf-8").startswith("Window A."),
+            "window A's record was overwritten by window B",
+        )
+
+        # Window B's derived scratch is its own; window A's must survive B's end.
+        seed_a = root / "agent-prompt-seed.window-43._42.txt"
+        seed_b = root / "agent-prompt-seed.window-44._42.txt"
+        seed_a.write_text("A\n", encoding="utf-8")
+        seed_b.write_text("B\n", encoding="utf-8")
+        result = run(["--session-end"], win_b, json.dumps({"session_id": "sB"}))
+        expect(result.returncode == 0, "window B session end exited non-zero", result)
+        expect(not rec_b.exists(), "window B's end left its own record")
+        expect(not seed_b.exists(), "window B's end left its own seed")
+        expect(rec_a.exists(), "window B's end removed window A's record")
+        expect(seed_a.exists(), "window B's end removed window A's seed")
+        rec_a.unlink()
+        seed_a.unlink()
+
         # --print is what the ctrl+g editor shim calls.
         home = root / "home"
         project = home / ".claude" / "projects" / "-tmp-project"
@@ -123,6 +170,24 @@ def main():
             result.stdout.startswith("Body.") and "**Status:** DONE" in result.stdout,
             "--print did not emit the whole message",
         )
+
+        # Unnamed: the project's newest transcript is still the answer. The
+        # project dir is keyed on the *resolved* cwd, so use a real directory.
+        proj = root / "proj"
+        proj.mkdir()
+        slug = re.sub(r"[^A-Za-z0-9]", "-", str(proj.resolve()))
+        transcript(home / ".claude" / "projects" / slug / "s.jsonl", ["Body.\n\n" + CLOSEOUT])
+        result = run(["--print", "", str(proj)], dict(env, HOME=str(home)))
+        expect(result.returncode == 0, "--print unnamed found nothing", result)
+        expect("**Status:** DONE" in result.stdout, "--print unnamed lost the closeout")
+
+        # A named session with no transcript of its own -- a pane whose Claude
+        # has not finished a turn yet -- must not be handed that same project
+        # transcript, which belongs to some other pane.
+        result = run(["--print", "fresh-session", str(proj)], dict(env, HOME=str(home)))
+        expect(result.returncode != 0, "--print served another session's transcript")
+        expect(not result.stdout.strip(), "--print printed for an unknown session")
+        expect("fresh-session" in result.stderr, "--print did not name the missing session")
 
     print("closeout capture hook: PASS")
     return 0

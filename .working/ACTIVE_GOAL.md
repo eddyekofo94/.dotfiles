@@ -1,5 +1,26 @@
 # Active Goal
 
+`herdr-working-dot-animation` — **closed 2026-08-20.** The Working dot breathes,
+confirmed live by Eddy. Two prior attempts shipped dead because the redraw tick
+was armed only in `App::handle_scheduled_tasks`, which the headless server never
+calls; the tick is now one helper both loops call, gated on an attached client
+and a visible dot surface. `build.sh` also stopped requiring each patch file to
+own a sorted-contiguous path range, which is what had forced runtime changes
+into a patch named for copy mode. Record:
+`.working/interviews/herdr-working-dot-animation/decisions.md`.
+
+---
+
+`agent-prompt-session-scoped-capture` — selected 2026-08-19. `ctrl+g` closeout
+records keyed on Herdr session + pane so independent Ghostty windows at the
+same pane id stop pruning and reading each other's record. Source:
+`.working/interviews/agent-prompt-session-scoped-capture/decisions.md`.
+Round 2 adds Herdr-sourced agent session (`herdr pane get`) for the
+shim; gates green, reviews 0/0; uncommitted. Awaiting Eddy's live `ctrl+g` in a
+fresh pane and a second window.
+
+---
+
 `pi-compaction-continuity-fixture` — selected 2026-08-03 when Eddy authorized
 continuing the Pi migration. `pi/verify.sh` is red and blocks every other Pi
 item, so it is the first slice.

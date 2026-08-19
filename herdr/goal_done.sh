@@ -3,12 +3,12 @@
 #
 # The end of a ticket is the one moment the workflow had no gesture for. The
 # work merges, and the tab stays open on a worktree that is now a duplicate of
-# `main`, holding a cap slot (FS-097) and a path claim, while the next thing to
+# `main`, holding a cap slot (FS-097), while the next thing to
 # do sits unranked. Eddy then closes the tab by hand, opens another, and types
 # the same prompt. This is that sequence, once, in the right order:
 #
 #   1. refuse unless the branch is genuinely merged  (nothing is thrown away)
-#   2. release the session's path claims
+#   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree                            (frees the cap slot)
 #   4. advance: ask the work graph for the next focus-track record and open a
 #      fresh Opus tab booted into `/deliver <ID>`; with nothing ranked, a /todo
@@ -98,10 +98,11 @@ fi
 # project actually implements them, so this stays usable in other repos.
 if [ -n "$slug" ] && [ -f "$root/tools/repo_lock.py" ]; then
   # The worktree's *own* copy of the script, not the shared tree's: repo_lock
-  # reads its checkout from `__file__`, not from the cwd, and a worktree owns
-  # its claims (BUG-187 D3) so releasing there needs no session id. Invoking
-  # the shared copy made it demand $CLAUDE_SESSION_ID, which is not exported
-  # into an agent's shell — the release failed every time.
+  # reads its checkout from `__file__`, not from the cwd, and needs no session
+  # id there. Invoking the shared copy made it demand $CLAUDE_SESSION_ID, which
+  # is not exported into an agent's shell — the release failed every time.
+  # Since FS-153 D1 a worktree takes no claims, so this normally finds nothing
+  # and says so; it stays because a checkout that predates D1 may still hold one.
   (cd "$root" && run python3 tools/repo_lock.py release) ||
     echo "goal-done: could not release the path claim (it lapses on its own)" >&2
 fi

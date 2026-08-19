@@ -2,9 +2,23 @@
 
 ## Active
 
-None.
-Source:
-`.working/interviews/fish-vi-cursor-not-blinking/observations.md`.
+`agent-prompt-session-scoped-capture` — selected 2026-08-19 by `/feature-plan`
+after Eddy reported `ctrl+g` opening the wrong or no closeout, hit and miss.
+Cause: every record keyed on `HERDR_PANE_ID` alone, which is unique only inside
+one Herdr session; independent Ghostty windows (`window-43`, `window-44`, ...)
+share one `$TMPDIR`, so the Stop hook's prune in one window deleted the other
+window's live record and the shim's no-session-id fallback read the other
+window's file. Fix: key hook and shim on `HERDR_SESSION` + `HERDR_PANE_ID`;
+debug log tagged `[session/pane]`. `affects` the `ctrl+g` closeout flow
+(`agent-config/claude/closeout_capture.py`, `~/.config/nvim/tools/
+agent_prompt_editor.sh`). `depends on` nothing upstream: Herdr already exports
+`HERDR_SESSION`. Round 1 (session+pane scoping) passed live in the
+originating pane but a fresh pane still showed a neighbour's closeout via the
+project-newest transcript; round 2 asks Herdr (`herdr pane get`) for the pane's
+agent session and never serves project-newest for a named session. All gates
+green, review 0/0 each round; **AWAITING CONFIRMATION** — Eddy's live
+`ctrl+g` in a fresh pane and a second window. Uncommitted. Source:
+`.working/interviews/agent-prompt-session-scoped-capture/decisions.md`.
 
 ## Ranked Next
 

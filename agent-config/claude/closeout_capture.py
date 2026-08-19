@@ -15,10 +15,13 @@ agent has redrawn the pane, so the closeout has usually scrolled out of reach.
 The agent, however, knows exactly what it just printed -- so record it here, at
 the end of the turn, and let the editor shim read a file instead of guessing.
 
-Scoped to pane *and* session. Pane alone is not enough: pane ids are reused, so
-a finished session leaves a file that the next agent in that pane reads as its
-own. The session id makes the record unambiguous, the Stop hook drops the other
-sessions' files for its pane, and SessionEnd removes its own on the way out.
+Scoped to Herdr session, pane, *and* agent session. Pane alone is not enough
+twice over: pane ids are reused, so a finished session leaves a file that the
+next agent in that pane reads as its own; and pane ids are only unique within
+one Herdr session, so two Ghostty windows both hold a `w1:p2` and share one
+$TMPDIR. The Herdr session plus pane makes the place unambiguous, the agent
+session id makes the record unambiguous, the Stop hook drops the other agents'
+files for its place, and SessionEnd removes its own on the way out.
 
 Silent on anything unparseable: a broken transcript must not wedge a session.
 """
@@ -35,7 +38,7 @@ from closeout_length import last_assistant_text, split_at_closeout  # noqa: E402
 
 
 PREFIX = "agent-prompt-turn-closeout"
-# Scratch the ctrl+g shim writes beside the record, named per pane rather than
+# Scratch the ctrl+g shim writes beside the record, named per place rather than
 # per session. Cleared with the record so a dead session leaves nothing behind.
 DERIVED = (
     "agent-prompt-seed.{}.txt",
@@ -46,34 +49,65 @@ DERIVED = (
 
 
 def slugify(value):
+    # ASCII on purpose, matching `tr -c '[:alnum:]._-' '_'` in the shim; Herdr
+    # sessions (`window-43`, `main`) and pane ids (`w1:p2`) never leave ASCII.
     return re.sub(r"[^A-Za-z0-9._-]", "_", value)
+
+
+def pane_slug():
+    pane = os.environ.get("HERDR_PANE_ID")
+    return slugify(pane) if pane else None
 
 
 def temp_base():
     return Path(os.environ.get("TMPDIR") or tempfile.gettempdir())
 
 
-def target_path(session):
-    pane = os.environ.get("HERDR_PANE_ID")
+def place():
+    """The pane's identity across every Herdr session on this machine.
+
+    `HERDR_PANE_ID` (`w1:p2`) is only unique inside one Herdr session, and each
+    independent Ghostty window is its own session (`window-43`, `window-44`...)
+    while all of them share one $TMPDIR. Prefix the Herdr session so two windows
+    at the same pane id never read or prune each other's record. Without a
+    Herdr session the pane slug stands alone, so the shim -- which derives the
+    same name from the same environment -- always agrees.
+    """
+    pane = pane_slug()
     if not pane:
         return None
+    session = os.environ.get("HERDR_SESSION")
+    if session:
+        return f"{slugify(session)}.{pane}"
+    return pane
+
+
+def target_path(session):
+    scope = place()
+    if not scope:
+        return None
     session = slugify(session or "nosession")
-    return temp_base() / f"{PREFIX}.{slugify(pane)}.{session}.md"
+    return temp_base() / f"{PREFIX}.{scope}.{session}.md"
 
 
 def prune(keep):
-    """Drop every other record for this pane, and the pre-session filename.
+    """Drop every other record for this place, and the pre-scoping filenames.
 
     A pane hosts one live agent at a time, so any record here under another
     session id belongs to a session that has ended -- exactly the file that was
-    being served to its successor.
+    being served to its successor. The pane-only names predate Herdr-session
+    scoping; no Herdr pane writes them any more, so under a Herdr session they
+    are always stale.
     """
-    pane = os.environ.get("HERDR_PANE_ID")
-    if not pane:
+    scope = place()
+    if not scope:
         return
     base = temp_base()
-    stale = list(base.glob(f"{PREFIX}.{slugify(pane)}.*.md"))
-    stale.append(base / f"{PREFIX}.{slugify(pane)}.md")
+    pane = pane_slug()
+    stale = list(base.glob(f"{PREFIX}.{scope}.*.md"))
+    if scope != pane:
+        stale.extend(base.glob(f"{PREFIX}.{pane}.*.md"))
+    stale.append(base / f"{PREFIX}.{pane}.md")
     for path in stale:
         if path == keep:
             continue
@@ -87,9 +121,9 @@ def cleanup(session):
     """SessionEnd: remove this session's record wherever it was written."""
     base = temp_base()
     paths = list(base.glob(f"{PREFIX}.*.{slugify(session)}.md")) if session else []
-    pane = os.environ.get("HERDR_PANE_ID")
-    if pane:
-        paths.extend(base / name.format(slugify(pane)) for name in DERIVED)
+    scope = place()
+    if scope:
+        paths.extend(base / name.format(scope) for name in DERIVED)
     for path in paths:
         try:
             path.unlink()
@@ -112,16 +146,17 @@ def project_dir(cwd=None):
 def find_transcript(session_id, cwd=None):
     """Locate the transcript to read the closeout from.
 
-    Prefers the exact session. Falls back to the project's most recently
-    written transcript, because the editor is not always launched from a
-    process that inherited the agent's environment -- ctrl+g can land in a
-    pane with no CLAUDE_CODE_SESSION_ID at all, and keying only on the id
-    makes the feature silently unavailable there.
+    A named session is that session's transcript or nothing: a fresh session
+    with no transcript yet must read as "no closeout", not as whichever Claude
+    pane last wrote in this project -- which is exactly what the shim showed
+    before it asked Herdr for the pane's session. The project-newest fallback
+    survives only for the caller that cannot name the session at all.
     """
     root = Path.home() / ".claude" / "projects"
     if session_id:
         for candidate in root.glob(f"*/{session_id}.jsonl"):
             return candidate
+        return None
 
     directory = project_dir(cwd)
     transcripts = sorted(
@@ -169,7 +204,10 @@ def last_turn(path):
 def print_turn(session_id, cwd=None):
     path = find_transcript(session_id, cwd)
     if not path:
-        sys.stderr.write(f"no transcript under {project_dir(cwd)}\n")
+        if session_id:
+            sys.stderr.write(f"no transcript for session {session_id}\n")
+        else:
+            sys.stderr.write(f"no transcript under {project_dir(cwd)}\n")
         return 1
     try:
         turn = last_turn(path)
