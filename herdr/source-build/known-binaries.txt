@@ -26,3 +26,5 @@ ff78c57d532a191330c0d15867e07ec850bef9b142e274aa78bfc51e0942ce8c  reviewed v0.7.
 a7efccc22d6fc51ae5110ceb88950e122ee3c1d98d7d4bf930b5a40c2ae50ee3  reviewed v0.7.5 source build with private patch 77eb128f593c22445cb5f453fccee23f5b01432aa921f50fb83abe6f425c7e99
 d53a9f93fccfdfcc55632927bf51002f5add0aa7990bcdf508ffbd84ac658178  official v0.8.0 release (herdr-macos-aarch64)
 0c56d658d5d3c2f52c582867cef57e04fdd58c91ce1af1f26b2176936e8da558  reviewed v0.8.0 source build with private patch bea12d683a0fce80dfdea4971d47a3e165a6bb0806f2435321c580cb39b799d1
+36134ca8f1bdc55d1872e7358cc948c1ae1b5cffe9c354a4eae885edf81f9b30  reviewed v0.8.0 source build with private patch b20c48b67c740af90a94ce0bdda90817a35a3b4608875049116439a97de87b5b, reverted (working-state spinner glyph, redraw scheduling not yet added)
+4720a685c40108fe327666a20df9e6981e017a21183834d8dcc9530ef5075b79  reviewed v0.8.0 source build with private patch 0491445c360e28f82fe7e85ef381ef442bdfa2dc830bfafe6b8c1ae793e3ed1e, reverted (working-state spinner too slow, reverted to native static dot)
