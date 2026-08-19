@@ -17,9 +17,12 @@ test "$HERDR_SOURCE_COMMIT" = ef4c23f5775bb8cfec05f05d0844226ff959a07a
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
 # The series is the unit that is pinned: HERDR_PATCH_SHA256 is the digest of the
-# concatenation, which is also the whole-tree diff build.sh checks against.
+# concatenation, which is also the whole-tree diff build.sh checks against. Order
+# matters: it has to match what `git diff` emits (sorted by path), which is why
+# the toast-triage patch is split around agent-panel-active-highlight.patch
+# (mobile.rs < sidebar.rs < status.rs) instead of sitting in one file.
 test "$HERDR_PATCH_SERIES" = \
-  "copy-mode-vim-muscle-memory.patch toast-triage-colours.patch"
+  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch agent-panel-active-highlight.patch toast-triage-colours-status.patch"
 test "$(
   for patch_name in $HERDR_PATCH_SERIES; do
     cat "$source_build/$patch_name"
@@ -56,20 +59,41 @@ fi
 # The toast triage colours: red is blocked on a human, green is done, blue is
 # informational, and the title carries the colour so the signal is not one cell.
 # Named here so a re-pin cannot quietly revert them to the upstream mapping.
-toast_patch="$source_build/toast-triage-colours.patch"
+# Split across two files (mobile.rs, status.rs) so agent-panel-active-highlight
+# .patch can sit between them in path-sorted apply order; check both together.
+toast_mobile_patch="$source_build/toast-triage-colours-mobile.patch"
+toast_status_patch="$source_build/toast-triage-colours-status.patch"
 # Red is already upstream's mapping, so it appears as patch context rather than
 # an addition; assert it survives in both renderers instead of that we add it.
-test "$(rg -c '^[ +]        ToastKind::NeedsAttention => p\.red,$' "$toast_patch")" -eq 2
-test "$(rg -c '^\+        ToastKind::Finished => p\.green,$' "$toast_patch")" -eq 2
-test "$(rg -c '^\+        ToastKind::UpdateInstalled => p\.blue,$' "$toast_patch")" -eq 2
+test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
+  rg -c '^[ +]        ToastKind::NeedsAttention => p\.red,$')" -eq 2
+test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
+  rg -c '^\+        ToastKind::Finished => p\.green,$')" -eq 2
+test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
+  rg -c '^\+        ToastKind::UpdateInstalled => p\.blue,$')" -eq 2
 rg -q '^\+            Style::default\(\)\.fg\(kind_color\)\.add_modifier\(Modifier::BOLD\),$' \
-  "$toast_patch"
+  "$toast_status_patch"
 # Desktop and mobile toasts must not drift apart into two colour languages.
-test "$(rg -c '^\+    let kind_color = match toast\.kind \{$' "$toast_patch")" -eq 2
-# The toast patch owns only the two renderers; anything else is a seam crossing.
-test "$(rg -c '^diff --git ' "$toast_patch")" -eq 2
-rg -q '^diff --git a/src/ui/mobile\.rs ' "$toast_patch"
-rg -q '^diff --git a/src/ui/status\.rs ' "$toast_patch"
+test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
+  rg -c '^\+    let kind_color = match toast\.kind \{$')" -eq 2
+# Each toast file owns exactly its own renderer; anything else is a seam crossing.
+test "$(rg -c '^diff --git ' "$toast_mobile_patch")" -eq 1
+test "$(rg -c '^diff --git ' "$toast_status_patch")" -eq 1
+rg -q '^diff --git a/src/ui/mobile\.rs ' "$toast_mobile_patch"
+rg -q '^diff --git a/src/ui/status\.rs ' "$toast_status_patch"
+
+# Agent panel active-row highlight: the current tab/pane used to render with the
+# same unconditional overlay0 + DIM text as every idle row, so nothing in the
+# sidebar said "this is where you are." Named here so a re-pin cannot quietly
+# revert the active row back to indistinguishable-from-idle.
+highlight_patch="$source_build/agent-panel-active-highlight.patch"
+test "$(rg -c '^diff --git ' "$highlight_patch")" -eq 1
+rg -q '^diff --git a/src/ui/sidebar\.rs ' "$highlight_patch"
+rg -q '^-        let agent_style = Style::default\(\)\.fg\(p\.overlay0\)\.add_modifier\(Modifier::DIM\);$' \
+  "$highlight_patch"
+test "$(rg -c '^\+            Style::default\(\)\.fg\(p\.accent\)\.add_modifier\(Modifier::BOLD\)$' \
+  "$highlight_patch")" -eq 2
+rg -q '^\+            Style::default\(\)\.bg\(p\.surface1\)$' "$highlight_patch"
 
 # The built binary is a gitignored work product, so a fresh checkout cannot have
 # it. Skip only the binary identity checks in that case; everything above is

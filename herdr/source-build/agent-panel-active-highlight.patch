@@ -1,0 +1,44 @@
+diff --git a/src/ui/sidebar.rs b/src/ui/sidebar.rs
+index 0ecfb652..c3d55d90 100644
+--- a/src/ui/sidebar.rs
++++ b/src/ui/sidebar.rs
+@@ -1379,22 +1379,33 @@ fn render_agent_detail(
+         }
+ 
+         let is_active = app.is_active_pane(detail.ws_idx, detail.tab_idx, detail.pane_id);
++        // surface_dim (30,30,46) sits a few RGB steps from panel_bg (24,24,37) —
++        // on most terminals the "active" row background was indistinguishable
++        // from the rest of the list. surface1 is the same token the workspace
++        // list already uses for its own active row (see render_workspace_list).
+         let row_style = if is_active {
+-            Style::default().bg(p.surface_dim)
++            Style::default().bg(p.surface1)
+         } else {
+             Style::default()
+         };
+         let name_style = if is_active {
+-            Style::default().fg(p.text).add_modifier(Modifier::BOLD)
++            Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
+         } else {
+             Style::default().fg(p.subtext0).add_modifier(Modifier::BOLD)
+         };
+-        let status_style = if is_active {
+-            Style::default().fg(label_color)
++        // label_color is already state-tinted (green/yellow/red/...); DIM on top
++        // of that for every non-active row was one dimming pass too many.
++        let status_style = Style::default().fg(label_color);
++        // secondary_style/custom_style below both resolve to this one color, so
++        // it carries almost every visible label in the panel — the tab name,
++        // the agent name, and the terminal title. Pinned to overlay0 + DIM
++        // unconditionally, the current tab read exactly as dim as every other
++        // one; nothing in the list distinguished "this is where you are."
++        let agent_style = if is_active {
++            Style::default().fg(p.accent).add_modifier(Modifier::BOLD)
+         } else {
+-            Style::default().fg(label_color).add_modifier(Modifier::DIM)
++            Style::default().fg(p.subtext0)
+         };
+-        let agent_style = Style::default().fg(p.overlay0).add_modifier(Modifier::DIM);
+         let state_icon = agent_icon(detail.state, detail.seen, app.spinner_tick, p);
+ 
+         for (row_index, resolved) in rows.iter().take(height as usize).enumerate() {
