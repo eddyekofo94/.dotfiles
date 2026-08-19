@@ -11,19 +11,20 @@ root=$(CDPATH= cd -- "$source_build/../.." && pwd)
 # independent cross-check that catches a tampered or half-finished re-pin, so it
 # has to carry its own copy of the reviewed identity. upgrade.sh does not rewrite
 # these — bump them by hand, from `git rev-parse`, as part of accepting a release.
-test "$HERDR_SOURCE_TAG" = v0.8.0
-test "$HERDR_SOURCE_TAG_OBJECT" = 857196dee1ce98df53efdd3f437aa2ac8a75b608
-test "$HERDR_SOURCE_COMMIT" = 346411fa21afd297f5ed3b3fa56f9e3fbf7654b7
+test "$HERDR_SOURCE_TAG" = v0.8.2
+test "$HERDR_SOURCE_TAG_OBJECT" = 34ba52cc6ff3b723e6fc0130485ec24582dbe205
+test "$HERDR_SOURCE_COMMIT" = 9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
 # The series is the unit that is pinned: HERDR_PATCH_SHA256 is the digest of the
 # concatenation, and HERDR_TREE_DIFF_SHA256 pins the patched tree separately.
 # Splitting the two is what lets a patch file own any set of paths; build.sh
 # checks ownership against the modified tree instead of relying on apply order.
-# The toast-triage split around agent-panel-active-highlight.patch predates the
-# split and is kept because those three patches are genuinely separate changes.
+# Three patches retired at v0.8.2 — agent-panel-active-highlight,
+# toast-triage-colours-status and working-spinner-tick are upstream code now, so
+# the series carries only what upstream still does not do.
 test "$HERDR_PATCH_SERIES" = \
-  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch agent-panel-active-highlight.patch toast-triage-colours-status.patch working-spinner-tick.patch"
+  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch"
 test "$(
   for patch_name in $HERDR_PATCH_SERIES; do
     cat "$source_build/$patch_name"
@@ -67,78 +68,23 @@ if rg -q 'pane_history|tmux_fallback|send-keys|send-text|input emulation' \
   exit 1
 fi
 
-# The toast triage colours: red is blocked on a human, green is done, blue is
-# informational, and the title carries the colour so the signal is not one cell.
-# Named here so a re-pin cannot quietly revert them to the upstream mapping.
-# Split across two files (mobile.rs, status.rs) so agent-panel-active-highlight
-# .patch can sit between them in path-sorted apply order; check both together.
+# The mobile toast triage colours: red is blocked on a human, green is done,
+# blue is informational. Named here so a re-pin cannot quietly revert them to
+# the upstream mapping. The desktop half (ui/status.rs) was adopted upstream at
+# v0.8.2 and its patch retired, so only the mobile renderer is ours to keep.
 toast_mobile_patch="$source_build/toast-triage-colours-mobile.patch"
-toast_status_patch="$source_build/toast-triage-colours-status.patch"
 # Red is already upstream's mapping, so it appears as patch context rather than
-# an addition; assert it survives in both renderers instead of that we add it.
-test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
-  rg -c '^[ +]        ToastKind::NeedsAttention => p\.red,$')" -eq 2
-test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
-  rg -c '^\+        ToastKind::Finished => p\.green,$')" -eq 2
-test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
-  rg -c '^\+        ToastKind::UpdateInstalled => p\.blue,$')" -eq 2
-rg -q '^\+            Style::default\(\)\.fg\(kind_color\)\.add_modifier\(Modifier::BOLD\),$' \
-  "$toast_status_patch"
-# Desktop and mobile toasts must not drift apart into two colour languages.
-test "$(cat "$toast_mobile_patch" "$toast_status_patch" |
-  rg -c '^\+    let kind_color = match toast\.kind \{$')" -eq 2
-# Each toast file owns exactly its own renderer; anything else is a seam crossing.
+# an addition; assert it survives instead of that we add it.
+test "$(rg -c '^[ +]        ToastKind::NeedsAttention => p\.red,$' \
+  "$toast_mobile_patch")" -eq 1
+test "$(rg -c '^\+        ToastKind::Finished => p\.green,$' "$toast_mobile_patch")" -eq 1
+test "$(rg -c '^\+        ToastKind::UpdateInstalled => p\.blue,$' \
+  "$toast_mobile_patch")" -eq 1
+# Mobile must speak the same colour language the desktop toast now ships with.
+test "$(rg -c '^\+    let kind_color = match toast\.kind \{$' "$toast_mobile_patch")" -eq 1
+# The toast file owns exactly its own renderer; anything else is a seam crossing.
 test "$(rg -c '^diff --git ' "$toast_mobile_patch")" -eq 1
-test "$(rg -c '^diff --git ' "$toast_status_patch")" -eq 1
 rg -q '^diff --git a/src/ui/mobile\.rs ' "$toast_mobile_patch"
-rg -q '^diff --git a/src/ui/status\.rs ' "$toast_status_patch"
-
-# The Working-state spinner. Two halves that must stay together: the glyph, in
-# the status renderer, and the redraw tick that lets it advance. The tick is the
-# half that was missing when this shipped and was reverted — the glyph was a
-# function of wall-clock time, and the headless server, which is what actually
-# runs, never scheduled a redraw for it. Named here so a re-pin cannot drop the
-# tick and leave a spinner frozen on whichever frame the last event painted.
-spinner_patch="$source_build/working-spinner-tick.patch"
-test "$(rg -c '^diff --git ' "$spinner_patch")" -eq 3
-rg -q '^diff --git a/src/app/mod\.rs ' "$spinner_patch"
-rg -q '^diff --git a/src/app/runtime\.rs ' "$spinner_patch"
-rg -q '^diff --git a/src/server/headless\.rs ' "$spinner_patch"
-# One helper, called by both scheduling loops. Two copies is the failure mode.
-test "$(rg -c '^\+    pub\(crate\) fn sync_working_spinner_deadline\($' "$spinner_patch")" -eq 1
-test "$(rg -c '^\+        changed \|= self\.sync_working_spinner_deadline\(now, dots_visible\);$' \
-  "$spinner_patch")" -eq 1
-test "$(rg -c '^\+        changed \|= self\.app\.sync_working_spinner_deadline\(now, dots_visible\);$' \
-  "$spinner_patch")" -eq 1
-# The deadline has to reach the loop's wakeup list or nothing ever fires.
-rg -q '^\+            self\.spinner_deadline,$' "$spinner_patch"
-# The headless regression test is the gate; build.sh selects it by this prefix.
-rg -q '^\+    fn working_spinner_tick_arms_in_the_headless_scheduled_tasks\(\) \{$' \
-  "$spinner_patch"
-rg -q '^  cargo test --locked working_$' "$source_build/build.sh"
-# The dot itself lives with the other status colours, in the patch that owns that
-# file. Working keeps the same round glyph as every other state and breathes; a
-# braille spinner in that column was tried first and replaced.
-rg -q '^\+        \(AgentState::Working, _\) => \("●", working_pulse_style\(p, now_millis\(\)\)\),$' \
-  "$toast_status_patch"
-rg -q '^\+const WORKING_PULSE_PERIOD_MS: u128 = 1_440;$' "$toast_status_patch"
-# The dot must never fade all the way into the panel: that reads as a fault.
-rg -q '^\+const WORKING_PULSE_FLOOR: f32 = 0\.34;$' "$toast_status_patch"
-rg -q '^\+pub\(crate\) const WORKING_SPINNER_TICK_INTERVAL: Duration = Duration::from_millis\(120\);$' \
-  "$spinner_patch"
-
-# Agent panel active-row highlight: the current tab/pane used to render with the
-# same unconditional overlay0 + DIM text as every idle row, so nothing in the
-# sidebar said "this is where you are." Named here so a re-pin cannot quietly
-# revert the active row back to indistinguishable-from-idle.
-highlight_patch="$source_build/agent-panel-active-highlight.patch"
-test "$(rg -c '^diff --git ' "$highlight_patch")" -eq 1
-rg -q '^diff --git a/src/ui/sidebar\.rs ' "$highlight_patch"
-rg -q '^-        let agent_style = Style::default\(\)\.fg\(p\.overlay0\)\.add_modifier\(Modifier::DIM\);$' \
-  "$highlight_patch"
-test "$(rg -c '^\+            Style::default\(\)\.fg\(p\.accent\)\.add_modifier\(Modifier::BOLD\)$' \
-  "$highlight_patch")" -eq 2
-rg -q '^\+            Style::default\(\)\.bg\(p\.surface1\)$' "$highlight_patch"
 
 # The built binary is a gitignored work product, so a fresh checkout cannot have
 # it. Skip only the binary identity checks in that case; everything above is

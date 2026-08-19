@@ -1,8 +1,8 @@
 diff --git a/src/ui/mobile.rs b/src/ui/mobile.rs
-index 2e6c97ad..e204c977 100644
+index bdec6551..16d43f08 100644
 --- a/src/ui/mobile.rs
 +++ b/src/ui/mobile.rs
-@@ -244,10 +244,12 @@ pub(crate) fn render_mobile_toast_banner(
+@@ -245,10 +245,12 @@ pub(crate) fn render_mobile_toast_banner(
          return;
      }
  
@@ -18,7 +18,7 @@ index 2e6c97ad..e204c977 100644
      };
      let banner = mobile_toast_banner_rect(area, offset_for_warning);
      let bg = p.surface0;
-@@ -257,12 +259,12 @@ pub(crate) fn render_mobile_toast_banner(
+@@ -258,12 +260,12 @@ pub(crate) fn render_mobile_toast_banner(
      frame.render_widget(
          Paragraph::new(Line::from(vec![
              Span::styled(" ", Style::default().bg(bg)),
