@@ -13,6 +13,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HOOK = Path(__file__).resolve().parents[1] / "claude" / "closeout_capture.py"
@@ -26,20 +27,24 @@ Artifacts: none
 BODY_ONLY = "Tool-only turn. Nothing settled yet.\n"
 
 
-def transcript(path, messages):
+def entry(message):
+    """One transcript line. A message is text, or (text, timestamp)."""
+    text, stamp = message if isinstance(message, tuple) else (message, None)
+    record = {
+        "type": "assistant",
+        "uuid": "uuid",
+        "message": {"content": [{"type": "text", "text": text}]},
+    }
+    if stamp:
+        record["timestamp"] = stamp
+    return json.dumps(record) + "\n"
+
+
+def transcript(path, messages, mode="w"):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with Path(path).open("w", encoding="utf-8") as handle:
-        for text in messages:
-            handle.write(
-                json.dumps(
-                    {
-                        "type": "assistant",
-                        "uuid": "uuid",
-                        "message": {"content": [{"type": "text", "text": text}]},
-                    }
-                )
-                + "\n"
-            )
+    with Path(path).open(mode, encoding="utf-8") as handle:
+        for message in messages:
+            handle.write(entry(message))
     return path
 
 
@@ -51,6 +56,15 @@ def run(args, env, payload=None):
         text=True,
         env=env,
     )
+
+
+def text_of(path):
+    """Contents, or empty when the file is missing -- so a missing artifact
+    fails as the check that names it, not as a traceback."""
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except OSError:
+        return ""
 
 
 def expect(condition, label, result=None):
@@ -156,6 +170,70 @@ def main():
         expect(seed_a.exists(), "window B's end removed window A's seed")
         rec_a.unlink()
         seed_a.unlink()
+
+        # The one-turn-stale race. The transcript is written asynchronously, so
+        # Stop can fire before the turn's own message is on disk: reading once
+        # records the *previous* turn, and ctrl+g opens with the turn before the
+        # one that just finished. Turn A here is what the record already holds.
+        race = root / "race.jsonl"
+        rec = root / "agent-prompt-turn-closeout._42.s3.md"
+        stamp = root / "agent-prompt-turn-closeout._42.s3.stamp"
+        payload = json.dumps({"transcript_path": str(race), "session_id": "s3"})
+        transcript(race, [("Turn A.\n\n" + CLOSEOUT, "2026-01-01T00:00:00.000Z")])
+        result = run([], env, payload)
+        expect(result.returncode == 0, "the stamped turn errored", result)
+        expect(
+            text_of(rec).startswith("Turn A."),
+            "turn A was not recorded",
+        )
+        expect(
+            text_of(stamp).strip() == "2026-01-01T00:00:00.000Z",
+            "the record was not stamped with its transcript timestamp",
+        )
+
+        # Turn B finishes, and its message reaches the transcript only after the
+        # hook has started. The hook must return B, not A.
+        process = subprocess.Popen(
+            [sys.executable, str(HOOK)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=dict(env, CLOSEOUT_CAPTURE_WAIT="10"),
+        )
+        process.stdin.write(payload)
+        process.stdin.close()
+        time.sleep(0.4)
+        transcript(race, [("Turn B.\n\n" + CLOSEOUT, "2026-01-01T00:00:05.000Z")], "a")
+        process.wait(timeout=20)
+        expect(process.returncode == 0, "the waiting hook exited non-zero")
+        expect(
+            text_of(rec).startswith("Turn B."),
+            "the hook recorded the previous turn instead of the one that finished",
+        )
+        expect(
+            text_of(stamp).strip() == "2026-01-01T00:00:05.000Z",
+            "the stamp did not advance to the recorded turn",
+        )
+
+        # No newer closeout ever arrives -- a genuinely closeout-less turn. The
+        # wait is bounded and the last real record survives untouched.
+        started = time.monotonic()
+        result = run([], dict(env, CLOSEOUT_CAPTURE_WAIT="0.3"), payload)
+        elapsed = time.monotonic() - started
+        expect(result.returncode == 0, "the bounded wait errored", result)
+        expect(elapsed < 5, f"the hook did not bound its wait ({elapsed:.1f}s)")
+        expect(
+            text_of(rec).startswith("Turn B."),
+            "a stale read replaced the record",
+        )
+
+        # Session end takes the stamp with the record; a stamp outliving its
+        # record would make the next agent in this pane wait for nothing.
+        result = run(["--session-end"], env, json.dumps({"session_id": "s3"}))
+        expect(result.returncode == 0, "session end exited non-zero", result)
+        expect(not rec.exists(), "session end left the record")
+        expect(not stamp.exists(), "session end left the stamp")
 
         # --print is what the ctrl+g editor shim calls.
         home = root / "home"

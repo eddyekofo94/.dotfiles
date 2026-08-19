@@ -94,11 +94,6 @@ def last_assistant_entry(path):
     return uuid, text
 
 
-def last_assistant_text(path):
-    """Just the text. `closeout_capture` imports this; keep it returning a str."""
-    return last_assistant_entry(path)[1]
-
-
 def split_at_closeout(text):
     """Body is everything before the Status line; the rest is the closeout."""
     lines = text.splitlines()

@@ -23,6 +23,14 @@ $TMPDIR. The Herdr session plus pane makes the place unambiguous, the agent
 session id makes the record unambiguous, the Stop hook drops the other agents'
 files for its place, and SessionEnd removes its own on the way out.
 
+The transcript is written asynchronously, so the newest closeout on disk at
+Stop time can still be the *previous* turn's -- and ctrl+g then opens with the
+turn before the one that just finished. Every record carries the transcript
+timestamp of the message it holds, and the hook waits for a closeout newer than
+that stamp before it writes. Bounded: a turn that genuinely carries no closeout
+gives up after the wait and leaves the last real record in place, which is what
+a closeout-less turn does anyway.
+
 Silent on anything unparseable: a broken transcript must not wedge a session.
 """
 
@@ -31,13 +39,23 @@ import os
 import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from closeout_length import last_assistant_text, split_at_closeout  # noqa: E402
+from closeout_length import split_at_closeout  # noqa: E402
 
 
 PREFIX = "agent-prompt-turn-closeout"
+# Sidecar holding the transcript timestamp of the message the record came from.
+# Deliberately not `.md`: the shim picks the newest `PREFIX.<place>.*.md` when
+# nobody can name the session, and a stamp must never be a candidate closeout.
+STAMP = ".stamp"
+# How long Stop waits for the turn's own message to reach the transcript. Kept
+# well under the hook's 10s timeout: guessing wrong costs one stale ctrl+g,
+# hanging costs every turn. Overridable so the test does not sleep for real.
+CAPTURE_WAIT = 3.0
+POLL = 0.05
 # Scratch the ctrl+g shim writes beside the record, named per place rather than
 # per session. Cleared with the record so a dead session leaves nothing behind.
 DERIVED = (
@@ -90,6 +108,26 @@ def target_path(session):
     return temp_base() / f"{PREFIX}.{scope}.{session}.md"
 
 
+def stamp_path(record):
+    """The sidecar beside a record, holding the timestamp it was taken from."""
+    return record.with_suffix(STAMP) if record else None
+
+
+def read_stamp(path):
+    """The timestamp of the message already recorded, or empty when unknown.
+
+    Empty means "nothing to be stale against" -- a first turn, a record from
+    before stamping, or a transcript whose entries carry no timestamp -- and the
+    hook then writes whatever it reads, exactly as it did before.
+    """
+    if not path:
+        return ""
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
 def prune(keep):
     """Drop every other record for this place, and the pre-scoping filenames.
 
@@ -97,19 +135,22 @@ def prune(keep):
     session id belongs to a session that has ended -- exactly the file that was
     being served to its successor. The pane-only names predate Herdr-session
     scoping; no Herdr pane writes them any more, so under a Herdr session they
-    are always stale.
+    are always stale. A stamp outlives its record for nobody, so it goes too.
     """
     scope = place()
     if not scope:
         return
     base = temp_base()
     pane = pane_slug()
-    stale = list(base.glob(f"{PREFIX}.{scope}.*.md"))
-    if scope != pane:
-        stale.extend(base.glob(f"{PREFIX}.{pane}.*.md"))
+    stale = []
+    for suffix in ("md", STAMP.lstrip(".")):
+        stale.extend(base.glob(f"{PREFIX}.{scope}.*.{suffix}"))
+        if scope != pane:
+            stale.extend(base.glob(f"{PREFIX}.{pane}.*.{suffix}"))
     stale.append(base / f"{PREFIX}.{pane}.md")
+    keep = {path for path in keep if path}
     for path in stale:
-        if path == keep:
+        if path in keep:
             continue
         try:
             path.unlink()
@@ -120,7 +161,10 @@ def prune(keep):
 def cleanup(session):
     """SessionEnd: remove this session's record wherever it was written."""
     base = temp_base()
-    paths = list(base.glob(f"{PREFIX}.*.{slugify(session)}.md")) if session else []
+    paths = []
+    if session:
+        for suffix in ("md", STAMP.lstrip(".")):
+            paths.extend(base.glob(f"{PREFIX}.*.{slugify(session)}.{suffix}"))
     scope = place()
     if scope:
         paths.extend(base / name.format(scope) for name in DERIVED)
@@ -165,15 +209,20 @@ def find_transcript(session_id, cwd=None):
     return transcripts[0] if transcripts else None
 
 
-def last_turn(path):
-    """The newest assistant message that actually carries a closeout, whole.
+def last_closeout(path):
+    """The newest assistant message carrying a closeout, whole, and its stamp.
 
     Not simply the newest message: the shim runs while the turn that triggered
     it is still being written, and tool-only turns carry no closeout either.
     Either would otherwise read as "nothing to show". The closeout decides
     *which* message this is; the text returned is all of it.
+
+    The stamp is the entry's transcript timestamp -- Claude Code writes ISO-8601
+    UTC (`2026-08-20T09:14:02.117Z`), which orders correctly as a plain string.
+    Empty when the entry carries none, meaning "cannot tell how old this is".
     """
     found = None
+    stamp = ""
     with open(path, encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -198,7 +247,49 @@ def last_turn(path):
             _, closeout = split_at_closeout(text)
             if closeout:
                 found = text
-    return found
+                stamp = entry.get("timestamp") or ""
+    return stamp, found
+
+
+def last_turn(path):
+    """Just the text. The ctrl+g `--print` path has no stamp to compare."""
+    return last_closeout(path)[1]
+
+
+def wait_seconds():
+    try:
+        value = float(os.environ.get("CLOSEOUT_CAPTURE_WAIT") or CAPTURE_WAIT)
+    except ValueError:
+        return CAPTURE_WAIT
+    return max(0.0, value)
+
+
+def await_closeout(transcript, previous):
+    """A closeout newer than the one already recorded, or nothing.
+
+    Reading once is what made ctrl+g one turn stale: Stop fires before the
+    turn's own message has necessarily reached the transcript, so the newest
+    closeout on disk is still the previous turn's, and the record is rewritten
+    with the same text it already held. Poll instead, until a closeout with a
+    later timestamp appears or the wait runs out.
+
+    Giving up returns nothing, which leaves the last real record in place --
+    the same outcome as a turn that carries no closeout at all, and the right
+    one: an older closeout is never a better answer than the previous turn's.
+    """
+    deadline = time.monotonic() + wait_seconds()
+    while True:
+        try:
+            stamp, text = last_closeout(transcript)
+        except OSError:
+            return "", None
+        # No stamp on either side means nothing to compare: take the read, as
+        # the hook did before stamps existed.
+        if text and (not previous or not stamp or stamp > previous):
+            return stamp, text
+        if time.monotonic() >= deadline:
+            return "", None
+        time.sleep(POLL)
 
 
 def print_turn(session_id, cwd=None):
@@ -242,27 +333,22 @@ def main():
     path = target_path(session)
     if not path:
         return 0
+    stamp_file = stamp_path(path)
 
     # Even a turn that records nothing proves this pane now belongs to this
     # session, so the previous occupant's record goes either way.
-    prune(path)
+    prune((path, stamp_file))
 
     transcript = payload.get("transcript_path")
     if not transcript:
         return 0
 
-    try:
-        text = last_assistant_text(transcript)
-    except OSError:
-        return 0
+    # A turn with no closeout of its own -- and a wait that ends before this
+    # turn's message lands -- leaves the previous record alone rather than
+    # replacing it with nothing or with itself: the last real closeout is still
+    # the one the next prompt answers.
+    stamp, text = await_closeout(transcript, read_stamp(stamp_file))
     if not text:
-        return 0
-
-    _, closeout = split_at_closeout(text)
-    if not closeout:
-        # A turn with no closeout leaves the previous one in place rather than
-        # replacing it with nothing: the last real closeout is still the one
-        # the next prompt answers.
         return 0
 
     try:
@@ -270,6 +356,12 @@ def main():
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(text.rstrip() + "\n")
+        # Written after the record, and always -- an empty stamp says "unknown",
+        # which is the honest state for a transcript that carries no timestamps.
+        # A stamp left over from an older record would block every later turn.
+        fd = os.open(stamp_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(stamp + "\n")
     except OSError:
         return 0
 
