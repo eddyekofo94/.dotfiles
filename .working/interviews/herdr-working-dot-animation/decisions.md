@@ -159,6 +159,23 @@ an otherwise idle terminal; the tick is absent when no client is attached or the
 dot surface is hidden; all three digests re-pin and re-verify; the headless-path
 test fails if the tick is removed from the headless loop.
 
+## Decisions (round 2)
+
+- D6, 2026-08-20: the Working state keeps the round dot every other state uses
+  and breathes instead of spinning. The braille spinner shipped, was confirmed
+  working live, and is superseded — Eddy's read is that the dot column should
+  stay a dot column. It is kept as its own commit so reverting is one command.
+- D6a: the pulse breathes the foreground between `panel_bg` and `yellow` on a
+  cosine ramp, 1440ms per breath, floor 0.34 so the dot never fades into the
+  panel — a vanishing dot reads as a rendering fault. Non-truecolour palettes
+  cannot interpolate, so they toggle DIM instead.
+- D6b: cosine rather than a triangle wave because the 120ms tick gives only 12
+  samples per breath, and cosine puts the coarsest steps where the eye is least
+  sensitive. If it still reads steppy, the tick drops to 80ms — the one knob.
+- The earlier discarded pulse attempt (`known-binaries.txt`, "froze mid-phase
+  whenever a view stopped redrawing") failed for the same reason the spinner did:
+  no tick in the headless loop. That machinery now exists and is reused as is.
+
 ## Implementation Notes
 
 - D4 landed first and was verified green on its own: `build.sh` passed with no

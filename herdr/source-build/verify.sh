@@ -115,9 +115,15 @@ rg -q '^\+            self\.spinner_deadline,$' "$spinner_patch"
 # The headless regression test is the gate; build.sh selects it by this prefix.
 rg -q '^\+    fn working_spinner_tick_arms_in_the_headless_scheduled_tasks\(\) \{$' \
   "$spinner_patch"
-rg -q '^  cargo test --locked working_spinner_$' "$source_build/build.sh"
-# The glyph lives with the other status colours, in the patch that owns that file.
-rg -q '^\+const WORKING_SPINNER_FRAME_MS: u128 = 120;$' "$toast_status_patch"
+rg -q '^  cargo test --locked working_$' "$source_build/build.sh"
+# The dot itself lives with the other status colours, in the patch that owns that
+# file. Working keeps the same round glyph as every other state and breathes; a
+# braille spinner in that column was tried first and replaced.
+rg -q '^\+        \(AgentState::Working, _\) => \("●", working_pulse_style\(p, now_millis\(\)\)\),$' \
+  "$toast_status_patch"
+rg -q '^\+const WORKING_PULSE_PERIOD_MS: u128 = 1_440;$' "$toast_status_patch"
+# The dot must never fade all the way into the panel: that reads as a fault.
+rg -q '^\+const WORKING_PULSE_FLOOR: f32 = 0\.34;$' "$toast_status_patch"
 rg -q '^\+pub\(crate\) const WORKING_SPINNER_TICK_INTERVAL: Duration = Duration::from_millis\(120\);$' \
   "$spinner_patch"
 

@@ -1,5 +1,5 @@
 diff --git a/src/ui/status.rs b/src/ui/status.rs
-index a7399285..e5ec2b0a 100644
+index a7399285..658ecc60 100644
 --- a/src/ui/status.rs
 +++ b/src/ui/status.rs
 @@ -87,10 +87,14 @@ pub(super) fn render_toast_notification(
@@ -34,41 +34,77 @@ index a7399285..e5ec2b0a 100644
          ),
      ]);
      let context = Line::from(vec![
-@@ -193,10 +197,32 @@ pub(super) fn render_config_diagnostic(frame: &mut Frame, area: Rect, message: &
+@@ -193,10 +197,68 @@ pub(super) fn render_config_diagnostic(frame: &mut Frame, area: Rect, message: &
      }
  }
  
-+// The default "dots" spinner most CLI tools use, one Unicode cell wide so the
-+// agent list stays column-aligned. The phase is a pure function of wall-clock
++// Working keeps the same round dot every other state uses and breathes instead
++// of spinning, so the agent list stays one column of dots rather than one column
++// of dots with a braille glyph in it. The phase is a pure function of wall-clock
 +// time: clients blit frames and have no widget layer, so there is nothing to
 +// push a phase to — what matters is that some loop keeps asking for a redraw,
 +// which is what App::sync_working_spinner_deadline guarantees.
-+const WORKING_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-+// Must match WORKING_SPINNER_TICK_INTERVAL in app/mod.rs. 120ms rather than the
-+// conventional 80ms because every tick costs a full render for every attached
-+// client, and an agent is Working for most of a working day.
-+const WORKING_SPINNER_FRAME_MS: u128 = 120;
++const WORKING_PULSE_PERIOD_MS: u128 = 1_440;
++// How dim the dot gets at the bottom of the breath, as a fraction of the way
++// from the panel background to the full state colour. Never zero: a dot that
++// vanishes reads as a rendering fault, not as an animation.
++const WORKING_PULSE_FLOOR: f32 = 0.34;
 +
-+fn working_spinner_frame(now_ms: u128) -> &'static str {
-+    let index = (now_ms / WORKING_SPINNER_FRAME_MS) as usize % WORKING_SPINNER_FRAMES.len();
-+    WORKING_SPINNER_FRAMES[index]
++/// Position in the breath, from `WORKING_PULSE_FLOOR` at the trough to 1.0 at
++/// the peak. Cosine rather than a triangle wave because it flattens at both
++/// extremes, which is where the redraw tick's coarse steps would otherwise be
++/// most visible.
++fn working_pulse_intensity(now_ms: u128) -> f32 {
++    let phase = (now_ms % WORKING_PULSE_PERIOD_MS) as f32 / WORKING_PULSE_PERIOD_MS as f32;
++    let wave = (1.0 - (phase * std::f32::consts::TAU).cos()) / 2.0;
++    WORKING_PULSE_FLOOR + (1.0 - WORKING_PULSE_FLOOR) * wave
++}
++
++fn blend_channel(from: u8, to: u8, t: f32) -> u8 {
++    (f32::from(from) + (f32::from(to) - f32::from(from)) * t).round() as u8
++}
++
++/// Mixes `to` over `from`. Returns `None` for any palette whose colours are not
++/// truecolour — a 256-colour or named-ANSI theme has nothing to interpolate.
++fn blend_color(from: Color, to: Color, t: f32) -> Option<Color> {
++    match (from, to) {
++        (Color::Rgb(fr, fg, fb), Color::Rgb(tr, tg, tb)) => Some(Color::Rgb(
++            blend_channel(fr, tr, t),
++            blend_channel(fg, tg, t),
++            blend_channel(fb, tb, t),
++        )),
++        _ => None,
++    }
++}
++
++/// The Working dot's style for this instant. Truecolour palettes breathe the
++/// foreground between the panel background and the state colour; anything else
++/// falls back to toggling DIM, which is coarse but still moves.
++fn working_pulse_style(p: &Palette, now_ms: u128) -> Style {
++    let intensity = working_pulse_intensity(now_ms);
++    match blend_color(p.panel_bg, p.yellow, intensity) {
++        Some(color) => Style::default().fg(color),
++        None if intensity < 0.6 => Style::default().fg(p.yellow).add_modifier(Modifier::DIM),
++        None => Style::default().fg(p.yellow),
++    }
++}
++
++fn now_millis() -> u128 {
++    std::time::SystemTime::now()
++        .duration_since(std::time::UNIX_EPOCH)
++        .map(|d| d.as_millis())
++        .unwrap_or(0)
 +}
 +
  pub(super) fn state_dot(state: AgentState, seen: bool, p: &Palette) -> (&'static str, Style) {
      match (state, seen) {
          (AgentState::Blocked, _) => ("●", Style::default().fg(p.red)),
 -        (AgentState::Working, _) => ("●", Style::default().fg(p.yellow)),
-+        (AgentState::Working, _) => {
-+            let now_ms = std::time::SystemTime::now()
-+                .duration_since(std::time::UNIX_EPOCH)
-+                .map(|d| d.as_millis())
-+                .unwrap_or(0);
-+            (working_spinner_frame(now_ms), Style::default().fg(p.yellow))
-+        }
++        (AgentState::Working, _) => ("●", working_pulse_style(p, now_millis())),
          (AgentState::Idle, false) => ("●", Style::default().fg(p.teal)),
          (AgentState::Idle, true) => ("○", Style::default().fg(p.green)),
          (AgentState::Unknown, _) => ("·", Style::default().fg(p.overlay0)),
-@@ -249,7 +275,6 @@ mod tests {
+@@ -249,7 +311,6 @@ mod tests {
          let palette = Palette::catppuccin();
          for (state, seen, symbol, color) in [
              (AgentState::Blocked, true, "●", palette.red),
@@ -76,36 +112,65 @@ index a7399285..e5ec2b0a 100644
              (AgentState::Idle, false, "●", palette.teal),
              (AgentState::Idle, true, "○", palette.green),
              (AgentState::Unknown, true, "·", palette.overlay0),
-@@ -260,6 +285,34 @@ mod tests {
+@@ -260,6 +321,63 @@ mod tests {
          }
      }
  
 +    #[test]
-+    fn working_spinner_replaces_the_static_working_dot() {
++    fn working_pulse_keeps_the_round_dot_and_only_moves_its_colour() {
 +        let palette = Palette::catppuccin();
-+        let (symbol, style) = state_dot(AgentState::Working, true, &palette);
-+        assert!(WORKING_SPINNER_FRAMES.contains(&symbol));
-+        assert_eq!(style.fg, Some(palette.yellow));
++        let (symbol, trough) = ("●", working_pulse_style(&palette, 0));
++        assert_eq!(state_dot(AgentState::Working, true, &palette).0, symbol);
++        let peak = working_pulse_style(&palette, WORKING_PULSE_PERIOD_MS / 2);
++        assert_ne!(trough.fg, peak.fg);
++        assert_eq!(peak.fg, Some(palette.yellow));
 +    }
 +
 +    #[test]
-+    fn working_spinner_frame_cycles_through_all_frames_and_repeats() {
-+        let frames: Vec<&str> = (0..WORKING_SPINNER_FRAMES.len() as u128)
-+            .map(|i| working_spinner_frame(i * WORKING_SPINNER_FRAME_MS))
-+            .collect();
-+        assert_eq!(frames, WORKING_SPINNER_FRAMES.to_vec());
++    fn working_pulse_never_fades_the_dot_into_the_background() {
++        let palette = Palette::catppuccin();
++        for step in 0..WORKING_PULSE_PERIOD_MS {
++            assert!(working_pulse_intensity(step) >= WORKING_PULSE_FLOOR);
++            assert!(working_pulse_intensity(step) <= 1.0);
++            assert_ne!(
++                working_pulse_style(&palette, step).fg,
++                Some(palette.panel_bg)
++            );
++        }
++    }
++
++    #[test]
++    fn working_pulse_repeats_every_period_and_is_symmetric() {
 +        assert_eq!(
-+            working_spinner_frame(0),
-+            working_spinner_frame(WORKING_SPINNER_FRAMES.len() as u128 * WORKING_SPINNER_FRAME_MS)
++            working_pulse_intensity(0),
++            working_pulse_intensity(WORKING_PULSE_PERIOD_MS)
++        );
++        let quarter = WORKING_PULSE_PERIOD_MS / 4;
++        let three_quarters = 3 * quarter;
++        let delta = working_pulse_intensity(quarter) - working_pulse_intensity(three_quarters);
++        assert!(delta.abs() < 0.01, "breath in and out must match: {delta}");
++    }
++
++    #[test]
++    fn working_pulse_is_sampled_often_enough_by_the_redraw_tick() {
++        let tick = crate::app::WORKING_SPINNER_TICK_INTERVAL.as_millis();
++        assert_eq!(WORKING_PULSE_PERIOD_MS % tick, 0);
++        assert!(
++            WORKING_PULSE_PERIOD_MS / tick >= 10,
++            "too few steps per breath"
 +        );
 +    }
 +
 +    #[test]
-+    fn working_spinner_frame_interval_matches_the_redraw_tick() {
-+        assert_eq!(
-+            WORKING_SPINNER_FRAME_MS,
-+            crate::app::WORKING_SPINNER_TICK_INTERVAL.as_millis()
-+        );
++    fn working_pulse_falls_back_to_dim_on_a_non_truecolour_palette() {
++        let mut palette = Palette::catppuccin();
++        palette.panel_bg = Color::Black;
++        palette.yellow = Color::Yellow;
++        let trough = working_pulse_style(&palette, 0);
++        let peak = working_pulse_style(&palette, WORKING_PULSE_PERIOD_MS / 2);
++        assert_eq!(trough.fg, Some(Color::Yellow));
++        assert!(trough.add_modifier.contains(Modifier::DIM));
++        assert!(!peak.add_modifier.contains(Modifier::DIM));
 +    }
 +
      #[test]

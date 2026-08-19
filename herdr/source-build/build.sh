@@ -256,7 +256,7 @@ fi
   # whole test run this build performs, so a regression test that no filter
   # selects is decoration — which is how a spinner that never advanced under the
   # headless server got shipped once already.
-  cargo test --locked working_spinner_
+  cargo test --locked working_
   cargo build --release --locked
 )
 

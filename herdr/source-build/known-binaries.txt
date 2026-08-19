@@ -30,3 +30,4 @@ d53a9f93fccfdfcc55632927bf51002f5add0aa7990bcdf508ffbd84ac658178  official v0.8.
 4720a685c40108fe327666a20df9e6981e017a21183834d8dcc9530ef5075b79  reviewed v0.8.0 source build with private patch 0491445c360e28f82fe7e85ef381ef442bdfa2dc830bfafe6b8c1ae793e3ed1e, reverted (working-state spinner too slow, reverted to native static dot)
 fd8e9d79f435b786292f67c954f693ebd15339dbcb7bf2618aa4a44b3bb55e3e  reviewed v0.8.0 source build with private patch 7f5ac7d63ffee7af6ef3e644581502e548c0e865c61a1d33d67c7ea9c4cba3d1, discarded (working-state pulse froze mid-phase whenever a view stopped redrawing)
 8175b97941efb242fa186365c806ca1f8bb6e9ae1fa126a5c894dff77cc94d5e  reviewed v0.8.0 source build with private patch 2fb04583206413e4eae9321422b469bef534690ea651df20be85b4ddebc1e37f
+943e435247288ce23520af17b3dff4f1d6cac73ba871af51f926810db243936a  reviewed v0.8.0 source build with private patch 363155b6a838dbb96b8111d6ac0c1b5bfa01616687d3905cd9a88c9ad3eaa03a
