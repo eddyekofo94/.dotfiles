@@ -44,6 +44,8 @@ brew "diffutils"
 brew "docker", link: false
 # Isolated development environments using Docker
 brew "docker-compose", link: false
+# Selects default applications for document types and URL schemes
+brew "duti"
 # Modern replacement for 'ls'
 brew "exa"
 # Simple, fast and user-friendly alternative to find
@@ -156,5 +158,7 @@ cask "font-jetbrains-mono-nerd-font"
 cask "font-ubuntu-nerd-font"
 # Collaboration platform for API development
 cask "postman"
+# Multimedia player, the default handler for mp4, m4v, mkv, avi, and mov
+cask "vlc"
 # GPU-accelerated cross-platform terminal emulator and multiplexer
 cask "wezterm"

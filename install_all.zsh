@@ -42,3 +42,11 @@ ensure_cargo_installed(){
 }
 
 ensure_cargo_installed
+
+# macOS default applications
+ensure_default_apps_set(){
+    [[ "$(uname -s)" == Darwin ]] || return 0
+    /bin/sh "$DOTFILES_DIR/tools/set_macos_default_apps.sh"
+}
+
+ensure_default_apps_set
