@@ -1,5 +1,5 @@
 diff --git a/src/ui/status.rs b/src/ui/status.rs
-index ede38b85..d09413fd 100644
+index a7399285..b2adaf07 100644
 --- a/src/ui/status.rs
 +++ b/src/ui/status.rs
 @@ -87,10 +87,14 @@ pub(super) fn render_toast_notification(

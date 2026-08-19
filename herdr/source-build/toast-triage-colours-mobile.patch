@@ -1,5 +1,5 @@
 diff --git a/src/ui/mobile.rs b/src/ui/mobile.rs
-index 10b58af0..3bc6410b 100644
+index 2e6c97ad..e204c977 100644
 --- a/src/ui/mobile.rs
 +++ b/src/ui/mobile.rs
 @@ -244,10 +244,12 @@ pub(crate) fn render_mobile_toast_banner(

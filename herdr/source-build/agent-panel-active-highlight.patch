@@ -1,8 +1,8 @@
 diff --git a/src/ui/sidebar.rs b/src/ui/sidebar.rs
-index 0ecfb652..c3d55d90 100644
+index d9f6197f..aa798354 100644
 --- a/src/ui/sidebar.rs
 +++ b/src/ui/sidebar.rs
-@@ -1379,22 +1379,33 @@ fn render_agent_detail(
+@@ -1473,22 +1473,33 @@ fn render_agent_detail(
          }
  
          let is_active = app.is_active_pane(detail.ws_idx, detail.tab_idx, detail.pane_id);
@@ -39,6 +39,6 @@ index 0ecfb652..c3d55d90 100644
 +            Style::default().fg(p.subtext0)
          };
 -        let agent_style = Style::default().fg(p.overlay0).add_modifier(Modifier::DIM);
-         let state_icon = agent_icon(detail.state, detail.seen, app.spinner_tick, p);
+         let state_icon = state_dot(detail.state, detail.seen, p);
  
          for (row_index, resolved) in rows.iter().take(height as usize).enumerate() {

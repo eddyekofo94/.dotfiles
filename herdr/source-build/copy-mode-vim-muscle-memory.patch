@@ -1,8 +1,8 @@
 diff --git a/src/app/api/panes.rs b/src/app/api/panes.rs
-index 483d73a5..3c79ddca 100644
+index 72798a1b..3154e37e 100644
 --- a/src/app/api/panes.rs
 +++ b/src/app/api/panes.rs
-@@ -2542,6 +2542,7 @@ mod tests {
+@@ -2581,6 +2581,7 @@ mod tests {
              entry_offset_from_bottom: 0,
              selection: None,
              search: Default::default(),
@@ -10,7 +10,7 @@ index 483d73a5..3c79ddca 100644
          });
          let source_public = app.public_pane_id(0, source).unwrap();
          let target_public = app.public_pane_id(0, target).unwrap();
-@@ -3189,6 +3190,7 @@ mod tests {
+@@ -3302,6 +3303,7 @@ mod tests {
              entry_offset_from_bottom: 0,
              selection: None,
              search: Default::default(),
@@ -19,7 +19,7 @@ index 483d73a5..3c79ddca 100644
          let source_public = app.public_pane_id(0, source).unwrap();
  
 diff --git a/src/app/api/plugins/mod.rs b/src/app/api/plugins/mod.rs
-index d7a7b0ed..838ceeda 100644
+index a8cb4405..09475065 100644
 --- a/src/app/api/plugins/mod.rs
 +++ b/src/app/api/plugins/mod.rs
 @@ -1443,6 +1443,7 @@ platforms = ["linux", "macos"]
@@ -31,7 +31,7 @@ index d7a7b0ed..838ceeda 100644
          app.state.mode = crate::app::Mode::Copy;
          app.state.copy_mode = Some(copy_mode.clone());
 diff --git a/src/app/input/copy_mode.rs b/src/app/input/copy_mode.rs
-index e6c0d074..f92cd8e7 100644
+index b744d2ce..a8937c9c 100644
 --- a/src/app/input/copy_mode.rs
 +++ b/src/app/input/copy_mode.rs
 @@ -2,7 +2,10 @@ use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
@@ -57,7 +57,7 @@ index e6c0d074..f92cd8e7 100644
  impl App {
      pub(crate) fn handle_copy_mode_key(&mut self, key: TerminalKey) {
          if key.kind == KeyEventKind::Release {
-@@ -79,10 +86,26 @@ impl AppState {
+@@ -71,10 +78,26 @@ impl AppState {
                  geometry: Some((info.inner_rect.width, info.inner_rect.height)),
                  ..Default::default()
              },
@@ -84,11 +84,11 @@ index e6c0d074..f92cd8e7 100644
      pub(crate) fn handle_copy_mode_key(
          &mut self,
          terminal_runtimes: &TerminalRuntimeRegistry,
-@@ -91,6 +114,18 @@ impl AppState {
-         if self.handle_copy_mode_search_prompt_key(terminal_runtimes, key) {
+@@ -83,6 +106,18 @@ impl AppState {
+         if self.handle_copy_mode_search_prompt_key(terminal_runtimes, key.clone()) {
              return;
          }
-+        if self.accumulate_copy_mode_pending(key) {
++        if self.accumulate_copy_mode_pending(key.clone()) {
 +            return;
 +        }
 +        let pending = self.take_copy_mode_pending();
@@ -103,7 +103,7 @@ index e6c0d074..f92cd8e7 100644
          match key.code {
              KeyCode::Esc => {
                  let should_clear = self.copy_mode.as_ref().is_some_and(|copy_mode| {
-@@ -122,27 +157,27 @@ impl AppState {
+@@ -114,27 +149,27 @@ impl AppState {
                  return;
              }
              KeyCode::Left => {
@@ -137,7 +137,7 @@ index e6c0d074..f92cd8e7 100644
                  return;
              }
              KeyCode::Home => {
-@@ -158,16 +193,16 @@ impl AppState {
+@@ -150,16 +185,16 @@ impl AppState {
  
          match (key.code, key.modifiers) {
              (KeyCode::Char('b'), mods) if mods.contains(KeyModifiers::CONTROL) => {
@@ -158,7 +158,7 @@ index e6c0d074..f92cd8e7 100644
              }
              _ => {}
          }
-@@ -176,14 +211,20 @@ impl AppState {
+@@ -168,14 +203,20 @@ impl AppState {
              return;
          };
          match ch {
@@ -185,7 +185,7 @@ index e6c0d074..f92cd8e7 100644
              'g' => self.copy_mode_history_top(terminal_runtimes),
              'G' => self.copy_mode_history_bottom(terminal_runtimes),
              '0' => self.copy_mode_line_edge(terminal_runtimes, false),
-@@ -191,17 +232,203 @@ impl AppState {
+@@ -183,17 +224,203 @@ impl AppState {
              '^' => self.copy_mode_first_non_blank(terminal_runtimes),
              '/' => self.open_copy_mode_search(CopyModeSearchDirection::Forward),
              '?' => self.open_copy_mode_search(CopyModeSearchDirection::Backward),
@@ -396,7 +396,7 @@ index e6c0d074..f92cd8e7 100644
      fn handle_copy_mode_search_prompt_key(
          &mut self,
          terminal_runtimes: &TerminalRuntimeRegistry,
-@@ -1780,6 +2007,303 @@ mod tests {
+@@ -1772,6 +1999,303 @@ mod tests {
          assert_eq!(app.state.mode, Mode::Terminal);
      }
  
@@ -701,7 +701,7 @@ index e6c0d074..f92cd8e7 100644
      async fn copy_mode_shift_v_extends_linewise_down() {
          let (mut app, _) = app_with_copy_screen(b"alpha\r\nbeta\r\ngamma\r\n");
 diff --git a/src/app/input/navigate.rs b/src/app/input/navigate.rs
-index d151b94d..77a3e9af 100644
+index 68941e66..596c0d7c 100644
 --- a/src/app/input/navigate.rs
 +++ b/src/app/input/navigate.rs
 @@ -13,7 +13,7 @@ use ratatui::layout::Direction;
@@ -713,7 +713,7 @@ index d151b94d..77a3e9af 100644
          App,
      },
      input::TerminalKey,
-@@ -105,7 +105,7 @@ impl App {
+@@ -109,7 +109,7 @@ impl App {
              self.cancel_copy_mode_if_active();
              self.launch_focused_scrollback_editor();
              finish_action_context(&mut self.state, ActionContext::Prefix, previous_mode);
@@ -722,7 +722,7 @@ index d151b94d..77a3e9af 100644
              self.cancel_copy_mode_if_active();
              self.execute_tui_navigate_action(action, ActionContext::Prefix);
          } else if copy_mode_survives_prefix_action(action) {
-@@ -368,6 +368,9 @@ impl App {
+@@ -378,6 +378,9 @@ impl App {
              }
              NavigateAction::EditScrollback => {}
              NavigateAction::CopyMode => self.state.enter_copy_mode(&self.terminal_runtimes),
@@ -732,7 +732,7 @@ index d151b94d..77a3e9af 100644
              NavigateAction::Zoom => {
                  self.zoom_focused_pane_via_api();
                  leave_navigate_mode(&mut self.state);
-@@ -1304,6 +1307,7 @@ pub(crate) enum NavigateAction {
+@@ -1351,6 +1354,7 @@ pub(crate) enum NavigateAction {
      NextTab,
      CloseTab,
      RenamePane,
@@ -740,7 +740,7 @@ index d151b94d..77a3e9af 100644
      FocusPaneLeft,
      FocusPaneDown,
      FocusPaneUp,
-@@ -1439,6 +1443,7 @@ fn non_indexed_action_for_key(
+@@ -1494,6 +1498,7 @@ fn non_indexed_action_for_key(
          (&kb.rename_pane, NavigateAction::RenamePane),
          (&kb.edit_scrollback, NavigateAction::EditScrollback),
          (&kb.copy_mode, NavigateAction::CopyMode),
@@ -748,7 +748,7 @@ index d151b94d..77a3e9af 100644
          (&kb.focus_pane_left, NavigateAction::FocusPaneLeft),
          (&kb.focus_pane_down, NavigateAction::FocusPaneDown),
          (&kb.focus_pane_up, NavigateAction::FocusPaneUp),
-@@ -1681,6 +1686,9 @@ pub(super) fn execute_navigate_action_in_context(
+@@ -1736,6 +1741,9 @@ pub(super) fn execute_navigate_action_in_context(
          }
          NavigateAction::EditScrollback => {}
          NavigateAction::CopyMode => state.enter_copy_mode(terminal_runtimes),
@@ -759,10 +759,10 @@ index d151b94d..77a3e9af 100644
              state.toggle_zoom();
              leave_navigate_mode(state);
 diff --git a/src/app/state.rs b/src/app/state.rs
-index f8395cbd..5a6c30dd 100644
+index e6c23c4c..80d0cb0c 100644
 --- a/src/app/state.rs
 +++ b/src/app/state.rs
-@@ -939,6 +939,39 @@ pub(crate) struct CopyModeState {
+@@ -946,6 +946,39 @@ pub(crate) struct CopyModeState {
      pub entry_offset_from_bottom: usize,
      pub selection: Option<CopyModeSelection>,
      pub search: CopyModeSearchState,
@@ -803,11 +803,11 @@ index f8395cbd..5a6c30dd 100644
  
  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 diff --git a/src/client/mod.rs b/src/client/mod.rs
-index 011de937..1eb5805d 100644
+index c0fe73d3..d0796b02 100644
 --- a/src/client/mod.rs
 +++ b/src/client/mod.rs
-@@ -87,6 +87,97 @@ struct ClientState {
-     redraw_on_focus_gained: bool,
+@@ -91,6 +91,97 @@ struct ClientState {
+     repaint_pending: bool,
      /// Whether this client draws the cursor into frame cells instead of using the host cursor.
      draw_host_cursor: bool,
 +    /// Client-owned blink phase for native cursors. Outer terminal output can
@@ -904,15 +904,15 @@ index 011de937..1eb5805d 100644
  }
  
  #[derive(Debug, Default)]
-@@ -1300,6 +1391,7 @@ async fn run_client_loop(
-         remote_image_paste_key: config.remote_image_paste_key,
+@@ -1313,6 +1404,7 @@ async fn run_client_loop(
          redraw_on_focus_gained: config.redraw_on_focus_gained,
+         repaint_pending: false,
          draw_host_cursor,
 +        host_cursor_blink: HostCursorBlink::default(),
      };
      debug!(?negotiated_encoding, "client render encoding active");
      let host_mouse_capture_active = Arc::new(AtomicBool::new(state.mouse_capture_active));
-@@ -1410,6 +1502,24 @@ async fn run_client_loop(
+@@ -1446,6 +1538,24 @@ async fn run_client_loop(
                      }
                  } else {
                      let events = crate::raw_input::parse_raw_input_bytes_sync(&data);
@@ -937,7 +937,7 @@ index 011de937..1eb5805d 100644
                      if crate::raw_input::events_require_host_surface_redraw(
                          &events,
                          state.redraw_on_focus_gained,
-@@ -1507,11 +1617,16 @@ async fn run_client_loop(
+@@ -1548,11 +1658,16 @@ async fn run_client_loop(
              }
              ClientLoopEvent::ServerMessage(msg) => match msg {
                  ServerMessage::Frame(frame_data) => {
@@ -953,9 +953,9 @@ index 011de937..1eb5805d 100644
 +                            .prepare_frame(&mut frame_data, std::time::Instant::now());
 +                    }
                      let encoded = if state.draw_host_cursor {
-                         state
-                             .blit_encoder
-@@ -1602,7 +1717,16 @@ async fn run_client_loop(
+                         state.blit_encoder.encode_with_suppressed_visible_cursor(
+                             &frame_data,
+@@ -1657,7 +1772,16 @@ async fn run_client_loop(
                      "server closed connection",
                  )));
              }
@@ -973,7 +973,7 @@ index 011de937..1eb5805d 100644
          }
      }
  
-@@ -2224,6 +2348,115 @@ mod tests {
+@@ -2384,6 +2508,115 @@ mod tests {
          ));
      }
  
@@ -1090,10 +1090,10 @@ index 011de937..1eb5805d 100644
      #[test]
      fn clipboard_image_paste_bridge_triggers_on_configured_key_and_empty_paste() {
 diff --git a/src/config/keybinds.rs b/src/config/keybinds.rs
-index 29b53355..ef96b5f7 100644
+index 199076f0..2a7df5ea 100644
 --- a/src/config/keybinds.rs
 +++ b/src/config/keybinds.rs
-@@ -339,6 +339,7 @@ pub struct Keybinds {
+@@ -334,6 +334,7 @@ pub struct Keybinds {
      pub rename_pane: ActionKeybinds,
      pub edit_scrollback: ActionKeybinds,
      pub copy_mode: ActionKeybinds,
@@ -1101,7 +1101,7 @@ index 29b53355..ef96b5f7 100644
      pub focus_pane_left: ActionKeybinds,
      pub focus_pane_down: ActionKeybinds,
      pub focus_pane_up: ActionKeybinds,
-@@ -501,6 +502,7 @@ impl Config {
+@@ -496,6 +497,7 @@ impl Config {
              rename_pane: empty_action!(),
              edit_scrollback: empty_action!(),
              copy_mode: empty_action!(),
@@ -1109,7 +1109,7 @@ index 29b53355..ef96b5f7 100644
              focus_pane_left: empty_action!(),
              focus_pane_down: empty_action!(),
              focus_pane_up: empty_action!(),
-@@ -642,6 +644,7 @@ impl Config {
+@@ -637,6 +639,7 @@ impl Config {
              apply_action!(keybinds.rename_pane, rename_pane, source);
              apply_action!(keybinds.edit_scrollback, edit_scrollback, source);
              apply_action!(keybinds.copy_mode, copy_mode, source);
@@ -1118,7 +1118,7 @@ index 29b53355..ef96b5f7 100644
              apply_action!(keybinds.focus_pane_down, focus_pane_down, source);
              apply_action!(keybinds.focus_pane_up, focus_pane_up, source);
 diff --git a/src/config/model.rs b/src/config/model.rs
-index 9fbca3a6..0945becd 100644
+index e56ac087..4db2775c 100644
 --- a/src/config/model.rs
 +++ b/src/config/model.rs
 @@ -381,6 +381,7 @@ pub struct KeysConfig {
@@ -1153,7 +1153,7 @@ index 9fbca3a6..0945becd 100644
          copy_effective_action_field!(focus_pane_left, keybinds.focus_pane_left);
          copy_effective_action_field!(focus_pane_down, keybinds.focus_pane_down);
          copy_effective_action_field!(focus_pane_up, keybinds.focus_pane_up);
-@@ -956,6 +960,7 @@ impl Default for KeysConfig {
+@@ -972,6 +976,7 @@ impl Default for KeysConfig {
              rename_pane: BindingConfig::one("prefix+shift+p"),
              edit_scrollback: BindingConfig::one("prefix+e"),
              copy_mode: BindingConfig::one("prefix+["),

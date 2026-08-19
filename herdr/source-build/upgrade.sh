@@ -165,9 +165,11 @@ if [ "$adopted" -eq 1 ]; then
 fi
 
 echo "applying the reviewed patch series with a three-way merge ..."
-if ! for patch_name in $patches; do
-  git -C "$staging/source" apply --3way "$source_build/$patch_name" || exit $?
-done 2>"$staging/apply.err"; then
+apply_status=0
+for patch_name in $patches; do
+  git -C "$staging/source" apply --3way "$source_build/$patch_name" || { apply_status=$?; break; }
+done 2>"$staging/apply.err"
+if [ "$apply_status" -ne 0 ]; then
   conflicts=$(git -C "$staging/source" diff --name-only --diff-filter=U || true)
   echo
   echo "Herdr upgrade: STOPPED — the reviewed patch does not apply to $target_tag." >&2

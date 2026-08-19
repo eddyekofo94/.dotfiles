@@ -11,9 +11,9 @@ root=$(CDPATH= cd -- "$source_build/../.." && pwd)
 # independent cross-check that catches a tampered or half-finished re-pin, so it
 # has to carry its own copy of the reviewed identity. upgrade.sh does not rewrite
 # these — bump them by hand, from `git rev-parse`, as part of accepting a release.
-test "$HERDR_SOURCE_TAG" = v0.7.5
-test "$HERDR_SOURCE_TAG_OBJECT" = 99df3ac37be6bd7be2fd2023f0d88a7a0e7a7101
-test "$HERDR_SOURCE_COMMIT" = ef4c23f5775bb8cfec05f05d0844226ff959a07a
+test "$HERDR_SOURCE_TAG" = v0.8.0
+test "$HERDR_SOURCE_TAG_OBJECT" = 857196dee1ce98df53efdd3f437aa2ac8a75b608
+test "$HERDR_SOURCE_COMMIT" = 346411fa21afd297f5ed3b3fa56f9e3fbf7654b7
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
 # The series is the unit that is pinned: HERDR_PATCH_SHA256 is the digest of the
