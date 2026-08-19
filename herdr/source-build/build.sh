@@ -95,6 +95,7 @@ require_sha1() {
 require_sha1 HERDR_SOURCE_TAG_OBJECT "$HERDR_SOURCE_TAG_OBJECT"
 require_sha1 HERDR_SOURCE_COMMIT "$HERDR_SOURCE_COMMIT"
 require_sha256 HERDR_PATCH_SHA256 "$HERDR_PATCH_SHA256"
+require_sha256 HERDR_TREE_DIFF_SHA256 "$HERDR_TREE_DIFF_SHA256"
 require_sha256 HERDR_PATCHED_SOURCE_SHA256 "$HERDR_PATCHED_SOURCE_SHA256"
 require_sha256 HERDR_BINARY_SHA256 "$HERDR_BINARY_SHA256"
 
@@ -158,12 +159,50 @@ for patch_name in $patches; do
   fi
 done
 
+# The applied tree is pinned on its own rather than against the concatenation of
+# the patch files. Requiring those two to be byte-equal also required every patch
+# file to own a range of paths that is contiguous in sorted order, because that
+# is the order `git diff` emits — which is why runtime changes once had to be
+# filed inside a patch named for copy mode. HERDR_PATCH_SHA256 above still
+# detects a tampered patch file; this pin detects a tampered tree. Ownership is
+# checked separately below, so nothing about the split lets a hunk go unowned.
 actual_diff_sha=$(
   git -C "$source_dir" diff --binary --no-ext-diff |
     shasum -a 256 | awk '{print $1}'
 )
-if [ "$actual_diff_sha" != "$HERDR_PATCH_SHA256" ]; then
-  echo "Herdr source has changes beyond the reviewed patch" >&2
+if [ "$actual_diff_sha" != "$HERDR_TREE_DIFF_SHA256" ]; then
+  if [ "$repin" -eq 1 ]; then
+    repin_pin HERDR_TREE_DIFF_SHA256 "$actual_diff_sha"
+    HERDR_TREE_DIFF_SHA256=$actual_diff_sha
+  else
+    echo "Herdr source has changes beyond the reviewed patch" >&2
+    exit 73
+  fi
+fi
+
+# What contiguity used to enforce implicitly: every modified path is claimed by
+# exactly one patch file, and no patch claims a path the tree does not modify.
+# Checked explicitly now, so a hunk cannot land in a file nobody reviews and a
+# path cannot be owned twice.
+owned_paths=$(
+  for patch_name in $patches; do
+    awk '/^diff --git a\// { sub(/^diff --git a\//, ""); sub(/ b\/.*$/, ""); print }' \
+      "$source_build/$patch_name"
+  done | LC_ALL=C sort
+)
+duplicate_paths=$(printf '%s\n' "$owned_paths" | uniq -d)
+if [ -n "$duplicate_paths" ]; then
+  echo "two reviewed patches claim the same path:" >&2
+  printf '%s\n' "$duplicate_paths" >&2
+  exit 73
+fi
+modified_paths=$(git -C "$source_dir" diff --name-only | LC_ALL=C sort)
+if [ "$owned_paths" != "$modified_paths" ]; then
+  echo "reviewed patch ownership does not match the modified tree" >&2
+  echo "claimed by the series:" >&2
+  printf '%s\n' "$owned_paths" | sed 's/^/  /' >&2
+  echo "modified in the tree:" >&2
+  printf '%s\n' "$modified_paths" | sed 's/^/  /' >&2
   exit 73
 fi
 # Was the digest of copy_mode.rs alone, which stopped describing the tree once
@@ -213,6 +252,11 @@ fi
   cargo clippy --all-targets --locked -- -D warnings
   cargo test --locked copy_mode_
   cargo test --locked host_cursor_blink_
+  # The spinner tick has to be gated here explicitly. The filters above are the
+  # whole test run this build performs, so a regression test that no filter
+  # selects is decoration — which is how a spinner that never advanced under the
+  # headless server got shipped once already.
+  cargo test --locked working_spinner_
   cargo build --release --locked
 )
 

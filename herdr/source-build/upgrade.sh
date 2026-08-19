@@ -215,10 +215,22 @@ cat_rebased() {
   done
 }
 cat_rebased >"$staging/rebased.patch"
-# A per-patch regeneration can silently drop a hunk that moved between files;
-# the whole-tree diff is the authority, so require the series to reconstruct it.
-if ! git -C "$staging/source" diff --binary --no-ext-diff |
-    diff -q - "$staging/rebased.patch" >/dev/null; then
+# A per-patch regeneration can silently drop a hunk that moved between files.
+# The whole-tree diff is the authority, so require the series to cover it: every
+# path the rebased tree modifies is claimed by exactly one patch. This replaces a
+# byte-compare against the concatenation, which also silently required each patch
+# to own a sorted-contiguous path range.
+rebased_owned=$(
+  for patch_name in $patches; do
+    awk '/^diff --git a\// { sub(/^diff --git a\//, ""); sub(/ b\/.*$/, ""); print }' \
+      "$staging/rebased.$patch_name"
+  done | LC_ALL=C sort
+)
+rebased_modified=$(
+  git -C "$staging/source" diff --name-only | LC_ALL=C sort
+)
+if [ -n "$(printf '%s\n' "$rebased_owned" | uniq -d)" ] ||
+   [ "$rebased_owned" != "$rebased_modified" ]; then
   echo "Herdr upgrade: STOPPED — the regenerated series does not reconstruct" >&2
   echo "the rebased tree. A change moved between files; rebase by hand." >&2
   exit 70

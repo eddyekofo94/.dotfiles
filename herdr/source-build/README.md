@@ -34,9 +34,14 @@ Everything else passes through to the real binary untouched.
 ## What the patch series adds
 
 `HERDR_PATCH_SERIES` in `pins.env` lists the reviewed patch files in apply
-order, which is also `git diff` order (sorted by path), so the concatenation is
-what `HERDR_PATCH_SHA256` pins. Each file owns a disjoint set of source paths so
-it can be re-reviewed, rebased, or dropped on its own at the next upstream tag.
+order. `HERDR_PATCH_SHA256` pins their concatenation, which detects a tampered
+patch file; `HERDR_TREE_DIFF_SHA256` pins the patched tree independently, and
+`build.sh` checks that every path the tree modifies is claimed by exactly one
+patch. Apply order no longer has to reproduce `git diff` order byte for byte, so
+a patch file may own any set of paths rather than a sorted-contiguous range —
+which previously forced a change into a patch named for an unrelated feature.
+Each file owns a disjoint set of source paths so it can be re-reviewed, rebased,
+or dropped on its own at the next upstream tag.
 
 Five narrow changes across two patch files. There is no injected-input path.
 

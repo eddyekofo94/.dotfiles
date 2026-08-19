@@ -17,17 +17,28 @@ test "$HERDR_SOURCE_COMMIT" = 346411fa21afd297f5ed3b3fa56f9e3fbf7654b7
 test "$HERDR_RUST_TOOLCHAIN" = 1.96.1
 test "$HERDR_ZIG_VERSION" = 0.15.2
 # The series is the unit that is pinned: HERDR_PATCH_SHA256 is the digest of the
-# concatenation, which is also the whole-tree diff build.sh checks against. Order
-# matters: it has to match what `git diff` emits (sorted by path), which is why
-# the toast-triage patch is split around agent-panel-active-highlight.patch
-# (mobile.rs < sidebar.rs < status.rs) instead of sitting in one file.
+# concatenation, and HERDR_TREE_DIFF_SHA256 pins the patched tree separately.
+# Splitting the two is what lets a patch file own any set of paths; build.sh
+# checks ownership against the modified tree instead of relying on apply order.
+# The toast-triage split around agent-panel-active-highlight.patch predates the
+# split and is kept because those three patches are genuinely separate changes.
 test "$HERDR_PATCH_SERIES" = \
-  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch agent-panel-active-highlight.patch toast-triage-colours-status.patch"
+  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch agent-panel-active-highlight.patch toast-triage-colours-status.patch working-spinner-tick.patch"
 test "$(
   for patch_name in $HERDR_PATCH_SERIES; do
     cat "$source_build/$patch_name"
   done | shasum -a 256 | awk '{print $1}'
 )" = "$HERDR_PATCH_SHA256"
+# Pinned separately from the concatenation, so the two must not be assumed equal
+# anywhere. No patch may claim a path another patch already claims.
+test -n "$HERDR_TREE_DIFF_SHA256"
+test "${#HERDR_TREE_DIFF_SHA256}" -eq 64
+test -z "$(
+  for patch_name in $HERDR_PATCH_SERIES; do
+    awk '/^diff --git a\// { sub(/^diff --git a\//, ""); sub(/ b\/.*$/, ""); print }' \
+      "$source_build/$patch_name"
+  done | LC_ALL=C sort | uniq -d
+)"
 rg -q "^\\+            'a' \\| 'i' \\| 'q' => self\\.exit_copy_mode\\(terminal_runtimes, false\\),$" \
   "$source_build/copy-mode-vim-muscle-memory.patch"
 rg -q "^\\+            'Y' => self\\.yank_copy_mode_lines\\(terminal_runtimes, count\\),$" \
@@ -81,6 +92,34 @@ test "$(rg -c '^diff --git ' "$toast_mobile_patch")" -eq 1
 test "$(rg -c '^diff --git ' "$toast_status_patch")" -eq 1
 rg -q '^diff --git a/src/ui/mobile\.rs ' "$toast_mobile_patch"
 rg -q '^diff --git a/src/ui/status\.rs ' "$toast_status_patch"
+
+# The Working-state spinner. Two halves that must stay together: the glyph, in
+# the status renderer, and the redraw tick that lets it advance. The tick is the
+# half that was missing when this shipped and was reverted — the glyph was a
+# function of wall-clock time, and the headless server, which is what actually
+# runs, never scheduled a redraw for it. Named here so a re-pin cannot drop the
+# tick and leave a spinner frozen on whichever frame the last event painted.
+spinner_patch="$source_build/working-spinner-tick.patch"
+test "$(rg -c '^diff --git ' "$spinner_patch")" -eq 3
+rg -q '^diff --git a/src/app/mod\.rs ' "$spinner_patch"
+rg -q '^diff --git a/src/app/runtime\.rs ' "$spinner_patch"
+rg -q '^diff --git a/src/server/headless\.rs ' "$spinner_patch"
+# One helper, called by both scheduling loops. Two copies is the failure mode.
+test "$(rg -c '^\+    pub\(crate\) fn sync_working_spinner_deadline\($' "$spinner_patch")" -eq 1
+test "$(rg -c '^\+        changed \|= self\.sync_working_spinner_deadline\(now, dots_visible\);$' \
+  "$spinner_patch")" -eq 1
+test "$(rg -c '^\+        changed \|= self\.app\.sync_working_spinner_deadline\(now, dots_visible\);$' \
+  "$spinner_patch")" -eq 1
+# The deadline has to reach the loop's wakeup list or nothing ever fires.
+rg -q '^\+            self\.spinner_deadline,$' "$spinner_patch"
+# The headless regression test is the gate; build.sh selects it by this prefix.
+rg -q '^\+    fn working_spinner_tick_arms_in_the_headless_scheduled_tasks\(\) \{$' \
+  "$spinner_patch"
+rg -q '^  cargo test --locked working_spinner_$' "$source_build/build.sh"
+# The glyph lives with the other status colours, in the patch that owns that file.
+rg -q '^\+const WORKING_SPINNER_FRAME_MS: u128 = 120;$' "$toast_status_patch"
+rg -q '^\+pub\(crate\) const WORKING_SPINNER_TICK_INTERVAL: Duration = Duration::from_millis\(120\);$' \
+  "$spinner_patch"
 
 # Agent panel active-row highlight: the current tab/pane used to render with the
 # same unconditional overlay0 + DIM text as every idle row, so nothing in the
