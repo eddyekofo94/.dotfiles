@@ -43,12 +43,33 @@ which previously forced a change into a patch named for an unrelated feature.
 Each file owns a disjoint set of source paths so it can be re-reviewed, rebased,
 or dropped on its own at the next upstream tag.
 
-Five narrow changes across two patch files. There is no injected-input path.
+Seven narrow changes across four patch files. There is no injected-input path.
 
-`toast-triage-colours.patch` — Toast triage colours, in both the desktop
-(`ui/status.rs`) and mobile (`ui/mobile.rs`) renderers: red is blocked on a
-human, green is done, blue is informational, and the title carries the colour so
-the signal is not a single cell.
+Not everything private is a patch. The agent panel's active row used to need
+one; v0.8.2 gave the palette an `active_row_bg` token, so the change is now a
+`[theme.custom]` line in `herdr/config.toml` and owns no source. Config first,
+patch only where upstream cannot express the behaviour.
+
+`toast-triage-colours-status.patch` (`ui/status.rs`) and
+`toast-triage-colours-mobile.patch` (`ui/mobile.rs`) — Toast triage colours in
+both renderers: red is blocked on a human, green is done, blue is informational,
+and the title carries the colour so the signal is not a single cell. Two files
+because one patch owns one path, and the two renderers rebase independently.
+
+`toast-triage-colours-status.patch` also carries the breathing Working dot.
+Upstream picks the glyph (`StatusIndicatorStyle`, dots or symbols); this only
+moves its colour, blending `panel_bg` → `yellow` on a cosine, 1440 ms per cycle,
+never dimmer than 0.34 of the way up, and falling back to a DIM toggle on a
+palette that is not truecolour. Same file, so the same patch.
+
+`working-spinner-tick.patch` (`app/mod.rs`, `app/runtime.rs`,
+`server/headless.rs`) — the redraw tick that lets that breath advance. The dot's
+colour is a function of wall-clock time, so it moves only while something asks
+for frames: a 120 ms deadline joins the same set upstream's
+`next_tab_bar_status_deadline()` is in, armed by one helper that both the
+attached-terminal loop and the headless server call. Arming it in `App` alone is
+how the feature shipped dead once and was reverted, so `build.sh` runs
+`cargo test --locked working_` to keep the headless test selected.
 
 `copy-mode-vim-muscle-memory.patch`:
 
