@@ -11,8 +11,15 @@ new_cwd = "follow"
 [keys]
 prefix = "ctrl+a"
 new_tab = "prefix+c"
-next_tab = "prefix+n"
-previous_tab = "prefix+p"
+# Alt+Ctrl+n/p mirror Prefix+n/p so tab stepping is a single chord, matching the
+# Alt+Ctrl+t new-tab chord below. Herdr claims them globally (no vim forward):
+# tab movement means one thing in every app.
+#
+# Alt+Ctrl+Left/Right are the same two actions under the arrows, for when the
+# hand is already off the home row. Left is previous, Right is next. macOS binds
+# bare Ctrl+Left/Right to Mission Control spaces; adding Alt clears that.
+next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]
+previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]
 close_tab = "prefix+shift+x"
 workspace_picker = "prefix+w"
 goto = "prefix+f"
@@ -182,7 +189,7 @@ command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
 description = "clear Codex context and insert newest handoff"
 
 [[keys.command]]
-key = "alt+ctrl+n"
+key = "alt+ctrl+t"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/new_tab.sh\""
 description = "create cwd-following tab"

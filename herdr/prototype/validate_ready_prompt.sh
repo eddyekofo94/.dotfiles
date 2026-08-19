@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 runtime=$(mktemp -d /tmp/herdr-ready-prompt.XXXXXX)
 config_home="$runtime/config"
@@ -313,6 +314,8 @@ cli() {
   "$herdr" --session "$session" "$@"
 }
 
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 cli server >"$server_log" 2>&1 &
 server_pid=$!
 wait_for "ready-prompt socket" test -S "$socket"

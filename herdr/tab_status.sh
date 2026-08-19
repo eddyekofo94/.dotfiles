@@ -6,10 +6,13 @@
 # that is what prefix+N selects, and it is the half that survives the sidebar's
 # truncation:
 #
-#   "<position> <repo>"    fresh tab, or an agent with no useful title yet
 #   "<position> <name>"    a deliberate goal name (assigned with
-#                          `herdr tab create --label` by herdr-goals), or an
-#                          agent's live, self-set terminal title
+#                          `herdr tab create --label` by herdr-goals)
+#   "<position> <repo>"    every other tab: the basename of its own directory,
+#                          which for a goal worktree at ../<repo>-sessions/
+#                          <slug> is the ticket the tab is working
+#   "<position> <title>"   last resort, an agent's live self-set terminal
+#                          title, only while the cwd is still unknown
 #
 # No state glyph: the sidebar renders agent state in its own left-hand column,
 # and in the narrow sidebar a trailing glyph is truncated away before it can be
@@ -148,12 +151,17 @@ stamp_session() {
 
       if [ -n "$name" ]; then
         want="${position} ${name}"
-      elif [ -n "$derived" ]; then
-        want="${position} ${derived}"
       elif [ -n "$repo" ]; then
+        # The tab's own directory outranks its agent's title: a goal tab lives
+        # in ../<repo>-sessions/<slug>, so the basename is the ticket, and a
+        # tab opened by hand rather than through herdr-goals still says which
+        # ticket it is on. The title is not lost — the sidebar renders
+        # terminal_title_stripped on its own row.
         # cwd can lag by one pass right after tab creation; don't stamp a
         # dangling trailing space while it's still empty.
         want="${position} ${repo}"
+      elif [ -n "$derived" ]; then
+        want="${position} ${derived}"
       else
         want="${position}"
       fi

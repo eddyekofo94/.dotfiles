@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 runtime="$prototype/.runtime/ct"
 config_home="$runtime/config"
 config="$config_home/herdr/config.toml"
@@ -166,6 +167,8 @@ trap 'exit 143' TERM
 
 # Build a gate-only configuration from the checked-in prototype. Nothing is
 # installed into normal Herdr, tmux, Fish, Ghostty, or Neovim configuration.
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 rm -rf "$runtime"
 mkdir -p "$config_home/herdr" "$evidence_dir"
 sed -e 's/^last_pane = \["prefix+tab", "ctrl+\^"\]$/last_pane = ""/' \
@@ -236,26 +239,29 @@ send_action index2
 wait_for "indexed tab selection" focused_is "$t2"
 record indexed "$(jq -cn --arg binding "prefix+2" --arg tab "$t2" '{binding:$binding,focused_tab:$tab}')"
 
-numbered_cwd=$(cli pane current --current | jq -er \
-  '.result.pane.foreground_cwd // .result.pane.cwd')
+# numbered_tab.sh is purely positional. A digit past the current tab count is a
+# silent no-op: no tab is created, the tab list is untouched, focus stays put.
+numbered_before=$(tab_ids)
 send_action index7
-wait_for "missing numbered tab creation" tab_count_is 5
-numbered_tab=$(focused_tab)
-numbered_details=$(cli tab get "$numbered_tab" | jq -c '.result.tab')
-printf '%s\n' "$numbered_details" | jq -e \
-  '.label == "7" and .number == 5 and .pane_count == 1' >/dev/null
-numbered_pane=$(pane_for_tab "$numbered_tab")
-numbered_pane_cwd=$(cli pane current --pane "$numbered_pane" | jq -er \
-  '.result.pane.foreground_cwd // .result.pane.cwd')
-test "$numbered_pane_cwd" = "$numbered_cwd"
-record numbered_create "$(jq -cn --arg binding "prefix+7" \
-  --arg tab "$numbered_tab" --arg cwd "$numbered_pane_cwd" \
-  --argjson details "$numbered_details" \
-  '{binding:$binding,created_tab:$tab,label:$details.label,number:$details.number,cwd:$cwd,single_new_tab:true}')"
+sleep 0.2
+test "$(cli tab list | jq '.result.tabs | length')" -eq 4
+test "$(tab_ids)" = "$numbered_before"
+test "$(focused_tab)" = "$t2"
+
+# Digits within range address left-to-right position, not creation order.
+send_action index4
+wait_for "position 4 selection" focused_is "$t4"
+send_action index1
+wait_for "position 1 selection" focused_is "$t1"
 send_action index2
-wait_for "return from numbered tab" focused_is "$t2"
-cli tab close "$numbered_tab" >/dev/null
-wait_for "numbered tab cleanup" tab_count_is 4
+wait_for "return to position 2" focused_is "$t2"
+record numbered_noop "$(jq -cn --arg binding "prefix+7" \
+  --argjson tabs "$numbered_before" --arg focused "$t2" \
+  --arg t4 "$t4" --arg t1 "$t1" \
+  '{binding:$binding,tab_count:4,tab_created:false,
+    tabs_unchanged:$tabs,focus_unchanged:$focused,
+    positional:[{binding:"prefix+4",position:4,focused_tab:$t4},
+      {binding:"prefix+1",position:1,focused_tab:$t1}]}')"
 
 send_action next
 wait_for "last-tab setup" focused_is "$t3"
@@ -362,7 +368,7 @@ source_workspace=$(printf '%s\n' "$source_details" | jq -er '.workspace_id')
 source_cwd=$(printf '%s\n' "$source_details" | jq -er \
   '.foreground_cwd // .cwd')
 send_action alt-ctrl-new-tab
-wait_for "Alt-Ctrl-n new tab" tab_count_is 2
+wait_for "Alt-Ctrl-t new tab" tab_count_is 2
 alt_tab=$(focused_tab)
 alt_details=$(cli tab get "$alt_tab" | jq -c '.result.tab')
 alt_pane=$(pane_for_tab "$alt_tab")
@@ -374,6 +380,19 @@ printf '%s\n' "$alt_details" | jq -e \
   '.workspace_id == $workspace and .focused == true and .pane_count == 1' >/dev/null
 test "$alt_cwd" = "$source_cwd"
 
+# Alt+Ctrl+n/p step tabs over the same transport, with two tabs open.
+send_action alt-ctrl-next
+wait_for "Alt-Ctrl-n next tab" focused_is "$t2"
+send_action alt-ctrl-previous
+wait_for "Alt-Ctrl-p previous tab" focused_is "$alt_tab"
+
+# The arrow aliases arrive over a different transport and must resolve to the
+# same native next_tab / previous_tab actions.
+send_action alt-ctrl-right
+wait_for "Alt-Ctrl-Right next tab" focused_is "$t2"
+send_action alt-ctrl-left
+wait_for "Alt-Ctrl-Left previous tab" focused_is "$alt_tab"
+
 # Alt-t remains application-owned: the same transport must not create or focus
 # a Herdr tab.
 send_action alt-t
@@ -381,14 +400,23 @@ sleep 0.2
 test "$(cli tab list | jq '.result.tabs | length')" -eq 2
 test "$(focused_tab)" = "$alt_tab"
 cli tab close "$alt_tab" >/dev/null
-wait_for "Alt-Ctrl-n tab cleanup" tab_count_is 1
-wait_for "return after Alt-Ctrl-n cleanup" focused_is "$t2"
+wait_for "Alt-Ctrl-t tab cleanup" tab_count_is 1
+wait_for "return after Alt-Ctrl-t cleanup" focused_is "$t2"
 record alt_new_tab "$(jq -cn \
   --arg tab "$alt_tab" --arg workspace "$source_workspace" \
   --arg source_cwd "$source_cwd" --arg created_cwd "$alt_cwd" \
-  '{binding:"alt+ctrl+n",transport:"kitty-csi-u-110;7u",
+  --arg next_tab "$t2" --arg previous_tab "$alt_tab" \
+  '{binding:"alt+ctrl+t",transport:"kitty-csi-u-116;7u",
     created_tab:$tab,workspace:$workspace,source_cwd:$source_cwd,
     created_cwd:$created_cwd,focused:true,single_new_tab:true,
+    alt_cycle:{next:{binding:"alt+ctrl+n",transport:"kitty-csi-u-110;7u",
+        focused_tab:$next_tab},
+      previous:{binding:"alt+ctrl+p",transport:"kitty-csi-u-112;7u",
+        focused_tab:$previous_tab}},
+    arrow_cycle:{next:{binding:"alt+ctrl+right",transport:"csi-1;7C",
+        focused_tab:$next_tab},
+      previous:{binding:"alt+ctrl+left",transport:"csi-1;7D",
+        focused_tab:$previous_tab}},
     alt_t:{binding:"alt+t",transport:"kitty-csi-u-116;3u",
       tab_count_unchanged:true,focus_unchanged:true}}')"
 

@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 runtime="$prototype/.runtime/r"
 config_home="$runtime/c"
@@ -144,6 +145,8 @@ grep -q 'HERDR_INTEGRATION_ID=codex' "$CODEX_HOME/herdr-agent-state.sh"
 grep -q 'HERDR_INTEGRATION_VERSION=6' "$CODEX_HOME/herdr-agent-state.sh"
 record config "$(jq -cn --arg result "$config_result" --arg integration "$integration_result" '{result:$result,pane_history:true,resume_agents_on_restore:true,isolated_codex_integration:{version:6,installed:true,output:$integration},agent_fixture_installed_in_runtime_only:true}')"
 
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 cli server >"$server_log_1" 2>&1 &
 server_pid_1=$!
 wait_for "recovery socket before restart" test -S "$socket"

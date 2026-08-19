@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 runtime="$prototype/.runtime/cp"
 config_home="$runtime/config"
@@ -78,6 +79,8 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 rm -rf "$runtime"
 mkdir -p "$config_home/herdr" "$evidence_dir"
 : >"$evidence_tmp"

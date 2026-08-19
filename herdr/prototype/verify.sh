@@ -1,6 +1,18 @@
 #!/bin/sh
 set -eu
 
+# HERDR_VERIFY_AUDIT is owned by herdr/verify.sh, which runs the extra audit
+# validators itself and only then delegates here. This script has no audit block,
+# so honouring the flag silently was fail-open: an operator who ran
+# `HERDR_VERIFY_AUDIT=1 sh herdr/prototype/verify.sh` got a PASS that had skipped
+# the whole audit. Refuse instead. The owning gate clears the flag when it
+# delegates, so this never fires from a real audit run.
+if [ "${HERDR_VERIFY_AUDIT:-0}" = 1 ]; then
+  echo "HERDR_VERIFY_AUDIT is owned by herdr/verify.sh; this gate has no audit block." >&2
+  echo "Run: HERDR_VERIFY_AUDIT=1 sh herdr/verify.sh" >&2
+  exit 2
+fi
+
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 prototype="$root/herdr/prototype"
 tab_lifecycle_evidence=${HERDR_TAB_LIFECYCLE_EVIDENCE:-"$prototype/evidence/tab-lifecycle-validation.jsonl"}
@@ -146,8 +158,8 @@ grep -q '^name = "catppuccin"$' "$prototype/config.toml"
 grep -q '^prefix = "ctrl+a"$' "$prototype/config.toml"
 grep -q '^default_shell = "/Users/eddyekofo/.dotfiles/herdr/prototype/prototype_shell.sh"$' "$prototype/config.toml"
 grep -q '^new_tab = "prefix+c"$' "$prototype/config.toml"
-grep -q '^next_tab = "prefix+n"$' "$prototype/config.toml"
-grep -q '^previous_tab = "prefix+p"$' "$prototype/config.toml"
+grep -Fq 'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]' "$prototype/config.toml"
+grep -Fq 'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]' "$prototype/config.toml"
 grep -q '^workspace_picker = "prefix+w"$' "$prototype/config.toml"
 grep -q '^goto = "prefix+f"$' "$prototype/config.toml"
 grep -q '^resize_mode = "prefix+r"$' "$prototype/config.toml"
@@ -167,7 +179,7 @@ for key in h j k l; do
   grep -q "^key = \"prefix+shift+$key\"$" "$prototype/config.toml"
 done
 test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 44
-grep -q '^key = "alt+ctrl+n"$' "$prototype/config.toml"
+grep -q '^key = "alt+ctrl+t"$' "$prototype/config.toml"
 grep -q 'new_tab.sh' "$prototype/config.toml"
 if grep -q '^key = "alt+t"$' "$prototype/config.toml"; then
   echo "Alt-t must remain application-owned and unbound in Herdr" >&2
@@ -862,7 +874,7 @@ jq -se '
   def nonempty_string: type == "string" and length > 0;
   def positive_integer: type == "number" and floor == . and . > 0;
 
-  ["config", "reorder_api", "create", "cycle", "indexed", "numbered_create", "last_tab",
+  ["config", "reorder_api", "create", "cycle", "indexed", "numbered_noop", "last_tab",
    "reorder", "close", "close_others", "alt_new_tab", "result"] as $expected_checks |
   map(.check) as $checks |
   .[2].evidence.tabs as $tabs |
@@ -904,12 +916,14 @@ jq -se '
     {start:$tab_ids[3], next:$tab_ids[0], previous:$tab_ids[3]} and
   .[4].evidence == {binding:"prefix+2", focused_tab:$tab_ids[1]} and
   .[5].evidence.binding == "prefix+7" and
-  .[5].evidence.label == "7" and
-  .[5].evidence.number == 5 and
-  .[5].evidence.single_new_tab == true and
-  (.[5].evidence.created_tab | nonempty_string) and
-  ([.[5].evidence.created_tab] - $tab_ids | length) == 1 and
-  (.[5].evidence.cwd | nonempty_string) and
+  .[5].evidence.tab_count == 4 and
+  .[5].evidence.tab_created == false and
+  .[5].evidence.tabs_unchanged == $tab_ids and
+  .[5].evidence.focus_unchanged == $tab_ids[1] and
+  .[5].evidence.positional == [
+    {binding:"prefix+4", position:4, focused_tab:$tab_ids[3]},
+    {binding:"prefix+1", position:1, focused_tab:$tab_ids[0]}
+  ] and
   .[6].evidence.previous_tab == $tab_ids[1] and
   .[6].evidence.from_tab == $tab_ids[2] and
   .[6].evidence.result == $tab_ids[1] and
@@ -936,8 +950,22 @@ jq -se '
     [$sentinel_pids[0], $sentinel_pids[2], $sentinel_pids[3]] and
   .[9].evidence.confirmation_required == true and
 
-  .[10].evidence.binding == "alt+ctrl+n" and
-  .[10].evidence.transport == "kitty-csi-u-110;7u" and
+  .[10].evidence.binding == "alt+ctrl+t" and
+  .[10].evidence.transport == "kitty-csi-u-116;7u" and
+  .[10].evidence.alt_cycle.next.binding == "alt+ctrl+n" and
+  .[10].evidence.alt_cycle.next.transport == "kitty-csi-u-110;7u" and
+  .[10].evidence.alt_cycle.next.focused_tab == $tab_ids[1] and
+  .[10].evidence.alt_cycle.previous.binding == "alt+ctrl+p" and
+  .[10].evidence.alt_cycle.previous.transport == "kitty-csi-u-112;7u" and
+  .[10].evidence.alt_cycle.previous.focused_tab ==
+    .[10].evidence.created_tab and
+  .[10].evidence.arrow_cycle.next.binding == "alt+ctrl+right" and
+  .[10].evidence.arrow_cycle.next.transport == "csi-1;7C" and
+  .[10].evidence.arrow_cycle.next.focused_tab == $tab_ids[1] and
+  .[10].evidence.arrow_cycle.previous.binding == "alt+ctrl+left" and
+  .[10].evidence.arrow_cycle.previous.transport == "csi-1;7D" and
+  .[10].evidence.arrow_cycle.previous.focused_tab ==
+    .[10].evidence.created_tab and
   .[10].evidence.workspace == "w1" and
   .[10].evidence.source_cwd == .[10].evidence.created_cwd and
   .[10].evidence.focused == true and
@@ -1291,7 +1319,7 @@ jq -se \
       "smart_close=prefix+x",
       "close_other_panes=prefix+o/Alt-o",
       "close_tab=prefix+X",
-      "tabs=prefix+c/n/p",
+      "tabs=prefix+c/n/p+Alt-Ctrl-t/n/p",
       "numbered_tabs=prefix+0..9",
       "zoom=prefix+z",
       "sidebar=prefix+S",

@@ -16,8 +16,14 @@ import time
 
 KEYS = {
     "create": b"\x01c",
-    # Ghostty/Kitty CSI-u: n with Alt+Ctrl (1 + Alt 2 + Ctrl 4 = modifier 7).
-    "alt-ctrl-new-tab": b"\x1b[110;7u",
+    # Ghostty/Kitty CSI-u: Alt+Ctrl is modifier 7 (1 + Alt 2 + Ctrl 4).
+    "alt-ctrl-new-tab": b"\x1b[116;7u",
+    "alt-ctrl-next": b"\x1b[110;7u",
+    "alt-ctrl-previous": b"\x1b[112;7u",
+    # Arrow aliases arrive as ordinary CSI with the same modifier parameter,
+    # not as CSI-u codepoints.
+    "alt-ctrl-right": b"\x1b[1;7C",
+    "alt-ctrl-left": b"\x1b[1;7D",
     "alt-t": b"\x1b[116;3u",
     "next": b"\x01n",
     "previous": b"\x01p",

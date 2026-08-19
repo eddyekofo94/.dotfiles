@@ -6,6 +6,7 @@ set -eu
 # handoff in Claude's composer without making a model request.
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 runtime=$(mktemp -d /tmp/hcl.XXXXXX)
 config_home="$runtime/c"
@@ -112,6 +113,8 @@ export HERDR_PROTOTYPE_DIR="$prototype"
 export HERDR_PROTOTYPE_USER_CONFIG_HOME="$HOME/.config"
 
 stage=server
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 "$herdr" --session "$session" server >"$server_log" 2>&1 &
 server_pid=$!
 wait_for "Herdr socket" test -S "$socket"

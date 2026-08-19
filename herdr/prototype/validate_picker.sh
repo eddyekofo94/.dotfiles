@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 runtime="$prototype/.runtime/p"
 config_home="$runtime/c"
@@ -266,8 +267,8 @@ config_result=$(cli_a config check 2>&1)
 for expected_line in \
   'prefix = "ctrl+a"' \
   'new_tab = "prefix+c"' \
-  'next_tab = "prefix+n"' \
-  'previous_tab = "prefix+p"' \
+  'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]' \
+  'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]' \
   'close_tab = "prefix+shift+x"' \
   'workspace_picker = "prefix+w"' \
   'goto = "prefix+f"' \
@@ -315,11 +316,15 @@ if grep -Eiq '(^|["[:space:]])(alt\+ctrl\+f|ctrl\+alt\+f)(["[:space:]]|$)' "$con
   echo "direct Alt-Ctrl-f must remain absent from the picker prototype" >&2
   exit 1
 fi
-approved_bindings=$(jq -cn '["prefix=ctrl+a","focus=prefix+h/j/k/l","swap=prefix+H/J/K/L","resize=prefix+r","fixed_split=prefix+v","adaptive_split=prefix+a","equalize=prefix+=/Alt-=","copy_search=prefix+s","smart_close=prefix+x","close_other_panes=prefix+o/Alt-o","close_tab=prefix+X","tabs=prefix+c/n/p","numbered_tabs=prefix+0..9","zoom=prefix+z","sidebar=prefix+S","ready_prompt=prefix+b/B","open_url=prefix+u","workspace_picker=prefix+w","workspace_cycle=prefix+(/)/Ctrl-^","goto=prefix+f","manage_objects=prefix+Shift+f","visible_references=prefix+Shift+r","agent_overview=prefix+Shift+a","scratch_popup=prefix+Enter","lazygit_popup=prefix+g","layout_menu=prefix+Space"]')
+approved_bindings=$(jq -cn '["prefix=ctrl+a","focus=prefix+h/j/k/l","swap=prefix+H/J/K/L","resize=prefix+r","fixed_split=prefix+v","adaptive_split=prefix+a","equalize=prefix+=/Alt-=","copy_search=prefix+s","smart_close=prefix+x","close_other_panes=prefix+o/Alt-o","close_tab=prefix+X","tabs=prefix+c/n/p+Alt-Ctrl-t/n/p","numbered_tabs=prefix+0..9","zoom=prefix+z","sidebar=prefix+S","ready_prompt=prefix+b/B","open_url=prefix+u","workspace_picker=prefix+w","workspace_cycle=prefix+(/)/Ctrl-^","goto=prefix+f","manage_objects=prefix+Shift+f","visible_references=prefix+Shift+r","agent_overview=prefix+Shift+a","scratch_popup=prefix+Enter","lazygit_popup=prefix+g","layout_menu=prefix+Space"]')
 record config "$(jq -cn --arg result "$config_result" --argjson approved "$approved_bindings" '{result:$result,workspace_picker:"prefix+w",goto:"prefix+f",direct_alt_ctrl_f:false,prefix_enter_preserved:true,prefix_g_preserved:true,prefix_space_preserved:true,approved_bindings:$approved}')"
 
+herdr_sweep_stale_server "$socket_a"
+herdr_guard_server "$socket_a"
 cli_a server >"$server_log_a" 2>&1 &
 server_pid_a=$!
+herdr_sweep_stale_server "$socket_b"
+herdr_guard_server "$socket_b"
 cli_b server >"$server_log_b" 2>&1 &
 server_pid_b=$!
 wait_for "session A socket" test -S "$socket_a"

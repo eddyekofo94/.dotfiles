@@ -58,8 +58,15 @@ def read_payload() -> dict[str, Any]:
 def report_metadata(agent: str, state: str, pane: str) -> None:
     herdr = os.environ.get("HERDR_BIN_PATH", "herdr")
     display = DISPLAY_STATE[state]
-    command = [
-        herdr,
+    # A pane id is only unique within its session, so the CLI must be told which
+    # session owns it. Without `--session` the request lands on the default
+    # session and fails closed with `pane_not_found` — invisibly, because this
+    # hook swallows errors on purpose.
+    command = [herdr]
+    session = os.environ.get("HERDR_SESSION")
+    if session:
+        command.extend(("--session", session))
+    command += [
         "pane",
         "report-metadata",
         pane,

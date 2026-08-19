@@ -2,6 +2,7 @@
 set -eu
 
 prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/server_lifecycle.sh"
 runner="$prototype/run.sh --border focused cli"
 export HERDR_BIN_PATH="$prototype/.runtime/bin/herdr"
 export HERDR_SESSION=trial-focused
@@ -84,6 +85,8 @@ production_before=$(production_hashes)
 # must be repeatable and must never depend on residue from an earlier pass.
 $runner session stop "$HERDR_SESSION" --json >/dev/null 2>&1 || true
 $runner session delete "$HERDR_SESSION" --json >/dev/null 2>&1 || true
+herdr_sweep_stale_server "$socket"
+herdr_guard_server "$socket"
 $runner server >"$prototype/.runtime/binding-server.log" 2>&1 &
 server_pid=$!
 wait_for "binding server socket" test -S "$socket"
