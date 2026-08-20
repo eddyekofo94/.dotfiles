@@ -50,9 +50,14 @@ function fif -d "find entry in files"
     set -l rg_cmd "query={q}; if [ \${#query} -ge 2 ]; then $rg_prefix -e \"\$query\" -- "(string escape -- "$path")"; fi"
 
     set -l functions_dir (status dirname)
-    set -l preview_cmd "fish --no-config -c 'source \"\$argv[1]\"; source \"\$argv[2]\"; _fif_preview \"\$argv[3]\" \"\$argv[4]\" \"\$argv[5]\" \"\$argv[6]\" \"\$argv[7]\"' " \
-        (string escape -- "$functions_dir/_fzf_preview.fish")" " \
-        (string escape -- "$functions_dir/_fif_preview.fish")" {1} {2} {3} " \
+    # `--no-config` keeps every keystroke's preview cheap, but it also turns off
+    # autoloading, and sourcing two files by name only covers the two functions
+    # named here. `_fzf_preview` reaching for a helper it grew later --
+    # `_fzf_preview_is_image` -- then failed as an unknown command in the pane.
+    # Point the function path at this directory instead: every helper the
+    # previewer grows is found without this line having to learn its name.
+    set -l preview_cmd "fish --no-config -c 'set -g fish_function_path \"\$argv[1]\" \$fish_function_path; _fif_preview \"\$argv[2]\" \"\$argv[3]\" \"\$argv[4]\" \"\$argv[5]\" \"\$argv[6]\"' " \
+        (string escape -- "$functions_dir")" {1} {2} {3} " \
         (string escape -- "$rg_query_file")" {4..}"
     set -l fzf_query "$query"
     set -l fzf_prompt '1. ripgrep> '
