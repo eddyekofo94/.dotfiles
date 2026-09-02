@@ -1,0 +1,8 @@
+Launch-context token budget check (estimated, see docstring)
+  global AGENTS.md: ~1877 tok
+  BibleStandard: MISSING repo path
+  .dotfiles: AGENTS+CLAUDE.md
+  .dotfiles: MEMORY.md
+  .dotfiles: total
+
+All within budget.
