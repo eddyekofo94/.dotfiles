@@ -39,7 +39,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "opus[1m]",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "app-store-changelog": "user-invocable-only",
