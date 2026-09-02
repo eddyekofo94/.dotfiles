@@ -39,7 +39,7 @@ FORCE=0
 KEEP_TAB=0
 OPEN_TODO=1
 DRY=0
-MODEL=claude-fable-5
+MODEL=fable  # alias, so the tab follows the latest Fable (5.1 today)
 BOOT=/todo
 BOOT_SET=0
 
@@ -127,7 +127,7 @@ if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
                jq -r '.next[0].id // empty' ) || next_id=""
 fi
 if [ -n "$next_id" ]; then
-  MODEL=claude-opus-5
+  MODEL=opus  # alias, so the tab follows the latest Opus (5 today)
   mode="--permission-mode auto"
   [ "$BOOT_SET" = 1 ] || BOOT="/deliver ${next_id}"
   # The id is all this step knows, so the name it can build is `fs094` — while
