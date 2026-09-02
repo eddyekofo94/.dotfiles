@@ -6,11 +6,14 @@ name = "catppuccin"
 [theme.custom]
 # overlay0 is Herdr's dim-text token, not a border token — ~92 render sites use
 # it for secondary text, including the second line of the agent-finished toast
-# (workspace · index · tab label). It used to be pinned to #1e1e2e, which is
-# Catppuccin's *base*, so every one of those sites drew text in the background
-# colour and vanished. Kept at Catppuccin Mocha's real overlay0: dim enough to
-# recede, readable against panel_bg. (Eddy, 2026-08-12)
-overlay0 = "#6c7086"
+# (workspace · index · tab label) and every sidebar header — " spaces",
+# " agents", "new", "menu", and the "grouped" sort control. It used to be pinned
+# to #1e1e2e, which is Catppuccin's *base*, so every one of those sites drew text
+# in the background colour and vanished. Mocha's real overlay0 (#6c7086) fixed
+# that but still read as barely-there grey on panel_bg at this font size, so it
+# sits one Catppuccin step up at overlay1: still recedes against text (#cdd6f4),
+# now actually legible. (Eddy, 2026-08-26)
+overlay0 = "#7f849c"
 # The focused agent row and the active workspace row both draw this background.
 # v0.8.2 defaults it to #1e1e2e, which is Catppuccin's *base* — a few RGB steps
 # from panel_bg (#181825), so on most terminals "this is where you are" was
@@ -420,7 +423,22 @@ prompt_new_tab_name = false
 # tab label leads instead: position + the ticket the tab is working
 # (tab_status.sh derives it from the worktree), then the live terminal title as
 # its own row for what that ticket is doing right now.
-rows = [["state_icon", "tab"], ["terminal_title_stripped"], ["agent", "$semantic_state"]]
+#
+# Every token here is styled explicitly because Herdr hardcodes the row style
+# slots: `tab`, `agent`, `terminal_title` and `$custom` all land on overlay0+DIM,
+# and only `workspace` gets the brighter focused/unfocused pair. Leading with
+# `tab` therefore drew all three lines in dimmed muted grey. The explicit
+# `dim = false` plus a per-line ramp — text for the ticket, subtext0 for what it
+# is doing, overlay2 for the agent and its state — restores the hierarchy
+# without giving the panel back to overlay0. (Eddy, 2026-08-26)
+rows = [
+  ["state_icon", { token = "tab", fg = "#cdd6f4", bold = true, dim = false }],
+  [{ token = "terminal_title_stripped", fg = "#a6adc8", dim = false }],
+  [
+    { token = "agent", fg = "#9399b2", dim = false },
+    { token = "$semantic_state", fg = "#9399b2", dim = false },
+  ],
+]
 
 [ui.toast]
 # in-app toasts so destructive-close confirmations ("press again within 5s") and
