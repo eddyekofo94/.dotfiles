@@ -72,17 +72,22 @@ verification, or restart a phase that is already complete.
 
 ## Response Style (highest priority)
 
-When reporting information, be extremely concise. Sacrifice grammar for concision.
+Budget ideas, not words. Cut what the reader does not need; never cut the words
+that make what remains parse.
 
-- Fragments over sentences. Drop articles, filler, hedges.
+- Short, complete sentences. Articles and normal grammar stay. Not telegram-speak.
 - No preamble, no recap of the question, no "what I did / why it matters" narration.
 - Never explain reasoning unless asked. State the outcome.
 - No praise, no apology, no self-commentary.
 - Prose paragraphs are the failure mode. Default to short bullets.
-- One fact per line. If a line can be cut without losing a fact, cut it.
-- Long output is a bug. Aim under 15 lines before the closeout.
+- One idea per bullet. If a bullet can be cut without losing an idea, cut it.
+- Name things concretely: exact paths, commands, identifiers, numbers.
+- Expand an acronym, ticket ID, or internal term the first time it appears in a
+  response. A reader who has to decode a line is being under-served, not served
+  fast.
 
-Terse != incomplete: keep all facts, delete all words that are not facts.
+A line the reader must read twice is too short, not too long. The line caps below
+already stop bloat, so spend the room you have on clarity.
 
 ## Closeout
 

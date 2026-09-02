@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Stop hook: reject a turn whose final message busts the line budget.
 
-Eddy's response contract caps the body at 15 lines before the closeout. Five
+Eddy's response contract caps the body at 19 lines before the closeout. Five
 recorded violations show that instructions and memory notes do not hold, so the
 budget is enforced here instead: an over-long turn is blocked once, with the
 actual counts, and the model has to re-send a shorter one.
@@ -14,14 +14,17 @@ transcript must never wedge a session.
 import json
 import sys
 
-BODY_MAX = 15  # lines before the closeout; Eddy's number, do not invent another
-CLOSEOUT_MAX = 12  # Status..Next move (5) + prompt block (3-4) + fences
+BODY_MAX = 19  # ceiling, not a target; Eddy's number, do not invent another
+CLOSEOUT_MAX = 16  # Status..Next move (5) + prompt block (3-4) + fences, plus slack
 WIDTH = 100  # terminal columns; a paragraph costs what it costs to read
 MAX_BLOCKS = 4  # consecutive rejections per turn before the hook gives up
 
 
 CONTRACT = """
 ## Enforced Line Budget (mechanical, not advice)
+
+These are ceilings, not targets. Most turns should land well under them; the
+room is there for the turns that genuinely need it. Never pad to fill it.
 
 A Stop hook measures every turn and rejects it when:
 - the body (everything before `**Status**`) exceeds {body} lines
