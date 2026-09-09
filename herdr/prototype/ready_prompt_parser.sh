@@ -92,6 +92,11 @@ PARSER_AWK='
             return remainder == "" && length(value) >= 8
         }
 
+        function pi_collapsed_chrome(value) {
+            value = trim(value)
+            return value ~ /^─+[[:space:]]+↑[[:space:]]+[0-9]+ more[[:space:]]+─+$/
+        }
+
         # Claude closes a response with a duration line ("✻ Crunched for
         # 11m 20s") and may follow it with a recap block. The glyph and the
         # verb both rotate, so key on the shape that does not: a leading
@@ -108,6 +113,7 @@ PARSER_AWK='
         function terminal_chrome(value) {
             value = trim(value)
             return horizontal_divider(value) || \
+                pi_collapsed_chrome(value) || \
                 value ~ /^─.*Worked for/ || \
                 value ~ /^━.*Worked for/ || \
                 value ~ /^[›❯][[:space:]]/ || \
@@ -141,6 +147,21 @@ PARSER_AWK='
             line = $0
             if (mode == "closeout") {
                 lines[NR] = line
+            }
+
+            # Pi places this divider between the collapsed response and its
+            # live editor. Anything below it is editor text, not agent output.
+            if (state != "fence" && marker_state != "collect" && \
+                    pi_collapsed_chrome(line)) {
+                if (state == "plain") {
+                    state = "done"
+                    commit_closeout(plain_last)
+                }
+                capture_done = 1
+                next
+            }
+            if (capture_done) {
+                next
             }
 
             if (trim(line) == "READY_TO_PASTE_BEGIN_V1") {

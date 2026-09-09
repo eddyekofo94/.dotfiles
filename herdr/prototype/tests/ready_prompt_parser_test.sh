@@ -158,6 +158,49 @@ assert_extract 'bare Codex response divider ends a rendered prompt' \
     'Push local main to origin/main and verify the commit remotely.' \
     "$bare_divider"
 
+pi_collapsed=$TMP_ROOT/pi-collapsed.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '' \
+    '```text' \
+    'Compare Claude Code, Codex CLI, and Pi for my workflow. Evaluate autonomy, context management,' \
+    ' extensibility, model support, safety controls, Git integration, cost, and terminal experience.' \
+    ' Recommend one primary harness and one fallback, and identify any claims that require current web verification.' \
+    '```' \
+    '' \
+    '─── ↑ 69 more ─────────────────────────────────────────────────' \
+    '❯ Verification: No live market, pricing, or feature audit was run.' \
+    'Ready-to-paste prompt:' \
+    '```text' \
+    'Compare Claude Code, Codex CLI, and Pi for my workflow.' \
+    '```' >"$pi_collapsed"
+assert_extract 'Pi collapsed-output chrome ends a rendered prompt before editor text' \
+    $'Compare Claude Code, Codex CLI, and Pi for my workflow. Evaluate autonomy, context management,\n extensibility, model support, safety controls, Git integration, cost, and terminal experience.\n Recommend one primary harness and one fallback, and identify any claims that require current web verification.' \
+    "$pi_collapsed"
+
+pi_divider_in_fence=$TMP_ROOT/pi-divider-in-fence.txt
+printf '%s\n' \
+    'Ready-to-paste prompt:' \
+    '```text' \
+    'Keep this divider-shaped prompt line:' \
+    '─── ↑ 69 more ─────────────────────────────────────────────────' \
+    'and this line after it.' \
+    '```' >"$pi_divider_in_fence"
+assert_extract 'Pi collapsed-output shape remains content inside a fence' \
+    $'Keep this divider-shaped prompt line:\n─── ↑ 69 more ─────────────────────────────────────────────────\nand this line after it.' \
+    "$pi_divider_in_fence"
+
+pi_divider_in_marker=$TMP_ROOT/pi-divider-in-marker.txt
+printf '%s\n' \
+    'READY_TO_PASTE_BEGIN_V1' \
+    'Keep this divider-shaped marker line:' \
+    '─── ↑ 69 more ─────────────────────────────────────────────────' \
+    'and this line after it.' \
+    'READY_TO_PASTE_END_V1' >"$pi_divider_in_marker"
+assert_extract 'Pi collapsed-output shape remains content inside V1 markers' \
+    $'Keep this divider-shaped marker line:\n─── ↑ 69 more ─────────────────────────────────────────────────\nand this line after it.' \
+    "$pi_divider_in_marker"
+
 normal_closeout=$TMP_ROOT/normal-closeout.txt
 printf '%s\n' \
     'Next move: Push main when ready.' \
