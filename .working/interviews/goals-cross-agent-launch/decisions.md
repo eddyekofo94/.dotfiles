@@ -28,3 +28,16 @@ the `claude` executable.
 - Full Herdr verification and fresh Standards/Fidelity review pass.
 - Eddy physically confirms one Codex invocation opens a Codex session without
   submitting an unintended prompt.
+
+## Verification
+
+- Focused routing and lifecycle suite: 17/17 pass.
+- Bash syntax and `git diff --check`: pass.
+- Fresh Standards review: 0 findings after adding ranked, resume, precedence,
+  fallback, conflict, and unknown-agent rejection coverage.
+- Fresh Fidelity review: 0 findings after removing automatic boot prompts from
+  Codex and Pi routes.
+- Full `herdr/verify.sh` reaches project-picker PASS from the isolated worktree,
+  then stops on checkout-specific live integration paths. It must be rerun from
+  the shared checkout after merge.
+- Physical Codex launch acceptance remains pending.
