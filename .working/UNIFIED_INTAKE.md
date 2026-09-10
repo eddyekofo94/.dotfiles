@@ -1,13 +1,12 @@
 # Unified Intake
 
-## Active
-
-`goals-cross-agent-launch` — **Ready To Act 2026-09-10.** Eddy selected the
-recorded cross-agent routing gap after `$goals` invoked from Codex opened
-Claude. Claude callers must open Claude; Codex and Pi callers must open Codex.
-Source: `.working/interviews/goals-cross-agent-launch/decisions.md`.
-
 ## Recently Completed
+
+`goals-cross-agent-launch` — **DONE 2026-09-10.** Claude callers open Claude;
+Codex and Pi callers open plain Codex without submitting boot prompts. Seventeen
+tests, full Herdr verification, Standards 0, Fidelity 0, and Eddy's physical
+Codex launch acceptance pass. Source:
+`.working/interviews/goals-cross-agent-launch/decisions.md`.
 
 `named-parallel-dotfiles-worktrees` — **DONE 2026-09-10.** Sixteen focused
 tests, full Herdr verification, Standards 0, Fidelity 0, and Eddy's physical

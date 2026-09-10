@@ -2,7 +2,7 @@
 
 ## Status
 
-Ready To Act. Selected by Eddy on 2026-09-10.
+DONE 2026-09-10.
 
 ## Trigger
 
@@ -42,3 +42,5 @@ the `claude` executable.
   the shared checkout after merge.
 - Physical Codex launch acceptance: PASS 2026-09-10. Tab `goals-routing-qa`
   opened Codex with an empty composer and submitted no prompt.
+- Post-merge `./herdr/verify.sh`: PASS, including all 17 focused tests,
+  source-build, project-picker, installed integration, and production checks.

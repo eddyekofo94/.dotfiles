@@ -1,9 +1,9 @@
 # Active Goal
 
-`goals-cross-agent-launch` — **Ready To Act 2026-09-10.** `$goals` must
-preserve the invoking agent family: Claude opens Claude, while Codex and Pi
-open Codex. Stop after deterministic three-caller routing coverage, full Herdr
-verification, fresh Standards/Fidelity review, and physical launch acceptance.
+`goals-cross-agent-launch` — **closed 2026-09-10.** `$goals` preserves the
+invoking agent family: Claude opens Claude, while Codex and Pi open plain Codex
+with an empty composer. Seventeen tests, full Herdr verification, fresh
+Standards/Fidelity review, and Eddy's physical launch acceptance pass.
 Source: `.working/interviews/goals-cross-agent-launch/decisions.md`.
 
 ---
