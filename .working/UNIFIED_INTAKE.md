@@ -1,12 +1,11 @@
 # Unified Intake
 
-## Active
-
-`named-parallel-dotfiles-worktrees` — implementation and automated validation
-are in final fix/re-review. Source:
-`.working/interviews/named-parallel-dotfiles-worktrees/decisions.md`.
-
 ## Recently Completed
+
+`named-parallel-dotfiles-worktrees` — **DONE 2026-09-10.** Sixteen focused
+tests, full Herdr verification, Standards 0, Fidelity 0, and Eddy's physical
+two-tab isolation acceptance pass. Source:
+`.working/interviews/named-parallel-dotfiles-worktrees/decisions.md`.
 
 `herdr-alt-ctrl-tab-chords` — **DONE 2026-09-10**. Global native
 `Ctrl+Alt+h/l` aliases select the previous/next Herdr tab without changing the

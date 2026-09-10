@@ -110,9 +110,9 @@ Ready. Implementation is intentionally deferred from this planning run.
   automatic goal open to Fable `/todo` instead of shared-checkout delivery.
 - Full `./herdr/verify.sh` passes, including the focused worktree and automatic
   goal-close regressions.
-- Manual Herdr/Ghostty QA was not run. The exact `herdr tab create --cwd` and
-  failure-without-tab contracts are covered through a deterministic fake Herdr
-  executable.
+- Manual Herdr/Ghostty QA passed 2026-09-10. Tabs `worktree-qa-a` and
+  `worktree-qa-b` showed their matching labels, `.dotfiles-sessions` working
+  directories, `feature/worktree-qa-*` branches, and independent state.
 - Final fresh review: Standards 0 findings; Fidelity 0 findings.
 
 ## Open Questions

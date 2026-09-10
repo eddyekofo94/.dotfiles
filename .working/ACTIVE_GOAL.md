@@ -1,9 +1,9 @@
 # Active Goal
 
-`named-parallel-dotfiles-worktrees` — final safety fixes and re-review are in
-progress. Stop after claim locking, hierarchical collision rejection,
-linked-worktree routing, automatic-next-goal fail-closed behavior, full gates,
-and fresh Standards/Fidelity review. Source:
+`named-parallel-dotfiles-worktrees` — **closed 2026-09-10.** Claim locking,
+hierarchical collision rejection, linked-worktree routing, automatic-next-goal
+fail-closed behavior, full gates, fresh Standards/Fidelity review, and Eddy's
+two-tab physical acceptance pass. Source:
 `.working/interviews/named-parallel-dotfiles-worktrees/decisions.md`.
 
 ---
