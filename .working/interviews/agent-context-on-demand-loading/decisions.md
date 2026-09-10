@@ -46,8 +46,8 @@ verifier. Do not add a second configuration owner or delete installed plugins.
 
 - **refines** `codex-skill-context-cleanup`: that goal reduced plugin and skill
   catalog context but explicitly excluded MCP servers.
-- **blocked by** `pi-session-info-color-hierarchy`: it is the repository's one
-  active implementation goal; this entry is intake only.
+- **follows** `pi-session-info-color-hierarchy`, which closed on 2026-09-10;
+  this entry remains intake until selected through `feature-plan`.
 
 ## Validation Needed
 

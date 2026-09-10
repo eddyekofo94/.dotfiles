@@ -2,18 +2,19 @@
 
 ## Active
 
-`pi-session-info-color-hierarchy` — **READY TO MERGE.** The isolated Pi launcher
-owns a quiet startup and one Claude-like footer row with model, repository,
-branch/worktree, context tokens/percentage, weekly Codex allowance, and current
-directory. Context thresholds are green below 70%, amber from 70% through 84%,
-and red at 85% or higher. Focused and PTY tests plus the final explicitly
-approved isolated `pi/verify.sh` pass. Final post-fix review is Standards 0
-findings and Fidelity 0 findings. Eddy ended the evaluation gate and approved
-daily use; six revised-footer Ghostty checks remain explicitly `NOT RUN` rather
-than recorded as passes. Source:
-`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
+None.
 
 ## Recently Completed
+
+`pi-session-info-color-hierarchy` — **DONE 2026-09-10.** The isolated Pi
+launcher has a quiet startup and one Claude-like footer row with model,
+repository, branch/worktree, context tokens/percentage, weekly Codex allowance,
+and current directory. The final isolated `pi/verify.sh` pass and fresh
+post-rebase Standards/Fidelity review are green. Merged into local `main` at
+`bcc7031d`; not pushed. Eddy ended the evaluation gate and approved daily use;
+six revised-footer Ghostty checks remain explicitly `NOT RUN`, not recorded as
+passes. Source:
+`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
 
 `goals-cross-agent-launch` — **DONE 2026-09-10.** Claude callers open Claude;
 Codex and Pi callers open plain Codex without submitting boot prompts. Seventeen
@@ -76,8 +77,8 @@ after unreliable live rendering.
   `XcodeBuildMCP`, `openaiDeveloperDocs`, and `node_repl` are globally enabled.
   Disposition: **finetune** `agent-config/codex/config.toml` and its catalog
   verifier; retain capabilities on disk and activate them deliberately. It
-  `refines` the closed `codex-skill-context-cleanup` goal and is `blocked by`
-  the active Pi implementation. Source:
+  `refines` the closed `codex-skill-context-cleanup` goal and `follows` the
+  closed Pi footer implementation. Source:
   `.working/interviews/agent-context-on-demand-loading/decisions.md`.
 
 - `herdr-current-session-agent-highlight`: **Spec Needed**. When a Herdr tab is

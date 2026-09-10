@@ -136,3 +136,7 @@ Make Pi's session details scannable and expose context pressure continuously.
 - Final post-fix review after adding the tracked physical-QA launcher and the
   reproducible long-worktree procedure: Standards 0 findings; Fidelity 0
   findings.
+- Rebased final commit `738473ed` onto `main`; the isolated short-path
+  `pi/verify.sh` passed end to end after the rebase. Fresh post-rebase review:
+  Standards 0 findings; Fidelity 0 findings.
+- Merged into local `main` as `bcc7031d` on 2026-09-10. No push was performed.
