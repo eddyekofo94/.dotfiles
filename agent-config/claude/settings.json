@@ -240,5 +240,6 @@
   "disabledMcpServers": [
     "computer-use",
     "claude-in-chrome"
-  ]
+  ],
+  "model": "fable"
 }

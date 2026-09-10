@@ -64,22 +64,29 @@ Automated fixtures must not be used to mark this checklist complete.
   independent window/session.
 - [x] Confirm normal macOS `Cmd+V` paste still works.
 
-## Agent prompt editor (Ctrl+G)
+## Agent prompt editor (Ctrl+G): Codex and Pi
 
 The offline gate in `pi/verify.sh` proves the pinned build still prefers
 `$VISUAL`, writes its prompt under the temp dir, and that nothing pins
 `externalEditor`. It cannot prove what the split actually looks like.
 
-- [ ] With a completed closeout on screen, press `Ctrl+G`. Confirm Neovim opens
-  with the prompt above and the whole closeout, ready-to-paste block included,
-  in a read-only window below.
+- [x] Open two fresh Ghostty windows. In window A, run `cd ~/.dotfiles && cdx`;
+  in window B, run `cd ~/.dotfiles && ./pi/pilot.sh --name ctrl-g-pi-check`.
+  Confirm `$HERDR_SESSION` differs between the windows.
+- [x] Produce a completed closeout containing the unique marker `CODEX-A` in
+  window A and `PI-B` in window B. Press `Ctrl+G` in each. Confirm Neovim opens
+  the prompt with only that window's whole closeout, ready-to-paste block
+  included, in the read-only companion window.
+  Result 2026-09-10: PASS. Eddy confirmed Codex and Pi each opened only their
+  own session-scoped closeout; Claude passed the same flow. The two independent
+  Herdr windows retained separate records.
 - [ ] Confirm `@` completes repository paths, not paths under the temp dir the
   prompt file lives in.
 - [ ] Type nothing and press `u`. Confirm one undo empties the seeded prompt.
 - [ ] Yank a line from the closeout window and confirm it pastes into the
   prompt.
 - [ ] Run `:wq`. Confirm Neovim exits completely, with no leftover split, and
-  the edited prompt appears in the Pi editor without submission.
+  the edited prompt appears in the respective agent editor without submission.
 - [ ] Press `Alt+h`/`Alt+j`/`Alt+k`/`Alt+l`. Confirm they move between the two
   Neovim windows and hand off to the neighboring Herdr pane at the edge.
 - [ ] Press `Alt+s` to split the Herdr pane, then close that split. Confirm the

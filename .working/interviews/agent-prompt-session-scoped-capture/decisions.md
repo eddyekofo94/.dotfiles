@@ -15,10 +15,14 @@ regardless of how many Herdr sessions (independent Ghostty windows) are open.
   `~/.config/nvim/tools/verify.sh`, `herdr/verify.sh` green.
 - Fresh Standards/Fidelity review 0/0.
 - Eddy: live `ctrl+g` in two Ghostty windows each opens its own closeout.
+- `~/.codex/config.toml` and `~/.claude/keybindings.json` are tracked through
+  installer-owned, fail-closed symlinks so the external-editor bindings cannot
+  silently drift outside the repository.
 
 ## Scope / Non-goals
 
-- In: `agent-config/claude/closeout_capture.py`,
+- In: `agent-config/claude/closeout_capture.py`, the agent-config installer,
+  Codex config and Claude keybinding ownership,
   `~/.config/nvim/tools/agent_prompt_editor.sh`, their two test suites, intake.
 - Out: Herdr patch, `herdr pane read` semantics, the parser, Neovim Lua
   (`agent-prompt.lua` reads only `AGENT_CLOSEOUT_FILE`/`AGENT_PROMPT_REASON`).
@@ -130,3 +134,48 @@ Not done by design: no commit, no push (no `ship`). Neovim config repo
 Awaiting Eddy: two Ghostty windows, one Claude pane each, finish a turn in
 both, `ctrl+g` in each — each opens its own closeout; `/tmp/agent-prompt-
 debug.log` shows `[window-N/w1:pM]` tags.
+
+Manual migration check, 2026-09-09: Pi `ctrl+g` PASS; Codex FAIL. Pi's live
+`window-70/w1:p13` pane shows the expected prompt and read-only closeout.
+Whether the Codex failure was editor launch, companion split, empty content,
+or wrong content is not yet known, so there is not yet a red-capable
+reproduction or justified fix.
+
+Automated discriminator, 2026-09-09: Codex 0.153.4 was launched in a PTY with
+the real `$VISUAL` shim and only `AGENT_PROMPT_NVIM=/usr/bin/true`. Sending
+`Ctrl+G` invoked the shim, scraped a closeout for `window-70/w1:p11`, returned
+to the composer, and exited cleanly. The Codex keymap and `$VISUAL` handoff are
+therefore green; the unresolved manual failure is downstream in the real
+Neovim display or its captured content.
+
+Markerless Codex fix, 2026-09-10: the live shim debug log identified the real
+editor launch as `[window-70/w1:p11] no agent marker in env`; the earlier
+`CODEX_THREAD_ID` test fixture was not representative. Codex passes exactly
+one prompt at `~/.codex/editor/.tmpXXXXXX.md`, not under `$TMPDIR`. The shell
+shim now treats only that exact Codex-owned directory and six-alphanumeric-
+character Markdown filename as a markerless Codex launch, and forwards the
+editor argument into the capture function. Neovim mirrors that directory and
+filename check before creating the prompt layout. Regression coverage proves
+the markerless route in both suites: `bash ~/.config/nvim/tools/
+test_agent_prompt_editor.sh` (42/42) and `make -C ~/.config/nvim
+test-agent-prompt` (21/21). Manual Codex `ctrl+g` acceptance remains required.
+
+Manual acceptance, 2026-09-10: Eddy confirmed that Codex `ctrl+g` now opens
+the expected prompt-editor flow. Pi and Claude were already working. Fresh
+review after the live-path correction found one Fidelity mismatch: Neovim
+accepted a generated filename in a nested directory below the Codex editor
+root while the shim requires the exact directory. Neovim now requires the
+exact root too; the new nested-path rejection spec passes. Fresh review after
+that fix: Standards 0, Fidelity 0. Focused validation remains green: shim
+42/42 and Neovim specs 22/22. The remaining manual gate is one two-Ghostty-
+window check that same-named Herdr pane ids each retain their own closeout.
+
+Closure, 2026-09-10: Eddy confirmed the two-Herdr-window isolation check is
+working properly. The goal is **DONE**; no commit or publication was
+authorized, and the dotfiles worktree remains uncommitted.
+
+Ownership extension, 2026-09-09: `agent-config/codex/config.toml` and
+`agent-config/claude/keybindings.json` now own the two live files through the
+existing reviewed-predecessor installer. Exact pre-migration copies are under
+`.backups/agent-config/`. Installer fixtures cover regular-file migration,
+backup creation, idempotency, and fail-closed preflight.

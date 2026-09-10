@@ -3,6 +3,8 @@
 `agent-config/AGENTS.md` is the single canonical global rule source.
 
 - Codex: `~/.codex/AGENTS.md` symlinks directly to it.
+- Codex: `~/.codex/config.toml` symlinks to the tracked personal configuration
+  at `agent-config/codex/config.toml`.
 - Claude: `~/.claude/CLAUDE.md` symlinks a one-line supported import adapter
   that points at it.
 - Pi pilot: `$PI_CODING_AGENT_DIR/AGENTS.md` symlinks to `pi/AGENTS.md`, a
@@ -18,6 +20,11 @@ so their edits follow the link and land as reviewable repository diffs — expec
 `/model`, plugin, and integration changes to show up as working-tree changes
 here. A writer that swapped in a fresh file would leave an unmanaged regular
 file, which `verify.sh` fails on.
+
+`~/.claude/keybindings.json` is likewise a managed link to
+`agent-config/claude/keybindings.json`. Codex and Claude authentication files,
+session histories, caches, and other runtime state remain outside this
+repository.
 
 Install reviewed links:
 

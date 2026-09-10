@@ -73,6 +73,10 @@ preflight_link codex-agents \
   "$agent_home/.codex/AGENTS.md" \
   "$repo_dir/agent-config/AGENTS.md" \
   8af457a0fbc10cce7d15d22558ffac1c18528e0539323ce9ac27ea1b06f91fa3
+preflight_link codex-config \
+  "$agent_home/.codex/config.toml" \
+  "$config_dir/codex/config.toml" \
+  8892a4102bacb3277aca796e4c871e8f7dcaeb5fd3521c55ea14bdc5cba0f28c
 preflight_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" \
   "$config_dir/claude/CLAUDE.md" \
@@ -93,9 +97,15 @@ preflight_link claude-settings \
   "$agent_home/.claude/settings.json" \
   "$config_dir/claude/settings.json" \
   6942780acf9eeca5065a5d295e77e3915a1661623e7e8942b365c8b85c456cdd
+preflight_link claude-keybindings \
+  "$agent_home/.claude/keybindings.json" \
+  "$config_dir/claude/keybindings.json" \
+  d0dee62c8af8c0f743bdeddb471c4f1901e43aa767cd2e346a839651e7ee136c
 
 install_link codex-agents \
   "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
+install_link codex-config \
+  "$agent_home/.codex/config.toml" "$config_dir/codex/config.toml"
 install_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 install_link claude-closeout-hook \
@@ -111,6 +121,8 @@ install_link claude-response-memory \
   "$config_dir/claude/response-concision.md"
 install_link claude-settings \
   "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
+install_link claude-keybindings \
+  "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
 
 AGENT_CONFIG_HOME="$agent_home" "$config_dir/verify.sh"
 echo 'agent config installation: PASS'
