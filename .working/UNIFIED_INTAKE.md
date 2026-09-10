@@ -1,5 +1,12 @@
 # Unified Intake
 
+## Active
+
+`goals-cross-agent-launch` — **Ready To Act 2026-09-10.** Eddy selected the
+recorded cross-agent routing gap after `$goals` invoked from Codex opened
+Claude. Claude callers must open Claude; Codex and Pi callers must open Codex.
+Source: `.working/interviews/goals-cross-agent-launch/decisions.md`.
+
 ## Recently Completed
 
 `named-parallel-dotfiles-worktrees` — **DONE 2026-09-10.** Sixteen focused
@@ -68,12 +75,6 @@ after unreliable live rendering.
   `muted` and `dim` to grey, while Pi supports a custom themed footer and
   extension-rendered user interface. This is not yet linked to one exact
   surface or screenshot and remains intake pending a bounded visual target.
-
-- `goals-cross-agent-launch`: `$goals` is currently Bible Standard's
-  Claude-only project skill under `.claude/skills/goals`; Codex does not
-  discover that directory, Pi's allowlist does not include it, and
-  `herdr/goals.sh` starts `claude` directly. Cross-agent parity depends on a
-  provider-aware opener and project skill exposure; it is not available now.
 
 - `claude-codex-pi-migration-parity`: Claude and Codex already share the
   canonical global instructions and private skill tree. Codex now uses
