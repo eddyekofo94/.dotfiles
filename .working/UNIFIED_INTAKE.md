@@ -20,6 +20,17 @@ green, review 0/0 each round; **AWAITING CONFIRMATION** — Eddy's live
 `ctrl+g` in a fresh pane and a second window. Uncommitted. Source:
 `.working/interviews/agent-prompt-session-scoped-capture/decisions.md`.
 
+## Recently Completed
+
+`herdr-alt-ctrl-tab-chords` — **DONE 2026-09-10**. Global native
+`Ctrl+Alt+h/l` aliases select the previous/next Herdr tab without changing the
+existing prefix, `n/p`, arrow, pane, workspace, or application bindings. Real
+Kit CSI-u coverage proves both boundary wraps; focused, prototype, and
+production Herdr gates pass; fresh review reports Standards 0 and Fidelity 0.
+Eddy physically accepted both chords in Ghostty. Committed on its goal-only
+branch; not pushed. Source:
+`.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`.
+
 ## Ranked Next
 
 1. `herdr-copy-mode-pending-commands`: highest readiness. Implemented and gated

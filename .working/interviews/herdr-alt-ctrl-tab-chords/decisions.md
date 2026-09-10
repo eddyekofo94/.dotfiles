@@ -1,10 +1,22 @@
 # Herdr Alt-Ctrl Tab Chords
 
-Status: DONE 2026-08-12 — chords implemented, physically accepted, and
-`herdr/prototype/verify.sh` green end to end.
+Status: DONE 2026-09-10 — the home-row follow-on is implemented, verified,
+reviewed, physically accepted, and committed on its goal-only branch.
 
 Supersedes the chord choice in
 `.working/interviews/herdr-alt-ctrl-n-new-tab/decisions.md`.
+
+## Follow-on: home-row tab aliases
+
+- `Ctrl+Alt+h` selects the previous Herdr tab and `Ctrl+Alt+l` selects the next
+  tab, matching the existing arrow aliases.
+- The native `previous_tab` and `next_tab` arrays remain the single owner.
+- Kitty CSI-u transports `104;7u` and `108;7u` prove first-to-last and
+  last-to-first wraparound in the disposable tab lifecycle gate.
+- Existing prefix, `n/p`, arrow, pane, workspace, and application bindings are
+  unchanged.
+- Eddy physically accepted both chords and both wrap directions in Ghostty on
+  2026-09-10.
 
 ## Settled contract
 
@@ -153,4 +165,14 @@ a leaked `HERDR_PANE_ID` points the gate's scripts at the wrong pane.
   `env -u HERDR_ENV -u HERDR_PANE_ID sh herdr/prototype/verify.sh` → exit 0,
   "Herdr prototype verification: PASS".
 
-No open gates. Nothing committed or pushed.
+No open gates. The follow-on is committed on `feature/herdr-alt-ctrl-tab-chords`
+and is not pushed.
+
+## Follow-on validation and review, 2026-09-10
+
+- `validate_tabs.sh`: PASS for `Ctrl+Alt+h/l` and both boundary wraps.
+- `herdr/prototype/verify.sh`: PASS.
+- `herdr/verify.sh`: PASS, including source-build, project-picker, integration,
+  and production checks.
+- Fresh review: Standards 0 findings; Fidelity 0 findings.
+- Physical acceptance: PASS in Ghostty.

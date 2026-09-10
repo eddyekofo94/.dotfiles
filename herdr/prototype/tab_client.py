@@ -20,6 +20,8 @@ KEYS = {
     "alt-ctrl-new-tab": b"\x1b[116;7u",
     "alt-ctrl-next": b"\x1b[110;7u",
     "alt-ctrl-previous": b"\x1b[112;7u",
+    "alt-ctrl-home-next": b"\x1b[108;7u",
+    "alt-ctrl-home-previous": b"\x1b[104;7u",
     # Arrow aliases arrive as ordinary CSI with the same modifier parameter,
     # not as CSI-u codepoints.
     "alt-ctrl-right": b"\x1b[1;7C",

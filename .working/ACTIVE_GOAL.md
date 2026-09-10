@@ -1,5 +1,13 @@
 # Active Goal
 
+`herdr-alt-ctrl-tab-chords` — **closed 2026-09-10.** Global native
+`Ctrl+Alt+h/l` aliases select previous/next Herdr tabs without changing
+existing bindings. Focused Kitty CSI-u wraparound coverage, full Herdr gates,
+fresh Standards/Fidelity review, and Eddy's physical Ghostty acceptance pass.
+Source: `.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`.
+
+---
+
 `herdr-working-dot-animation` — **closed 2026-08-20.** The Working dot breathes,
 confirmed live by Eddy. Two prior attempts shipped dead because the redraw tick
 was armed only in `App::handle_scheduled_tasks`, which the headless server never

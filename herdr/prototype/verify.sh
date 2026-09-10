@@ -158,8 +158,8 @@ grep -q '^name = "catppuccin"$' "$prototype/config.toml"
 grep -q '^prefix = "ctrl+a"$' "$prototype/config.toml"
 grep -q '^default_shell = "/Users/eddyekofo/.dotfiles/herdr/prototype/prototype_shell.sh"$' "$prototype/config.toml"
 grep -q '^new_tab = "prefix+c"$' "$prototype/config.toml"
-grep -Fq 'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]' "$prototype/config.toml"
-grep -Fq 'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]' "$prototype/config.toml"
+grep -Fq 'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+l", "alt+ctrl+right"]' "$prototype/config.toml"
+grep -Fq 'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+h", "alt+ctrl+left"]' "$prototype/config.toml"
 grep -q '^workspace_picker = "prefix+w"$' "$prototype/config.toml"
 grep -q '^goto = "prefix+f"$' "$prototype/config.toml"
 grep -q '^resize_mode = "prefix+r"$' "$prototype/config.toml"
@@ -959,6 +959,15 @@ jq -se '
   .[10].evidence.alt_cycle.previous.transport == "kitty-csi-u-112;7u" and
   .[10].evidence.alt_cycle.previous.focused_tab ==
     .[10].evidence.created_tab and
+  .[10].evidence.home_cycle.next.binding == "alt+ctrl+l" and
+  .[10].evidence.home_cycle.next.transport == "kitty-csi-u-108;7u" and
+  .[10].evidence.home_cycle.next.focused_tab == $tab_ids[1] and
+  .[10].evidence.home_cycle.next.wrapped == true and
+  .[10].evidence.home_cycle.previous.binding == "alt+ctrl+h" and
+  .[10].evidence.home_cycle.previous.transport == "kitty-csi-u-104;7u" and
+  .[10].evidence.home_cycle.previous.focused_tab ==
+    .[10].evidence.created_tab and
+  .[10].evidence.home_cycle.previous.wrapped == true and
   .[10].evidence.arrow_cycle.next.binding == "alt+ctrl+right" and
   .[10].evidence.arrow_cycle.next.transport == "csi-1;7C" and
   .[10].evidence.arrow_cycle.next.focused_tab == $tab_ids[1] and
