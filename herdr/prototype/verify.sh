@@ -158,8 +158,8 @@ grep -q '^name = "catppuccin"$' "$prototype/config.toml"
 grep -q '^prefix = "ctrl+a"$' "$prototype/config.toml"
 grep -q '^default_shell = "/Users/eddyekofo/.dotfiles/herdr/prototype/prototype_shell.sh"$' "$prototype/config.toml"
 grep -q '^new_tab = "prefix+c"$' "$prototype/config.toml"
-grep -Fq 'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]' "$prototype/config.toml"
-grep -Fq 'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]' "$prototype/config.toml"
+grep -Fq 'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+l", "alt+ctrl+right"]' "$prototype/config.toml"
+grep -Fq 'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+h", "alt+ctrl+left"]' "$prototype/config.toml"
 grep -q '^workspace_picker = "prefix+w"$' "$prototype/config.toml"
 grep -q '^goto = "prefix+f"$' "$prototype/config.toml"
 grep -q '^resize_mode = "prefix+r"$' "$prototype/config.toml"
@@ -319,10 +319,10 @@ jq -se --arg config_hash "$binding_config_hash" \
   --argjson production "$binding_production" '
   map(.check) == ["fixed_split","adaptive_split","swap","resize","move","smart_close","zoom","visible_urls","alt_transport","nested_fish_navigation","close_other_panes","alt_close_tab","alt_close_other_tabs","config","scope_audit","result"] and
   (.[0].evidence.before.panes | length) == 1 and
-  .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.5 and
+  .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.38 and
   .[1].evidence.layout.splits[1].direction == "down" and
   .[2].evidence.before != .[2].evidence.after and
-  .[3].evidence.before.splits[0].ratio == 0.5 and .[3].evidence.after.splits[0].ratio == 0.6 and
+  .[3].evidence.before.splits[0].ratio == 0.38 and .[3].evidence.after.splits[0].ratio == 0.48 and
   .[4].evidence.before.terminal_id == .[4].evidence.middle.terminal_id and
   .[4].evidence.before.terminal_id == .[4].evidence.after.terminal_id and
   .[5].evidence.protected_exit == 75 and
@@ -604,7 +604,7 @@ jq -se --arg pane_transfer "$utility_pane_transfer_hash" \
     production_sha256:$production,unchanged:true
   } and
   .[12].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"ut",
+    status:"PASS",version:"herdr 0.8.2",session:"ut",
     pane_history:{prototype:true,production:true},
     tmux:{available:true,path:$tmux_path,version:$tmux_version},
     production_configuration_modified:false
@@ -657,7 +657,7 @@ jq -se --arg config_hash "$copy_config_hash" \
     validator_sha256:$validator_hash,production_sha256:$production
   } and
   .[5].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"cm",
+    status:"PASS",version:"herdr 0.8.2",session:"cm",
     production_configuration_modified:false,migration_authorized:false
   }
 ' "$copy_mode_evidence" >/dev/null
@@ -696,7 +696,7 @@ jq -se --arg config_hash "$url_config_hash" \
     client:$client_hash,validator:$validator_hash
   } and
   .[3].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"url",
+    status:"PASS",version:"herdr 0.8.2",session:"url",
     production_configuration_modified:false,migration_authorized:false
   }
 ' "$url_evidence" >/dev/null
@@ -708,17 +708,17 @@ jq -se --arg config_hash "$remote_config_hash" \
   --argjson production "$url_production" '
   map(.check) == ["capability","ssh","attach","unavailable","scope_audit","result"] and
   .[0].evidence == {
-    version:"herdr 0.7.5",remote_attach:true,
+    version:"herdr 0.8.2",remote_attach:true,
     local_or_server_keybindings:true,nesting_default:"disabled"
   } and
   .[1].evidence.transport == "disposable-localhost-openssh" and
   .[1].evidence.authenticated == true and
-  .[1].evidence.remote_binary == "herdr 0.7.5" and
+  .[1].evidence.remote_binary == "herdr 0.8.2" and
   .[1].evidence.production_remote_login_enabled == false and
   .[2].evidence.mode == "thin-client" and .[2].evidence.attached == true and
   .[2].evidence.session == "remote-audit" and
   .[2].evidence.server_status.running == true and
-  .[2].evidence.server_status.version == "0.7.5" and
+  .[2].evidence.server_status.version == "0.8.2" and
   .[2].evidence.server_status.compatible == true and
   (.[2].evidence.pane_inventory.result.panes | length) >= 1 and
   .[3].evidence.fail_closed == true and .[3].evidence.exit != 0 and
@@ -760,7 +760,7 @@ jq -se --arg defaults_hash "$capability_defaults_hash" \
   --argjson production "$url_production" '
   map(.check) == ["surface","alternatives","policy","scope_audit","result"] and
   .[0].evidence == {
-    version:"herdr 0.7.5",default_config_sha256:$defaults_hash,
+    version:"herdr 0.8.2",default_config_sha256:$defaults_hash,
     upstream_configurable_actions_absent:["rectangle-selection","copy-line-Y","marks","OSC-133-prompt-jumps","copy-mode-cursor-URL"],
     reviewed_source_extensions:["copy-line-Y"],
     absence_deterministic:true
@@ -802,7 +802,7 @@ jq -se --arg config_hash "$recovery_config_hash" \
   .[0].evidence.result == "config: ok" and
   .[0].evidence.pane_history == true and
   .[0].evidence.resume_agents_on_restore == true and
-  .[0].evidence.isolated_codex_integration.version == 6 and
+  .[0].evidence.isolated_codex_integration.version == 8 and
   .[0].evidence.isolated_codex_integration.installed == true and
   (.[0].evidence.isolated_codex_integration.output | contains("installed codex integration hook")) and
   .[0].evidence.agent_fixture_installed_in_runtime_only == true and
@@ -830,7 +830,7 @@ jq -se --arg config_hash "$recovery_config_hash" \
     validator_sha256:$validator_hash,production_sha256:$production
   } and
   .[4].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"rc",
+    status:"PASS",version:"herdr 0.8.2",session:"rc",
     snapshot_restored:true,pane_history_replayed:true,
     native_agent_resumed:true,arbitrary_process_resume:false,
     production_configuration_modified:false,migration_authorized:false
@@ -864,7 +864,7 @@ jq -se --arg config_hash "$workspace_config_hash" \
     validator_sha256:$validator_hash,production_sha256:$production
   } and
   .[4].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"wn",
+    status:"PASS",version:"herdr 0.8.2",session:"wn",
     model:"workspaces-within-session",
     production_configuration_modified:false,migration_authorized:false
   }
@@ -890,7 +890,7 @@ jq -se '
 
   .[0].evidence == {result:"config: ok"} and
 
-  .[1].evidence.version == "herdr 0.7.5" and
+  .[1].evidence.version == "herdr 0.8.2" and
   .[1].evidence.method == "tab.move" and
   .[1].evidence.params.type == "object" and
   .[1].evidence.params.required == ["tab_id", "insert_index"] and
@@ -959,6 +959,15 @@ jq -se '
   .[10].evidence.alt_cycle.previous.transport == "kitty-csi-u-112;7u" and
   .[10].evidence.alt_cycle.previous.focused_tab ==
     .[10].evidence.created_tab and
+  .[10].evidence.home_cycle.next.binding == "alt+ctrl+l" and
+  .[10].evidence.home_cycle.next.transport == "kitty-csi-u-108;7u" and
+  .[10].evidence.home_cycle.next.focused_tab == $tab_ids[1] and
+  .[10].evidence.home_cycle.next.wrapped == true and
+  .[10].evidence.home_cycle.previous.binding == "alt+ctrl+h" and
+  .[10].evidence.home_cycle.previous.transport == "kitty-csi-u-104;7u" and
+  .[10].evidence.home_cycle.previous.focused_tab ==
+    .[10].evidence.created_tab and
+  .[10].evidence.home_cycle.previous.wrapped == true and
   .[10].evidence.arrow_cycle.next.binding == "alt+ctrl+right" and
   .[10].evidence.arrow_cycle.next.transport == "csi-1;7C" and
   .[10].evidence.arrow_cycle.next.focused_tab == $tab_ids[1] and
@@ -1139,7 +1148,7 @@ jq -se --arg config_hash "$agent_state_config_hash" \
   } and
   .[4].evidence == {
     status:"PASS",
-    version:"herdr 0.7.5",
+    version:"herdr 0.8.2",
     session:"gas",
     production_configuration_modified:false,
     integration_installed:false,
@@ -1203,7 +1212,7 @@ jq -se --arg config_hash "$multi_agent_config_hash" \
     config:$config_hash,helper:$helper_hash,model:$model_hash,client:$client_hash,validator:$validator_hash
   } and
   .[7].evidence == {
-    status:"PASS",version:"herdr 0.7.5",session:"mac",
+    status:"PASS",version:"herdr 0.8.2",session:"mac",
     named_agents:["claude","opencode","agy","gemini"],
     production_configuration_modified:false,integration_installed:false,migration_authorized:false
   }
@@ -1416,7 +1425,7 @@ jq -se \
       "validate_picker.sh":$validator_hash
     },
     status:"PASS",
-    version:"herdr 0.7.5",
+    version:"herdr 0.8.2",
     session:"pa",
     production_configuration_modified:false,
     migration_authorized:false,
@@ -1479,7 +1488,7 @@ jq -se \
   .[4].evidence.copied_hash == "#a1b2c3d4" and
   .[4].evidence.parent_process_survived == true and
   .[5].evidence.unchanged == true and
-  .[5].evidence.herdr_version == "0.7.5" and
+  .[5].evidence.herdr_version == "0.8.2" and
   .[5].evidence.pane_history == false and
   .[5].evidence.tmux_available == true and
   .[5].evidence.copy_mode_parity_claimed == false and

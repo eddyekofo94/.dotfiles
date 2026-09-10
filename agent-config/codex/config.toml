@@ -1,0 +1,410 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+
+notify = ["/Users/eddyekofo/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+
+[auto_review]
+policy = """
+Approve routine workspace-local development and read-only public documentation access.
+Deny destructive or irreversible actions, credential or session-secret access or exfiltration,
+writes outside the active workspace without explicit user scope, and any publish, push, deploy,
+production, live-store, remote-infrastructure, or network-mutating action without explicit user authorization.
+"""
+
+[marketplaces.openai-bundled]
+last_updated = "2026-08-08T05:41:40Z"
+source_type = "local"
+source = "/Users/eddyekofo/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+[marketplaces.openai-primary-runtime]
+last_updated = "2026-08-08T05:42:25Z"
+source_type = "local"
+source = "/Users/eddyekofo/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+[marketplaces.claude-cowork]
+last_updated = "2026-08-08T05:46:17Z"
+source_type = "local"
+source = "/Users/eddyekofo/.codex/plugins/cache/claude-cowork"
+
+[plugins."documents@openai-primary-runtime"]
+enabled = false
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = false
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = false
+
+[plugins."anthropic-skills@claude-cowork"]
+enabled = false
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = false
+
+[plugins."computer-use@openai-bundled"]
+enabled = false
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = false
+
+[plugins."github@openai-curated"]
+enabled = false
+
+[plugins."figma@openai-curated"]
+enabled = false
+
+[plugins."chrome@openai-bundled"]
+enabled = false
+
+[plugins."visualize@openai-bundled"]
+enabled = false
+
+[plugins."browser@openai-bundled"]
+enabled = false
+
+# Disabled after the 2026-07-18 context-budget cleanup. These remain installed
+# and can be re-enabled for a task that specifically needs them.
+[plugins."gmail@openai-curated-remote"]
+enabled = false
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/Owen"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/Turretin"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Codex/2026-05-23/users-eddyekofo-config-fish-debug-reports"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/.config/nvim"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/.dotfiles"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/LCC"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/Baptists"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/PvM"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/LCC"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/Systematic_Theology/Books/Herman_Bavinck"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/Bavinck"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Family_Business/RubyandRiver"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/mobile_apps/ios/BibleStandard.swiftpm"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/mobile_apps/ios/BibleStandard"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Codex/2026-07-14/referenced-chatgpt-conversation-this-is-untrusted"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Codex/2026-07-15/w"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo/Documents/Codex/2026-07-29/realtime-voice-chat"]
+trust_level = "trusted"
+
+[projects."/Users/eddyekofo"]
+trust_level = "trusted"
+
+[desktop]
+followUpQueueMode = "queue"
+appearanceLightCodeThemeId = "catppuccin"
+dock-icon-preference = "codex-system"
+realtimeVoiceScreenContextEnabled = true
+
+[desktop.appearanceLightChromeTheme]
+accent = "#8839ef"
+contrast = 45
+ink = "#4c4f69"
+opaqueWindows = false
+surface = "#eff1f5"
+
+[desktop.appearanceLightChromeTheme.fonts]
+
+[desktop.appearanceLightChromeTheme.semanticColors]
+diffAdded = "#40a02b"
+diffRemoved = "#d20f39"
+skill = "#8839ef"
+
+[features]
+hooks = true
+js_repl = false
+memories = true
+
+# Disabled after the 2026-07-18 skill audit. These remain installed in the
+# shared ~/.agent-skills source (and available to Claude) for easy rollback.
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/claude-handoff/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/codex-first/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/git-guardrails-claude-code/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/loop-me/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/migrate-to-shoehorn/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/scaffold-exercises/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/setup-ts-deep-modules/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/wizard/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/writing-beats/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/writing-fragments/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/writing-shape/SKILL.md"
+enabled = false
+
+# Superseded or low-frequency personal skills disabled after the 2026-07-18
+# context-budget cleanup. Their source folders remain intact for rollback.
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/ask-eddy/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/grill-with-docs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/grilling/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/handoff/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/implement/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/improve-codebase-architecture/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/setup-matt-pocock-skills/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/teach/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/to-spec/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/to-tickets/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/triage/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/wayfinder/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/writing-great-skills/SKILL.md"
+enabled = false
+
+# Specialist skills remain installed and are enabled only for work that needs
+# them. The always-visible core is intentionally kept below the catalog budget.
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/app-store-changelog/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/codebase-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/domain-modeling/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/ios-debugger-agent/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/mattpocock-skill-sync/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/project-skill-audit/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/prototype/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/refactor/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/resolving-merge-conflicts/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/setup-pre-commit/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/single-dev-server/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/swift-concurrency-expert/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/swiftui-liquid-glass/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/swiftui-performance-audit/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/swiftui-ui-patterns/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/swiftui-view-refactor/SKILL.md"
+enabled = true
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/tdd/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/.system/plugin-creator/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/.system/skill-installer/SKILL.md"
+enabled = false
+
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex"
+CODEX_HOME = "/Users/eddyekofo/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,f204d340535055781952b10ed396de20b842f00a19e430852f7e121ad1ce91f6"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
+NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = "Control desktop apps on macOS through Computer Use."
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.727.51351"
+CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+
+[mcp_servers.apple-docs]
+command = "npx"
+args = ["-y", "apple-doc-mcp"]
+
+[mcp_servers.computer-use]
+command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+args = ["mcp"]
+cwd = "."
+enabled = false
+
+[mcp_servers.XcodeBuildMCP]
+command = "npx"
+args = ["-y", "xcodebuildmcp@latest", "mcp"]
+
+[tui]
+session_picker_view = "dense"
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "used-tokens", "five-hour-limit", "weekly-limit"]
+status_line_use_colors = true
+
+[tui.keymap.global]
+open_external_editor = "ctrl-g"
+
+[tui.model_availability_nux]
+"gpt-5.5" = 4
+"gpt-5.6-sol" = 4
+gpt-6-astra = 4
+
+[hooks.state]
+
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:permission_request:0:0"]
+trusted_hash = "sha256:dc54f2578257f5f3d60e34a8814a4d46dea92cf74703dcf10a0b27c84de3a093"
+
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:f834bdbc52111759e5e8cef6e424b2491b70997094d21311ee07c19cfac5d30c"
+
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:user_prompt_submit:0:0"]
+trusted_hash = "sha256:32c793bd28154646eb2589e90b9a06b8a83fbb727ab0ff2fd3fd3ff284e43f1b"
+
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:stop:0:0"]
+trusted_hash = "sha256:8f95ad1f98d57e3782b6e3571268615e5a637aa2f3a4bd31b8be6d7b06b6e20b"
+
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:session_start:1:0"]
+trusted_hash = "sha256:4274f9bbccd603167ff51185dd1b0aff0d7a0baeaf97b494efe78bbcd969aebf"
+
+[tool_suggest]
+disabled_tools = [{ type = "plugin", id = "gmail@openai-curated-remote" }]
+
+[shell_environment_policy.set]
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,f204d340535055781952b10ed396de20b842f00a19e430852f7e121ad1ce91f6"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex"

@@ -6,13 +6,17 @@ either an unbounded turn or an unclearable rejection. Both have happened.
 """
 
 import json
+import runpy
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 HOOK = Path(__file__).resolve().parents[1] / "claude" / "closeout_length.py"
-MAX_BLOCKS = 4  # mirrors the hook; the test drives a whole spent-budget turn
+HOOK_CONFIG = runpy.run_path(str(HOOK))
+BODY_MAX = HOOK_CONFIG["BODY_MAX"]
+WIDTH = HOOK_CONFIG["WIDTH"]
+MAX_BLOCKS = HOOK_CONFIG["MAX_BLOCKS"]
 
 COMPLIANT = """Two facts, one line each.
 
@@ -33,7 +37,7 @@ LONG_CLOSEOUT = "**Status:** DONE\n" + "".join(
     f"Artifacts: entry {index} " + "x" * 120 + "\n" for index in range(6)
 )
 
-LONG_BODY = "".join(f"Narration line {index} " + "y" * 120 + "\n" for index in range(9))
+LONG_BODY = "y" * ((BODY_MAX + 1) * WIDTH) + "\n"
 
 
 def transcript(directory, name, messages):
@@ -147,7 +151,7 @@ def main():
         # Repeated failure must still terminate rather than wedge the session.
         path = transcript(directory, "spent", [COMPLIANT + LONG_CLOSEOUT])
         Path(str(path) + ".closeout-blocks").write_text(
-            json.dumps({"blocks": 4, "uuid": "spent"}), encoding="utf-8"
+            json.dumps({"blocks": MAX_BLOCKS, "uuid": "spent"}), encoding="utf-8"
         )
         expect(
             run(path, stop_hook_active=True) is None,

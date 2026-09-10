@@ -142,8 +142,8 @@ config_result=$(cli config check 2>&1)
 grep -q '^pane_history = true$' "$config"
 integration_result=$($herdr integration install codex 2>&1)
 grep -q 'HERDR_INTEGRATION_ID=codex' "$CODEX_HOME/herdr-agent-state.sh"
-grep -q 'HERDR_INTEGRATION_VERSION=6' "$CODEX_HOME/herdr-agent-state.sh"
-record config "$(jq -cn --arg result "$config_result" --arg integration "$integration_result" '{result:$result,pane_history:true,resume_agents_on_restore:true,isolated_codex_integration:{version:6,installed:true,output:$integration},agent_fixture_installed_in_runtime_only:true}')"
+grep -q 'HERDR_INTEGRATION_VERSION=8' "$CODEX_HOME/herdr-agent-state.sh"
+record config "$(jq -cn --arg result "$config_result" --arg integration "$integration_result" '{result:$result,pane_history:true,resume_agents_on_restore:true,isolated_codex_integration:{version:8,installed:true,output:$integration},agent_fixture_installed_in_runtime_only:true}')"
 
 herdr_sweep_stale_server "$socket"
 herdr_guard_server "$socket"
@@ -176,9 +176,11 @@ for pane in "$pane_one" "$pane_two" "$pane_three"; do
 done
 
 agent_session=recovery-codex-session
-printf '%s\n' "$(jq -cn --arg session "$agent_session" '{hook_event_name:"SessionStart",session_id:$session,source:"cli"}')" |
-  HERDR_ENV=1 HERDR_SOCKET_PATH="$socket" HERDR_PANE_ID="$pane_three" \
-  "$CODEX_HOME/herdr-agent-state.sh" session
+agent_transcript="$runtime/codex/$agent_session.jsonl"
+: >"$agent_transcript"
+printf '%s\n' "$(jq -cn --arg session "$agent_session" --arg transcript "$agent_transcript" '{hook_event_name:"SessionStart",session_id:$session,source:"cli",transcript_path:$transcript}')" |
+  env -u CODEX_THREAD_ID HERDR_ENV=1 HERDR_SOCKET_PATH="$socket" \
+  HERDR_PANE_ID="$pane_three" "$CODEX_HOME/herdr-agent-state.sh" session
 
 before=$(structure)
 record before_restart "$(jq -cn --argjson structure "$before" --argjson pids "[$pid_1,$pid_2,$pid_3]" --arg agent_session "$agent_session" '{structure:$structure,live_process_pids:$pids,history_markers:["RECOVERY_HISTORY_1_LINE_001","RECOVERY_HISTORY_2_LINE_001"],agent_session:{pane_id:$structure.panes[2].pane_id,agent:"codex",session_id:$agent_session}}')"

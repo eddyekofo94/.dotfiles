@@ -1,6 +1,19 @@
 # Unified Intake
 
-## Active
+## Recently Completed
+
+`named-parallel-dotfiles-worktrees` — **DONE 2026-09-10.** Sixteen focused
+tests, full Herdr verification, Standards 0, Fidelity 0, and Eddy's physical
+two-tab isolation acceptance pass. Source:
+`.working/interviews/named-parallel-dotfiles-worktrees/decisions.md`.
+
+`herdr-alt-ctrl-tab-chords` — **DONE 2026-09-10**. Global native
+`Ctrl+Alt+h/l` aliases select the previous/next Herdr tab without changing the
+existing prefix, `n/p`, arrow, pane, workspace, or application bindings. Real
+Kitty CSI-u coverage proves both boundary wraps; focused, prototype, and
+production Herdr gates pass; fresh review reports Standards 0 and Fidelity 0.
+Eddy physically accepted both chords in Ghostty. Uncommitted. Source:
+`.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`.
 
 `agent-prompt-session-scoped-capture` — selected 2026-08-19 by `/feature-plan`
 after Eddy reported `ctrl+g` opening the wrong or no closeout, hit and miss.
@@ -16,8 +29,8 @@ agent_prompt_editor.sh`). `depends on` nothing upstream: Herdr already exports
 originating pane but a fresh pane still showed a neighbour's closeout via the
 project-newest transcript; round 2 asks Herdr (`herdr pane get`) for the pane's
 agent session and never serves project-newest for a named session. All gates
-green, review 0/0 each round; **AWAITING CONFIRMATION** — Eddy's live
-`ctrl+g` in a fresh pane and a second window. Uncommitted. Source:
+green, review 0/0 each round. **DONE** 2026-09-10: Eddy confirmed Pi, Claude,
+and Codex each work, including the two-Herdr-window isolation check. Source:
 `.working/interviews/agent-prompt-session-scoped-capture/decisions.md`.
 
 ## Ranked Next
@@ -35,6 +48,41 @@ Not selectable now: `herdr-upstream-copy-mode-gaps` remains upstream-blocked;
 after unreliable live rendering.
 
 ## Investigating
+
+- `herdr-current-session-agent-highlight`: **Spec Needed**. When a Herdr tab is
+  selected, its corresponding current agent row must remain inside the sidebar
+  viewport and visibly carry the active-row highlight. Eddy's 2026-09-10
+  screenshot shows tab `6 .dotfiles` selected while none of six agent rows is
+  highlighted. This partially ships through `[theme.custom].active_row_bg` and
+  Herdr v0.8.2's `src/ui/sidebar.rs`; disposition: `finetune` that native owner,
+  not add a second selection mechanism. It `refines` the shipped
+  `agent-panel-active-highlight` behavior and `shares implementation seam with`
+  native active-pane/sidebar rendering. The prior
+  `herdr-alt-ctrl-tab-chords` dependency is resolved; this remains unselected
+  and `Spec Needed`. Source and want contract:
+  `.working/interviews/herdr-current-session-agent-highlight/decisions.md`.
+
+- `pi-session-info-color-hierarchy`: Eddy reports Pi's `/session` information
+  is all dark grey and wants useful color hierarchy. The Catppuccin theme maps
+  `muted` and `dim` to grey, while Pi supports a custom themed footer and
+  extension-rendered user interface. This is not yet linked to one exact
+  surface or screenshot and remains intake pending a bounded visual target.
+
+- `goals-cross-agent-launch`: `$goals` is currently Bible Standard's
+  Claude-only project skill under `.claude/skills/goals`; Codex does not
+  discover that directory, Pi's allowlist does not include it, and
+  `herdr/goals.sh` starts `claude` directly. Cross-agent parity depends on a
+  provider-aware opener and project skill exposure; it is not available now.
+
+- `claude-codex-pi-migration-parity`: Claude and Codex already share the
+  canonical global instructions and private skill tree. Codex now uses
+  sandboxed Auto-review, exposes context/token/rate-limit fields in its footer,
+  and shares the existing `Ctrl+G` Neovim shim. Pi 0.82.1 remains an isolated
+  seven-skill pilot by design. Codex's `config.toml` and Claude's keybindings
+  are now repository-managed through the existing fail-closed installer.
+  Physical `Ctrl+G` acceptance passed for Pi, Codex, and Claude, including
+  isolation across two Herdr windows. Source:
+  `.working/interviews/claude-codex-pi-migration/audit.md`.
 
 - `agent-closeout-length-violations`: OPEN, severity high (Eddy abandoned a
   session over it). Area: agent response contract. Found in: Claude Code,

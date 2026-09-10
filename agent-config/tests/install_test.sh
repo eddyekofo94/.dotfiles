@@ -33,7 +33,9 @@ if AGENT_CONFIG_HOME="$partial/home" \
   exit 1
 fi
 test ! -L "$partial/home/.codex/AGENTS.md"
+test ! -L "$partial/home/.codex/config.toml"
 test ! -L "$partial/home/.claude/settings.json"
+test ! -L "$partial/home/.claude/keybindings.json"
 test ! -e "$partial/backups"
 
 AGENT_CONFIG_HOME="$fixture/home" \
@@ -56,13 +58,19 @@ AGENT_CONFIG_HOME="$fixture/home" \
 AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
   "$config_dir/install.sh" >/dev/null
 
-# A reviewed exact source file can migrate to a managed link.
+# Reviewed exact source files can migrate to managed links.
 rm "$fixture/home/.codex/AGENTS.md"
 cp "$repo_dir/agent-config/AGENTS.md" "$fixture/home/.codex/AGENTS.md"
+rm "$fixture/home/.codex/config.toml"
+cp "$config_dir/codex/config.toml" "$fixture/home/.codex/config.toml"
+rm "$fixture/home/.claude/keybindings.json"
+cp "$config_dir/claude/keybindings.json" "$fixture/home/.claude/keybindings.json"
 AGENT_CONFIG_HOME="$fixture/home" \
 AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
   "$config_dir/install.sh" >/dev/null
 test -f "$fixture/backups/codex-agents.pre-repository"
+test -f "$fixture/backups/codex-config.pre-repository"
+test -f "$fixture/backups/claude-keybindings.pre-repository"
 
 # Retargeted links and unrelated regular files fail closed.
 rm "$fixture/home/.codex/AGENTS.md"

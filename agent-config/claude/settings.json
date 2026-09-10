@@ -39,7 +39,6 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus[1m]",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "app-store-changelog": "user-invocable-only",
@@ -233,7 +232,7 @@
       "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
       "### User-specific",
       "**Primary use of Claude Code**: software development (iOS app workflow for Bible Standard — grill/plan/build/deliver loop via custom skills and subagents)",
-      "**Trusted repo**: /Users/eddyekofo/Programming/Projects/BibleStandardGroup/BibleStandard (github.com:eddyekofo94/BibleStandard.git), private — confidential material (including the allowlist files above) is fine to commit here; secrets and personal/entrusted sensitive data are never cleared into it by visibility alone",
+      "**Trusted repos**: any private repository under the `canonfidei` GitHub organisation, checked out beneath `$CANONFIDEI_ROOT` (default `~/Programming/Projects/CanonFidei`) — confidential material (including the allowlist files above) is fine to commit there; secrets and personal/entrusted sensitive data are never cleared into any of them by visibility alone. A repo that is public, or outside that organisation, is not trusted by this rule and gains nothing from sitting in the same folder",
       "**Org-specific CLIs**: None configured — project-local tooling observed (herdr, herdr-goal-done, wt) is repo/workflow tooling, not an org-wide CLI",
       "routine under this project's tools/, .working/, and project/ prefixes for workflow scripts (features_index.py, repo_lock.py, session_worktree.py, workflow_status.py) is expected day-to-day activity in this repo"
     ]
@@ -241,5 +240,6 @@
   "disabledMcpServers": [
     "computer-use",
     "claude-in-chrome"
-  ]
+  ],
+  "model": "fable"
 }

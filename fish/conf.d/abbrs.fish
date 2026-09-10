@@ -57,8 +57,11 @@ abbr -a -- yyyymmdd 'date +%Y%m%d'
 abbr -a -- gclone 'git clone git@github.com:eddyekofo94/'
 abbr -a -- gwhoami 'echo "user.name:" (git config user.name) && echo "user.email:" (git config user.email)'
 
-# claude code (shadows /usr/bin/cc only at interactive command position)
-abbr -a -- cc 'claude --allow-dangerously-skip-permissions'
+# claude code auto mode (shadows /usr/bin/cc only at interactive command position)
+abbr -a -- cc 'claude --permission-mode auto'
+
+# codex auto-review (sandboxed; reviewer handles boundary requests)
+abbr -a -- cdx 'codex --sandbox workspace-write --ask-for-approval on-request -c approvals_reviewer=auto_review'
 
 # no need to run over-and-over
 set -g MY_ABBRS_INITIALIZED true

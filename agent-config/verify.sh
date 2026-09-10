@@ -15,12 +15,14 @@ verify_link() {
 }
 
 verify_link "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
+verify_link "$agent_home/.codex/config.toml" "$config_dir/codex/config.toml"
 verify_link "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 verify_link "$agent_home/.claude/hooks/closeout.sh" "$config_dir/claude/closeout.sh"
 verify_link \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md"
 verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
+verify_link "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
 
 [ -x "$config_dir/claude/closeout.sh" ]
 [ "$(cat "$config_dir/claude/CLAUDE.md")" = \
@@ -28,6 +30,9 @@ verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.jso
 grep -Fq '## Response Style (highest priority)' \
   "$repo_dir/agent-config/AGENTS.md"
 grep -Fq '## Closeout' "$repo_dir/agent-config/AGENTS.md"
+jq empty "$agent_home/.claude/keybindings.json"
+CODEX_HOME="$agent_home/.codex" \
+  "${CODEX_BIN:-codex}" --strict-config --version >/dev/null
 
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"

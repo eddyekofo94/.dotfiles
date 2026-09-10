@@ -386,6 +386,12 @@ wait_for "Alt-Ctrl-n next tab" focused_is "$t2"
 send_action alt-ctrl-previous
 wait_for "Alt-Ctrl-p previous tab" focused_is "$alt_tab"
 
+# Alt+Ctrl+h/l provide the same wraparound on the home row.
+send_action alt-ctrl-home-next
+wait_for "Alt-Ctrl-l next tab wrap" focused_is "$t2"
+send_action alt-ctrl-home-previous
+wait_for "Alt-Ctrl-h previous tab wrap" focused_is "$alt_tab"
+
 # The arrow aliases arrive over a different transport and must resolve to the
 # same native next_tab / previous_tab actions.
 send_action alt-ctrl-right
@@ -413,6 +419,10 @@ record alt_new_tab "$(jq -cn \
         focused_tab:$next_tab},
       previous:{binding:"alt+ctrl+p",transport:"kitty-csi-u-112;7u",
         focused_tab:$previous_tab}},
+    home_cycle:{next:{binding:"alt+ctrl+l",transport:"kitty-csi-u-108;7u",
+        focused_tab:$next_tab,wrapped:true},
+      previous:{binding:"alt+ctrl+h",transport:"kitty-csi-u-104;7u",
+        focused_tab:$previous_tab,wrapped:true}},
     arrow_cycle:{next:{binding:"alt+ctrl+right",transport:"csi-1;7C",
         focused_tab:$next_tab},
       previous:{binding:"alt+ctrl+left",transport:"csi-1;7D",

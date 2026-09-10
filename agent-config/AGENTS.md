@@ -47,6 +47,13 @@ addition and explain it.
 
 Project-level `AGENTS.md` files override these global defaults when they are more specific.
 
+## Named Worktrees
+
+Every Ready implementation goal uses its repository-local compatible worktree
+manager. It owns naming, branch/worktree lifecycle, and path-collision policy;
+global rules do not import another project's IDs, capacity, model routing, or
+delivery behavior. A goal may edit only its declared repository root.
+
 ## Universal Skill Completion Contract
 
 Every skill-driven task must end with a concise, workflow-aware handoff, even

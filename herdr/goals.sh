@@ -2,7 +2,7 @@
 # herdr-goals: open one Herdr tab per live Bible Standard goal and start Claude in each.
 # Planning tab runs Fable; build tabs run Opus (FS-100 routing: Fable plans, Opus builds).
 #
-# Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home]]
+# Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
 #   model is an alias (`fable`, `opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   resume-target is a session id (resumes it directly), the literal `pick`
@@ -41,8 +41,30 @@ set -euo pipefail
 
 if [ "${HERDR_GOALS_YOLO:-1}" = "0" ]; then BUILD_MODE_FLAG=""; else BUILD_MODE_FLAG="--permission-mode auto"; fi
 
-REPO="/Users/eddyekofo/Programming/Projects/BibleStandardGroup/BibleStandard"
-WORKTREE="python3 ${REPO}/tools/session_worktree.py"
+# The repo is discovered, never hardcoded: a new Canon Fidei repo has to work
+# the day it is cloned, and a path baked in here breaks on every rename. In
+# order: an explicit override, the repo the shell is standing in, then the
+# default focus repo under the org root. `--git-common-dir` rather than
+# `--show-toplevel` so a call from a linked worktree resolves to the main
+# checkout, where tools/ actually lives.
+CANONFIDEI_ROOT="${CANONFIDEI_ROOT:-$HOME/Programming/Projects/CanonFidei}"
+HERDR_DEFAULT_REPO="${HERDR_DEFAULT_REPO:-${CANONFIDEI_ROOT}/BibleStandard}"
+if [ -n "${HERDR_GOALS_REPO:-}" ]; then
+  REPO="$HERDR_GOALS_REPO"
+elif common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
+  REPO=$(dirname "$common")
+else
+  REPO="$HERDR_DEFAULT_REPO"
+fi
+[ -d "$REPO" ] || { echo "herdr-goals: no such repo: $REPO" >&2; exit 2; }
+
+# A repo without the loop tooling still opens tabs; it just cannot rank goals or
+# cut worktrees. Degrade to a no-op rather than dying on a missing script.
+if [ -f "${REPO}/tools/session_worktree.py" ]; then
+  WORKTREE="python3 ${REPO}/tools/session_worktree.py"
+else
+  WORKTREE="true"
+fi
 
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
@@ -84,7 +106,7 @@ $WORKTREE shared-status >/dev/null || true
 index=-1
 for spec in "${SPECS[@]}"; do
   index=$((index + 1))
-  IFS=: read -r label model resume home <<<"$spec"
+  IFS=: read -r label model resume home paths <<<"$spec"
   case "${resume:-}" in
     "")     args="" ;;
     pick)   args="--resume" ;;
@@ -96,8 +118,29 @@ for spec in "${SPECS[@]}"; do
   if [ -z "${home:-}" ]; then
     if [ "$label" = "plan" ] || [ -n "${resume:-}" ]; then home="shared"; else home="$label"; fi
   fi
+  # No worktree tooling in this repo means no per-goal checkout to open, and an
+  # unresolvable home would hand the tab an empty cwd. Everything shares the root.
+  [ "$WORKTREE" = "true" ] && home="shared"
   if [ "$home" = "shared" ]; then
     cwd="$REPO"
+  elif [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
+    IFS=, read -ra owned_paths <<<"$paths"
+    worktree_args=(open "$home")
+    manager_help=$(python3 "${REPO}/tools/session_worktree.py" open --help 2>&1)
+    if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
+      for owned_path in "${owned_paths[@]}"; do
+        worktree_args+=(--path "$owned_path")
+      done
+    elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
+      worktree_args+=(--paths "${owned_paths[@]}")
+    else
+      echo "skipped ${label}: worktree manager has no owned-path interface" >&2
+      continue
+    fi
+    if ! cwd=$(python3 "${REPO}/tools/session_worktree.py" "${worktree_args[@]}"); then
+      echo "skipped ${label}: could not open worktree ${home}" >&2
+      continue
+    fi
   elif ! cwd=$($WORKTREE open "$home" --goal "$label"); then
     echo "skipped ${label}: could not open worktree ${home}" >&2
     continue
