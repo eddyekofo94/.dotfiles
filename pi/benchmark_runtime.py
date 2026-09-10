@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 
 
-PI_DIR = Path(__file__).resolve().parent
+PI_DIR = Path(__file__).absolute().parent
 REPO_ROOT = PI_DIR.parent
 EVIDENCE = Path(
     os.environ.get("PI_PILOT_EVIDENCE_DIR", PI_DIR / "evidence")

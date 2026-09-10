@@ -236,15 +236,15 @@ wait_for "clear-screen shortcut" sh -c \
   _ "$before_session"
 wait_for "editor preserved after clear-screen shortcut" \
   editor_contains '❯ unsent clear marker'
-wait_for "footer preserved after clear-screen shortcut" \
-  visible_contains "pi-herdr-original"
+wait_for "footer model preserved after clear-screen shortcut" \
+  visible_contains "fixture"
 # The physical failure appeared after the first redraw. Require the restored
 # editor/footer to remain present after another render interval.
 sleep 0.75
 wait_for "editor remains after forced clear-screen redraw" \
   editor_contains '❯ unsent clear marker'
-wait_for "footer remains after forced clear-screen redraw" \
-  visible_contains "pi-herdr-original"
+wait_for "footer model remains after forced clear-screen redraw" \
+  visible_contains "fixture"
 cli pane send-keys "$pane" ctrl+u >/dev/null
 wait_for "clear-screen fixture editor cleanup" sh -c \
   '! "$1" --session "$2" pane read "$3" --source visible --format text | tail -n 5 | grep -Fq "unsent clear marker"' \

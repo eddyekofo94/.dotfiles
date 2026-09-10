@@ -11,7 +11,11 @@ export PI_PILOT_STATE_DIR="$runtime/state"
 
 # Use a disposable low threshold so the validator can exercise real compaction
 # mechanics without changing the pilot's production settings.
-jq '.compaction.reserveTokens = 20000 | .compaction.keepRecentTokens = 1' \
+jq --arg extension "$pi_dir/extensions/eddy-compat.ts" '
+  .extensions = [$extension] |
+  .compaction.reserveTokens = 20000 |
+  .compaction.keepRecentTokens = 1
+' \
   "$pi_dir/settings.json" >"$runtime/settings.json"
 ln -sfn "$runtime/settings.json" "$PI_PILOT_STATE_DIR/config/settings.json"
 

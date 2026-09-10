@@ -62,6 +62,17 @@ substring matcher. Type `@` and a query, move with `Ctrl-P`/`Ctrl-N` or the
 arrow keys, and press Enter to insert the selected path. `/fff-health` shows
 index status and `/fff-rescan` forces a refresh.
 
+Pi starts quietly and uses one compact footer row. The left side shows model,
+repository, Git branch/worktree, tokens used/context window, and context
+percentage. Before the first provider response, the token count is marked `~`
+because it is estimated from Pi's complete current system prompt; it switches
+to provider-reported usage after a response. The right side shows the Codex weekly allowance left when Codex
+exposes it, plus the current directory. Context is green below 70%, amber from 70% through 84%,
+and red at 85% or higher. Model families use stable restrained identity colours:
+Astra/flagship/Opus yellow, default Sol pink, Terra blue, Luna peach, Sonnet
+mauve, and Haiku green. Weekly allowance stays neutral until 10% or less, when
+it turns maroon.
+
 FFF runs in `tools-and-ui` mode: it adds `fffind` and `ffgrep` while retaining
 Pi's native tool names. Its package, native dependencies, frecency database,
 and query-history database remain inside the isolated pilot roots. Installation
@@ -154,6 +165,6 @@ comparison under `pi/evidence/`; Pi's reported monetary cost is retained while
 Codex is marked as not exposing monetary cost when its native stream provides
 tokens only.
 
-Finish the provider and physical two-window acceptance checklist in
-`pi/MANUAL_QA.md`. Pi must remain opt-in until every applicable item is
-confirmed.
+Pi is approved for daily use through this isolated launcher. Unchecked items in
+`pi/MANUAL_QA.md` remain honest manual follow-up; they are not implied passes or
+reasons to bypass the managed configuration, dependency pins, or state roots.
