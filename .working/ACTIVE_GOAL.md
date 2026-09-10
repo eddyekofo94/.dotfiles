@@ -1,5 +1,23 @@
 # Active Goal
 
+`named-parallel-dotfiles-worktrees` — final safety fixes and re-review are in
+progress. Stop after claim locking, hierarchical collision rejection,
+linked-worktree routing, automatic-next-goal fail-closed behavior, full gates,
+and fresh Standards/Fidelity review. Source:
+`.working/interviews/named-parallel-dotfiles-worktrees/decisions.md`.
+
+---
+
+`herdr-alt-ctrl-tab-chords` — **closed 2026-09-10.** Global native
+`Ctrl+Alt+h/l` aliases select previous/next Herdr tabs without changing
+existing bindings. Focused Kitty CSI-u wraparound coverage, full Herdr gates,
+fresh Standards/Fidelity review, and Eddy's physical Ghostty acceptance pass.
+Source:
+`.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`; brief:
+`.working/interviews/herdr-alt-ctrl-tab-chords/implementation-brief.md`.
+
+---
+
 `herdr-working-dot-animation` — **closed 2026-08-20.** The Working dot breathes,
 confirmed live by Eddy. Two prior attempts shipped dead because the redraw tick
 was armed only in `App::handle_scheduled_tasks`, which the headless server never
@@ -11,13 +29,12 @@ into a patch named for copy mode. Record:
 
 ---
 
-`agent-prompt-session-scoped-capture` — selected 2026-08-19. `ctrl+g` closeout
+`agent-prompt-session-scoped-capture` — **closed 2026-09-10.** `ctrl+g` closeout
 records keyed on Herdr session + pane so independent Ghostty windows at the
 same pane id stop pruning and reading each other's record. Source:
 `.working/interviews/agent-prompt-session-scoped-capture/decisions.md`.
-Round 2 adds Herdr-sourced agent session (`herdr pane get`) for the
-shim; gates green, reviews 0/0; uncommitted. Awaiting Eddy's live `ctrl+g` in a
-fresh pane and a second window.
+Round 2 adds Herdr-sourced agent session (`herdr pane get`) for the shim; gates,
+reviews, and Eddy's two-window physical acceptance are complete.
 
 ---
 

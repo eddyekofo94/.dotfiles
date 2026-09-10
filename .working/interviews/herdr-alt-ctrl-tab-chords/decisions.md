@@ -1,10 +1,43 @@
 # Herdr Alt-Ctrl Tab Chords
 
-Status: DONE 2026-08-12 — chords implemented, physically accepted, and
-`herdr/prototype/verify.sh` green end to end.
+Status: DONE 2026-09-10 — implementation, automated validation, fresh
+Standards/Fidelity review, and Eddy's physical Ghostty acceptance pass.
 
 Supersedes the chord choice in
 `.working/interviews/herdr-alt-ctrl-n-new-tab/decisions.md`.
+
+## Follow-on intake: home-row tab aliases
+
+- Source: Eddy, 2026-09-10: "ctrl+alt+h/l should behave like
+  ctrl+alt+left/right changing herdr tabs".
+- Goal: `Ctrl+Alt+h` selects the previous Herdr tab and `Ctrl+Alt+l` selects
+  the next Herdr tab, matching the existing arrow aliases.
+- Existing seam: `herdr/config.toml` and `herdr/prototype/config.toml` already
+  own tab stepping through the native `previous_tab` and `next_tab` arrays.
+- Disposition: `finetune` those authoritative arrays; no parallel command or
+  shell-action owner is warranted.
+- Scope: add the two home-row aliases and focused transport coverage.
+- Out of scope: changing or removing `Prefix+n/p`, `Alt+Ctrl+n/p`,
+  `Alt+Ctrl+Left/Right`, pane navigation, workspace navigation, or application
+  keymaps.
+- Relationship: `refines` this record's completed tab-chord contract and
+  `shares implementation seam with` its existing native tab bindings and
+  `validate_tabs.sh` coverage.
+- Validation required: live and prototype config checks; a real Kitty CSI-u
+  transport probe proving `h` moves to the previous tab and `l` to the next,
+  including wraparound; `herdr/prototype/verify.sh`; `herdr/verify.sh`; then a
+  fresh Ghostty physical check of both chords.
+- Current workaround: use `Ctrl+Alt+Left/Right`, `Ctrl+Alt+p/n`, or
+  `Prefix+p/n`.
+- Selection: Eddy selected this bounded follow-on through `$feature-plan` on
+  2026-09-10; no implementation-changing questions remain.
+
+## Ready To Act
+
+Ready 2026-09-10. Eddy selected this bounded follow-on through `$feature-plan`.
+The native arrays, direction mapping, preserved bindings, transport coverage,
+wraparound expectation, full gates, fresh review, and physical acceptance gate
+are all explicit.
 
 ## Settled contract
 
@@ -153,4 +186,18 @@ a leaked `HERDR_PANE_ID` points the gate's scripts at the wrong pane.
   `env -u HERDR_ENV -u HERDR_PANE_ID sh herdr/prototype/verify.sh` → exit 0,
   "Herdr prototype verification: PASS".
 
-No open gates. Nothing committed or pushed.
+Those original 2026-08-12 gates are closed. Eddy closed the 2026-09-10
+follow-on physical gate on 2026-09-10. Nothing is committed or pushed.
+
+## Follow-on validation and review, 2026-09-10
+
+- `validate_tabs.sh`: PASS. Real Kitty CSI-u `108;7u` moved next from the last
+  tab to the first; `104;7u` moved previous from the first to the last.
+- `herdr/prototype/verify.sh`: PASS.
+- `herdr/verify.sh`: PASS, including source-build, project-picker, integration,
+  and production checks.
+- `herdr/reload.sh`: PASS; current session reloaded the reviewed v0.8.2 config.
+- Fresh review after fixes: Standards 0 findings; Fidelity 0 findings.
+- Physical acceptance: PASS. Eddy confirmed `Ctrl+Alt+l` selects the next tab
+  and wraps last-to-first, and `Ctrl+Alt+h` selects the previous tab and wraps
+  first-to-last in Ghostty.
