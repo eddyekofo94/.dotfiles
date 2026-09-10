@@ -118,6 +118,22 @@ unset PI_FFF_MULTIGREP
 export PI_TELEMETRY=0
 export PI_SKIP_VERSION_CHECK=1
 
+fixture_weekly_override=0
+if [ "$fixture_mode" = 1 ]; then
+  case "${PI_CODEX_WEEKLY_LEFT:-}" in
+    ''|*[!0-9]*) ;;
+    *) fixture_weekly_override=1 ;;
+  esac
+fi
+if [ "$fixture_weekly_override" = 0 ] && [ -t 0 ] && [ -t 1 ] && \
+    command -v codex >/dev/null 2>&1; then
+  weekly_left=$("$pi_dir/codex_weekly_usage.mjs" 2>/dev/null || true)
+  case "$weekly_left" in
+    ''|*[!0-9]*) ;;
+    *) export PI_CODEX_WEEKLY_LEFT=$weekly_left ;;
+  esac
+fi
+
 package_command=
 case "${1:-}" in
   list)

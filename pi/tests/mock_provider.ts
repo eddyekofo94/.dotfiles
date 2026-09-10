@@ -77,16 +77,22 @@ export default function mockProvider(pi: ExtensionAPI) {
     apiKey: "fixture",
     api: "eddy-fixture-api",
     models: [
-      {
-        id: "fixture",
-        name: "Deterministic fixture",
-        reasoning: false,
-        input: ["text"],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 32768,
-        maxTokens: 4096,
-      },
-    ],
+      ["fixture", "Deterministic fixture"],
+      ["gpt-6-astra", "Astra colour fixture"],
+      ["gpt-5.6-sol", "Default Sol colour fixture"],
+      ["gpt-5.6-terra", "Terra colour fixture"],
+      ["gpt-5.6-luna", "Luna colour fixture"],
+      ["claude-sonnet-5", "Sonnet colour fixture"],
+      ["claude-haiku-4-5", "Haiku colour fixture"],
+    ].map(([id, name]) => ({
+      id,
+      name,
+      reasoning: false,
+      input: ["text"],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 32768,
+      maxTokens: 4096,
+    })),
     streamSimple: streamFixture,
   });
 }

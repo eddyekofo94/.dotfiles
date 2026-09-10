@@ -55,6 +55,8 @@ jq -e '
 
 node "$pi_dir/tests/compat_core_test.mjs"
 node "$pi_dir/tests/ui_core_test.mjs"
+node "$pi_dir/tests/session_display_test.mjs"
+node "$pi_dir/tests/codex_weekly_usage_test.mjs"
 "$pi_dir/tests/keybindings_test.sh"
 "$pi_dir/tests/theme_ui_test.sh"
 "$pi_dir/tests/verify_isolation_test.sh"
@@ -62,6 +64,8 @@ node "$pi_dir/tests/ui_core_test.mjs"
 
 "$pi_dir/install.sh" >/dev/null
 "$pi_dir/install.sh" >/dev/null
+"$pi_dir/tests/session_display_pty_test.sh" \
+  "$pi_dir/pilot.sh" "$pi_pilot_state_dir"
 test -L "$pi_pilot_config_dir/AGENTS.md"
 test "$(readlink "$pi_pilot_config_dir/AGENTS.md")" = "$pi_pilot_agents_source"
 

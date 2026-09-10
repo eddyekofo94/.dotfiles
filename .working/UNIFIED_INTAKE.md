@@ -1,5 +1,18 @@
 # Unified Intake
 
+## Active
+
+`pi-session-info-color-hierarchy` — **READY TO MERGE.** The isolated Pi launcher
+owns a quiet startup and one Claude-like footer row with model, repository,
+branch/worktree, context tokens/percentage, weekly Codex allowance, and current
+directory. Context thresholds are green below 70%, amber from 70% through 84%,
+and red at 85% or higher. Focused and PTY tests plus the final explicitly
+approved isolated `pi/verify.sh` pass. Final post-fix review is Standards 0
+findings and Fidelity 0 findings. Eddy ended the evaluation gate and approved
+daily use; six revised-footer Ghostty checks remain explicitly `NOT RUN` rather
+than recorded as passes. Source:
+`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
+
 ## Recently Completed
 
 `goals-cross-agent-launch` — **DONE 2026-09-10.** Claude callers open Claude;
@@ -56,6 +69,17 @@ after unreliable live rendering.
 
 ## Investigating
 
+- `agent-context-on-demand-loading`: Eddy wants startup token usage to remain
+  visible and wants skills and Model Context Protocol (MCP) servers loaded only
+  for relevant projects or tasks. Figma is already `installed, disabled`, but
+  the current runtime still exposes its skill bundle; `apple-docs`, `context7`,
+  `XcodeBuildMCP`, `openaiDeveloperDocs`, and `node_repl` are globally enabled.
+  Disposition: **finetune** `agent-config/codex/config.toml` and its catalog
+  verifier; retain capabilities on disk and activate them deliberately. It
+  `refines` the closed `codex-skill-context-cleanup` goal and is `blocked by`
+  the active Pi implementation. Source:
+  `.working/interviews/agent-context-on-demand-loading/decisions.md`.
+
 - `herdr-current-session-agent-highlight`: **Spec Needed**. When a Herdr tab is
   selected, its corresponding current agent row must remain inside the sidebar
   viewport and visibly carry the active-row highlight. Eddy's 2026-09-10
@@ -68,12 +92,6 @@ after unreliable live rendering.
   `herdr-alt-ctrl-tab-chords` dependency is resolved; this remains unselected
   and `Spec Needed`. Source and want contract:
   `.working/interviews/herdr-current-session-agent-highlight/decisions.md`.
-
-- `pi-session-info-color-hierarchy`: Eddy reports Pi's `/session` information
-  is all dark grey and wants useful color hierarchy. The Catppuccin theme maps
-  `muted` and `dim` to grey, while Pi supports a custom themed footer and
-  extension-rendered user interface. This is not yet linked to one exact
-  surface or screenshot and remains intake pending a bounded visual target.
 
 - `claude-codex-pi-migration-parity`: Claude and Codex already share the
   canonical global instructions and private skill tree. Codex now uses

@@ -46,6 +46,22 @@ reviews, and Eddy's two-window physical acceptance are complete.
 
 ---
 
+`pi-session-info-color-hierarchy` — selected 2026-09-10. Pi has a quiet startup
+and one Claude-like footer row: model, repository, branch/worktree, context
+tokens and percentage on the left; weekly Codex allowance and current directory
+on the right. Context is green below 70%, amber from 70% through 84%, and red at
+85% or higher. Startup token usage is always visible, with `~` marking the
+pre-provider system-prompt estimate. Preserve the native `/session` command,
+editor, reload behavior, isolation, and compaction settings. Source:
+`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
+Focused checks and the final explicitly approved isolated `pi/verify.sh` pass.
+Final post-fix review reports Standards 0 findings and Fidelity 0 findings.
+Eddy explicitly ended the evaluation gate and approved daily use without
+completing the six remaining revised-footer Ghostty checks; those checks remain
+`NOT RUN`, not false passes.
+
+---
+
 `pi-compaction-continuity-fixture` — selected 2026-08-03 when Eddy authorized
 continuing the Pi migration. `pi/verify.sh` is red and blocks every other Pi
 item, so it is the first slice.

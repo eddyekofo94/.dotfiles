@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).absolute().parents[1]
 PI_DIR = ROOT / "pi"
 TASK = (PI_DIR / "provider-task.txt").read_text(encoding="utf-8")
 EVIDENCE_DIR = Path(os.environ.get("PI_PILOT_EVIDENCE_DIR", PI_DIR / "evidence"))

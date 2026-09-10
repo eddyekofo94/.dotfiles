@@ -1,5 +1,5 @@
 {
-  "quietStartup": false,
+  "quietStartup": true,
   "showHardwareCursor": true,
   "defaultProjectTrust": "never",
   "enableInstallTelemetry": false,

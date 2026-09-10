@@ -17,6 +17,43 @@ Automated fixtures must not be used to mark this checklist complete.
 
 ## Physical Ghostty and Herdr
 
+- [x] Confirm startup omits the Context, Skills, Extensions, and Themes
+  inventory and opens directly into the editor.
+- [x] Confirm one footer row shows, left to right: model, repository,
+  branch/worktree, tokens used/context window, and context percentage. Confirm
+  the right side shows weekly Codex allowance left and the compact current directory.
+- Run each fixture separately and exit Pi with `/quit` between runs:
+  `./pi/physical_qa.sh context-69`, `context-70`, `context-84`, `context-85`,
+  `weekly-10`, then `normal`.
+- Recreate the long-layout case after this feature worktree is retired with a
+  disposable linked worktree, then launch its tracked fixture:
+
+  ```sh
+  git worktree add -b qa/pi-session-info-physical-long-branch \
+    /tmp/dotfiles-pi-session-info-physical-long-worktree main
+  cd /tmp/dotfiles-pi-session-info-physical-long-worktree
+  ./pi/physical_qa.sh normal
+  ```
+
+  After `/quit`, confirm `git status --short` is empty before running
+  `git worktree remove /tmp/dotfiles-pi-session-info-physical-long-worktree`
+  and `git branch -d qa/pi-session-info-physical-long-branch` from the main
+  checkout.
+- [ ] Confirm long worktree, branch, and directory names truncate on one line
+  without wrapping or pushing the right-side weekly/directory details away.
+- [ ] Confirm context is green below 70%, amber at 70–84%, and red at 85% or
+  higher. Use fixture sessions to reach thresholds; do not spend provider
+  tokens solely to fill a live context window. Run `./pi/physical_qa.sh`
+  separately with `context-69`, `context-70`, `context-84`, and `context-85`.
+- [ ] Confirm Astra/flagship is yellow, the default Sol model is pink, other
+  model families keep distinct restrained colours, and weekly allowance at
+  10% or less is dark maroon. Use `/model` for the fixture model families and
+  once with `weekly-10` for the allowance boundary.
+- [ ] Run `/reload`, `/tree`, and a model change. Confirm the one-row footer
+  remains present and refreshes without replacing the custom editor.
+- [x] Confirm the native footer's model, branch, and context information remains
+  represented, while Pi's separate native two-line footer does not reappear.
+
 - [x] Open two physical Ghostty windows normally.
 - [x] Confirm each window owns a different named Herdr session and can navigate,
   type, and change cwd without changing the other window.

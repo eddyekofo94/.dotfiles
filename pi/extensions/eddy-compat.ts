@@ -11,7 +11,11 @@ import {
   CustomEditor,
   serializeConversation,
 } from "@earendil-works/pi-coding-agent";
-import { matchesKey, truncateToWidth } from "@earendil-works/pi-tui";
+import {
+  matchesKey,
+  truncateToWidth,
+  visibleWidth,
+} from "@earendil-works/pi-tui";
 import { CURSOR_MARKER } from "@earendil-works/pi-tui";
 import type {
   AutocompleteProvider,
@@ -39,6 +43,82 @@ const HANDOFF_PROTOCOL_MARKER = "Herdr ready-prompt replay contract:";
 const HANDOFF_PROTOCOL = `${HANDOFF_PROTOCOL_MARKER}
 - When the user asks for a ready-to-paste prompt, handoff, or next prompt, include the exact label \`Ready-to-paste prompt:\` followed by exactly one fenced \`text\` block containing only the prompt.
 - Never substitute an unlabeled code fence. Herdr Prefix+b and Prefix+B intentionally ignore unlabeled output.`;
+
+// BEGIN CONTEXT DISPLAY HELPERS
+// These remain in the entrypoint because Pi can retain imported modules across
+// /reload while re-evaluating this file.
+function contextTrafficLight(percent) {
+  if (typeof percent !== "number" || !Number.isFinite(percent)) {
+    return { color: "muted", level: "unknown", percent: null, symbol: "○" };
+  }
+  const displayed = Math.max(0, Math.floor(percent));
+  if (percent >= 85) {
+    return { color: "error", level: "high", percent: displayed, symbol: "●" };
+  }
+  if (percent >= 70) {
+    return {
+      color: "warning",
+      level: "warning",
+      percent: displayed,
+      symbol: "●",
+    };
+  }
+  return { color: "success", level: "healthy", percent: displayed, symbol: "●" };
+}
+
+function formatTokenCount(value) {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  if (value < 1000) return `${Math.round(value)}`;
+  return `${(value / 1000).toFixed(1)}k`;
+}
+
+function weeklyRemainingPercent(value) {
+  if (typeof value !== "string" || !/^\d{1,3}$/.test(value)) return null;
+  const percent = Number(value);
+  return percent >= 0 && percent <= 100 ? percent : null;
+}
+
+function contextUsageForDisplay(context, contextWindow, systemPrompt = "") {
+  const override =
+    process.env.PI_PILOT_FIXTURE === "1"
+      ? weeklyRemainingPercent(process.env.PI_PILOT_CONTEXT_PERCENT)
+      : null;
+  const window = context?.contextWindow ?? contextWindow ?? 0;
+  if (override !== null) {
+    return {
+      contextWindow: window,
+      percent: override,
+      tokens: Math.round((window * override) / 100),
+    };
+  }
+  if ((context?.tokens ?? 0) > 0) return context;
+  if (systemPrompt) {
+    const tokens = Math.ceil(systemPrompt.length / 4);
+    return {
+      approximate: true,
+      contextWindow: window,
+      percent: window > 0 ? (tokens / window) * 100 : null,
+      tokens,
+    };
+  }
+  return context;
+}
+
+function modelColor(modelId) {
+  const model = typeof modelId === "string" ? modelId.toLowerCase() : "";
+  if (/(astra|flagship|opus)/.test(model)) return "warning";
+  if (/(gpt-5\.6-sol|default)/.test(model)) return "thinkingXhigh";
+  if (model.includes("terra")) return "toolTitle";
+  if (model.includes("luna")) return "bashMode";
+  if (model.includes("sonnet")) return "thinkingHigh";
+  if (model.includes("haiku")) return "success";
+  return "accent";
+}
+
+function weeklyColor(percent) {
+  return percent !== null && percent <= 10 ? "thinkingMax" : "muted";
+}
+// END CONTEXT DISPLAY HELPERS
 
 // Keep all helpers introduced by this refinement in the entrypoint. A running
 // Pi process may retain an older imported ESM module across /reload.
@@ -333,6 +413,111 @@ function installPromptEditor(pi: ExtensionAPI, ctx: ExtensionContext) {
         },
       ),
   );
+}
+
+function findRepositoryContext(cwd: string) {
+  let current = path.resolve(cwd);
+  while (true) {
+    const gitPath = path.join(current, ".git");
+    if (fs.existsSync(gitPath)) {
+      const worktree = path.basename(current);
+      if (fs.statSync(gitPath).isDirectory()) {
+        return { repository: worktree, worktree };
+      }
+      const match = fs.readFileSync(gitPath, "utf8").match(/^gitdir:\s*(.+)$/m);
+      const gitDir = match ? path.resolve(current, match[1]) : "";
+      const marker = `${path.sep}.git${path.sep}worktrees${path.sep}`;
+      const markerIndex = gitDir.lastIndexOf(marker);
+      const repository =
+        markerIndex >= 0
+          ? path.basename(gitDir.slice(0, markerIndex))
+          : worktree;
+      return { repository, worktree };
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      const fallback = path.basename(cwd) || cwd;
+      return { repository: fallback, worktree: fallback };
+    }
+    current = parent;
+  }
+}
+
+function installCompactFooter(ctx: ExtensionContext) {
+  if (ctx.mode !== "tui") return;
+  ctx.ui.setFooter((tui, theme, footerData) => {
+    const unsubscribe = footerData.onBranchChange(() => tui.requestRender());
+    return {
+      dispose: unsubscribe,
+      invalidate() {},
+      render(width: number) {
+        const context = contextUsageForDisplay(
+          ctx.getContextUsage(),
+          ctx.model?.contextWindow,
+          ctx.getSystemPrompt(),
+        );
+        const signal = contextTrafficLight(context?.percent);
+        const percentage = signal.percent === null ? "?%" : `${signal.percent}%`;
+        const contextText = `${signal.symbol} ${context?.approximate ? "~" : ""}${formatTokenCount(
+          context?.tokens ?? 0,
+        )}/${formatTokenCount(context?.contextWindow ?? 0)} · ${percentage}`;
+        const modelId = ctx.model?.id ?? "no model";
+        const model = theme.fg(modelColor(modelId), theme.bold(modelId));
+        const branch = footerData.getGitBranch();
+        const { repository, worktree } = findRepositoryContext(ctx.cwd);
+        const repositoryText = [
+          repository,
+          branch || (worktree === repository ? "" : worktree),
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const separator = theme.fg("muted", " · ");
+        const contextSegment = theme.fg(signal.color, contextText);
+
+        const weekly = weeklyRemainingPercent(
+          process.env.PI_CODEX_WEEKLY_LEFT,
+        );
+        const cwd = path.basename(ctx.cwd) || ctx.cwd;
+        const rightParts = [
+          weekly === null
+            ? ""
+            : theme.fg(weeklyColor(weekly), `weekly ${weekly}% left`),
+          theme.fg("muted", cwd),
+        ].filter(Boolean);
+        const fullRight = rightParts.join(separator);
+        const right = truncateToWidth(
+          fullRight,
+          Math.max(0, Math.floor(width * 0.4)),
+        );
+        const fixedLeftWidth =
+          visibleWidth(model) +
+          visibleWidth(contextSegment) +
+          2 * visibleWidth(separator);
+        const repositoryWidth = Math.max(
+          0,
+          width - visibleWidth(right) - fixedLeftWidth - 1,
+        );
+        const left = [
+          model,
+          truncateToWidth(theme.fg("muted", repositoryText), repositoryWidth),
+          contextSegment,
+        ]
+          .filter((segment) => visibleWidth(segment) > 0)
+          .join(separator);
+        if (!right) return [truncateToWidth(left, width)];
+        const gap = width - visibleWidth(left) - visibleWidth(right);
+        if (gap >= 1) return [left + " ".repeat(gap) + right];
+
+        const rightWidth = visibleWidth(right);
+        const leftWidth = Math.max(0, width - rightWidth - 1);
+        const clippedLeft = truncateToWidth(left, leftWidth);
+        const padding = " ".repeat(
+          Math.max(1, width - visibleWidth(clippedLeft) - rightWidth),
+        );
+        return [truncateToWidth(clippedLeft + padding + right, width)];
+      },
+    };
+  });
 }
 
 async function clearScreen(ctx: ExtensionContext, tui: TUI) {
@@ -675,6 +860,7 @@ export default function eddyCompat(pi: ExtensionAPI) {
           .slice(0, 17)}-${process.pid}`,
       );
     }
+    installCompactFooter(ctx);
     if (event.reason === "reload") {
       // InteractiveMode resets extension UI before session_start, then wires
       // the new extension shortcuts only after this event returns. Reinstall
@@ -690,8 +876,19 @@ export default function eddyCompat(pi: ExtensionAPI) {
   });
 
   pi.on("session_tree", async (_event, ctx) => {
+    installCompactFooter(ctx);
     installPromptEditor(pi, ctx);
   });
+
+  for (const refreshEvent of [
+    "model_select",
+    "agent_end",
+    "session_compact",
+  ] as const) {
+    pi.on(refreshEvent, async (_event, ctx) => {
+      installCompactFooter(ctx);
+    });
+  }
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "interactive") return { action: "continue" };
