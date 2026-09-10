@@ -187,7 +187,8 @@ a leaked `HERDR_PANE_ID` points the gate's scripts at the wrong pane.
   "Herdr prototype verification: PASS".
 
 Those original 2026-08-12 gates are closed. Eddy closed the 2026-09-10
-follow-on physical gate on 2026-09-10. Nothing is committed or pushed.
+follow-on physical gate on 2026-09-10. The work is landed in local `main` and
+is not pushed.
 
 ## Follow-on validation and review, 2026-09-10
 

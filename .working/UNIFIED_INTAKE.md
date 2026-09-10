@@ -12,7 +12,8 @@ two-tab isolation acceptance pass. Source:
 existing prefix, `n/p`, arrow, pane, workspace, or application bindings. Real
 Kitty CSI-u coverage proves both boundary wraps; focused, prototype, and
 production Herdr gates pass; fresh review reports Standards 0 and Fidelity 0.
-Eddy physically accepted both chords in Ghostty. Uncommitted. Source:
+Eddy physically accepted both chords in Ghostty. Landed in local `main`; not
+pushed. Source:
 `.working/interviews/herdr-alt-ctrl-tab-chords/decisions.md`.
 
 `agent-prompt-session-scoped-capture` — selected 2026-08-19 by `/feature-plan`
