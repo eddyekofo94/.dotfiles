@@ -1,6 +1,6 @@
 #!/bin/bash
-# herdr-goals: open one Herdr tab per live Bible Standard goal and start Claude in each.
-# Planning tab runs Fable; build tabs run Opus (FS-100 routing: Fable plans, Opus builds).
+# herdr-goals: open one Herdr tab per live goal using the caller's agent family.
+# Claude callers keep Fable/Opus routing. Codex and Pi callers open Codex.
 #
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
 #   model is an alias (`fable`, `opus`), not a pinned id, so a tab follows the
@@ -100,6 +100,30 @@ fi
 herdr status server >/dev/null 2>&1 || { echo "herdr server not running; open Herdr first" >&2; exit 1; }
 command -v jq >/dev/null || { echo "jq required" >&2; exit 1; }
 
+# Herdr owns the reliable caller identity. Environment fallbacks cover direct
+# invocations and tests, while an explicit override makes the contract easy to
+# diagnose without opening a real agent session. Pi intentionally routes to
+# Codex: Pi is the lightweight caller, not the session family opened for goals.
+caller_agent="${HERDR_GOALS_AGENT:-}"
+if [ -z "$caller_agent" ] && [ -n "${HERDR_PANE_ID:-}" ]; then
+  caller_agent=$(herdr pane get "$HERDR_PANE_ID" 2>/dev/null |
+    jq -r '.result.pane.agent // empty') || true
+fi
+if [ -z "$caller_agent" ]; then
+  if [ -n "${CLAUDECODE:-}" ]; then
+    caller_agent=claude
+  elif [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${PI_SESSION_ID:-}" ]; then
+    caller_agent=codex
+  else
+    caller_agent=claude
+  fi
+fi
+case "$caller_agent" in
+  claude) session_agent=claude ;;
+  codex|openai|pi) session_agent=codex ;;
+  *) echo "herdr-goals: unsupported caller agent: $caller_agent" >&2; exit 2 ;;
+esac
+
 # D4: say it once, before any tab exists, while it is still cheap to fix.
 $WORKTREE shared-status >/dev/null || true
 
@@ -107,12 +131,6 @@ index=-1
 for spec in "${SPECS[@]}"; do
   index=$((index + 1))
   IFS=: read -r label model resume home paths <<<"$spec"
-  case "${resume:-}" in
-    "")     args="" ;;
-    pick)   args="--resume" ;;
-    *)      args="--resume ${resume}" ;;
-  esac
-
   # Resolve the tab's working directory before creating the tab: a worktree that
   # cannot be made must not leave a half-opened window behind.
   if [ -z "${home:-}" ]; then
@@ -167,6 +185,21 @@ for spec in "${SPECS[@]}"; do
   if [ ${#BOOTS[@]} -gt "$index" ] && [ -n "${BOOTS[$index]:-}" ]; then boot="${BOOTS[$index]}"; fi
 
   pane=$(herdr tab create --cwd "$cwd" --label "$tab_label" --no-focus | jq -r '.result.root_pane.pane_id')
-  herdr pane run "$pane" "claude --model ${model} ${mode_flag} ${args}${boot:+ \"${boot}\"}"
-  echo "opened ${tab_label} (${model}${mode_flag:+ ${mode_flag#--}}${args:+ $args}${boot:+ boot ${boot}}) in pane ${pane} — ${cwd}"
+  if [ "$session_agent" = "claude" ]; then
+    case "${resume:-}" in
+      "")     resume_args="" ;;
+      pick)   resume_args="--resume" ;;
+      *)      resume_args="--resume ${resume}" ;;
+    esac
+    launch="claude --model ${model} ${mode_flag} ${resume_args}${boot:+ \"${boot}\"}"
+  else
+    case "${resume:-}" in
+      "")     launch="codex" ;;
+      pick)   launch="codex resume" ;;
+      *)      launch="codex resume ${resume}" ;;
+    esac
+  fi
+  herdr pane run "$pane" "$launch"
+  if [ "$session_agent" = "claude" ]; then boot_note="${boot:+ boot ${boot}}"; else boot_note=""; fi
+  echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
 done

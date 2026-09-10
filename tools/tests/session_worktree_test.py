@@ -227,5 +227,133 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.claims(), {"one": ["a"]})
 
+    def test_goals_routes_claude_to_claude_and_codex_or_pi_to_codex(self):
+        (self.root / "herdr").mkdir()
+        goals = self.root / "herdr/goals.sh"
+        goals.write_text((SCRIPT.parents[1] / "herdr/goals.sh").read_text())
+        goals.chmod(0o755)
+        bin_dir = self.root / "test-bin"
+        bin_dir.mkdir()
+        calls = self.root.parent / "agent-routing-calls.jsonl"
+        stub = bin_dir / "herdr"
+        stub.write_text("""#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ['HERDR_CALLS'], 'a') as out:
+    out.write(json.dumps(sys.argv[1:]) + '\\n')
+if sys.argv[1:3] == ['status', 'server']:
+    raise SystemExit(0)
+if sys.argv[1:3] == ['pane', 'get']:
+    agent = os.environ.get('TEST_CALLER_AGENT', '')
+    if agent == '__fail__':
+        raise SystemExit(1)
+    print(json.dumps({'result': {'pane': {'agent': agent}}}))
+if sys.argv[1:3] == ['tab', 'create']:
+    print('{\"result\":{\"root_pane\":{\"pane_id\":\"p1\"}}}')
+""")
+        stub.chmod(0o755)
+        env = os.environ.copy()
+        env.update(HERDR_GOALS_REPO=str(self.root.resolve()), HERDR_CALLS=str(calls),
+                   HERDR_PANE_ID="source-pane", PATH=f"{bin_dir}:{env['PATH']}")
+        for name in ("HERDR_GOALS_AGENT", "CLAUDECODE", "CODEX_SESSION_ID", "PI_SESSION_ID"):
+            env.pop(name, None)
+
+        for caller, expected in (("claude", "claude --model opus"),
+                                 ("codex", "codex"), ("pi", "codex")):
+            with self.subTest(caller=caller):
+                calls.write_text("")
+                env["TEST_CALLER_AGENT"] = caller
+                result = subprocess.run(
+                    [str(goals), "notes:opus::shared"], cwd=self.root, env=env,
+                    text=True, capture_output=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+                run = next(call for call in recorded if call[:2] == ["pane", "run"])
+                command = run[3]
+                self.assertEqual(command.split()[0], expected.split()[0], command)
+                if caller == "claude":
+                    self.assertTrue(command.startswith(expected), command)
+                else:
+                    self.assertEqual(command, expected)
+
+        for resume, expected in (("pick", "codex resume"),
+                                 ("session-123", "codex resume session-123")):
+            with self.subTest(resume=resume):
+                calls.write_text("")
+                env["TEST_CALLER_AGENT"] = "codex"
+                result = subprocess.run(
+                    [str(goals), f"notes:opus:{resume}:shared"], cwd=self.root,
+                    env=env, text=True, capture_output=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+                run = next(call for call in recorded if call[:2] == ["pane", "run"])
+                self.assertEqual(run[3], expected)
+
+        # The real ranked path supplies Claude boot prompts, but Codex/Pi
+        # sessions must open at an empty composer rather than submitting them.
+        plain_repo = self.root.parent / "plain-repo"
+        plain_repo.mkdir()
+        (plain_repo / "tools").mkdir()
+        features = plain_repo / "tools/features_index.py"
+        features.write_text("print('{\"next\":[{\"id\":\"FS-123\",\"title\":\"Ranked\"}]}')\n")
+        for caller in ("codex", "pi"):
+            with self.subTest(caller=caller, automatic=True):
+                calls.write_text("")
+                env.update(TEST_CALLER_AGENT=caller,
+                           HERDR_GOALS_REPO=str(plain_repo.resolve()))
+                result = subprocess.run(
+                    [str(goals)], cwd=plain_repo, env=env,
+                    text=True, capture_output=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+                commands = [call[3] for call in recorded if call[:2] == ["pane", "run"]]
+                self.assertEqual(commands, ["codex", "codex"])
+
+        # Explicit override outranks pane metadata and conflicting inherited
+        # environment evidence. Unknown explicit identities fail before create.
+        calls.write_text("")
+        env.update(HERDR_GOALS_AGENT="codex", TEST_CALLER_AGENT="claude",
+                   CLAUDECODE="1", CODEX_SESSION_ID="conflict")
+        overridden = subprocess.run(
+            [str(goals), "notes:opus::shared"], cwd=self.root, env=env,
+            text=True, capture_output=True,
+        )
+        self.assertEqual(overridden.returncode, 0, overridden.stderr)
+        recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+        self.assertEqual(next(call[3] for call in recorded
+                              if call[:2] == ["pane", "run"]), "codex")
+
+        for fallback_var, expected in (("CLAUDECODE", "claude"),
+                                       ("CODEX_SESSION_ID", "codex"),
+                                       ("PI_SESSION_ID", "codex")):
+            with self.subTest(fallback=fallback_var):
+                calls.write_text("")
+                for name in ("HERDR_GOALS_AGENT", "CLAUDECODE",
+                             "CODEX_SESSION_ID", "PI_SESSION_ID"):
+                    env.pop(name, None)
+                env.update(TEST_CALLER_AGENT="__fail__", **{fallback_var: "1"})
+                result = subprocess.run(
+                    [str(goals), "notes:opus::shared"], cwd=self.root, env=env,
+                    text=True, capture_output=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+                command = next(call[3] for call in recorded
+                               if call[:2] == ["pane", "run"])
+                self.assertEqual(command.split()[0], expected)
+
+        calls.write_text("")
+        env.update(HERDR_GOALS_AGENT="unknown", TEST_CALLER_AGENT="claude")
+        rejected = subprocess.run(
+            [str(goals), "notes:opus::shared"], cwd=self.root, env=env,
+            text=True, capture_output=True,
+        )
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn("unsupported caller agent: unknown", rejected.stderr)
+        recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+        self.assertFalse(any(call[:2] == ["tab", "create"] for call in recorded))
+
 if __name__ == "__main__":
     unittest.main()
