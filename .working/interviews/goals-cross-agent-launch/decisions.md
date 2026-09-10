@@ -40,4 +40,5 @@ the `claude` executable.
 - Full `herdr/verify.sh` reaches project-picker PASS from the isolated worktree,
   then stops on checkout-specific live integration paths. It must be rerun from
   the shared checkout after merge.
-- Physical Codex launch acceptance remains pending.
+- Physical Codex launch acceptance: PASS 2026-09-10. Tab `goals-routing-qa`
+  opened Codex with an empty composer and submitted no prompt.
