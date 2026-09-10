@@ -267,8 +267,8 @@ config_result=$(cli_a config check 2>&1)
 for expected_line in \
   'prefix = "ctrl+a"' \
   'new_tab = "prefix+c"' \
-  'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+right"]' \
-  'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+left"]' \
+  'next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+l", "alt+ctrl+right"]' \
+  'previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+h", "alt+ctrl+left"]' \
   'close_tab = "prefix+shift+x"' \
   'workspace_picker = "prefix+w"' \
   'goto = "prefix+f"' \

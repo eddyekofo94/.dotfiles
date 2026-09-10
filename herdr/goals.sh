@@ -2,7 +2,7 @@
 # herdr-goals: open one Herdr tab per live Bible Standard goal and start Claude in each.
 # Planning tab runs Fable; build tabs run Opus (FS-100 routing: Fable plans, Opus builds).
 #
-# Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home]]
+# Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
 #   model is an alias (`fable`, `opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   resume-target is a session id (resumes it directly), the literal `pick`
@@ -106,7 +106,7 @@ $WORKTREE shared-status >/dev/null || true
 index=-1
 for spec in "${SPECS[@]}"; do
   index=$((index + 1))
-  IFS=: read -r label model resume home <<<"$spec"
+  IFS=: read -r label model resume home paths <<<"$spec"
   case "${resume:-}" in
     "")     args="" ;;
     pick)   args="--resume" ;;
@@ -123,6 +123,24 @@ for spec in "${SPECS[@]}"; do
   [ "$WORKTREE" = "true" ] && home="shared"
   if [ "$home" = "shared" ]; then
     cwd="$REPO"
+  elif [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
+    IFS=, read -ra owned_paths <<<"$paths"
+    worktree_args=(open "$home")
+    manager_help=$(python3 "${REPO}/tools/session_worktree.py" open --help 2>&1)
+    if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
+      for owned_path in "${owned_paths[@]}"; do
+        worktree_args+=(--path "$owned_path")
+      done
+    elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
+      worktree_args+=(--paths "${owned_paths[@]}")
+    else
+      echo "skipped ${label}: worktree manager has no owned-path interface" >&2
+      continue
+    fi
+    if ! cwd=$(python3 "${REPO}/tools/session_worktree.py" "${worktree_args[@]}"); then
+      echo "skipped ${label}: could not open worktree ${home}" >&2
+      continue
+    fi
   elif ! cwd=$($WORKTREE open "$home" --goal "$label"); then
     echo "skipped ${label}: could not open worktree ${home}" >&2
     continue

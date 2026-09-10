@@ -122,9 +122,15 @@ label=todo
 mode="--permission-mode plan"
 cwd="$shared"
 next_id=""
+next_paths=""
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
-  next_id=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
-               jq -r '.next[0].id // empty' ) || next_id=""
+  next_record=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
+                   jq -c '.next[0] // empty' ) || next_record=""
+  if [ -n "$next_record" ]; then
+    next_id=$(printf '%s\n' "$next_record" | jq -r '.id // empty')
+    next_paths=$(printf '%s\n' "$next_record" |
+                   jq -r '(.owned_paths // .paths // [])[]?')
+  fi
 fi
 if [ -n "$next_id" ]; then
   MODEL=opus  # alias, so the tab follows the latest Opus (5 today)
@@ -136,24 +142,46 @@ if [ -n "$next_id" ]; then
   # actually got: deriving the label here instead would name the tab after a
   # directory that does not exist.
   label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
-  if [ "$DRY" = 1 ]; then
-    echo "would run: python3 tools/session_worktree.py open $label --goal $next_id"
-    # The path is asked of the module rather than rebuilt from the slug, so a
-    # dry run reports the directory the real run would land in.
-    if home=$(cd "$shared" && python3 -c 'import sys
-sys.path.insert(0, "tools")
-import session_worktree as s
-print(s.ROOT / s.adopted_slug(sys.argv[1], sys.argv[2]))' "$label" "$next_id" 2>/dev/null) &&
-       [ -n "$home" ]; then
-      cwd="$home"
-      label=$(basename "$home")
+  worktree_args=(open "$label" --goal "$next_id")
+  if [ -n "$next_paths" ]; then
+    manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
+    if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
+      while IFS= read -r owned_path; do
+        [ -n "$owned_path" ] && worktree_args+=(--path "$owned_path")
+      done <<<"$next_paths"
+    elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
+      worktree_args+=(--paths)
+      while IFS= read -r owned_path; do
+        [ -n "$owned_path" ] && worktree_args+=("$owned_path")
+      done <<<"$next_paths"
+    else
+      echo "goal-done: worktree manager has no owned-path interface" >&2
+      next_id=""
     fi
-  elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open "$label" --goal "$next_id"); then
+  fi
+  if [ -z "$next_id" ]; then
+    label=todo
+    MODEL=fable
+    mode="--permission-mode plan"
+    BOOT=/todo
+  elif [ "$DRY" = 1 ]; then
+    printf 'would run: python3 tools/session_worktree.py'
+    printf ' %q' "${worktree_args[@]}"
+    printf '\n'
+    # Repository-local managers own naming and adoption. Opening one would
+    # mutate state, so dry-run reports that unresolved boundary explicitly.
+    cwd="<resolved by repository worktree manager>"
+  elif cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
     # Adoption can land somewhere other than $label; the tab is named for where
     # it will actually sit.
     label=$(basename "$cwd")
   else
-    echo "goal-done: could not open a worktree for ${next_id}; the next tab starts in the shared checkout" >&2
+    echo "goal-done: could not open a worktree for ${next_id}; opening the planning backlog instead" >&2
+    next_id=""
+    label=todo
+    MODEL=fable
+    mode="--permission-mode plan"
+    BOOT=/todo
     cwd="$shared"
   fi
 fi

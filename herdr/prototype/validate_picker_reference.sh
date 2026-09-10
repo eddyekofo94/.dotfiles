@@ -409,7 +409,7 @@ record real_transport "$(jq -cn --arg pane "$delete_pane" \
 
 production_after=$(production_hashes)
 test "$production_after" = "$production_before"
-test "$("$herdr" --version)" = "herdr 0.7.5"
+test "$("$herdr" --version)" = "herdr 0.8.2"
 grep -Fqx 'pane_history = false' "$root/herdr/config.toml"
 command -v tmux >/dev/null 2>&1
 artifact_hashes=$(jq -cn \
@@ -427,7 +427,7 @@ record scope_audit "$(jq -cn --argjson before "$production_before" \
     production_hashes_after:$after,
     unchanged:($before == $after),
     artifacts:$artifacts,
-    herdr_version:"0.7.5",
+    herdr_version:"0.8.2",
     pane_history:false,
     tmux_available:true,
     copy_mode_parity_claimed:false

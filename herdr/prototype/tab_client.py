@@ -20,6 +20,8 @@ KEYS = {
     "alt-ctrl-new-tab": b"\x1b[116;7u",
     "alt-ctrl-next": b"\x1b[110;7u",
     "alt-ctrl-previous": b"\x1b[112;7u",
+    "alt-ctrl-home-next": b"\x1b[108;7u",
+    "alt-ctrl-home-previous": b"\x1b[104;7u",
     # Arrow aliases arrive as ordinary CSI with the same modifier parameter,
     # not as CSI-u codepoints.
     "alt-ctrl-right": b"\x1b[1;7C",
@@ -43,16 +45,18 @@ KEYS = {
 }
 
 
-def drain(master: int, duration: float) -> None:
+def drain(master: int, duration: float) -> bytes:
+    output = bytearray()
     deadline = time.monotonic() + duration
     while time.monotonic() < deadline:
         readable, _, _ = select.select([master], [], [], 0.05)
         if not readable:
             continue
         try:
-            os.read(master, 65_536)
+            output.extend(os.read(master, 65_536))
         except OSError:
-            return
+            break
+    return bytes(output)
 
 
 def main() -> int:
@@ -86,7 +90,10 @@ def main() -> int:
     )
     os.close(slave)
     try:
-        drain(master, 0.8)
+        startup = drain(master, 0.8)
+        if process.poll() is not None:
+            print(startup.decode("utf-8", errors="replace"), file=sys.stderr)
+            return process.returncode or 1
         print("READY", flush=True)
         for raw_action in sys.stdin:
             action = raw_action.strip()
