@@ -11,12 +11,17 @@ The launcher isolates Pi configuration, credentials, extensions, and sessions
 under `~/.local/state/pi-pilot` by default. The checksum-verified 0.82.1
 standalone distribution lives under `~/.local/share/pi-pilot`.
 
-Pi's package installer does not modify Codex or Claude. Pi loads only the
-explicitly listed canonical skills in `pi/settings.json`. The reviewed core
-workflow set (`bug`, `code-review`, `diagnosing-bugs`, `feature`,
-`feature-plan`, `grill-me`, `herdr`, `loop`, `skill-finish`, `spec-ticket`,
-and `todo`) is available through native `/skill:<name>`, `$<name>`, and plain
-`/<name>` forms. Unknown dollar-prefixed skills still fail closed.
+Pi's package installer does not modify Codex or Claude. The compatibility
+extension discovers every valid immediate child of the canonical
+`~/.agent-skills` repository; hidden, archived, staging, and malformed entries
+are excluded. Every catalog skill is available through native
+`/skill:<name>`, `$<name>`, and plain `/<name>` forms. One enabled skill token
+may appear anywhere at a whitespace-delimited boundary outside quotes or
+backtick code; Pi removes that token and passes the surrounding text to the
+skill in original order. Unknown dollar/native-skill references and prompts
+with multiple recognized skills fail closed. Plain slash tokens that are not
+enabled aliases remain prose so paths and URLs are not mistaken for skills.
+Punctuation attached to a token also leaves it as prose.
 
 Project-local `.agents/skills` and `.pi` resources remain fail-closed by
 default. `defaultProjectTrust` is `never`, but an explicit `/trust` decision is
@@ -90,11 +95,9 @@ small reviewed patch that prevents sessions or `/fff-mode` from changing the
 pilot's fixed mode.
 
 The pilot also exposes a pinned XcodeBuildMCP 2.7.0 CLI through
-`xcodebuildmcp` and the exact official `xcodebuildmcp-cli` skill. Four
-canonical shared skills cover Swift concurrency, Liquid Glass, SwiftUI
-performance, and SwiftUI view refactoring without repository copies. These
-specialist skills retain native `/skill:<name>` commands rather than adding
-plain workflow aliases. The CLI
+`xcodebuildmcp` and the exact official `xcodebuildmcp-cli` skill. Canonical
+shared skills, including the Swift specialists, load without repository copies
+and receive the same native, dollar, and plain-slash invocation forms. The CLI
 package and complete dependency tree are lockfile- and hash-verified before
 every launch; install lifecycle scripts and telemetry are disabled. Runtime
 state, daemon sockets, logs, screenshots, and DerivedData defaults use the

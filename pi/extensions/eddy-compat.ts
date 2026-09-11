@@ -24,6 +24,8 @@ import type {
 } from "@earendil-works/pi-tui";
 import {
   buildSkillPrompt,
+  canonicalSkillLocation,
+  discoverCanonicalSkills,
   enabledSkills,
   parseHandoffRequest,
   transformSkillInput,
@@ -788,27 +790,47 @@ export default function eddyCompat(pi: ExtensionAPI) {
     });
   };
 
+  pi.on("resources_discover", async () => ({
+    skillPaths: discoverCanonicalSkills().map(({ location }) => location),
+  }));
+
   for (const name of enabledSkills()) {
     pi.registerCommand(name, {
-      description: `Run the shared ${name} workflow skill`,
+      description: `Run the shared ${name} skill`,
       handler: async (args, ctx) => {
         if (!ctx.isIdle()) {
           ctx.ui.notify(`/${name} requires an idle Pi session`, "warning");
           return;
         }
-        const location = path.join(
-          process.env.HOME ?? "",
-          ".agent-skills",
-          name,
-          "SKILL.md",
+        const validation = transformSkillInput(
+          `/${name}${args ? ` ${args}` : ""}`,
         );
-        if (!fs.existsSync(location)) {
-          ctx.ui.notify(`Missing shared skill: ${location}`, "warning");
+        if (validation.action === "blocked") {
+          ctx.ui.notify(validation.message, "warning");
+          return;
+        }
+        const prefix = `/skill:${name}`;
+        if (
+          validation.action !== "transform" ||
+          (validation.text !== prefix && !validation.text.startsWith(`${prefix} `))
+        ) {
+          ctx.ui.notify(`/${name} could not validate its skill request`, "warning");
+          return;
+        }
+        const skillArgs = validation.text.slice(prefix.length).trimStart();
+        const location = canonicalSkillLocation(name);
+        if (!location) {
+          ctx.ui.notify(`Missing or invalid shared skill: ${name}`, "warning");
           return;
         }
         setActiveSkill(name);
         pi.sendUserMessage(
-          buildSkillPrompt(name, location, fs.readFileSync(location, "utf8"), args),
+          buildSkillPrompt(
+            name,
+            location,
+            fs.readFileSync(location, "utf8"),
+            skillArgs,
+          ),
         );
       },
     });
@@ -932,10 +954,6 @@ export default function eddyCompat(pi: ExtensionAPI) {
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "interactive") return { action: "continue" };
-    const nativeSkill = event.text.match(/^\/skill:([a-z0-9-]+)(?:\s|$)/);
-    if (nativeSkill && enabledSkills().includes(nativeSkill[1])) {
-      setActiveSkill(nativeSkill[1]);
-    }
     const result = transformSkillInput(event.text);
     if (result.action === "blocked") {
       ctx.ui.notify(result.message, "warning");
@@ -996,6 +1014,13 @@ export default function eddyCompat(pi: ExtensionAPI) {
           throw new Error("invalid fixture skill name");
         }
         setActiveSkill(name);
+      },
+    });
+
+    pi.registerCommand("eddy-pilot-fixture-show-active-skill", {
+      description: "Show deterministic active-skill state for validation",
+      handler: async (_args, ctx) => {
+        ctx.ui.notify(`Active fixture skill: ${activeSkill}`, "info");
       },
     });
 
