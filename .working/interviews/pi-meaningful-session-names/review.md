@@ -4,7 +4,8 @@
 
 - Standards: 0 findings.
 - Fidelity: 0 findings.
-- Physical Ghostty/Herdr acceptance: not run; explicitly awaiting Eddy.
+- Physical Ghostty/Herdr acceptance: PASS 2026-09-11 from Eddy's direct
+  observation; contextual labels worked as expected with no reported issues.
 
 ## Review Loops
 

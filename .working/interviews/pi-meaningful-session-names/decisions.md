@@ -1,6 +1,6 @@
 # Pi Meaningful Session Names
 
-Status: Automated complete; awaiting Ghostty acceptance
+Status: DONE 2026-09-11
 
 ## Goal
 
@@ -95,5 +95,7 @@ None.
 - Feature commit `8f0fdb8f` landed in local `main` at merge `2e157a82`; the
   managed Pi 0.82.1 installation resolves its command, settings, and extension
   to that checkout. Nothing was pushed.
-- The three meaningful-label checks in `pi/MANUAL_QA.md` remain unchecked and
-  require Eddy's physical Ghostty/Herdr observations.
+- Physical Ghostty/Herdr acceptance: PASS 2026-09-11. Eddy reported that all
+  tested contextual names were meaningful, reflected the expected context, and
+  produced no issues. The three named checklist items are now checked from that
+  direct observation.

@@ -1,6 +1,6 @@
 # Pi Meaningful Session Names — Implementation Brief
 
-Status: Automated complete; awaiting Ghostty acceptance
+Status: DONE 2026-09-11
 
 ## Source
 
