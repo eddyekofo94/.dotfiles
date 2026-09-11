@@ -5,11 +5,11 @@
     "agent": "pi",
     "kind": "path",
     "source": "herdr:pi",
-    "value": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.vyDF4y/pi-state/sessions/2026-09-10T16-41-26-718Z_01a08c32-11be-7282-aed9-c9f446b7e0d8.jsonl"
+    "value": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-46-884Z_01a09010-0fe4-7018-bc5a-7c4b1273d773.jsonl"
   },
-  "previous_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.vyDF4y/pi-state/sessions/2026-09-10T16-41-23-772Z_pi-herdr-original.jsonl",
-  "replacement_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.vyDF4y/pi-state/sessions/2026-09-10T16-41-26-718Z_01a08c32-11be-7282-aed9-c9f446b7e0d8.jsonl",
-  "replacement_name": "pi-20260910164126718-37290eca",
+  "previous_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-43-873Z_pi-herdr-original.jsonl",
+  "replacement_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-46-884Z_01a09010-0fe4-7018-bc5a-7c4b1273d773.jsonl",
+  "replacement_name": "pi-20260911104246884-50d4f5a5",
   "sessions_distinct": true,
   "handoff_visible": true,
   "submitted": false,

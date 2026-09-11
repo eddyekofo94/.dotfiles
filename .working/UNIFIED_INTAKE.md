@@ -2,11 +2,17 @@
 
 ## Active
 
-None.
+`pi-session-info-color-hierarchy` — **READY TO MERGE, REOPENED 2026-09-11.** The
+daily-use acceptance exposed one missing installation surface: `pi` is absent
+from `PATH` because the managed installer deliberately omitted the command.
+Install an ownership-checked `~/.local/bin/pi` entry that retains the isolated
+launcher, add regression coverage, verify from fresh POSIX and Fish shells, and
+merge. Full `pi/verify.sh` and fresh review pass at Standards 0 / Fidelity 0. Source:
+`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
 
 ## Recently Completed
 
-`pi-session-info-color-hierarchy` — **DONE 2026-09-10.** The isolated Pi
+`pi-session-info-color-hierarchy` — **DONE 2026-09-10; REOPENED 2026-09-11.** The isolated Pi
 launcher has a quiet startup and one Claude-like footer row with model,
 repository, branch/worktree, context tokens/percentage, weekly Codex allowance,
 and current directory. The final isolated `pi/verify.sh` pass and fresh

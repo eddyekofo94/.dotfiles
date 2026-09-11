@@ -27,6 +27,25 @@ for managed_root in "$pi_pilot_data_dir" "$pi_pilot_state_dir"; do
   fi
 done
 
+if [ -e "$pi_pilot_command_dir" ] || [ -L "$pi_pilot_command_dir" ]; then
+  [ ! -L "$pi_pilot_command_dir" ] && [ -d "$pi_pilot_command_dir" ] || {
+    echo "pi-pilot: refusing invalid command directory: $pi_pilot_command_dir" >&2
+    exit 1
+  }
+fi
+[ ! -L "$pi_pilot_command_source" ] && [ -x "$pi_pilot_command_source" ] || {
+  echo "pi-pilot: invalid command source" >&2
+  exit 1
+}
+if [ -d "$pi_pilot_command_dir" ] && \
+   { [ -e "$pi_pilot_command" ] || [ -L "$pi_pilot_command" ]; }; then
+  [ -L "$pi_pilot_command" ] && \
+    [ "$(readlink "$pi_pilot_command")" = "$pi_pilot_command_source" ] || {
+      echo "pi-pilot: refusing existing pi command: $pi_pilot_command" >&2
+      exit 1
+    }
+fi
+
 mkdir -p "$pi_pilot_data_dir" "$pi_pilot_state_dir"
 chmod 700 "$pi_pilot_data_dir" "$pi_pilot_state_dir"
 : >"$pi_pilot_state_dir/$pi_pilot_marker"
@@ -240,7 +259,13 @@ pi_pilot_verify_xcodebuildmcp || {
   exit 1
 }
 
+mkdir -p "$pi_pilot_command_dir"
+if [ ! -L "$pi_pilot_command" ]; then
+  ln -s "$pi_pilot_command_source" "$pi_pilot_command"
+fi
+
 printf 'Pi pilot %s installed.\n' "$PI_PILOT_VERSION"
+printf 'Command: %s\n' "$pi_pilot_command"
 printf 'Binary: %s\n' "$pi_pilot_binary"
 printf 'Config: %s\n' "$pi_pilot_config_dir"
 printf 'Sessions: %s\n' "$pi_pilot_session_dir"

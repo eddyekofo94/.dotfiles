@@ -140,3 +140,24 @@ Make Pi's session details scannable and expose context pressure continuously.
   `pi/verify.sh` passed end to end after the rebase. Fresh post-rebase review:
   Standards 0 findings; Fidelity 0 findings.
 - Merged into local `main` as `bcc7031d` on 2026-09-10. No push was performed.
+
+## Daily-use command correction, 2026-09-11
+
+- Eddy reported the exact failure: `pi` is not installed as a shell command.
+- Reproduction: `command -v pi` returns no path even though the pinned binary
+  and isolated launcher are installed.
+- Cause: `pi/README.md` and `pi/install.sh` intentionally withheld a plain
+  command during evaluation; daily-use approval superseded that pilot-only
+  contract.
+- Ready To Act outcome: `pi/install.sh` owns `~/.local/bin/pi`, refuses an
+  unrelated existing target, and routes it through the isolated launcher.
+- Stop condition: fresh Fish and POSIX shell command lookup resolve `pi`,
+  `pi --version` returns `0.82.1`, full verification passes, review is 0/0,
+  and the correction is merged without staging unrelated work.
+- Implementation routes the installer-owned command symlink through
+  `pi/command.sh`; install and rollback both refuse foreign or retargeted
+  command ownership.
+- Full isolated `pi/verify.sh`: PASS, including idempotent installation,
+  foreign-target refusal, rollback removal, and explicit POSIX/Fish command
+  lookup with `pi --version == 0.82.1`.
+- Fresh post-fix review: Standards 0 findings; Fidelity 0 findings.

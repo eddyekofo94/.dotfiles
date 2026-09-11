@@ -4,6 +4,7 @@ set -eu
 pi_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 keybindings="$pi_dir/keybindings.json"
 state_dir=${PI_PILOT_STATE_DIR:-"${XDG_STATE_HOME:-"$HOME/.local/state"}/pi-pilot"}
+command_dir=${PI_PILOT_COMMAND_DIR:-"${XDG_BIN_HOME:-"$HOME/.local/bin"}"}
 
 jq -e '
   ."tui.editor.cursorUp" == ["up", "ctrl+p"] and
@@ -35,5 +36,9 @@ installed="$state_dir/config/keybindings.json"
 agents="$state_dir/config/AGENTS.md"
 [ -L "$agents" ]
 [ "$(readlink "$agents")" = "$pi_dir/AGENTS.md" ]
+command_path="$command_dir/pi"
+[ -L "$command_path" ]
+[ "$(readlink "$command_path")" = "$pi_dir/command.sh" ]
+[ "$(PATH="$command_dir:$PATH" pi --version)" = 0.82.1 ]
 
 echo "Pi pilot keybindings: PASS"
