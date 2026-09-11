@@ -81,6 +81,7 @@ node "$pi_dir/tests/codex_weekly_usage_test.mjs"
 test -L "$pi_pilot_command"
 test "$(readlink "$pi_pilot_command")" = "$pi_pilot_command_source"
 test "$(PATH="$pi_pilot_command_dir:$PATH" pi --version)" = 0.82.1
+"$pi_dir/tests/project_trust_test.sh" "$pi_dir/pilot.sh"
 command_test_path="$pi_pilot_command_dir:/usr/bin:/bin"
 env PATH="$command_test_path" /bin/sh -c \
   'test "$(command -v pi)" = "$PI_PILOT_COMMAND_DIR/pi" && test "$(pi --version)" = 0.82.1'

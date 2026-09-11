@@ -212,4 +212,4 @@ export PATH="$pi_dir:$PATH"
 if [ -n "$package_command" ]; then
   exec "$pi_pilot_binary" "$@"
 fi
-exec "$pi_pilot_binary" --no-approve "$@"
+exec "$pi_pilot_binary" "$@"

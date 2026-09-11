@@ -18,6 +18,11 @@ workflow set (`bug`, `code-review`, `diagnosing-bugs`, `feature`,
 and `todo`) is available through native `/skill:<name>`, `$<name>`, and plain
 `/<name>` forms. Unknown dollar-prefixed skills still fail closed.
 
+Project-local `.agents/skills` and `.pi` resources remain fail-closed by
+default. `defaultProjectTrust` is `never`, but an explicit `/trust` decision is
+honored on the next Pi launch; the pilot launcher does not override saved trust
+with a forced command-line denial.
+
 Global response and closeout rules have one repository source at
 `agent-config/AGENTS.md`; `pi/AGENTS.md` is a compat symlink to it that this
 pilot's own scripts read. `pi/install.sh` owns its exact isolated-config

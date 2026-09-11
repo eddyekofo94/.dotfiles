@@ -116,6 +116,15 @@ None.
   intentional live-install assertion because shared-checkout integration links
   do not point into a review worktree. The requested Pi gate exercises its own
   isolated Herdr integration and passed.
+- Follow-up 2026-09-12: Eddy's physical launch still reported the project as
+  untrusted after `/trust`. `pi/pilot.sh` forced `--no-approve` on every run,
+  overriding the saved parent-folder trust decision. The forced override is
+  removed; `defaultProjectTrust: never` still denies unknown projects, and the
+  launcher still rejects caller-supplied approval overrides.
+- `project_trust_test.sh` proves a child project inherits an explicitly trusted
+  parent and loads its `.agents/skills`, while an unrelated project containing
+  the same fixture skill remains denied. The full Pi gate and post-fix
+  Standards/Fidelity re-review pass.
 
 ## Stop Condition
 

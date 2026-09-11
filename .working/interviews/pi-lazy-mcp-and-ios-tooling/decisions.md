@@ -44,8 +44,13 @@ promotion, production Bible Standard changes, commits, pushes, or publication.
 - Pin current upstream `xcodebuildmcp@2.7.0`; never use `@latest` in the pilot.
 - Reuse the four canonical Swift/SwiftUI skills from
   `/Users/eddyekofo/.agent-skills`; do not copy them.
-- Preserve `defaultProjectTrust: never`, `--no-approve`, marker-owned roots,
+- Preserve `defaultProjectTrust: never`, marker-owned roots,
   lifecycle-script-disabled installation, and tamper-evident package trees.
+- Amended 2026-09-12 by `pi-workflow-skill-parity`: do not force
+  `--no-approve` on every launch. That override made saved `/trust` decisions
+  inert and prevented Pi from loading approved project `.agents/skills`.
+  Caller-supplied approval overrides remain rejected; saved decisions are the
+  only project-specific exception to the fail-closed default.
 - Eddy explicitly promoted the isolated, pinned `xcodebuildmcp@2.7.0`
   installation on 2026-07-31.
 - Keep `pi-mcp-adapter` deferred even if this CLI slice is promoted.
