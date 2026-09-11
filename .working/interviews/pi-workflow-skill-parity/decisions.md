@@ -1,6 +1,6 @@
 # Pi Workflow Skill Parity
 
-Status: Implemented — ready for local merge confirmation
+Status: Done — physically accepted 2026-09-12
 
 ## Goal
 
@@ -125,6 +125,9 @@ None.
   parent and loads its `.agents/skills`, while an unrelated project containing
   the same fixture skill remains denied. The full Pi gate and post-fix
   Standards/Fidelity re-review pass.
+- Eddy confirmed on 2026-09-12 that a fresh physical Pi session shows no trust
+  warning and that the workflow skills load correctly. Local merges are
+  `e4f70741` and `71d51e9b`; nothing was pushed.
 
 ## Stop Condition
 
