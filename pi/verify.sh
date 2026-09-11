@@ -243,7 +243,7 @@ jq -e --slurpfile expected "$expected_skills" '
   ([.data.commands[] | select(.name == "fff-mode")] | length == 1) and
   ([.data.commands[] | select(.name == "fff-rescan")] | length == 1) and
   ([.data.commands[] | select(.source == "skill")] | length ==
-    (($expected[0] | length) + 1)
+    (($expected[0] | length) + 1))
 ' "$rpc_log" >/dev/null
 rm "$pi_pilot_config_dir/settings.json"
 ln -s "$pi_dir/settings.json" "$pi_pilot_config_dir/settings.json"
