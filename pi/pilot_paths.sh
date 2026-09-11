@@ -19,6 +19,9 @@ pi_pilot_version_file="$pi_pilot_repo/pi/version.env"
 
 pi_pilot_data_dir=${PI_PILOT_DATA_DIR:-"${XDG_DATA_HOME:-"$HOME/.local/share"}/pi-pilot"}
 pi_pilot_state_dir=${PI_PILOT_STATE_DIR:-"${XDG_STATE_HOME:-"$HOME/.local/state"}/pi-pilot"}
+pi_pilot_command_dir=${PI_PILOT_COMMAND_DIR:-"${XDG_BIN_HOME:-"$HOME/.local/bin"}"}
+pi_pilot_command="$pi_pilot_command_dir/pi"
+pi_pilot_command_source="$pi_pilot_repo/pi/command.sh"
 pi_pilot_version_dir="$pi_pilot_data_dir/versions/$PI_PILOT_VERSION"
 pi_pilot_binary="$pi_pilot_version_dir/pi"
 pi_pilot_config_dir="$pi_pilot_state_dir/config"

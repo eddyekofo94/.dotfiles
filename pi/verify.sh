@@ -11,6 +11,7 @@ trap cleanup EXIT HUP INT TERM
 # Verification must never reinstall packages in the state used by a physical
 # Pi session. Reuse the pinned binary, but build all mutable state separately.
 export PI_PILOT_STATE_DIR="$runtime/pilot-state"
+export PI_PILOT_COMMAND_DIR="$runtime/bin"
 # shellcheck disable=SC1091
 . "$pi_dir/pilot_paths.sh"
 rpc_log="$runtime/rpc.jsonl"
@@ -64,6 +65,34 @@ node "$pi_dir/tests/codex_weekly_usage_test.mjs"
 
 "$pi_dir/install.sh" >/dev/null
 "$pi_dir/install.sh" >/dev/null
+test -L "$pi_pilot_command"
+test "$(readlink "$pi_pilot_command")" = "$pi_pilot_command_source"
+test "$(PATH="$pi_pilot_command_dir:$PATH" pi --version)" = 0.82.1
+command_test_path="$pi_pilot_command_dir:/usr/bin:/bin"
+env PATH="$command_test_path" /bin/sh -c \
+  'test "$(command -v pi)" = "$PI_PILOT_COMMAND_DIR/pi" && test "$(pi --version)" = 0.82.1'
+env PATH="$command_test_path" /opt/homebrew/bin/fish --no-config -c \
+  'test (command -v pi) = "$PI_PILOT_COMMAND_DIR/pi"; and test (pi --version) = 0.82.1'
+
+foreign_command_dir="$runtime/foreign-command"
+mkdir "$foreign_command_dir"
+: >"$foreign_command_dir/pi"
+if PI_PILOT_COMMAND_DIR="$foreign_command_dir" \
+   "$pi_dir/install.sh" >/dev/null 2>&1; then
+  echo "pi-pilot: installer replaced an unrelated pi command" >&2
+  exit 1
+fi
+test ! -L "$foreign_command_dir/pi"
+
+symlink_command_target="$runtime/symlink-command-target"
+symlink_command_dir="$runtime/symlink-command"
+mkdir "$symlink_command_target"
+ln -s "$symlink_command_target" "$symlink_command_dir"
+if PI_PILOT_COMMAND_DIR="$symlink_command_dir" \
+   "$pi_dir/install.sh" >/dev/null 2>&1; then
+  echo "pi-pilot: installer followed a symlinked command directory" >&2
+  exit 1
+fi
 "$pi_dir/tests/session_display_pty_test.sh" \
   "$pi_dir/pilot.sh" "$pi_pilot_state_dir"
 test -L "$pi_pilot_config_dir/AGENTS.md"
@@ -344,17 +373,21 @@ test -d "$collision_state"
 rollback_data="$runtime/rollback-data"
 rollback_state="$runtime/rollback-state"
 rollback_trash="$runtime/rollback-trash"
-mkdir -p "$rollback_data" "$rollback_state"
+rollback_command_dir="$runtime/rollback-bin"
+mkdir -p "$rollback_data" "$rollback_state" "$rollback_command_dir"
 : >"$rollback_data/.eddy-pi-pilot"
 : >"$rollback_state/.eddy-pi-pilot"
+ln -s "$pi_pilot_command_source" "$rollback_command_dir/pi"
 mkdir -p "$rollback_state/config/xcodebuildmcp"
 : >"$rollback_state/config/xcodebuildmcp/fixture-marker"
 PI_PILOT_DATA_DIR="$rollback_data" \
 PI_PILOT_STATE_DIR="$rollback_state" \
+PI_PILOT_COMMAND_DIR="$rollback_command_dir" \
 PI_PILOT_TRASH_DIR="$rollback_trash" \
   "$pi_dir/rollback.sh" --apply >/dev/null
 test ! -e "$rollback_data"
 test ! -e "$rollback_state"
+test ! -e "$rollback_command_dir/pi"
 test "$(find "$rollback_trash" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" -eq 2
 find "$rollback_trash" -mindepth 1 -maxdepth 1 -type d -exec \
   test -f '{}/.eddy-pi-pilot' ';'

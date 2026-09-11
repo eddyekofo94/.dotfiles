@@ -25,9 +25,25 @@ for managed_root in "$pi_pilot_data_dir" "$pi_pilot_state_dir"; do
   fi
 done
 
+if [ -e "$pi_pilot_command_dir" ] || [ -L "$pi_pilot_command_dir" ]; then
+  [ ! -L "$pi_pilot_command_dir" ] && [ -d "$pi_pilot_command_dir" ] || {
+    echo "pi-pilot: refusing invalid command directory: $pi_pilot_command_dir" >&2
+    exit 1
+  }
+fi
+if [ -e "$pi_pilot_command" ] || [ -L "$pi_pilot_command" ]; then
+  [ -L "$pi_pilot_command" ] && \
+    [ "$(readlink "$pi_pilot_command")" = "$pi_pilot_command_source" ] || {
+      echo "pi-pilot: refusing unmanaged pi command: $pi_pilot_command" >&2
+      exit 1
+    }
+fi
+
 if [ "$apply" -eq 0 ]; then
   printf 'Pi pilot rollback would move these managed roots to Trash:\n'
   printf '  %s\n  %s\n' "$pi_pilot_data_dir" "$pi_pilot_state_dir"
+  printf 'Pi pilot rollback would remove this managed command:\n'
+  printf '  %s\n' "$pi_pilot_command"
   exit 0
 fi
 
@@ -57,4 +73,8 @@ fi
 if [ -e "$pi_pilot_state_dir" ]; then
   mv "$pi_pilot_state_dir" "$state_destination"
   printf 'Moved %s to %s\n' "$pi_pilot_state_dir" "$state_destination"
+fi
+if [ -L "$pi_pilot_command" ]; then
+  rm "$pi_pilot_command"
+  printf 'Removed managed command %s\n' "$pi_pilot_command"
 fi

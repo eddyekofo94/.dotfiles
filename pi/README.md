@@ -1,10 +1,10 @@
 # Isolated Pi Pilot
 
-This is a pinned evaluation harness, not the default `pi` installation.
+This is the pinned, isolated Pi installation.
 
 ```sh
 ./pi/install.sh
-./pi/pilot.sh
+pi
 ```
 
 The launcher isolates Pi configuration, credentials, extensions, and sessions
@@ -22,11 +22,11 @@ symlink and `pi/pilot.sh` rejects missing, regular, or retargeted instruction
 state. Codex and Claude adapters are managed separately by
 `agent-config/install.sh` and point at `agent-config/AGENTS.md` directly.
 
-The pilot is intentionally not available as a plain `pi` command and it does
-not read or write `~/.pi`. Start named work explicitly:
+The installer owns `~/.local/bin/pi`, which routes through the same isolated
+launcher and does not read or write `~/.pi`. Start named work explicitly:
 
 ```sh
-./pi/pilot.sh --name project-review
+pi --name project-review
 ```
 
 The pilot uses Emacs-style history and list navigation:
@@ -120,8 +120,9 @@ Apply rollback:
 ./pi/rollback.sh --apply
 ```
 
-Rollback refuses any root without the pilot marker and moves managed data to
-Trash rather than deleting it.
+Rollback refuses any root without the pilot marker, refuses a foreign or
+retargeted `pi` command, moves managed data to Trash, and removes only its exact
+managed command symlink.
 
 ## Evidence gates
 
