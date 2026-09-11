@@ -8,7 +8,10 @@ native, dollar, and plain-slash forms; malformed and unknown dollar skills fail
 closed. Herdr preserves Claude, Codex, and Pi across fresh, resumed, ranked,
 and `/todo` sessions. Focused tests, the full Pi gate, and post-fix
 Standards/Fidelity review pass. Physical fresh-Pi slash-menu acceptance remains
-manual. Source: `.working/interviews/pi-workflow-skill-parity/decisions.md`.
+manual. The follow-up trust fix removes the launcher's unconditional
+`--no-approve`; saved parent trust now loads project skills while unknown
+projects remain denied. Source:
+`.working/interviews/pi-workflow-skill-parity/decisions.md`.
 
 ## Recently Completed
 

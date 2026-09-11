@@ -12,6 +12,8 @@
   `./pi/verify.sh`; diff checks; fresh Standards/Fidelity fix and re-review.
 - Manual: confirm `$todo`, `/todo`, and `/skill:todo` appear and open in a fresh
   physical Pi session after merge/install.
+- Follow-up: Pi's launcher no longer forces `--no-approve`, so saved `/trust`
+  decisions take effect after restart while unknown projects remain denied.
 - Non-goals: load every personal skill, change specialist-skill aliases,
   publish, or overwrite existing shared-checkout changes.
 - Source: `.working/interviews/pi-workflow-skill-parity/decisions.md`.

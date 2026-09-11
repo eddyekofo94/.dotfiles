@@ -2,8 +2,8 @@
   "status": "PASS",
   "provider": "deterministic offline fixture",
   "named_sessions": {
-    "alpha": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-11-716Z_pilot-alpha.jsonl",
-    "beta": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-13-810Z_pilot-beta.jsonl",
+    "alpha": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.75U3cb/state/sessions/2026-09-11T22-06-13-436Z_pilot-alpha.jsonl",
+    "beta": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.75U3cb/state/sessions/2026-09-11T22-06-15-252Z_pilot-beta.jsonl",
     "independent": true,
     "alpha_restored_name": "pilot-alpha",
     "resume_locator": "session JSONL path",
@@ -39,7 +39,7 @@
     "reason": "threshold",
     "temporary_reserve_tokens": 20000,
     "temporary_keep_recent_tokens": 1,
-    "session": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-17-708Z_pilot-threshold.jsonl",
+    "session": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.75U3cb/state/sessions/2026-09-11T22-06-18-892Z_pilot-threshold.jsonl",
     "all_sentinels_preserved": true
   }
 }
