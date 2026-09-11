@@ -2,7 +2,13 @@
 
 ## Active
 
-None.
+`pi-workflow-skill-parity` — **implemented; ready for local merge
+confirmation.** Pi exposes the eleven reviewed core workflow skills through
+native, dollar, and plain-slash forms; malformed and unknown dollar skills fail
+closed. Herdr preserves Claude, Codex, and Pi across fresh, resumed, ranked,
+and `/todo` sessions. Focused tests, the full Pi gate, and post-fix
+Standards/Fidelity review pass. Physical fresh-Pi slash-menu acceptance remains
+manual. Source: `.working/interviews/pi-workflow-skill-parity/decisions.md`.
 
 ## Recently Completed
 
@@ -77,16 +83,6 @@ Not selectable now: `herdr-upstream-copy-mode-gaps` remains upstream-blocked;
 after unreliable live rendering.
 
 ## Investigating
-
-- `pi-workflow-skill-parity`: **reproduced; scope decision needed.** Pi's live
-  Bible Standard command inventory omits `/todo` and `/goals`. The canonical
-  `todo` skill is absent from Pi's seven-skill allowlist; Bible Standard's
-  `goals` skill lives under `.claude/skills`, which Pi does not discover; and
-  explicit loading registers `/skill:todo` and `/skill:goals`, so plain-slash
-  parity also needs an alias policy. This `affects` cross-agent workflow parity,
-  `refines` the curated Pi pilot, and `shares implementation seam with`
-  `agent-context-on-demand-loading`. Source:
-  `.working/interviews/pi-workflow-skill-parity/decisions.md`.
 
 - `agent-context-on-demand-loading`: Eddy wants startup token usage to remain
   visible and wants skills and Model Context Protocol (MCP) servers loaded only

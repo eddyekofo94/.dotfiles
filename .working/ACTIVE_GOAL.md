@@ -1,6 +1,20 @@
 # Active Goal
 
-None.
+`pi-workflow-skill-parity` — **implemented / ready for local merge confirmation**.
+
+- Trigger: Eddy selected the existing reproduced parity defect with
+  `/feature-plan` on 2026-09-11 and supplied physical evidence that `/todo`
+  launched Claude from another agent family.
+- Scope: expose the reviewed core workflow skills in Pi with native, dollar,
+  and plain-slash invocation; preserve the invoking agent family across
+  `herdr-goals` and `herdr-goal-done`.
+- Verified: 21 focused inventory/alias/caller-routing tests; full isolated
+  `./pi/verify.sh`; diff checks; fresh Standards/Fidelity fix and re-review.
+- Manual: confirm `$todo`, `/todo`, and `/skill:todo` appear and open in a fresh
+  physical Pi session after merge/install.
+- Non-goals: load every personal skill, change specialist-skill aliases,
+  publish, or overwrite existing shared-checkout changes.
+- Source: `.working/interviews/pi-workflow-skill-parity/decisions.md`.
 
 ---
 

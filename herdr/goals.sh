@@ -1,6 +1,7 @@
 #!/bin/bash
 # herdr-goals: open one Herdr tab per live goal using the caller's agent family.
-# Claude callers keep Fable/Opus routing. Codex and Pi callers open Codex.
+# Claude callers keep Fable/Opus routing. Codex and Pi callers stay in their
+# own agent family and inherit that agent's configured model and permissions.
 #
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
 #   model is an alias (`fable`, `opus`), not a pinned id, so a tab follows the
@@ -102,8 +103,7 @@ command -v jq >/dev/null || { echo "jq required" >&2; exit 1; }
 
 # Herdr owns the reliable caller identity. Environment fallbacks cover direct
 # invocations and tests, while an explicit override makes the contract easy to
-# diagnose without opening a real agent session. Pi intentionally routes to
-# Codex: Pi is the lightweight caller, not the session family opened for goals.
+# diagnose without opening a real agent session.
 caller_agent="${HERDR_GOALS_AGENT:-}"
 if [ -z "$caller_agent" ] && [ -n "${HERDR_PANE_ID:-}" ]; then
   caller_agent=$(herdr pane get "$HERDR_PANE_ID" 2>/dev/null |
@@ -112,15 +112,18 @@ fi
 if [ -z "$caller_agent" ]; then
   if [ -n "${CLAUDECODE:-}" ]; then
     caller_agent=claude
-  elif [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${PI_SESSION_ID:-}" ]; then
+  elif [ -n "${CODEX_SESSION_ID:-}" ]; then
     caller_agent=codex
+  elif [ -n "${PI_SESSION_ID:-}" ] || [ -n "${PI_CODING_AGENT_DIR:-}" ]; then
+    caller_agent=pi
   else
     caller_agent=claude
   fi
 fi
 case "$caller_agent" in
   claude) session_agent=claude ;;
-  codex|openai|pi) session_agent=codex ;;
+  codex|openai) session_agent=codex ;;
+  pi) session_agent=pi ;;
   *) echo "herdr-goals: unsupported caller agent: $caller_agent" >&2; exit 2 ;;
 esac
 
@@ -188,18 +191,24 @@ for spec in "${SPECS[@]}"; do
   if [ "$session_agent" = "claude" ]; then
     case "${resume:-}" in
       "")     resume_args="" ;;
-      pick)   resume_args="--resume" ;;
-      *)      resume_args="--resume ${resume}" ;;
+      pick)   resume_args=" --resume" ;;
+      *)      resume_args=" --resume ${resume}" ;;
     esac
-    launch="claude --model ${model} ${mode_flag} ${resume_args}${boot:+ \"${boot}\"}"
-  else
+    launch="claude --model ${model} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
+  elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in
-      "")     launch="codex" ;;
+      "")     launch="codex${boot:+ \"${boot}\"}" ;;
       pick)   launch="codex resume" ;;
       *)      launch="codex resume ${resume}" ;;
     esac
+  else
+    case "${resume:-}" in
+      "")     launch="pi${boot:+ \"${boot}\"}" ;;
+      pick)   launch="pi --resume" ;;
+      *)      launch="pi --session ${resume}" ;;
+    esac
   fi
   herdr pane run "$pane" "$launch"
-  if [ "$session_agent" = "claude" ]; then boot_note="${boot:+ boot ${boot}}"; else boot_note=""; fi
+  boot_note="${boot:+ boot ${boot}}"
   echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
 done

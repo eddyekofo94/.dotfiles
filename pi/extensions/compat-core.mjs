@@ -1,4 +1,16 @@
-const ENABLED_SKILLS = new Set(["herdr", "skill-finish"]);
+const ENABLED_SKILLS = new Set([
+  "bug",
+  "code-review",
+  "diagnosing-bugs",
+  "feature",
+  "feature-plan",
+  "grill-me",
+  "herdr",
+  "loop",
+  "skill-finish",
+  "spec-ticket",
+  "todo",
+]);
 const MAX_HANDOFF_BYTES = 131072;
 
 export function enabledSkills() {
@@ -6,7 +18,7 @@ export function enabledSkills() {
 }
 
 export function transformSkillInput(text) {
-  const match = text.match(/^\$([a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?)([\s\S]*)$/);
+  const match = text.match(/^\$([^\s]+)([\s\S]*)$/);
   if (!match) return { action: "continue" };
 
   const name = match[1];
@@ -21,6 +33,15 @@ export function transformSkillInput(text) {
     action: "transform",
     text: `/skill:${name}${match[2]}`,
   };
+}
+
+export function buildSkillPrompt(name, location, source, args = "") {
+  if (!ENABLED_SKILLS.has(name)) {
+    throw new Error(`Pi pilot skill is not enabled: ${name}`);
+  }
+  const body = source.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trimStart();
+  const suffix = args.trim() ? `\n\nUser: ${args.trim()}` : "";
+  return `<skill name="${name}" location="${location}">\nReferences are relative to ${location.replace(/\/SKILL\.md$/, "")}.\n\n${body}</skill>${suffix}`;
 }
 
 export function decodeHandoff(encoded) {

@@ -5,11 +5,11 @@
     "agent": "pi",
     "kind": "path",
     "source": "herdr:pi",
-    "value": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-56-115Z_01a09056-b2d3-78db-9d82-05b87e532aaf.jsonl"
+    "value": "/tmp/pi-herdr.sAKjz7/pi-state/sessions/2026-09-11T21-43-31-066Z_01a0926c-fbfa-7d8c-bfb8-81291cadae86.jsonl"
   },
-  "previous_session": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-53-057Z_pi-herdr-original.jsonl",
-  "replacement_session": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-56-115Z_01a09056-b2d3-78db-9d82-05b87e532aaf.jsonl",
-  "replacement_name": "pi-meaningful-session-names",
+  "previous_session": "/tmp/pi-herdr.sAKjz7/pi-state/sessions/2026-09-11T21-43-26-622Z_pi-herdr-original.jsonl",
+  "replacement_session": "/tmp/pi-herdr.sAKjz7/pi-state/sessions/2026-09-11T21-43-31-066Z_01a0926c-fbfa-7d8c-bfb8-81291cadae86.jsonl",
+  "replacement_name": "pi-workflow-skill-parity",
   "sessions_distinct": true,
   "handoff_visible": true,
   "submitted": false,
