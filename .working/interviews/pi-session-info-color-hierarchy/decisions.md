@@ -161,3 +161,7 @@ Make Pi's session details scannable and expose context pressure continuously.
   foreign-target refusal, rollback removal, and explicit POSIX/Fish command
   lookup with `pi --version == 0.82.1`.
 - Fresh post-fix review: Standards 0 findings; Fidelity 0 findings.
+- Correction commit `7342cfee` merged into local `main` at `6f7425ce`.
+- Live installation: `/Users/eddyekofo/.local/bin/pi` resolves to the managed
+  command shim; current shell, Fish with repository configuration, and a clean
+  POSIX environment all report `pi --version` as `0.82.1`.

@@ -46,7 +46,7 @@ reviews, and Eddy's two-window physical acceptance are complete.
 
 ---
 
-`pi-session-info-color-hierarchy` — **reopened Ready To Merge 2026-09-11.** Pi has a quiet startup
+`pi-session-info-color-hierarchy` — **closed 2026-09-11.** Pi has a quiet startup
 and one Claude-like footer row: model, repository, branch/worktree, context
 tokens and percentage on the left; weekly Codex allowance and current directory
 on the right. Context is green below 70%, amber from 70% through 84%, and red at
@@ -57,10 +57,10 @@ editor, reload behavior, isolation, and compaction settings. Source:
 Merged into local `main` at `bcc7031d`. Focused checks and the final explicitly
 approved isolated `pi/verify.sh` pass. Final post-rebase review reports
 Standards 0 findings and Fidelity 0 findings.
-Daily-use installation is incomplete because `pi/install.sh` intentionally did
-not expose a `pi` command. Correct the managed installer, verify a fresh shell
-resolves the isolated launcher as `pi`, merge, and restore closure. The full
-isolated suite and fresh Standards/Fidelity re-review pass. Eddy
+The reopened daily-use installation defect is fixed: `pi/install.sh` owns
+`~/.local/bin/pi`, fresh Fish and POSIX shells resolve it, and `pi --version`
+returns `0.82.1`. Merged into local `main` at `6f7425ce`; the full isolated
+suite and fresh Standards/Fidelity re-review pass. Eddy
 explicitly ended the evaluation gate and approved daily use without
 completing the six remaining revised-footer Ghostty checks; those checks remain
 `NOT RUN`, not false passes.

@@ -2,24 +2,18 @@
 
 ## Active
 
-`pi-session-info-color-hierarchy` — **READY TO MERGE, REOPENED 2026-09-11.** The
-daily-use acceptance exposed one missing installation surface: `pi` is absent
-from `PATH` because the managed installer deliberately omitted the command.
-Install an ownership-checked `~/.local/bin/pi` entry that retains the isolated
-launcher, add regression coverage, verify from fresh POSIX and Fish shells, and
-merge. Full `pi/verify.sh` and fresh review pass at Standards 0 / Fidelity 0. Source:
-`.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
+None.
 
 ## Recently Completed
 
-`pi-session-info-color-hierarchy` — **DONE 2026-09-10; REOPENED 2026-09-11.** The isolated Pi
+`pi-session-info-color-hierarchy` — **DONE 2026-09-11.** The isolated Pi
 launcher has a quiet startup and one Claude-like footer row with model,
 repository, branch/worktree, context tokens/percentage, weekly Codex allowance,
 and current directory. The final isolated `pi/verify.sh` pass and fresh
-post-rebase Standards/Fidelity review are green. Merged into local `main` at
-`bcc7031d`; not pushed. Eddy ended the evaluation gate and approved daily use;
-six revised-footer Ghostty checks remain explicitly `NOT RUN`, not recorded as
-passes. Source:
+Standards/Fidelity review are green. The reopened installer correction owns
+`~/.local/bin/pi`; real Fish and POSIX checks resolve it and return `0.82.1`.
+Merged into local `main` at `6f7425ce`; not pushed. Six revised-footer Ghostty
+checks remain explicitly `NOT RUN`, not recorded as passes. Source:
 `.working/interviews/pi-session-info-color-hierarchy/decisions.md`.
 
 `goals-cross-agent-launch` — **DONE 2026-09-10.** Claude callers open Claude;
