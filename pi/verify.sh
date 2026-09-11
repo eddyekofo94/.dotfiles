@@ -17,6 +17,7 @@ export PI_PILOT_STATE_DIR="$runtime/pilot-state"
 export PI_PILOT_COMMAND_DIR="$runtime/bin"
 # shellcheck disable=SC1091
 . "$pi_dir/pilot_paths.sh"
+export PI_PILOT_DATA_DIR="$pi_pilot_data_dir"
 rpc_log="$runtime/rpc.jsonl"
 export PI_PILOT_EVIDENCE_DIR="$runtime/evidence"
 mkdir -p "$PI_PILOT_EVIDENCE_DIR"
