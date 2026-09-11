@@ -92,5 +92,8 @@ None.
   alias required by macOS Unix-socket path limits.
 - `git diff --check` passes.
 - Final fresh review reports Standards 0 findings and Fidelity 0 findings.
+- Feature commit `8f0fdb8f` landed in local `main` at merge `2e157a82`; the
+  managed Pi 0.82.1 installation resolves its command, settings, and extension
+  to that checkout. Nothing was pushed.
 - The three meaningful-label checks in `pi/MANUAL_QA.md` remain unchecked and
   require Eddy's physical Ghostty/Herdr observations.

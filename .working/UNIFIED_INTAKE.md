@@ -7,7 +7,9 @@ opaque timestamp/process session labels with one context-derived naming policy
 shared by ordinary startup and durable handoffs. Preserve explicit, persisted,
 resumed, and forked names. Focused and full isolated gates pass; final fresh
 review reports Standards 0 and Fidelity 0 findings. Three physical
-Ghostty/Herdr label checks remain unchecked. Source:
+Ghostty/Herdr label checks remain unchecked. Feature commit `8f0fdb8f` landed
+in local `main` at merge `2e157a82`, and Pi 0.82.1 was reinstalled from the
+merged checkout without pushing. Source:
 `.working/interviews/pi-meaningful-session-names/decisions.md`; brief:
 `.working/interviews/pi-meaningful-session-names/implementation-brief.md`.
 

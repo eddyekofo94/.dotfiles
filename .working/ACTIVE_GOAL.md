@@ -7,7 +7,9 @@ with a short stable collision suffix and generated fallback. Ordinary startup
 and durable handoffs use the same policy. Focused coverage, the isolated full
 Pi gate, diff checking, and final fresh review pass with Standards 0 and
 Fidelity 0 findings. The three unchecked physical Ghostty/Herdr sidebar checks
-remain Eddy's. Source:
+remain Eddy's. Feature commit `8f0fdb8f` landed in local `main` at merge
+`2e157a82`; Pi 0.82.1 was reinstalled from that merge and nothing was pushed.
+Source:
 `.working/interviews/pi-meaningful-session-names/decisions.md`; brief:
 `.working/interviews/pi-meaningful-session-names/implementation-brief.md`.
 

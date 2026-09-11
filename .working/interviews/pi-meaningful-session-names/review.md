@@ -26,3 +26,6 @@
 - `./pi/verify.sh`: pass through `/private/tmp/pmsn91` with isolated Pi and
   agent roots.
 - `git diff --check`: pass.
+- Local landing: feature `8f0fdb8f`, merge `2e157a82`; not pushed.
+- Managed Pi install: command link, settings link, reviewed extension target,
+  version 0.82.1, and launcher integrity checks pass.
