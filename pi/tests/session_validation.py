@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import select
 import subprocess
 import sys
@@ -216,6 +217,30 @@ def wait_state(rpc: Rpc, predicate, description: str) -> dict:
     raise RuntimeError(f"timed out waiting for {description}: {current}")
 
 
+def expected_contextual_name() -> str:
+    branch = subprocess.run(
+        ["git", "-C", str(FIXTURE_CWD), "branch", "--show-current"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if branch.startswith("feature/"):
+        source = branch.removeprefix("feature/")
+    elif branch not in {"", "main", "master"}:
+        source = branch
+    else:
+        source = subprocess.run(
+            ["git", "-C", str(FIXTURE_CWD), "rev-parse", "--show-toplevel"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip().rsplit("/", 1)[-1]
+    leading_dot = "." if source.startswith(".") else ""
+    normalized = re.sub(r"[^a-z0-9._-]+", "-", source.lower().lstrip("."))
+    normalized = re.sub(r"-+", "-", normalized).strip("._-")
+    return f"{leading_dot}{normalized}"
+
+
 def main() -> int:
     EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
     cleanup_probe = Rpc("--no-session")
@@ -230,6 +255,41 @@ def main() -> int:
         "established constraints and human gates. The active skill is "
         "feature-plan. Next stage is the recorded review."
     )
+
+    contextual_name = expected_contextual_name()
+    automatic = Rpc("--session-id", "pilot-automatic")
+    automatic.prompt("Persist automatically named session.")
+    automatic_state = wait_state(
+        automatic,
+        lambda current: current.get("sessionName") == contextual_name,
+        "context-derived automatic session name",
+    )
+    automatic_file = Path(automatic_state["sessionFile"])
+    automatic.close()
+
+    collision = Rpc("--session-id", "pilot-collision")
+    collision_state = wait_state(
+        collision,
+        lambda current: current.get("sessionName") == f"{contextual_name}-p",
+        "collision-safe automatic session name",
+    )
+    collision.close()
+
+    automatic_resumed = Rpc("--session", str(automatic_file))
+    automatic_resumed_state = wait_state(
+        automatic_resumed,
+        lambda current: current.get("sessionName") == contextual_name,
+        "stable resumed automatic session name",
+    )
+    automatic_resumed.close()
+
+    automatic_fork = Rpc("--fork", str(automatic_file))
+    automatic_fork_state = wait_state(
+        automatic_fork,
+        lambda current: current.get("sessionName") == contextual_name,
+        "stable forked automatic session name",
+    )
+    automatic_fork.close()
 
     alpha = Rpc("--session-id", "pilot-alpha", "--name", "pilot-alpha")
     alpha.prompt(seed)
@@ -422,6 +482,12 @@ def main() -> int:
             "independent": True,
             "alpha_restored_name": resumed_state.get("sessionName"),
             "resume_locator": "session JSONL path",
+            "automatic_context_name": automatic_state.get("sessionName"),
+            "automatic_collision_name": collision_state.get("sessionName"),
+            "automatic_resume_preserved": automatic_resumed_state.get("sessionName")
+            == contextual_name,
+            "automatic_fork_preserved": automatic_fork_state.get("sessionName")
+            == contextual_name,
         },
         "manual_compaction": {
             "reason": compacted.get("reason"),

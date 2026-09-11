@@ -32,6 +32,7 @@ import {
   missingGoalRecordSummary,
   selectGoalRecordSlug,
 } from "./compaction-core.mjs";
+import { resolveAutomaticSessionName } from "./session-name-core.mjs";
 import { extractPromptHistory } from "./ui-core.mjs";
 
 // Keep this rule in the extension entrypoint: Pi's /reload can retain imported
@@ -706,59 +707,65 @@ async function completeHandoffRequest(
 
     const previousSession = ctx.sessionManager.getSessionFile();
     if (!previousSession) throw new Error("current Pi session is not persisted");
-    const replacementName = `pi-${new Date()
-      .toISOString()
-      .replace(/[-:.TZ]/g, "")
-      .slice(0, 17)}-${token.slice(0, 8)}`;
-    const result = await ctx.newSession({
-      parentSession: previousSession,
-      setup: async (sessionManager) => {
-        sessionManager.appendMessage({
-          role: "assistant",
-          content: [],
-          api: "openai-responses",
-          provider: "eddy-pilot",
-          model: "session-bootstrap",
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: {
+    const replacementName = resolveAutomaticSessionName({
+      cwd: ctx.cwd,
+      sessionId: token,
+      sessionDir: process.env.PI_CODING_AGENT_SESSION_DIR,
+      fallbackEntropy: token,
+    });
+    try {
+      const result = await ctx.newSession({
+        parentSession: previousSession,
+        setup: async (sessionManager) => {
+          sessionManager.appendMessage({
+            role: "assistant",
+            content: [],
+            api: "openai-responses",
+            provider: "eddy-pilot",
+            model: "session-bootstrap",
+            usage: {
               input: 0,
               output: 0,
               cacheRead: 0,
               cacheWrite: 0,
-              total: 0,
+              totalTokens: 0,
+              cost: {
+                input: 0,
+                output: 0,
+                cacheRead: 0,
+                cacheWrite: 0,
+                total: 0,
+              },
             },
-          },
-          stopReason: "stop",
-          timestamp: Date.now(),
-        });
-        sessionManager.appendCustomEntry("eddy-pi-pilot-session", {
-          version: 1,
-          createdAt: new Date().toISOString(),
-          purpose: "durable-unsubmitted-handoff",
-        });
-        sessionManager.appendSessionInfo(replacementName);
-      },
-      withSession: async (replacementCtx) => {
-        replacementCtx.ui.setEditorText(request.prompt);
-        writeResponse(controlDir, token, {
-          ok: true,
-          phase: "complete",
-          previousSession,
-          session: replacementCtx.sessionManager.getSessionFile(),
-          submitted: false,
-        });
-      },
-    });
-    if (result.cancelled) {
-      writeResponse(controlDir, token, {
-        ok: false,
-        error: "new-session-cancelled",
+            stopReason: "stop",
+            timestamp: Date.now(),
+          });
+          sessionManager.appendCustomEntry("eddy-pi-pilot-session", {
+            version: 1,
+            createdAt: new Date().toISOString(),
+            purpose: "durable-unsubmitted-handoff",
+          });
+          sessionManager.appendSessionInfo(replacementName.name);
+        },
+        withSession: async (replacementCtx) => {
+          replacementCtx.ui.setEditorText(request.prompt);
+          writeResponse(controlDir, token, {
+            ok: true,
+            phase: "complete",
+            previousSession,
+            session: replacementCtx.sessionManager.getSessionFile(),
+            submitted: false,
+          });
+        },
       });
+      if (result.cancelled) {
+        writeResponse(controlDir, token, {
+          ok: false,
+          error: "new-session-cancelled",
+        });
+      }
+    } finally {
+      replacementName.release();
     }
   } catch (error) {
     const pendingPath = requestPath(controlDir);
@@ -853,12 +860,18 @@ export default function eddyCompat(pi: ExtensionAPI) {
       });
     }
     if (!pi.getSessionName()) {
-      pi.setSessionName(
-        `pi-${new Date()
-          .toISOString()
-          .replace(/[-:.TZ]/g, "")
-          .slice(0, 17)}-${process.pid}`,
-      );
+      const automaticName = resolveAutomaticSessionName({
+        cwd: ctx.cwd,
+        sessionId: ctx.sessionManager.getSessionId(),
+        sessionDir: process.env.PI_CODING_AGENT_SESSION_DIR,
+        currentSessionFile: ctx.sessionManager.getSessionFile(),
+        fallbackEntropy: process.pid,
+      });
+      try {
+        pi.setSessionName(automaticName.name);
+      } finally {
+        automaticName.release();
+      }
     }
     installCompactFooter(ctx);
     if (event.reason === "reload") {

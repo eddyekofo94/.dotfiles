@@ -55,6 +55,7 @@ jq -e '
 ' "$pi_dir/settings.json" >/dev/null
 
 node "$pi_dir/tests/compat_core_test.mjs"
+node "$pi_dir/tests/session_name_core_test.mjs"
 node "$pi_dir/tests/ui_core_test.mjs"
 node "$pi_dir/tests/session_display_test.mjs"
 node "$pi_dir/tests/codex_weekly_usage_test.mjs"

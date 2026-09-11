@@ -44,12 +44,18 @@ ln -s "$runtime/settings.json" "$settings"
   --model eddy-fixture/fixture \
   >"$runtime/capture"
 
-python3 - "$runtime/capture" <<'PY'
+expected_session_name=$(node --input-type=module -e '
+  import { contextualSessionName } from "./pi/extensions/session-name-core.mjs";
+  process.stdout.write(contextualSessionName(process.argv[1]));
+' "$(pwd)")
+
+python3 - "$runtime/capture" "$expected_session_name" <<'PY'
 import pathlib
 import re
 import sys
 
 data = pathlib.Path(sys.argv[1]).read_bytes()
+expected_session_name = sys.argv[2].encode()
 plain = re.sub(
     rb"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))",
     b"",
@@ -59,12 +65,21 @@ for preserved in (
     b"fixture",
     b".dotfiles",
     b"weekly 72% left",
-    b"dotfiles-pi...",
 ):
     if preserved not in plain:
         raise SystemExit(
             f"Pi compact footer missing: {preserved!r}\n{plain[-2000:]!r}"
         )
+rendered_session_name = (
+    expected_session_name
+    if len(expected_session_name) <= 11
+    else expected_session_name[:11] + b"..."
+)
+if rendered_session_name not in plain:
+    raise SystemExit(
+        f"Pi compact footer missing resolved session name: "
+        f"{rendered_session_name!r}\n{plain[-2000:]!r}"
+    )
 if not re.search(rb"\.dotfiles \xc2\xb7 (?:pi-session|p?\.\.\.)", plain):
     raise SystemExit(f"Pi compact footer missing branch/worktree identity\n{plain[-2000:]!r}")
 if not re.search(rb"~[0-9]+(?:\.[0-9])?k?/32\.8k \xc2\xb7 [0-9]+%", plain):

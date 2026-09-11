@@ -57,6 +57,14 @@ Automated fixtures must not be used to mark this checklist complete.
 - [x] Open two physical Ghostty windows normally.
 - [x] Confirm each window owns a different named Herdr session and can navigate,
   type, and change cwd without changing the other window.
+- [ ] In Ghostty's grouped Herdr sidebar, start fresh unnamed Pi sessions from a
+  managed `feature/<slug>` worktree, a non-default branch, a default-branch
+  repository, and a non-Git directory. Confirm their labels are respectively
+  `<slug>`, the normalized branch, the repository basename, and the cwd
+  basename; confirm explicit and resumed names remain unchanged.
+- [ ] Start two fresh unnamed Pi sessions from the same context. Confirm the
+  first uses the contextual label and the second adds only the shortest stable
+  session-identity suffix needed to distinguish it.
 - [x] Start the isolated Pi pilot in one window with `./pi/pilot.sh`.
 - [x] Submit two distinct prompts in the persisted session. With the editor
   empty, confirm `Ctrl-P` and Up recall older prompts while `Ctrl-N` and Down
@@ -92,6 +100,9 @@ Automated fixtures must not be used to mark this checklist complete.
 - [x] Produce a different completed handoff, then press `Prefix+B`. Confirm a
   new named Pi session becomes active, the old session remains resumable, and
   the exact handoff appears without submission.
+- [ ] Repeat `Prefix+B` from a contextually named session. Confirm the new
+  durable session uses the same contextual resolver and appears distinctly in
+  the grouped sidebar without submitting the handoff.
 - [x] Press `Prefix+A`. Confirm the palette shows agents across both active
   Herdr sessions with session, agent, status, and cwd.
 - [x] Exercise safe read and message actions. Exercise focus and confirm it
