@@ -46,21 +46,6 @@ jq -e '
   .enableAnalytics == false and
   .packages == ["npm:@ff-labs/pi-fff@0.10.1"] and
   (.skills | sort) == [
-    "/Users/eddyekofo/.agent-skills/bug",
-    "/Users/eddyekofo/.agent-skills/code-review",
-    "/Users/eddyekofo/.agent-skills/diagnosing-bugs",
-    "/Users/eddyekofo/.agent-skills/feature",
-    "/Users/eddyekofo/.agent-skills/feature-plan",
-    "/Users/eddyekofo/.agent-skills/grill-me",
-    "/Users/eddyekofo/.agent-skills/herdr",
-    "/Users/eddyekofo/.agent-skills/loop",
-    "/Users/eddyekofo/.agent-skills/skill-finish",
-    "/Users/eddyekofo/.agent-skills/spec-ticket",
-    "/Users/eddyekofo/.agent-skills/swift-concurrency-expert",
-    "/Users/eddyekofo/.agent-skills/swiftui-liquid-glass",
-    "/Users/eddyekofo/.agent-skills/swiftui-performance-audit",
-    "/Users/eddyekofo/.agent-skills/swiftui-view-refactor",
-    "/Users/eddyekofo/.agent-skills/todo",
     "/Users/eddyekofo/.dotfiles/pi/skills/xcodebuildmcp-cli"
   ] and
   (.extensions | length) == 1
@@ -118,6 +103,8 @@ rm "$pi_pilot_config_dir/settings.json"
 ln -s "$verified_settings" "$pi_pilot_config_dir/settings.json"
 
 "$pi_dir/tests/session_display_pty_test.sh" \
+  "$pi_dir/pilot.sh" "$pi_pilot_state_dir"
+"$pi_dir/tests/inline_skill_pty_test.sh" \
   "$pi_dir/pilot.sh" "$pi_pilot_state_dir"
 rm "$pi_pilot_config_dir/settings.json"
 ln -s "$pi_dir/settings.json" "$pi_pilot_config_dir/settings.json"
@@ -232,51 +219,30 @@ done
 
 rm "$pi_pilot_config_dir/settings.json"
 ln -s "$verified_settings" "$pi_pilot_config_dir/settings.json"
+expected_skills="$runtime/expected-skills.json"
+node --input-type=module - \
+  "$pi_dir/extensions/compat-core.mjs" >"$expected_skills" <<'JS'
+import { pathToFileURL } from "node:url";
+
+const modulePath = process.argv[2];
+const { enabledSkills } = await import(pathToFileURL(modulePath));
+process.stdout.write(`${JSON.stringify(enabledSkills())}\n`);
+JS
 printf '%s\n' '{"id":"commands","type":"get_commands"}' |
   PI_PILOT_FIXTURE=1 "$pi_dir/pilot.sh" --mode rpc --no-session >"$rpc_log"
-jq -e '
+jq -e --slurpfile expected "$expected_skills" '
   select(.id == "commands") |
   .success == true and
   ([.data.commands[] | select(.name == "eddy-pilot")] | length == 1) and
-  ([.data.commands[] | select(.source == "skill") | .name] | sort) == [
-    "skill:bug",
-    "skill:code-review",
-    "skill:diagnosing-bugs",
-    "skill:feature",
-    "skill:feature-plan",
-    "skill:grill-me",
-    "skill:herdr",
-    "skill:loop",
-    "skill:skill-finish",
-    "skill:spec-ticket",
-    "skill:swift-concurrency-expert",
-    "skill:swiftui-liquid-glass",
-    "skill:swiftui-performance-audit",
-    "skill:swiftui-view-refactor",
-    "skill:todo",
-    "skill:xcodebuildmcp-cli"
-  ] and
-  ([.data.commands[] | select(.source == "extension") | .name] |
-    map(select(. == "bug" or . == "code-review" or . == "diagnosing-bugs" or
-      . == "feature" or . == "feature-plan" or . == "grill-me" or
-      . == "herdr" or . == "loop" or . == "skill-finish" or
-      . == "spec-ticket" or . == "todo")) | sort) == [
-    "bug",
-    "code-review",
-    "diagnosing-bugs",
-    "feature",
-    "feature-plan",
-    "grill-me",
-    "herdr",
-    "loop",
-    "skill-finish",
-    "spec-ticket",
-    "todo"
-  ] and
+  ([.data.commands[] | select(.source == "skill") | .name] | sort) ==
+    (([$expected[0][] | "skill:" + .] + ["skill:xcodebuildmcp-cli"]) | sort) and
+  ([.data.commands[] | select(.source == "extension") | .name] as $extensions |
+    ($expected[0] | all(. as $name | $extensions | index($name)))) and
   ([.data.commands[] | select(.name == "fff-health")] | length == 1) and
   ([.data.commands[] | select(.name == "fff-mode")] | length == 1) and
   ([.data.commands[] | select(.name == "fff-rescan")] | length == 1) and
-  ([.data.commands[] | select(.source == "skill")] | length == 16)
+  ([.data.commands[] | select(.source == "skill")] | length ==
+    (($expected[0] | length) + 1)
 ' "$rpc_log" >/dev/null
 rm "$pi_pilot_config_dir/settings.json"
 ln -s "$pi_dir/settings.json" "$pi_pilot_config_dir/settings.json"
