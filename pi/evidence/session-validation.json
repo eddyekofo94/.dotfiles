@@ -2,11 +2,15 @@
   "status": "PASS",
   "provider": "deterministic offline fixture",
   "named_sessions": {
-    "alpha": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/sessions.VsZTx5/state/sessions/2026-09-11T10-42-31-069Z_pilot-alpha.jsonl",
-    "beta": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/sessions.VsZTx5/state/sessions/2026-09-11T10-42-33-482Z_pilot-beta.jsonl",
+    "alpha": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-41-128Z_pilot-alpha.jsonl",
+    "beta": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-42-925Z_pilot-beta.jsonl",
     "independent": true,
     "alpha_restored_name": "pilot-alpha",
-    "resume_locator": "session JSONL path"
+    "resume_locator": "session JSONL path",
+    "automatic_context_name": "pi-meaningful-session-names",
+    "automatic_collision_name": "pi-meaningful-session-names-p",
+    "automatic_resume_preserved": true,
+    "automatic_fork_preserved": true
   },
   "manual_compaction": {
     "reason": "manual",
@@ -35,7 +39,7 @@
     "reason": "threshold",
     "temporary_reserve_tokens": 20000,
     "temporary_keep_recent_tokens": 1,
-    "session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/sessions.VsZTx5/state/sessions/2026-09-11T10-42-37-133Z_pilot-threshold.jsonl",
+    "session": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-46-576Z_pilot-threshold.jsonl",
     "all_sentinels_preserved": true
   }
 }

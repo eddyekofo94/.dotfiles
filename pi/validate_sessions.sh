@@ -20,3 +20,7 @@ jq --arg extension "$pi_dir/extensions/eddy-compat.ts" '
 ln -sfn "$runtime/settings.json" "$PI_PILOT_STATE_DIR/config/settings.json"
 
 python3 "$pi_dir/tests/session_validation.py"
+reservation_dir="$PI_PILOT_STATE_DIR/sessions/.session-name-reservations"
+if [ -d "$reservation_dir" ]; then
+  test -z "$(find "$reservation_dir" -mindepth 1 -maxdepth 1 -type f -print -quit)"
+fi

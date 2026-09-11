@@ -33,6 +33,11 @@ const extensionSource = fs.readFileSync(
   "utf8",
 );
 assert.ok(extensionSource.includes('pi.on("before_agent_start"'));
+assert.equal(
+  extensionSource.match(/resolveAutomaticSessionName/g)?.length,
+  3,
+  "one resolver import must serve startup and durable handoff naming",
+);
 assert.ok(extensionSource.includes("Ready-to-paste prompt:"));
 assert.ok(extensionSource.includes("Prefix+b and Prefix+B"));
 assert.ok(

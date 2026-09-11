@@ -27,7 +27,17 @@ fi
 logical_expected=$expected
 expected_dir=$(CDPATH= cd -P -- "$(dirname "$expected")" && pwd)
 physical_expected="$expected_dir/$(basename "$expected")"
-python3 - "$capture" "$logical_expected" "$physical_expected" <<'PY'
+logical_display=$logical_expected
+physical_display=$physical_expected
+case $logical_display in
+  "$HOME"/*) logical_display="~/${logical_display#"$HOME"/}" ;;
+esac
+case $physical_display in
+  "$HOME"/*) physical_display="~/${physical_display#"$HOME"/}" ;;
+esac
+python3 - "$capture" \
+  "$logical_expected" "$physical_expected" \
+  "$logical_display" "$physical_display" <<'PY'
 import pathlib
 import re
 import sys

@@ -1,5 +1,18 @@
 # Active Goal
 
+`pi-meaningful-session-names` — **awaiting Eddy's Ghostty acceptance.** One shared Pi
+session-name resolver preserves explicit and persisted identity, otherwise
+derives a durable label from the named worktree, branch, repository, or cwd,
+with a short stable collision suffix and generated fallback. Ordinary startup
+and durable handoffs use the same policy. Focused coverage, the isolated full
+Pi gate, diff checking, and final fresh review pass with Standards 0 and
+Fidelity 0 findings. The three unchecked physical Ghostty/Herdr sidebar checks
+remain Eddy's. Source:
+`.working/interviews/pi-meaningful-session-names/decisions.md`; brief:
+`.working/interviews/pi-meaningful-session-names/implementation-brief.md`.
+
+---
+
 `goals-cross-agent-launch` — **closed 2026-09-10.** `$goals` preserves the
 invoking agent family: Claude opens Claude, while Codex and Pi open plain Codex
 with an empty composer. Seventeen tests, full Herdr verification, fresh

@@ -9,7 +9,9 @@ grep -Fq 'runtime=$(mktemp -d "$pi_dir/.runtime/verify.XXXXXX")' "$verify"
 grep -Fq 'trap cleanup EXIT HUP INT TERM' "$verify"
 grep -Fq 'runtime=$(mktemp -d "$pi_dir/.runtime/sessions.XXXXXX")' \
   "$pi_dir/validate_sessions.sh"
-grep -Fq 'runtime=$(mktemp -d "$pi_dir/.runtime/h.XXXXXX")' \
+grep -Fq 'runtime_root=${PI_PILOT_HERDR_RUNTIME_ROOT:-/tmp}' \
+  "$pi_dir/validate_herdr.sh"
+grep -Fq 'runtime=$(mktemp -d "$runtime_root/pi-herdr.XXXXXX")' \
   "$pi_dir/validate_herdr.sh"
 ! grep -Fq 'runtime="$pi_dir/.runtime/sessions"' "$pi_dir/validate_sessions.sh"
 ! grep -Fq 'runtime="$pi_dir/.runtime/herdr"' "$pi_dir/validate_herdr.sh"

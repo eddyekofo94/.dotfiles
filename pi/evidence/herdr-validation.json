@@ -5,11 +5,11 @@
     "agent": "pi",
     "kind": "path",
     "source": "herdr:pi",
-    "value": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-46-884Z_01a09010-0fe4-7018-bc5a-7c4b1273d773.jsonl"
+    "value": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-56-115Z_01a09056-b2d3-78db-9d82-05b87e532aaf.jsonl"
   },
-  "previous_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-43-873Z_pi-herdr-original.jsonl",
-  "replacement_session": "/tmp/pi-finish.bIk2rl/w/pi/.runtime/h.hVHMRH/pi-state/sessions/2026-09-11T10-42-46-884Z_01a09010-0fe4-7018-bc5a-7c4b1273d773.jsonl",
-  "replacement_name": "pi-20260911104246884-50d4f5a5",
+  "previous_session": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-53-057Z_pi-herdr-original.jsonl",
+  "replacement_session": "/tmp/pi-herdr.DlO08g/pi-state/sessions/2026-09-11T11-59-56-115Z_01a09056-b2d3-78db-9d82-05b87e532aaf.jsonl",
+  "replacement_name": "pi-meaningful-session-names",
   "sessions_distinct": true,
   "handoff_visible": true,
   "submitted": false,

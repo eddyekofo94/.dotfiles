@@ -5,8 +5,9 @@ pi_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$pi_dir/.." && pwd)
 prototype="$root/herdr/prototype"
 herdr="$prototype/.runtime/bin/herdr"
-mkdir -p "$pi_dir/.runtime"
-runtime=$(mktemp -d "$pi_dir/.runtime/h.XXXXXX")
+runtime_root=${PI_PILOT_HERDR_RUNTIME_ROOT:-/tmp}
+mkdir -p "$runtime_root"
+runtime=$(mktemp -d "$runtime_root/pi-herdr.XXXXXX")
 config_home="$runtime/c"
 config="$config_home/herdr/config.toml"
 session="p-${runtime##*.}"
@@ -62,6 +63,13 @@ cleanup() {
   if [ "$status" -ne 0 ] && [ -s "$server_log" ]; then
     cat "$server_log" >&2
   fi
+  if [ "$status" -ne 0 ] && [ -s "$driver_log" ]; then
+    cat "$driver_log" >&2
+  fi
+  if [ "$status" -ne 0 ] && [ -n "${pane:-}" ] && [ -S "$socket" ]; then
+    cli pane read "$pane" --source recent-unwrapped --lines 80 --format text \
+      >&2 || true
+  fi
   exec 3>&- 2>/dev/null || true
   if [ -n "${driver_pid:-}" ]; then
     kill "$driver_pid" 2>/dev/null || true
@@ -83,6 +91,15 @@ mkdir -p "$config_home/herdr" "$evidence_dir"
 
 export PI_PILOT_STATE_DIR="$runtime/pi-state"
 "$pi_dir/install.sh" >/dev/null
+
+# Production settings deliberately name the main checkout. This fixture must
+# exercise the extension in the current worktree instead of silently validating
+# an older installed copy.
+jq --arg extension "$pi_dir/extensions/eddy-compat.ts" '
+  .extensions = [$extension]
+' "$pi_dir/settings.json" >"$runtime/pi-settings.json"
+ln -sfn "$runtime/pi-settings.json" \
+  "$PI_PILOT_STATE_DIR/config/settings.json"
 
 sed -e 's|^default_shell = .*$|default_shell = "'"$pi_dir"'/tests/pi_herdr_fixture.sh"|' \
   "$prototype/config.toml" >"$config"
@@ -300,8 +317,15 @@ replacement_name=$(jq -sr '
   [.[] | select(.type == "session_info") | .name] |
   last // empty
 ' "$after_session")
-printf '%s\n' "$replacement_name" |
-  grep -Eq '^pi-[0-9]{17}-[a-f0-9]{8}$'
+expected_replacement_name=$(node --input-type=module -e '
+  import { contextualSessionName } from "./pi/extensions/session-name-core.mjs";
+  process.stdout.write(contextualSessionName(process.argv[1]));
+' "$root")
+test "$replacement_name" = "$expected_replacement_name"
+reservation_dir="$runtime/pi-state/sessions/.session-name-reservations"
+if [ -d "$reservation_dir" ]; then
+  test -z "$(find "$reservation_dir" -mindepth 1 -maxdepth 1 -type f -print -quit)"
+fi
 test "$(find "$runtime/pi-state/control" -maxdepth 1 -type f \
   -name 'request-*.json' | wc -l | tr -d ' ')" -eq 0
 
