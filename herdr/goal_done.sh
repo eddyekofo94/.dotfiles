@@ -11,20 +11,17 @@
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree                            (frees the cap slot)
 #   4. advance: ask the work graph for the next focus-track record and open a
-#      fresh Opus tab booted into `/deliver <ID>`; with nothing ranked, a /todo
-#      tab on the shared checkout instead                       (FS-130 D3)
+#      fresh same-agent tab booted into `/deliver <ID>`; with nothing ranked,
+#      a /todo tab on the shared checkout instead               (FS-130 D3)
 #   5. close the tab this ran in                     (last: it kills us)
 #
 # Step 5 is why the order matters and why the new tab is created before
 # anything is destroyed: if tab creation fails there is still a live session
 # holding the evidence of why.
 #
-# The advance tab is Opus in auto mode, because `/deliver` builds (FS-100:
-# Fable plans, Opus builds) and decide -> deliver crosses a model boundary,
-# hence a tab boundary (FS-097 grill lane D6). The fallback /todo tab is Fable
-# in plan mode, matching herdr-goals' `plan` lane — ranking what to do next is
-# the planning layer, and plan mode means a tab opened by a *closing* session
-# cannot start editing on its own.
+# Claude keeps its Fable/Opus and permission-mode routing. Codex and Pi stay in
+# their current agent family and inherit that agent's configured model and
+# permissions.
 #
 # Usage:
 #   herdr-goal-done                 # from inside the finished goal's worktree
@@ -68,6 +65,28 @@ run() {
 
 [ -n "${HERDR_TAB_ID:-}" ] || die "not inside a Herdr pane (no \$HERDR_TAB_ID)"
 command -v jq >/dev/null || die "jq required"
+
+caller_agent="${HERDR_GOAL_DONE_AGENT:-}"
+if [ -z "$caller_agent" ] && [ -n "${HERDR_PANE_ID:-}" ]; then
+  caller_agent=$(herdr pane get "$HERDR_PANE_ID" 2>/dev/null |
+    jq -r '.result.pane.agent // empty') || true
+fi
+if [ -z "$caller_agent" ]; then
+  if [ -n "${CLAUDECODE:-}" ]; then
+    caller_agent=claude
+  elif [ -n "${CODEX_SESSION_ID:-}" ]; then
+    caller_agent=codex
+  elif [ -n "${PI_SESSION_ID:-}" ] || [ -n "${PI_CODING_AGENT_DIR:-}" ]; then
+    caller_agent=pi
+  else
+    caller_agent=claude
+  fi
+fi
+case "$caller_agent" in
+  claude|codex|pi) session_agent="$caller_agent" ;;
+  openai) session_agent=codex ;;
+  *) die "unsupported caller agent: $caller_agent" ;;
+esac
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || die "not in a git repository"
 # --git-common-dir points at the *shared* .git even from a linked worktree, so
@@ -187,6 +206,13 @@ if [ -n "$next_id" ]; then
 fi
 
 if [ "$OPEN_TODO" = 1 ]; then
+  if [ "$session_agent" = "claude" ]; then
+    launch="claude --model ${MODEL} ${mode} \"${BOOT}\""
+  elif [ "$session_agent" = "codex" ]; then
+    launch="codex \"${BOOT}\""
+  else
+    launch="pi \"${BOOT}\""
+  fi
   if [ "$DRY" = 1 ]; then
     if [ -n "$next_id" ]; then
       echo "would advance to: ${next_id}"
@@ -194,14 +220,14 @@ if [ "$OPEN_TODO" = 1 ]; then
       echo "would advance to: nothing ranked — the decision backlog is the bottleneck"
     fi
     echo "would run: herdr tab create --cwd $cwd --label $label --no-focus"
-    echo "would run: herdr pane run <new> claude --model ${MODEL} ${mode} ${BOOT}"
+    echo "would run: herdr pane run <new> ${launch}"
   else
     pane=$(herdr tab create --cwd "$cwd" --label "$label" --no-focus |
              jq -r '.result.root_pane.pane_id') || die "could not open the ${BOOT} tab"
     [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
-    herdr pane run "$pane" "claude --model ${MODEL} ${mode} \"${BOOT}\"" ||
-      die "opened the tab but could not start Claude in $pane"
-    echo "goal-done: opened ${BOOT} in ${pane} (${MODEL}, ${mode#--permission-mode }) — ${cwd}"
+    herdr pane run "$pane" "$launch" ||
+      die "opened the tab but could not start ${session_agent} in $pane"
+    echo "goal-done: opened ${BOOT} in ${pane} (${session_agent}) — ${cwd}"
   fi
 fi
 

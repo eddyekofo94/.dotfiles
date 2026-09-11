@@ -227,7 +227,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.claims(), {"one": ["a"]})
 
-    def test_goals_routes_claude_to_claude_and_codex_or_pi_to_codex(self):
+    def test_goals_preserves_claude_codex_and_pi_agent_families(self):
         (self.root / "herdr").mkdir()
         goals = self.root / "herdr/goals.sh"
         goals.write_text((SCRIPT.parents[1] / "herdr/goals.sh").read_text())
@@ -254,11 +254,15 @@ if sys.argv[1:3] == ['tab', 'create']:
         env = os.environ.copy()
         env.update(HERDR_GOALS_REPO=str(self.root.resolve()), HERDR_CALLS=str(calls),
                    HERDR_PANE_ID="source-pane", PATH=f"{bin_dir}:{env['PATH']}")
-        for name in ("HERDR_GOALS_AGENT", "CLAUDECODE", "CODEX_SESSION_ID", "PI_SESSION_ID"):
+        for name in ("HERDR_GOALS_AGENT", "CLAUDECODE", "CODEX_SESSION_ID",
+                     "PI_SESSION_ID", "PI_CODING_AGENT_DIR"):
             env.pop(name, None)
 
-        for caller, expected in (("claude", "claude --model opus"),
-                                 ("codex", "codex"), ("pi", "codex")):
+        for caller, expected in (
+            ("claude", "claude --model opus --permission-mode auto"),
+            ("codex", "codex"),
+            ("pi", "pi"),
+        ):
             with self.subTest(caller=caller):
                 calls.write_text("")
                 env["TEST_CALLER_AGENT"] = caller
@@ -270,17 +274,25 @@ if sys.argv[1:3] == ['tab', 'create']:
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
                 run = next(call for call in recorded if call[:2] == ["pane", "run"])
                 command = run[3]
-                self.assertEqual(command.split()[0], expected.split()[0], command)
-                if caller == "claude":
-                    self.assertTrue(command.startswith(expected), command)
-                else:
-                    self.assertEqual(command, expected)
+                self.assertEqual(command, expected)
 
-        for resume, expected in (("pick", "codex resume"),
-                                 ("session-123", "codex resume session-123")):
-            with self.subTest(resume=resume):
+        for caller, resume, expected in (
+            (
+                "claude", "pick",
+                "claude --model opus --permission-mode auto --resume",
+            ),
+            (
+                "claude", "session-123",
+                "claude --model opus --permission-mode auto --resume session-123",
+            ),
+            ("codex", "pick", "codex resume"),
+            ("codex", "session-123", "codex resume session-123"),
+            ("pi", "pick", "pi --resume"),
+            ("pi", "session-123", "pi --session session-123"),
+        ):
+            with self.subTest(caller=caller, resume=resume):
                 calls.write_text("")
-                env["TEST_CALLER_AGENT"] = "codex"
+                env["TEST_CALLER_AGENT"] = caller
                 result = subprocess.run(
                     [str(goals), f"notes:opus:{resume}:shared"], cwd=self.root,
                     env=env, text=True, capture_output=True,
@@ -290,14 +302,27 @@ if sys.argv[1:3] == ['tab', 'create']:
                 run = next(call for call in recorded if call[:2] == ["pane", "run"])
                 self.assertEqual(run[3], expected)
 
-        # The real ranked path supplies Claude boot prompts, but Codex/Pi
-        # sessions must open at an empty composer rather than submitting them.
+        # The real ranked path boots every new tab into its assigned workflow
+        # without changing the invoking agent family.
         plain_repo = self.root.parent / "plain-repo"
         plain_repo.mkdir()
         (plain_repo / "tools").mkdir()
         features = plain_repo / "tools/features_index.py"
         features.write_text("print('{\"next\":[{\"id\":\"FS-123\",\"title\":\"Ranked\"}]}')\n")
-        for caller in ("codex", "pi"):
+        for caller, expected_commands in (
+            (
+                "claude",
+                [
+                    'claude --model fable --permission-mode plan "/grill-next"',
+                    'claude --model opus --permission-mode auto "feature-plan FS-123"',
+                ],
+            ),
+            (
+                "codex",
+                ['codex "/grill-next"', 'codex "feature-plan FS-123"'],
+            ),
+            ("pi", ['pi "/grill-next"', 'pi "feature-plan FS-123"']),
+        ):
             with self.subTest(caller=caller, automatic=True):
                 calls.write_text("")
                 env.update(TEST_CALLER_AGENT=caller,
@@ -309,7 +334,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                 self.assertEqual(result.returncode, 0, result.stderr)
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
                 commands = [call[3] for call in recorded if call[:2] == ["pane", "run"]]
-                self.assertEqual(commands, ["codex", "codex"])
+                self.assertEqual(commands, expected_commands)
 
         # Explicit override outranks pane metadata and conflicting inherited
         # environment evidence. Unknown explicit identities fail before create.
@@ -327,11 +352,13 @@ if sys.argv[1:3] == ['tab', 'create']:
 
         for fallback_var, expected in (("CLAUDECODE", "claude"),
                                        ("CODEX_SESSION_ID", "codex"),
-                                       ("PI_SESSION_ID", "codex")):
+                                       ("PI_SESSION_ID", "pi"),
+                                       ("PI_CODING_AGENT_DIR", "pi")):
             with self.subTest(fallback=fallback_var):
                 calls.write_text("")
                 for name in ("HERDR_GOALS_AGENT", "CLAUDECODE",
-                             "CODEX_SESSION_ID", "PI_SESSION_ID"):
+                             "CODEX_SESSION_ID", "PI_SESSION_ID",
+                             "PI_CODING_AGENT_DIR"):
                     env.pop(name, None)
                 env.update(TEST_CALLER_AGENT="__fail__", **{fallback_var: "1"})
                 result = subprocess.run(

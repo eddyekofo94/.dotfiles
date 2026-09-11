@@ -9,8 +9,17 @@
     "/Users/eddyekofo/.dotfiles/pi/extensions/eddy-compat.ts"
   ],
   "skills": [
+    "/Users/eddyekofo/.agent-skills/bug",
+    "/Users/eddyekofo/.agent-skills/code-review",
+    "/Users/eddyekofo/.agent-skills/diagnosing-bugs",
+    "/Users/eddyekofo/.agent-skills/feature",
+    "/Users/eddyekofo/.agent-skills/feature-plan",
+    "/Users/eddyekofo/.agent-skills/grill-me",
     "/Users/eddyekofo/.agent-skills/skill-finish",
     "/Users/eddyekofo/.agent-skills/herdr",
+    "/Users/eddyekofo/.agent-skills/loop",
+    "/Users/eddyekofo/.agent-skills/spec-ticket",
+    "/Users/eddyekofo/.agent-skills/todo",
     "/Users/eddyekofo/.dotfiles/pi/skills/xcodebuildmcp-cli",
     "/Users/eddyekofo/.agent-skills/swift-concurrency-expert",
     "/Users/eddyekofo/.agent-skills/swiftui-liquid-glass",

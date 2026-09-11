@@ -23,6 +23,7 @@ import type {
   TUI,
 } from "@earendil-works/pi-tui";
 import {
+  buildSkillPrompt,
   enabledSkills,
   parseHandoffRequest,
   transformSkillInput,
@@ -787,6 +788,32 @@ export default function eddyCompat(pi: ExtensionAPI) {
     });
   };
 
+  for (const name of enabledSkills()) {
+    pi.registerCommand(name, {
+      description: `Run the shared ${name} workflow skill`,
+      handler: async (args, ctx) => {
+        if (!ctx.isIdle()) {
+          ctx.ui.notify(`/${name} requires an idle Pi session`, "warning");
+          return;
+        }
+        const location = path.join(
+          process.env.HOME ?? "",
+          ".agent-skills",
+          name,
+          "SKILL.md",
+        );
+        if (!fs.existsSync(location)) {
+          ctx.ui.notify(`Missing shared skill: ${location}`, "warning");
+          return;
+        }
+        setActiveSkill(name);
+        pi.sendUserMessage(
+          buildSkillPrompt(name, location, fs.readFileSync(location, "utf8"), args),
+        );
+      },
+    });
+  }
+
   pi.on("session_before_compact", async (event, ctx) => {
     const { preparation } = event;
     const records = loopRecords(ctx.cwd);
@@ -905,10 +932,10 @@ export default function eddyCompat(pi: ExtensionAPI) {
 
   pi.on("input", async (event, ctx) => {
     if (event.source !== "interactive") return { action: "continue" };
-    const nativeSkill = event.text.match(
-      /^\/skill:(herdr|skill-finish)(?:\s|$)/,
-    );
-    if (nativeSkill) setActiveSkill(nativeSkill[1]);
+    const nativeSkill = event.text.match(/^\/skill:([a-z0-9-]+)(?:\s|$)/);
+    if (nativeSkill && enabledSkills().includes(nativeSkill[1])) {
+      setActiveSkill(nativeSkill[1]);
+    }
     const result = transformSkillInput(event.text);
     if (result.action === "blocked") {
       ctx.ui.notify(result.message, "warning");

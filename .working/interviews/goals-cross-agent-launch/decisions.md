@@ -14,8 +14,10 @@ the `claude` executable.
 - The source Herdr pane owns caller identity.
 - Claude callers open Claude sessions with the existing Fable/Opus and
   permission-mode behavior unchanged.
-- Codex and Pi callers open plain Codex sessions, inheriting the user's existing
-  Codex configuration without adding approval or sandbox overrides.
+- Codex callers open Codex sessions and Pi callers open Pi sessions, inheriting
+  each agent's existing configuration without adding model, approval, or
+  sandbox overrides. This supersedes the original 2026-09-10 Pi-to-Codex
+  routing decision after Eddy's 2026-09-11 physical `/todo` failure.
 - `HERDR_GOALS_AGENT` is a diagnostic override. Agent environment variables are
   fallback evidence when Herdr pane metadata is unavailable.
 - Unknown explicit agent identities fail closed. A direct shell invocation with
@@ -23,7 +25,7 @@ the `claude` executable.
 
 ## Stop Condition
 
-- Deterministic tests prove Claude -> Claude, Codex -> Codex, and Pi -> Codex.
+- Deterministic tests prove Claude -> Claude, Codex -> Codex, and Pi -> Pi.
 - Existing named-worktree behavior remains green.
 - Full Herdr verification and fresh Standards/Fidelity review pass.
 - Eddy physically confirms one Codex invocation opens a Codex session without
@@ -44,3 +46,13 @@ the `claude` executable.
   opened Codex with an empty composer and submitted no prompt.
 - Post-merge `./herdr/verify.sh`: PASS, including all 17 focused tests,
   source-build, project-picker, installed integration, and production checks.
+
+## 2026-09-11 Amendment
+
+- The current caller owns every fresh workflow tab, including `/todo` and
+  automatically ranked `/deliver` tabs.
+- Fresh Codex and Pi tabs receive their assigned boot prompt; dropping it left
+  a correctly branded but idle session instead of continuing the workflow.
+- `herdr-goal-done` now follows the same caller-identity contract as
+  `herdr-goals`; its unconditional Claude launch was the screenshot-confirmed
+  regression.

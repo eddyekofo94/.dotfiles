@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import {
+  buildSkillPrompt,
   decodeHandoff,
   enabledSkills,
   parseHandoffRequest,
@@ -12,7 +13,20 @@ import {
   selectGoalRecordSlug,
 } from "../extensions/compaction-core.mjs";
 
-assert.deepEqual(enabledSkills(), ["herdr", "skill-finish"]);
+const workflowSkills = [
+  "bug",
+  "code-review",
+  "diagnosing-bugs",
+  "feature",
+  "feature-plan",
+  "grill-me",
+  "herdr",
+  "loop",
+  "skill-finish",
+  "spec-ticket",
+  "todo",
+];
+assert.deepEqual(enabledSkills(), workflowSkills);
 assert.deepEqual(transformSkillInput("ordinary prompt"), {
   action: "continue",
 });
@@ -24,9 +38,32 @@ assert.deepEqual(transformSkillInput("$skill-finish"), {
   action: "transform",
   text: "/skill:skill-finish",
 });
+for (const name of workflowSkills) {
+  assert.deepEqual(transformSkillInput(`$${name} request`), {
+    action: "transform",
+    text: `/skill:${name} request`,
+  });
+}
 assert.equal(transformSkillInput("$research topic").action, "blocked");
 assert.equal(transformSkillInput("$unknown").action, "blocked");
-assert.equal(transformSkillInput("$Bad").action, "continue");
+assert.equal(transformSkillInput("$Bad").action, "blocked");
+assert.equal(transformSkillInput("$foo_bar").action, "blocked");
+assert.equal(transformSkillInput("$!").action, "blocked");
+assert.equal(
+  buildSkillPrompt(
+    "todo",
+    "/Users/test/.agent-skills/todo/SKILL.md",
+    "---\nname: todo\ndescription: Rank work\n---\n\n# Todo\n\nDo the work.\n",
+    "rank this repo",
+  ),
+  '<skill name="todo" location="/Users/test/.agent-skills/todo/SKILL.md">\n' +
+    "References are relative to /Users/test/.agent-skills/todo.\n\n" +
+    "# Todo\n\nDo the work.\n</skill>\n\nUser: rank this repo",
+);
+assert.throws(
+  () => buildSkillPrompt("research", "/tmp/SKILL.md", "# Research"),
+  /not enabled/,
+);
 
 const extensionSource = fs.readFileSync(
   new URL("../extensions/eddy-compat.ts", import.meta.url),

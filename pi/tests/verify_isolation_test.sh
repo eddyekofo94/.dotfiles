@@ -4,7 +4,7 @@ set -eu
 pi_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 verify="$pi_dir/verify.sh"
 
-grep -Fq 'runtime=$(mktemp -d "$pi_dir/.runtime/verify.XXXXXX")' "$verify"
+grep -Fq 'runtime=$(mktemp -d /private/tmp/pi-pilot-verify.XXXXXX)' "$verify"
 ! grep -Fq 'runtime="$pi_dir/.runtime/verify"' "$verify"
 grep -Fq 'trap cleanup EXIT HUP INT TERM' "$verify"
 grep -Fq 'runtime=$(mktemp -d "$pi_dir/.runtime/sessions.XXXXXX")' \

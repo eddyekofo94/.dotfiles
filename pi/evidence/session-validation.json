@@ -2,13 +2,13 @@
   "status": "PASS",
   "provider": "deterministic offline fixture",
   "named_sessions": {
-    "alpha": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-41-128Z_pilot-alpha.jsonl",
-    "beta": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-42-925Z_pilot-beta.jsonl",
+    "alpha": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-11-716Z_pilot-alpha.jsonl",
+    "beta": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-13-810Z_pilot-beta.jsonl",
     "independent": true,
     "alpha_restored_name": "pilot-alpha",
     "resume_locator": "session JSONL path",
-    "automatic_context_name": "pi-meaningful-session-names",
-    "automatic_collision_name": "pi-meaningful-session-names-p",
+    "automatic_context_name": "pi-workflow-skill-parity",
+    "automatic_collision_name": "pi-workflow-skill-parity-p",
     "automatic_resume_preserved": true,
     "automatic_fork_preserved": true
   },
@@ -39,7 +39,7 @@
     "reason": "threshold",
     "temporary_reserve_tokens": 20000,
     "temporary_keep_recent_tokens": 1,
-    "session": "/private/tmp/pmsn91/pi/.runtime/sessions.Kl517a/state/sessions/2026-09-11T11-59-46-576Z_pilot-threshold.jsonl",
+    "session": "/Users/eddyekofo/.dotfiles-sessions/pi-workflow-skill-parity/pi/.runtime/sessions.ie7DqV/state/sessions/2026-09-11T21-43-17-708Z_pilot-threshold.jsonl",
     "all_sentinels_preserved": true
   }
 }

@@ -12,8 +12,11 @@ under `~/.local/state/pi-pilot` by default. The checksum-verified 0.82.1
 standalone distribution lives under `~/.local/share/pi-pilot`.
 
 Pi's package installer does not modify Codex or Claude. Pi loads only the
-explicitly listed canonical skills in `pi/settings.json`; `$herdr` and
-`$skill-finish` are accepted aliases for Pi's native `/skill:...` commands.
+explicitly listed canonical skills in `pi/settings.json`. The reviewed core
+workflow set (`bug`, `code-review`, `diagnosing-bugs`, `feature`,
+`feature-plan`, `grill-me`, `herdr`, `loop`, `skill-finish`, `spec-ticket`,
+and `todo`) is available through native `/skill:<name>`, `$<name>`, and plain
+`/<name>` forms. Unknown dollar-prefixed skills still fail closed.
 
 Global response and closeout rules have one repository source at
 `agent-config/AGENTS.md`; `pi/AGENTS.md` is a compat symlink to it that this
@@ -84,7 +87,9 @@ pilot's fixed mode.
 The pilot also exposes a pinned XcodeBuildMCP 2.7.0 CLI through
 `xcodebuildmcp` and the exact official `xcodebuildmcp-cli` skill. Four
 canonical shared skills cover Swift concurrency, Liquid Glass, SwiftUI
-performance, and SwiftUI view refactoring without repository copies. The CLI
+performance, and SwiftUI view refactoring without repository copies. These
+specialist skills retain native `/skill:<name>` commands rather than adding
+plain workflow aliases. The CLI
 package and complete dependency tree are lockfile- and hash-verified before
 every launch; install lifecycle scripts and telemetry are disabled. Runtime
 state, daemon sockets, logs, screenshots, and DerivedData defaults use the
