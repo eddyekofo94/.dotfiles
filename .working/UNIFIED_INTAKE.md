@@ -2,19 +2,19 @@
 
 ## Active
 
-`herdr-direct-agent-cycling` — **merged locally; awaiting physical
-acceptance.** Global `Ctrl+Alt+j/k` cycles next/previous current-session agents
-in native sidebar order, wraps, and skips non-agent tabs. Implementation
-`f6d0ed83` is contained in local merge `8a18c3fc`; no push occurred. The
-reviewed build and merged config are installed and reloaded. Focused,
-merged-checkout prototype, source-build, and fresh review gates pass. Full
-build-local `herdr/verify.sh` reaches the unchanged external integration check
-and stops on the separately managed Pi integration `outdated (v5 < v8)`;
-migrating Pi is outside this goal. Physical Ghostty acceptance remains. Source:
-`.working/interviews/herdr-direct-agent-cycling/decisions.md`; review:
-`.working/interviews/herdr-direct-agent-cycling/review.md`.
+None.
 
 ## Recently Completed
+
+`herdr-direct-agent-cycling` — **DONE 2026-09-12.** Global `Ctrl+Alt+j/k`
+cycles next/previous current-session agents in native sidebar order, wraps, and
+skips non-agent tabs. Implementation `f6d0ed83` landed at local merge
+`8a18c3fc`; the reviewed Herdr v0.8.2 build and config are installed and
+reloaded. Focused, merged-checkout prototype, source-build, diff, and fresh
+Standards/Fidelity review gates pass. The aggregate verifier's separately
+managed Pi integration remains pre-existing `outdated (v5 < v8)` and outside
+scope. Eddy physically confirmed the feature works as requested. Nothing was
+pushed. Source: `.working/interviews/herdr-direct-agent-cycling/decisions.md`.
 
 `pi-meaningful-session-names` — **DONE 2026-09-11.** Context-derived startup
 and durable-handoff names, atomic shortest collision suffixes, fallback,

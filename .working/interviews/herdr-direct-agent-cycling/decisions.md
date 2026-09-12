@@ -1,8 +1,8 @@
 # Herdr Direct Agent Cycling
 
-Status: Merged, installed, and physically accepted in Ghostty; full production
-verification remains externally blocked by the pre-existing outdated Pi
-integration.
+Status: DONE 2026-09-12 — merged, installed, and physically accepted in
+Ghostty. The aggregate verifier's separately managed, pre-existing outdated Pi
+integration remains outside this goal.
 
 ## Intake
 

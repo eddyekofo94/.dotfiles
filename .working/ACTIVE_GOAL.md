@@ -1,25 +1,19 @@
 # Active Goal
 
-`herdr-direct-agent-cycling` — **merged locally; awaiting physical acceptance**.
+None.
 
-- Trigger: Eddy selected and authorized implementation through `feature-plan`
-  on 2026-09-12, then authorized local commit/merge and installation.
-- Scope: global `Ctrl+Alt+j/k` cycles next/previous current-session agents in
-  native sidebar order, wraps, and skips non-agent tabs.
-- Landed: implementation `f6d0ed83`; local merge `8a18c3fc`; no push.
-- Installed: the reviewed Herdr v0.8.2 build and merged config are live; the
-  running server accepted `reload-config`.
-- Verified: focused Kitty CSI-u transport, merged-checkout prototype and
-  source-build gates, popup evidence regeneration, diff checks, and fresh
-  Standards/Fidelity review pass.
-- External blocker: full build-local `herdr/verify.sh` reaches integrations and
-  stops because the separately managed Pi integration is pre-existing
-  `outdated (v5 < v8)`; changing that Pi integration is outside this goal.
-- Manual: physical Ghostty confirmation against a crowded sidebar remains.
-- Non-goals: cross-session cycling, sidebar ordering/highlight changes, Pi
-  integration migration, or push.
-- Source: `.working/interviews/herdr-direct-agent-cycling/decisions.md`.
-- Brief: `.working/interviews/herdr-direct-agent-cycling/implementation-brief.md`.
+---
+
+`herdr-direct-agent-cycling` — **closed 2026-09-12.** Global `Ctrl+Alt+j/k`
+cycles next/previous current-session agents in native sidebar order, wraps, and
+skips non-agent tabs. Implementation `f6d0ed83` landed in local `main` at merge
+`8a18c3fc`; the reviewed Herdr v0.8.2 build and config are installed and
+reloaded. Focused, merged-checkout prototype, source-build, diff, and fresh
+Standards/Fidelity review gates pass. The aggregate build-local verifier still
+reports the separately managed, pre-existing Pi integration as `outdated (v5 <
+v8)`; that migration remains outside this goal. Eddy physically confirmed the
+feature works as requested. Nothing was pushed. Source:
+`.working/interviews/herdr-direct-agent-cycling/decisions.md`.
 
 ---
 

@@ -26,6 +26,9 @@ movement. The merged-checkout popup evidence was regenerated and the aggregate
 prototype gate passes. Cross-session cycling and sidebar rendering remain
 excluded.
 
+Physical Ghostty acceptance: PASS 2026-09-12. Eddy reported that the installed
+feature works well and according to the requested behavior.
+
 ## Summary
 
 Standards findings: 0. Fidelity findings: 0. The focused, merged-checkout
@@ -33,5 +36,5 @@ prototype, and source-build gates pass after the final change. The implementatio
 is locally merged, installed, and reloaded without a push. Full build-local
 `herdr/verify.sh` reaches the unchanged external integration audit and stops
 because the separately managed Pi integration reports `outdated (v5 < v8)`.
-No verifier weakening or external integration overwrite was accepted. Physical
-Ghostty acceptance remains manual.
+No verifier weakening or external integration overwrite was accepted. Eddy's
+physical Ghostty acceptance passed on 2026-09-12.
