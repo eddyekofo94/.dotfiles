@@ -315,6 +315,7 @@ if [ "${HERDR_VERIFY_AUDIT:-0}" = 1 ]; then
   clean_multiplexer_env "$prototype/validate_layout_menu.sh"
   clean_multiplexer_env "$prototype/validate_picker_reference.sh"
   clean_multiplexer_env "$prototype/validate_agent_overview.sh"
+  clean_multiplexer_env "$prototype/validate_agent_cycle.sh"
   # Clear the flag on the way down: the prototype gate owns no audit block and
   # now refuses the flag rather than passing as if it had run one.
   HERDR_VERIFY_AUDIT=0 "$prototype/verify.sh"

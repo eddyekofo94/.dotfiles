@@ -22,6 +22,8 @@ KEYS = {
     "alt-ctrl-previous": b"\x1b[112;7u",
     "alt-ctrl-home-next": b"\x1b[108;7u",
     "alt-ctrl-home-previous": b"\x1b[104;7u",
+    "alt-ctrl-agent-next": b"\x1b[106;7u",
+    "alt-ctrl-agent-previous": b"\x1b[107;7u",
     # Arrow aliases arrive as ordinary CSI with the same modifier parameter,
     # not as CSI-u codepoints.
     "alt-ctrl-right": b"\x1b[1;7C",

@@ -79,6 +79,10 @@ toggles zoom, `S` toggles the sidebar, and `u` opens the newest HTTP(S) URL
 visible in the focused pane. `b` inserts the newest labeled agent handoff and
 `B` safely clears Codex or Claude context before inserting it.
 
+Direct `Ctrl+Alt+j/k` cycles next/previous agents in the native current-session
+sidebar order, wraps at the ends, and skips tabs without an agent. The matching
+horizontal `Ctrl+Alt+h/l` pair remains previous/next tab navigation.
+
 `Prefix+Shift+f` opens the separate destructive object manager. It searches
 panes, tabs, and workspaces with a metadata preview, selects exactly one target,
 requires an explicit `y`/`yes`, and re-reads the object's identity and

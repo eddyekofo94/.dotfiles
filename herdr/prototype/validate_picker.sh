@@ -306,7 +306,7 @@ for expected_line in \
 do
   grep -Fqx "$expected_line" "$config"
 done
-test "$(grep -c '^key = ' "$config")" -eq 44
+test "$(grep -c '^key = ' "$config")" -eq 46
 grep -q '^key = "prefix+b"$' "$config"
 grep -q '^key = "prefix+shift+b"$' "$config"
 for digit in 0 1 2 3 4 5 6 7 8 9; do
