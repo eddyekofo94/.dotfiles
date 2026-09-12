@@ -8,6 +8,14 @@ const CANONICAL_SKILLS_ROOT = path.join(
 );
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const NATIVE_ONLY_SKILLS = new Set(["xcodebuildmcp-cli"]);
+const STARTUP_SKILL_NAMES = [
+  "bug",
+  "feature",
+  "feature-plan",
+  "goals",
+  "skill-finish",
+  "todo",
+];
 const MAX_HANDOFF_BYTES = 131072;
 const inventoryCache = new Map();
 const PARSE_SKILL_METADATA = String.raw`
@@ -134,6 +142,11 @@ export function discoverCanonicalSkills(root = CANONICAL_SKILLS_ROOT) {
 
 export function enabledSkills(root = CANONICAL_SKILLS_ROOT) {
   return discoverCanonicalSkills(root).map(({ name }) => name);
+}
+
+export function startupSkills(root = CANONICAL_SKILLS_ROOT) {
+  const available = new Set(enabledSkills(root));
+  return STARTUP_SKILL_NAMES.filter((name) => available.has(name));
 }
 
 export function canonicalSkillLocation(name, root = CANONICAL_SKILLS_ROOT) {
