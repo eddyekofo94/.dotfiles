@@ -34,6 +34,7 @@ capability_gap_evidence=${HERDR_CAPABILITY_GAP_EVIDENCE:-"$prototype/evidence/ca
 utility_parity_evidence=${HERDR_UTILITY_PARITY_EVIDENCE:-"$prototype/evidence/utility-parity-validation.jsonl"}
 picker_reference_evidence=${HERDR_PICKER_REFERENCE_EVIDENCE:-"$prototype/evidence/picker-reference-validation.jsonl"}
 agent_overview_evidence=${HERDR_AGENT_OVERVIEW_EVIDENCE:-"$prototype/evidence/agent-overview-validation.jsonl"}
+agent_cycle_evidence=${HERDR_AGENT_CYCLE_EVIDENCE:-"$prototype/evidence/agent-cycle-validation.jsonl"}
 
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
@@ -76,6 +77,8 @@ test -x "$prototype/fixtures/agent_overview_herdr_fixture.sh"
 test -x "$prototype/validate_utilities.sh"
 test -x "$prototype/validate_picker_reference.sh"
 test -x "$prototype/validate_agent_overview.sh"
+test -x "$prototype/agent_cycle.py"
+test -x "$prototype/validate_agent_cycle.sh"
 test -x "$prototype/tab-history/tab_history.sh"
 test -f "$prototype/tab-history/herdr-plugin.toml"
 test -x "$prototype/tab_client.py"
@@ -178,8 +181,12 @@ grep -q '^key = "prefix+u"$' "$prototype/config.toml"
 for key in h j k l; do
   grep -q "^key = \"prefix+shift+$key\"$" "$prototype/config.toml"
 done
-test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 44
+test "$(grep -c '^key = ' "$prototype/config.toml")" -eq 46
 grep -q '^key = "alt+ctrl+t"$' "$prototype/config.toml"
+grep -q '^key = "alt+ctrl+j"$' "$prototype/config.toml"
+grep -q '^key = "alt+ctrl+k"$' "$prototype/config.toml"
+grep -q 'agent_cycle.py.*next' "$prototype/config.toml"
+grep -q 'agent_cycle.py.*previous' "$prototype/config.toml"
 grep -q 'new_tab.sh' "$prototype/config.toml"
 if grep -q '^key = "alt+t"$' "$prototype/config.toml"; then
   echo "Alt-t must remain application-owned and unbound in Herdr" >&2
@@ -253,7 +260,7 @@ if [ -x "$prototype/.runtime/bin/herdr" ]; then
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cb/herdr/config.toml"
   grep -q '^pane_gaps = true$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^overlay0 = "#1e1e2e"$' "$prototype/.runtime/cf/herdr/config.toml"
-  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 36
+  test "$(grep -c '^type = "shell"$' "$prototype/.runtime/cf/herdr/config.toml")" -eq 38
   grep -q '^key = "alt+h"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q '^key = "alt+ctrl+x"$' "$prototype/.runtime/cf/herdr/config.toml"
   grep -q 'bind --mode.*\\eh.*__herdr_nav h left' "$prototype/herdr_nav.fish"
@@ -301,6 +308,8 @@ python3 -c 'import sys; compile(open(sys.argv[1]).read(), "visible_references.py
   "$prototype/visible_references.py"
 python3 -c 'import sys; compile(open(sys.argv[1]).read(), "semantic_agent_state.py", "exec")' \
   "$prototype/semantic_agent_state.py"
+python3 -c 'import sys; compile(open(sys.argv[1]).read(), "agent_cycle.py", "exec")' \
+  "$prototype/agent_cycle.py"
 
 binding_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 binding_nav_hash=$(shasum -a 256 "$prototype/herdr_nav.fish" | awk '{print $1}')
@@ -319,10 +328,10 @@ jq -se --arg config_hash "$binding_config_hash" \
   --argjson production "$binding_production" '
   map(.check) == ["fixed_split","adaptive_split","swap","resize","move","smart_close","zoom","visible_urls","alt_transport","nested_fish_navigation","close_other_panes","alt_close_tab","alt_close_other_tabs","config","scope_audit","result"] and
   (.[0].evidence.before.panes | length) == 1 and
-  .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.38 and
+  .[0].evidence.after.splits[0].direction == "right" and .[0].evidence.after.splits[0].ratio == 0.5 and
   .[1].evidence.layout.splits[1].direction == "down" and
   .[2].evidence.before != .[2].evidence.after and
-  .[3].evidence.before.splits[0].ratio == 0.38 and .[3].evidence.after.splits[0].ratio == 0.48 and
+  .[3].evidence.before.splits[0].ratio == 0.5 and .[3].evidence.after.splits[0].ratio == 0.6 and
   .[4].evidence.before.terminal_id == .[4].evidence.middle.terminal_id and
   .[4].evidence.before.terminal_id == .[4].evidence.after.terminal_id and
   .[5].evidence.protected_exit == 75 and
@@ -1570,6 +1579,36 @@ jq -se \
   .[7].evidence.polling == false and
   .[7].evidence.commit_or_push == false
 ' "$agent_overview_evidence" >/dev/null
+
+agent_cycle_helper_hash=$(shasum -a 256 "$prototype/agent_cycle.py" | awk '{print $1}')
+agent_cycle_client_hash=$(shasum -a 256 "$prototype/tab_client.py" | awk '{print $1}')
+agent_cycle_validator_hash=$(shasum -a 256 "$prototype/validate_agent_cycle.sh" | awk '{print $1}')
+agent_cycle_production_hash=$(shasum -a 256 "$root/herdr/config.toml" | awk '{print $1}')
+agent_cycle_prototype_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+jq -se \
+  --arg helper "$agent_cycle_helper_hash" \
+  --arg client "$agent_cycle_client_hash" \
+  --arg validator "$agent_cycle_validator_hash" \
+  --arg production "$agent_cycle_production_hash" \
+  --arg prototype_config "$agent_cycle_prototype_hash" '
+  length == 1 and .[0].check == "agent_cycle" and
+  .[0].evidence.transport == {
+    next:"kitty-csi-u-106;7u",previous:"kitty-csi-u-107;7u"
+  } and
+  (.[0].evidence.tabs.agents | length) == 3 and
+  .[0].evidence.tabs.non_agent != null and
+  .[0].evidence.next_order[0] == .[0].evidence.next_order[3] and
+  .[0].evidence.previous_wrap[0] == .[0].evidence.next_order[0] and
+  .[0].evidence.previous_wrap[1] == .[0].evidence.next_order[2] and
+  .[0].evidence.non_agent.next == .[0].evidence.next_order[1] and
+  .[0].evidence.non_agent.previous == .[0].evidence.next_order[0] and
+  .[0].evidence.tab_chords_preserved == true and
+  .[0].evidence.wrap == true and .[0].evidence.sort_performed == false and
+  .[0].evidence.hashes == {
+    helper:$helper,client:$client,validator:$validator,
+    production_config:$production,prototype_config:$prototype_config
+  }
+' "$agent_cycle_evidence" >/dev/null
 
 nvim_config=${XDG_CONFIG_HOME:-"$HOME/.config"}/nvim/lua/plugin/tmux.lua
 if [ ! -f "$nvim_config" ]; then

@@ -1,22 +1,22 @@
 # Active Goal
 
-`pi-workflow-skill-parity` — **implemented / ready for local merge confirmation**.
+`herdr-direct-agent-cycling` — **implemented; closure blocked**.
 
-- Trigger: Eddy selected the existing reproduced parity defect with
-  `/feature-plan` on 2026-09-11 and supplied physical evidence that `/todo`
-  launched Claude from another agent family.
-- Scope: expose the reviewed core workflow skills in Pi with native, dollar,
-  and plain-slash invocation; preserve the invoking agent family across
-  `herdr-goals` and `herdr-goal-done`.
-- Verified: 21 focused inventory/alias/caller-routing tests; full isolated
-  `./pi/verify.sh`; diff checks; fresh Standards/Fidelity fix and re-review.
-- Manual: confirm `$todo`, `/todo`, and `/skill:todo` appear and open in a fresh
-  physical Pi session after merge/install.
-- Follow-up: Pi's launcher no longer forces `--no-approve`, so saved `/trust`
-  decisions take effect after restart while unknown projects remain denied.
-- Non-goals: load every personal skill, change specialist-skill aliases,
-  publish, or overwrite existing shared-checkout changes.
-- Source: `.working/interviews/pi-workflow-skill-parity/decisions.md`.
+- Trigger: Eddy selected and authorized implementation through `feature-plan`
+  on 2026-09-12.
+- Scope: global `Ctrl+Alt+j/k` cycles next/previous current-session agents in
+  native sidebar order, wraps, and skips non-agent tabs.
+- Verified: focused Kitty CSI-u transport, all config-pinned validators,
+  prototype/source-build gates, diff checks, and fresh Standards/Fidelity
+  review pass.
+- Blocked: build-local `herdr/verify.sh` requires the shared installation after
+  merge; unchanged `main` also has a pre-existing Pi integration
+  `outdated (v5 < v8)` failure.
+- Manual: physical Ghostty confirmation against a crowded sidebar remains.
+- Non-goals: cross-session cycling, sidebar ordering/highlight changes, commit,
+  or push.
+- Source: `.working/interviews/herdr-direct-agent-cycling/decisions.md`.
+- Brief: `.working/interviews/herdr-direct-agent-cycling/implementation-brief.md`.
 
 ---
 

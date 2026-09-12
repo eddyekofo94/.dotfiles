@@ -2,16 +2,14 @@
 
 ## Active
 
-`pi-workflow-skill-parity` — **implemented; ready for local merge
-confirmation.** Pi exposes the eleven reviewed core workflow skills through
-native, dollar, and plain-slash forms; malformed and unknown dollar skills fail
-closed. Herdr preserves Claude, Codex, and Pi across fresh, resumed, ranked,
-and `/todo` sessions. Focused tests, the full Pi gate, and post-fix
-Standards/Fidelity review pass. Physical fresh-Pi slash-menu acceptance remains
-manual. The follow-up trust fix removes the launcher's unconditional
-`--no-approve`; saved parent trust now loads project skills while unknown
-projects remain denied. Source:
-`.working/interviews/pi-workflow-skill-parity/decisions.md`.
+`herdr-direct-agent-cycling` — **implemented; closure blocked.** Global
+`Ctrl+Alt+j/k` cycles next/previous current-session agents in native sidebar
+order, wraps, and skips non-agent tabs. Focused/prototype/source-build gates and
+fresh review pass. Build-local `herdr/verify.sh` requires post-merge shared
+installation, while unchanged `main` also has a pre-existing live Pi integration
+`outdated (v5 < v8)` failure; physical Ghostty acceptance remains. Source:
+`.working/interviews/herdr-direct-agent-cycling/decisions.md`; review:
+`.working/interviews/herdr-direct-agent-cycling/review.md`.
 
 ## Recently Completed
 

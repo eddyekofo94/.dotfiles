@@ -74,6 +74,21 @@ type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
 description = "adaptive split from focused pane shape"
 
+# Vertical Ctrl+Alt home-row chords cycle only native current-session agent
+# rows. The helper consumes Herdr's emitted order unchanged and delegates the
+# actual focus to `agent focus`; horizontal Ctrl+Alt+h/l remain tab navigation.
+[[keys.command]]
+key = "alt+ctrl+j"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" next"
+description = "focus next agent in sidebar order"
+
+[[keys.command]]
+key = "alt+ctrl+k"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" previous"
+description = "focus previous agent in sidebar order"
+
 # Global tmux-style smart navigation. Herdr intercepts Alt+h/j/k/l before any
 # app (including non-adapter TUIs like Claude Code, Codex, lazygit); smart_nav.sh
 # forwards the chord to nvim/vim/ssh when that is the foreground process,

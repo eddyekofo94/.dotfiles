@@ -78,16 +78,23 @@ if [ ! -x "$bin" ]; then
   mv "$tmp" "$bin"
 fi
 
+# Generated trial configs must launch helpers from the checkout being tested.
+# The checked-in production default remains absolute, but copying it unchanged
+# from a named worktree silently exercised the shared checkout instead.
+trial_shell="default_shell = \"$prototype/prototype_shell.sh\""
 case "$border_style" in
   compact)
-    cp "$prototype/config.toml" "$config_home/herdr/config.toml"
+    sed "s|^default_shell = .*$|$trial_shell|" \
+      "$prototype/config.toml" >"$config_home/herdr/config.toml"
     ;;
   boxed)
-    sed 's/^pane_gaps = false$/pane_gaps = true/' \
+    sed -e "s|^default_shell = .*$|$trial_shell|" \
+      -e 's/^pane_gaps = false$/pane_gaps = true/' \
       "$prototype/config.toml" >"$config_home/herdr/config.toml"
     ;;
   focused)
-    sed 's/^pane_gaps = false$/pane_gaps = true/' \
+    sed -e "s|^default_shell = .*$|$trial_shell|" \
+      -e 's/^pane_gaps = false$/pane_gaps = true/' \
       "$prototype/config.toml" >"$config_home/herdr/config.toml"
     printf '\n[theme.custom]\noverlay0 = "#1e1e2e"\n' \
       >>"$config_home/herdr/config.toml"
@@ -97,7 +104,8 @@ case "$border_style" in
       >>"$config_home/herdr/config.toml"
     ;;
   borderless)
-    sed 's/^pane_borders = true$/pane_borders = false/' \
+    sed -e "s|^default_shell = .*$|$trial_shell|" \
+      -e 's/^pane_borders = true$/pane_borders = false/' \
       "$prototype/config.toml" >"$config_home/herdr/config.toml"
     ;;
 esac
