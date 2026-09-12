@@ -39,8 +39,13 @@ test ! -L "$partial/home/.claude/keybindings.json"
 test ! -e "$partial/backups"
 
 AGENT_CONFIG_HOME="$fixture/home" \
-AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
+  AGENT_CONFIG_BACKUP_DIR="$fixture/backups" \
   "$config_dir/install.sh" >/dev/null
+for profile in browser computer-use design docs ios office sites; do
+  test -L "$fixture/home/.codex/$profile.config.toml"
+  test "$(readlink "$fixture/home/.codex/$profile.config.toml")" = \
+    "$config_dir/codex/$profile.config.toml"
+done
 AGENT_CONFIG_HOME="$fixture/home" "$config_dir/verify.sh" >/dev/null
 
 # Claude Code and `herdr integration install` rewrite settings.json in place

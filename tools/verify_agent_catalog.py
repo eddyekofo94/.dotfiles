@@ -5,81 +5,28 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 from pathlib import Path
+import re
+import shutil
+import subprocess
+import tempfile
 import tomllib
 
 
 HOME = Path.home()
-AGENT_SKILLS = HOME / ".agent-skills"
-CODEX_CONFIG = HOME / ".codex/config.toml"
-CLAUDE_SETTINGS = HOME / ".claude/settings.json"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+AGENT_SKILLS = Path(os.environ.get("AGENT_SKILLS_ROOT", HOME / ".agent-skills"))
+CODEX_CONFIG = REPO_ROOT / "agent-config/codex/config.toml"
+CLAUDE_SETTINGS = REPO_ROOT / "agent-config/claude/settings.json"
+CODEX_HOOKS = REPO_ROOT / "tmux/hooks/codex.json"
 MAX_CODEX_CATALOG_CHARS = 7_600
 
-CORE_PERSONAL = {
-    "bug",
-    "code-review",
-    "diagnosing-bugs",
-    "doctor",
-    "feature-plan",
-    "grill-me",
-    "heal",
-    "herdr",
-    "loop",
-    "research",
-    "skill-finish",
-    "spec-ticket",
-    "todo",
-}
-
-CLAUDE_OFF = {
-    "ask-eddy",
-    "claude-handoff",
-    "codex-first",
-    "grill-with-docs",
-    "grilling",
-    "handoff",
-    "implement",
-    "improve-codebase-architecture",
-    "loop-me",
-    "setup-matt-pocock-skills",
-    "teach",
-    "to-spec",
-    "to-tickets",
-    "triage",
-    "wayfinder",
-    "writing-great-skills",
-}
-
-CLAUDE_MANUAL = {
-    "app-store-changelog",
-    "codebase-design",
-    "domain-modeling",
-    "git-guardrails-claude-code",
-    "ios-debugger-agent",
-    "mattpocock-skill-sync",
-    "migrate-to-shoehorn",
-    "project-skill-audit",
-    "prototype",
-    "refactor",
-    "resolving-merge-conflicts",
-    "scaffold-exercises",
-    "setup-pre-commit",
-    "setup-ts-deep-modules",
-    "single-dev-server",
-    "swift-concurrency-expert",
-    "swiftui-liquid-glass",
-    "swiftui-performance-audit",
-    "swiftui-ui-patterns",
-    "swiftui-view-refactor",
-    "tdd",
-    "wizard",
-    "writing-beats",
-    "writing-fragments",
-    "writing-shape",
-}
-
 SYSTEM_VISIBLE = {"imagegen", "openai-docs", "skill-creator"}
-SYSTEM_DISABLED = {"plugin-creator", "skill-installer"}
+SYSTEM_DISABLED = {"plugin-creator", "review-agent", "skill-installer"}
+TRUSTED_SKILL_HOOK_HASH = (
+    "sha256:a66d0b73fb99fe23f37f773e1a26624c26660d90604775053ea498a586196829"
+)
 
 DISABLED_PLUGINS = {
     "anthropic-skills@claude-cowork",
@@ -95,6 +42,31 @@ DISABLED_PLUGINS = {
     "spreadsheets@openai-primary-runtime",
     "template-creator@openai-primary-runtime",
     "visualize@openai-bundled",
+    "sites@openai-bundled",
+}
+
+DISABLED_MCPS = {
+    "XcodeBuildMCP",
+    "apple-docs",
+    "computer-use",
+    "context7",
+    "node_repl",
+    "openaiDeveloperDocs",
+}
+
+PROFILE_ENABLES = {
+    "browser": ({"node_repl"}, {"browser@openai-bundled", "chrome@openai-bundled"}),
+    "computer-use": ({"node_repl", "computer-use"}, {"computer-use@openai-bundled"}),
+    "design": (set(), {"figma@openai-curated", "visualize@openai-bundled"}),
+    "docs": ({"context7", "openaiDeveloperDocs"}, set()),
+    "ios": ({"XcodeBuildMCP", "apple-docs"}, set()),
+    "office": (set(), {
+        "documents@openai-primary-runtime",
+        "pdf@openai-primary-runtime",
+        "presentations@openai-primary-runtime",
+        "spreadsheets@openai-primary-runtime",
+    }),
+    "sites": (set(), {"sites@openai-bundled"}),
 }
 
 
@@ -127,6 +99,57 @@ def skill_cost(path: Path) -> int:
     )
 
 
+def canonical_inventory() -> tuple[set[str], set[str]]:
+    module = REPO_ROOT / "pi/extensions/compat-core.mjs"
+    script = """
+import { pathToFileURL } from "node:url";
+const [modulePath, root] = process.argv.slice(1);
+const { enabledSkills, startupSkills } = await import(pathToFileURL(modulePath));
+process.stdout.write(JSON.stringify({
+  enabled: enabledSkills(root),
+  startup: startupSkills(root),
+}));
+"""
+    result = subprocess.run(
+        ["node", "--input-type=module", "-e", script, str(module), str(AGENT_SKILLS)],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    inventory = json.loads(result.stdout)
+    return set(inventory["enabled"]), set(inventory["startup"])
+
+
+def model_visible_skills() -> set[str]:
+    codex_bin = os.environ.get("CODEX_BIN", "codex")
+    with tempfile.TemporaryDirectory(prefix="codex-catalog-") as temporary:
+        codex_home = Path(temporary) / "codex"
+        codex_home.mkdir()
+        shutil.copy2(CODEX_CONFIG, codex_home / "config.toml")
+        os.symlink(AGENT_SKILLS, codex_home / "skills")
+        environment = {**os.environ, "CODEX_HOME": str(codex_home)}
+        result = subprocess.run(
+            [codex_bin, "debug", "prompt-input"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=REPO_ROOT,
+            env=environment,
+        )
+        prompt_items = json.loads(result.stdout)
+    skill_contexts = [
+        content.get("text", "")
+        for item in prompt_items
+        for content in item.get("content", [])
+        if content.get("text", "").startswith("<skills_instructions>")
+    ]
+    if len(skill_contexts) != 1:
+        fail("Codex did not emit exactly one model-visible skill catalog")
+    return set(re.findall(r"^- ([a-z0-9]+(?:-[a-z0-9]+)*):", skill_contexts[0], re.M))
+
+
 def main() -> None:
     codex = tomllib.loads(CODEX_CONFIG.read_text(encoding="utf-8"))
     claude = json.loads(CLAUDE_SETTINGS.read_text(encoding="utf-8"))
@@ -137,38 +160,38 @@ def main() -> None:
     if any(config.get("enabled") is not False for config in plugins.values()):
         fail("every optional Codex plugin must be disabled by default")
 
-    personal_dirs = {
-        path.parent.name for path in AGENT_SKILLS.glob("*/SKILL.md")
-    }
-    expected_disabled = CLAUDE_OFF | CLAUDE_MANUAL
-    if personal_dirs != CORE_PERSONAL | expected_disabled:
-        drift = personal_dirs ^ (CORE_PERSONAL | expected_disabled)
-        fail(f"personal skill inventory drifted: {drift}")
+    personal_dirs, core_personal = canonical_inventory()
+    on_demand = personal_dirs - core_personal
+    archive_paths = set(AGENT_SKILLS.glob("_archive/*/SKILL.md"))
+    archive_names = {path.parent.name for path in archive_paths}
 
-    configured: dict[str, list[dict[str, object]]] = {}
+    configured: dict[Path, list[dict[str, object]]] = {}
     for item in codex.get("skills", {}).get("config", []):
-        name = Path(str(item["path"])).parent.name
-        configured.setdefault(name, []).append(item)
-    expected_configured = expected_disabled | SYSTEM_DISABLED
+        configured.setdefault(Path(str(item["path"])), []).append(item)
+    expected_configured = {
+        *(AGENT_SKILLS / name / "SKILL.md" for name in on_demand),
+        *archive_paths,
+        *(AGENT_SKILLS / ".system" / name / "SKILL.md" for name in SYSTEM_DISABLED),
+    }
     if set(configured) != expected_configured:
         fail(f"Codex disabled skill set drifted: {set(configured) ^ expected_configured}")
-    for name, entries in configured.items():
+    for skill_path, entries in configured.items():
         if len(entries) != 1 or entries[0].get("enabled") is not False:
-            fail(f"Codex skill must have one disabled entry: {name}")
-        if not Path(str(entries[0]["path"])).is_file():
-            fail(f"disabled skill source missing: {name}")
+            fail(f"Codex skill must have one disabled entry: {skill_path}")
+        if not skill_path.is_file():
+            fail(f"disabled skill source missing: {skill_path}")
 
     overrides = claude.get("skillOverrides", {})
     expected_overrides = {
-        **{name: "off" for name in CLAUDE_OFF},
-        **{name: "user-invocable-only" for name in CLAUDE_MANUAL},
+        **{name: "user-invocable-only" for name in on_demand},
+        **{name: "off" for name in archive_names},
     }
     if overrides != expected_overrides:
         fail("Claude skillOverrides drifted")
     if (HOME / ".claude/skills").resolve() != AGENT_SKILLS:
         fail("Claude shared-skill symlink drifted")
 
-    visible_paths = [AGENT_SKILLS / name / "SKILL.md" for name in CORE_PERSONAL]
+    visible_paths = [AGENT_SKILLS / name / "SKILL.md" for name in core_personal]
     visible_paths += [
         AGENT_SKILLS / ".system" / name / "SKILL.md" for name in SYSTEM_VISIBLE
     ]
@@ -181,11 +204,54 @@ def main() -> None:
             f"Codex catalog estimate {catalog_chars} exceeds "
             f"{MAX_CODEX_CATALOG_CHARS}"
         )
+    expected_visible = core_personal | SYSTEM_VISIBLE
+    visible = model_visible_skills()
+    if visible != expected_visible:
+        fail(f"Codex model-visible skill catalog drifted: {visible ^ expected_visible}")
 
     print("PASS: Codex TOML and Claude JSON parsed")
     print(f"PASS: {len(DISABLED_PLUGINS)} optional Codex plugins disabled")
-    print(f"PASS: {len(expected_disabled)} personal skills hidden")
-    print(f"PASS: {len(CORE_PERSONAL)} personal workflow skills visible")
+    mcps = codex.get("mcp_servers", {})
+    if set(mcps) != DISABLED_MCPS:
+        fail(f"Codex MCP set drifted: {set(mcps) ^ DISABLED_MCPS}")
+    if any(config.get("enabled") is not False for config in mcps.values()):
+        fail("every optional Codex MCP must be disabled by default")
+
+    for profile, (expected_mcps, expected_plugins) in PROFILE_ENABLES.items():
+        profile_path = REPO_ROOT / f"agent-config/codex/{profile}.config.toml"
+        profile_config = tomllib.loads(profile_path.read_text(encoding="utf-8"))
+        enabled_mcps = {
+            name for name, value in profile_config.get("mcp_servers", {}).items()
+            if value.get("enabled") is True
+        }
+        enabled_plugins = {
+            name for name, value in profile_config.get("plugins", {}).items()
+            if value.get("enabled") is True
+        }
+        if enabled_mcps != expected_mcps or enabled_plugins != expected_plugins:
+            fail(f"Codex {profile} profile activation set drifted")
+
+    hooks = json.loads(CODEX_HOOKS.read_text(encoding="utf-8"))
+    prompt_hooks = hooks.get("hooks", {}).get("UserPromptSubmit", [])
+    skill_handlers = [
+        handler
+        for group in prompt_hooks
+        for handler in group.get("hooks", [])
+        if "on-demand-skill.mjs" in handler.get("command", "")
+    ]
+    if len(skill_handlers) != 1 or skill_handlers[0].get("additionalContextLimit") != 0:
+        fail("Codex on-demand skill hook is not registered exactly once without truncation")
+    trusted_hook = codex.get("hooks", {}).get("state", {}).get(
+        "/Users/eddyekofo/.codex/hooks.json:user_prompt_submit:1:0", {}
+    )
+    if trusted_hook.get("trusted_hash") != TRUSTED_SKILL_HOOK_HASH:
+        fail("Codex on-demand skill hook hash is not trusted")
+
+    print(f"PASS: {len(on_demand)} personal skills available only on demand")
+    print(f"PASS: {len(core_personal)} personal workflow skills visible")
+    print(f"PASS: exact {len(visible)}-skill Codex model-visible catalog")
+    print(f"PASS: {len(DISABLED_MCPS)} optional Codex MCPs disabled")
+    print(f"PASS: {len(PROFILE_ENABLES)} explicit capability profiles")
     print(f"PASS: Codex catalog estimate {catalog_chars}/{MAX_CODEX_CATALOG_CHARS}")
 
 

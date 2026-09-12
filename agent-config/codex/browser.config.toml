@@ -1,0 +1,8 @@
+[mcp_servers.node_repl]
+enabled = true
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true

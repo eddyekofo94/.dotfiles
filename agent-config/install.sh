@@ -77,6 +77,12 @@ preflight_link codex-config \
   "$agent_home/.codex/config.toml" \
   "$config_dir/codex/config.toml" \
   8892a4102bacb3277aca796e4c871e8f7dcaeb5fd3521c55ea14bdc5cba0f28c
+for profile in browser computer-use design docs ios office sites; do
+  preflight_link "codex-$profile-profile" \
+    "$agent_home/.codex/$profile.config.toml" \
+    "$config_dir/codex/$profile.config.toml" \
+    new-profile
+done
 preflight_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" \
   "$config_dir/claude/CLAUDE.md" \
@@ -106,6 +112,11 @@ install_link codex-agents \
   "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
 install_link codex-config \
   "$agent_home/.codex/config.toml" "$config_dir/codex/config.toml"
+for profile in browser computer-use design docs ios office sites; do
+  install_link "codex-$profile-profile" \
+    "$agent_home/.codex/$profile.config.toml" \
+    "$config_dir/codex/$profile.config.toml"
+done
 install_link claude-instructions \
   "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 install_link claude-closeout-hook \

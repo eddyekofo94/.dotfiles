@@ -1,0 +1,5 @@
+[plugins."figma@openai-curated"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true

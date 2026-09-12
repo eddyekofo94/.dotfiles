@@ -53,6 +53,16 @@
             "type": "command"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$HOME/.dotfiles/agent-config/codex/on-demand-skill.mjs\"",
+            "timeout": 5,
+            "additionalContextLimit": 0,
+            "type": "command"
+          }
+        ]
       }
     ]
   }

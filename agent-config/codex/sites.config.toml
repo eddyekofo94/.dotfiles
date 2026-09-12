@@ -1,0 +1,2 @@
+[plugins."sites@openai-bundled"]
+enabled = true
