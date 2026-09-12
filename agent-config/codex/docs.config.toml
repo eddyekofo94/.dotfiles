@@ -1,0 +1,5 @@
+[mcp_servers.openaiDeveloperDocs]
+enabled = true
+
+[mcp_servers.context7]
+enabled = true

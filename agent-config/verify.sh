@@ -16,6 +16,10 @@ verify_link() {
 
 verify_link "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
 verify_link "$agent_home/.codex/config.toml" "$config_dir/codex/config.toml"
+for profile in browser computer-use design docs ios office sites; do
+  verify_link "$agent_home/.codex/$profile.config.toml" \
+    "$config_dir/codex/$profile.config.toml"
+done
 verify_link "$agent_home/.claude/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
 verify_link "$agent_home/.claude/hooks/closeout.sh" "$config_dir/claude/closeout.sh"
 verify_link \
@@ -33,6 +37,13 @@ grep -Fq '## Closeout' "$repo_dir/agent-config/AGENTS.md"
 jq empty "$agent_home/.claude/keybindings.json"
 CODEX_HOME="$agent_home/.codex" \
   "${CODEX_BIN:-codex}" --strict-config --version >/dev/null
+for profile in browser computer-use design docs ios office sites; do
+  CODEX_HOME="$agent_home/.codex" \
+    "${CODEX_BIN:-codex}" --strict-config --profile "$profile" --version >/dev/null
+done
+
+node "$config_dir/tests/on_demand_skill_test.mjs"
+python3.14 "$repo_dir/tools/verify_agent_catalog.py"
 
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"

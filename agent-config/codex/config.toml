@@ -15,12 +15,12 @@ production, live-store, remote-infrastructure, or network-mutating action withou
 """
 
 [marketplaces.openai-bundled]
-last_updated = "2026-08-08T05:41:40Z"
+last_updated = "2026-09-11T20:01:29Z"
 source_type = "local"
 source = "/Users/eddyekofo/.codex/.tmp/bundled-marketplaces/openai-bundled"
 
 [marketplaces.openai-primary-runtime]
-last_updated = "2026-08-08T05:42:25Z"
+last_updated = "2026-09-11T20:02:17Z"
 source_type = "local"
 source = "/Users/eddyekofo/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
 
@@ -68,6 +68,9 @@ enabled = false
 # Disabled after the 2026-07-18 context-budget cleanup. These remain installed
 # and can be re-enabled for a task that specifically needs them.
 [plugins."gmail@openai-curated-remote"]
+enabled = false
+
+[plugins."sites@openai-bundled"]
 enabled = false
 
 [projects."/Users/eddyekofo/Documents/Theology/epub_conversion/books/Owen"]
@@ -135,6 +138,7 @@ followUpQueueMode = "queue"
 appearanceLightCodeThemeId = "catppuccin"
 dock-icon-preference = "codex-system"
 realtimeVoiceScreenContextEnabled = true
+conversationDetailMode = "STEPS_PROSE"
 
 [desktop.appearanceLightChromeTheme]
 accent = "#8839ef"
@@ -155,64 +159,47 @@ hooks = true
 js_repl = false
 memories = true
 
-# Disabled after the 2026-07-18 skill audit. These remain installed in the
-# shared ~/.agent-skills source (and available to Claude) for easy rollback.
+# Only the same six workflow skills that Pi starts with stay in Codex's initial
+# catalog. Every other validated top-level shared skill remains installed and
+# is injected by the UserPromptSubmit hook only when explicitly invoked.
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/claude-handoff/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/animate/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/codex-first/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/animation-vocabulary/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/git-guardrails-claude-code/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/apple-design/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/loop-me/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/apple-hig/SKILL.md"
 enabled = false
 
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/migrate-to-shoehorn/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/scaffold-exercises/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/setup-ts-deep-modules/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/wizard/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/writing-beats/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/writing-fragments/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/writing-shape/SKILL.md"
-enabled = false
-
-# Superseded or low-frequency personal skills disabled after the 2026-07-18
-# context-budget cleanup. Their source folders remain intact for rollback.
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/ask-eddy/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/grill-with-docs/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/code-review/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/grilling/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/diagnosing-bugs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/doctor/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/emil-design-eng/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/grill-me/SKILL.md"
 enabled = false
 
 [[skills.config]]
@@ -220,53 +207,19 @@ path = "/Users/eddyekofo/.agent-skills/handoff/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/heal/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/herdr/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/html-doc/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/implement/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/improve-codebase-architecture/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/setup-matt-pocock-skills/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/teach/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/to-spec/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/to-tickets/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/triage/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/wayfinder/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/writing-great-skills/SKILL.md"
-enabled = false
-
-# Specialist skills remain installed and are enabled only for work that needs
-# them. The always-visible core is intentionally kept below the catalog budget.
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/app-store-changelog/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/codebase-design/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/domain-modeling/SKILL.md"
 enabled = false
 
 [[skills.config]]
@@ -274,11 +227,11 @@ path = "/Users/eddyekofo/.agent-skills/ios-debugger-agent/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/mattpocock-skill-sync/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/loop/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/project-skill-audit/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/mattpocock-skill-sync/SKILL.md"
 enabled = false
 
 [[skills.config]]
@@ -286,32 +239,36 @@ path = "/Users/eddyekofo/.agent-skills/prototype/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/quiz-me/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/refactor/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/resolving-merge-conflicts/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/research/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/setup-pre-commit/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/review-animations/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/single-dev-server/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/spec-ticket/SKILL.md"
 enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swift-concurrency-expert/SKILL.md"
-enabled = true
+enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swiftui-liquid-glass/SKILL.md"
-enabled = true
+enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swiftui-performance-audit/SKILL.md"
-enabled = true
+enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swiftui-ui-patterns/SKILL.md"
@@ -319,14 +276,72 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swiftui-view-refactor/SKILL.md"
-enabled = true
+enabled = false
+
+# Archived skills are not part of the on-demand inventory. Codex recursively
+# discovers this source, so each actual archive path must remain disabled.
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/app-store-changelog/SKILL.md"
+enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/tdd/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/_archive/codebase-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/codex-first/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/domain-modeling/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/git-guardrails-claude-code/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/improve-codebase-architecture/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/project-skill-audit/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/resolving-merge-conflicts/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/single-dev-server/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/tdd/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/teach/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/wayfinder/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/wizard/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/writing-great-skills/SKILL.md"
 enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/.system/plugin-creator/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/.system/review-agent/SKILL.md"
 enabled = false
 
 [[skills.config]]
@@ -337,32 +352,36 @@ enabled = false
 args = []
 command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
 startup_timeout_sec = 120
+enabled = false
 
 [mcp_servers.node_repl.env]
 NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
 NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
 NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
-NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex:/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
 CODEX_HOME = "/Users/eddyekofo/.codex"
-NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,f204d340535055781952b10ed396de20b842f00a19e430852f7e121ad1ce91f6"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "323bc3e687e17d7e377238d9f4c69111c4d0e6219103b6316d8c52082489533b"
 BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
 NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = "Control the in-app browser in conjunction with the Browser Plugin."
 NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = "Control the Chrome browser in conjunction with the Chrome Plugin. Prefer this method of controlling Chrome over alternatives (such as Computer Use) unless the user explicitly mentions an alternative."
 NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = "Control desktop apps on macOS through Computer Use."
 BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
-BROWSER_USE_CODEX_APP_VERSION = "26.727.51351"
+BROWSER_USE_CODEX_APP_VERSION = "26.803.41515"
 CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex"
 
 [mcp_servers.openaiDeveloperDocs]
 url = "https://developers.openai.com/mcp"
+enabled = false
 
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
+enabled = false
 
 [mcp_servers.apple-docs]
 command = "npx"
 args = ["-y", "apple-doc-mcp"]
+enabled = false
 
 [mcp_servers.computer-use]
 command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
@@ -373,6 +392,7 @@ enabled = false
 [mcp_servers.XcodeBuildMCP]
 command = "npx"
 args = ["-y", "xcodebuildmcp@latest", "mcp"]
+enabled = false
 
 [tui]
 session_picker_view = "dense"
@@ -398,6 +418,9 @@ trusted_hash = "sha256:f834bdbc52111759e5e8cef6e424b2491b70997094d21311ee07c19cf
 [hooks.state."/Users/eddyekofo/.codex/hooks.json:user_prompt_submit:0:0"]
 trusted_hash = "sha256:32c793bd28154646eb2589e90b9a06b8a83fbb727ab0ff2fd3fd3ff284e43f1b"
 
+[hooks.state."/Users/eddyekofo/.codex/hooks.json:user_prompt_submit:1:0"]
+trusted_hash = "sha256:a66d0b73fb99fe23f37f773e1a26624c26660d90604775053ea498a586196829"
+
 [hooks.state."/Users/eddyekofo/.codex/hooks.json:stop:0:0"]
 trusted_hash = "sha256:8f95ad1f98d57e3782b6e3571268615e5a637aa2f3a4bd31b8be6d7b06b6e20b"
 
@@ -409,5 +432,5 @@ disabled_tools = [{ type = "plugin", id = "gmail@openai-curated-remote" }]
 
 [shell_environment_policy.set]
 BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
-NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "028a14b6eaa6d98dac2aae00764345ab9f244801ed8493d42b9af3be5575006e,f204d340535055781952b10ed396de20b842f00a19e430852f7e121ad1ce91f6"
-NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex"
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "323bc3e687e17d7e377238d9f4c69111c4d0e6219103b6316d8c52082489533b"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eddyekofo/.codex:/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
