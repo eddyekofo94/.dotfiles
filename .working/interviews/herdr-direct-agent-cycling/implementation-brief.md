@@ -1,8 +1,8 @@
 # Herdr Direct Agent Cycling — Implementation Brief
 
-Status: Implemented — automated feature gates and fresh review pass; full
-production closure is blocked by the pre-existing outdated Pi integration and
-physical Ghostty acceptance.
+Status: Merged, installed, and reloaded locally — automated feature gates and
+fresh review pass; physical Ghostty acceptance remains, and full production
+verification is externally blocked by the pre-existing outdated Pi integration.
 
 ## Source
 

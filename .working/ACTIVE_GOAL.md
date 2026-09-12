@@ -1,20 +1,23 @@
 # Active Goal
 
-`herdr-direct-agent-cycling` — **implemented; closure blocked**.
+`herdr-direct-agent-cycling` — **merged locally; awaiting physical acceptance**.
 
 - Trigger: Eddy selected and authorized implementation through `feature-plan`
-  on 2026-09-12.
+  on 2026-09-12, then authorized local commit/merge and installation.
 - Scope: global `Ctrl+Alt+j/k` cycles next/previous current-session agents in
   native sidebar order, wraps, and skips non-agent tabs.
-- Verified: focused Kitty CSI-u transport, all config-pinned validators,
-  prototype/source-build gates, diff checks, and fresh Standards/Fidelity
-  review pass.
-- Blocked: build-local `herdr/verify.sh` requires the shared installation after
-  merge; unchanged `main` also has a pre-existing Pi integration
-  `outdated (v5 < v8)` failure.
+- Landed: implementation `f6d0ed83`; local merge `8a18c3fc`; no push.
+- Installed: the reviewed Herdr v0.8.2 build and merged config are live; the
+  running server accepted `reload-config`.
+- Verified: focused Kitty CSI-u transport, merged-checkout prototype and
+  source-build gates, popup evidence regeneration, diff checks, and fresh
+  Standards/Fidelity review pass.
+- External blocker: full build-local `herdr/verify.sh` reaches integrations and
+  stops because the separately managed Pi integration is pre-existing
+  `outdated (v5 < v8)`; changing that Pi integration is outside this goal.
 - Manual: physical Ghostty confirmation against a crowded sidebar remains.
-- Non-goals: cross-session cycling, sidebar ordering/highlight changes, commit,
-  or push.
+- Non-goals: cross-session cycling, sidebar ordering/highlight changes, Pi
+  integration migration, or push.
 - Source: `.working/interviews/herdr-direct-agent-cycling/decisions.md`.
 - Brief: `.working/interviews/herdr-direct-agent-cycling/implementation-brief.md`.
 

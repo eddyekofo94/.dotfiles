@@ -22,13 +22,16 @@ Findings: 0.
 The isolated four-tab fixture proves three ordered agent rows, one skipped
 non-agent tab, next/previous movement, both wraps, directional entry from the
 non-agent tab, exact Kitty CSI-u transport, and preserved `Ctrl+Alt+h/l` tab
-movement. Cross-session cycling and sidebar rendering remain excluded.
+movement. The merged-checkout popup evidence was regenerated and the aggregate
+prototype gate passes. Cross-session cycling and sidebar rendering remain
+excluded.
 
 ## Summary
 
-Standards findings: 0. Fidelity findings: 0. The focused and prototype gates
-pass after the final change. The production aggregate gate is explicitly build-local and cannot complete
-against an unmerged named worktree because installed config/hook symlinks target
-the shared checkout. Its unchanged-`main` integration subgate is independently
-red because Pi reports `outdated (v5 < v8)`. No verifier weakening or external
-integration overwrite was accepted. Physical Ghostty acceptance remains manual.
+Standards findings: 0. Fidelity findings: 0. The focused, merged-checkout
+prototype, and source-build gates pass after the final change. The implementation
+is locally merged, installed, and reloaded without a push. Full build-local
+`herdr/verify.sh` reaches the unchanged external integration audit and stops
+because the separately managed Pi integration reports `outdated (v5 < v8)`.
+No verifier weakening or external integration overwrite was accepted. Physical
+Ghostty acceptance remains manual.

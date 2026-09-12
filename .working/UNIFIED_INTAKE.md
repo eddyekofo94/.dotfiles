@@ -2,12 +2,15 @@
 
 ## Active
 
-`herdr-direct-agent-cycling` — **implemented; closure blocked.** Global
-`Ctrl+Alt+j/k` cycles next/previous current-session agents in native sidebar
-order, wraps, and skips non-agent tabs. Focused/prototype/source-build gates and
-fresh review pass. Build-local `herdr/verify.sh` requires post-merge shared
-installation, while unchanged `main` also has a pre-existing live Pi integration
-`outdated (v5 < v8)` failure; physical Ghostty acceptance remains. Source:
+`herdr-direct-agent-cycling` — **merged locally; awaiting physical
+acceptance.** Global `Ctrl+Alt+j/k` cycles next/previous current-session agents
+in native sidebar order, wraps, and skips non-agent tabs. Implementation
+`f6d0ed83` is contained in local merge `8a18c3fc`; no push occurred. The
+reviewed build and merged config are installed and reloaded. Focused,
+merged-checkout prototype, source-build, and fresh review gates pass. Full
+build-local `herdr/verify.sh` reaches the unchanged external integration check
+and stops on the separately managed Pi integration `outdated (v5 < v8)`;
+migrating Pi is outside this goal. Physical Ghostty acceptance remains. Source:
 `.working/interviews/herdr-direct-agent-cycling/decisions.md`; review:
 `.working/interviews/herdr-direct-agent-cycling/review.md`.
 

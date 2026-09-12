@@ -1,8 +1,8 @@
 # Herdr Direct Agent Cycling
 
-Status: Implemented — focused/prototype validation and fresh review pass;
-closure is blocked by a pre-existing outdated Pi integration and physical
-Ghostty acceptance.
+Status: Merged and installed locally — physical Ghostty acceptance remains;
+full production verification is externally blocked by the pre-existing outdated
+Pi integration.
 
 ## Intake
 
@@ -111,16 +111,21 @@ worktree claim was safely released. Brief:
 - The focused four-tab fixture passes: three ordered agents, one non-agent tab,
   both directions, wraps, directional non-agent entry, and preserved
   `Ctrl+Alt+h/l` tab movement.
-- Every config-hash-pinned validator was regenerated successfully.
+- Every config-hash-pinned validator was regenerated successfully. The popup
+  validator was rerun after merge so its checkout-local evidence names `main`.
 - `herdr/prototype/verify.sh`, `herdr/source-build/verify.sh`, ready-prompt
   parser tests, and `git diff --check` pass after the final change.
 - Fresh review: Standards 0 findings; Fidelity 0 findings. Source: `review.md`.
-- `herdr/verify.sh` is documented as build-local and cannot complete against
-  this unmerged named worktree because installed config/hook links target the
-  shared checkout. The unchanged `main` integration subgate is also red because
-  the live Pi integration is independently `outdated (v5 < v8)`. No verifier
-  weakening or external integration overwrite was accepted.
-- Physical Ghostty acceptance is not run. No commit or push occurred.
+- Implementation commit `f6d0ed83` is contained in local merge `8a18c3fc` on
+  `main`; no push occurred.
+- The reviewed Herdr v0.8.2 binary and merged config were installed. The live
+  server accepted `reload-config`.
+- Full build-local `herdr/verify.sh` ran through unit, source-build, and project
+  picker gates, then stopped at the unchanged integration audit because the
+  separately managed Pi integration reports `outdated (v5 < v8)`. Migrating
+  Pi is outside this goal; no verifier weakening or integration overwrite was
+  accepted.
+- Physical Ghostty acceptance is not run.
 
 ## Open Questions
 
