@@ -1,8 +1,8 @@
 # Herdr Direct Agent Cycling
 
-Status: Merged and installed locally — physical Ghostty acceptance remains;
-full production verification is externally blocked by the pre-existing outdated
-Pi integration.
+Status: Merged, installed, and physically accepted in Ghostty; full production
+verification remains externally blocked by the pre-existing outdated Pi
+integration.
 
 ## Intake
 
@@ -125,7 +125,9 @@ worktree claim was safely released. Brief:
   separately managed Pi integration reports `outdated (v5 < v8)`. Migrating
   Pi is outside this goal; no verifier weakening or integration overwrite was
   accepted.
-- Physical Ghostty acceptance is not run.
+- Physical Ghostty acceptance passed on 2026-09-12. Eddy confirmed that
+  `Ctrl+Alt+j` selects the next sidebar agent, `Ctrl+Alt+k` selects the previous
+  sidebar agent, both directions wrap, and both skip the non-agent tab.
 
 ## Open Questions
 
