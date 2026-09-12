@@ -9,6 +9,7 @@ import {
   discoverCanonicalSkills,
   enabledSkills,
   parseHandoffRequest,
+  startupSkills,
   transformSkillInput,
 } from "../extensions/compat-core.mjs";
 import {
@@ -32,6 +33,15 @@ const requiredSkills = [
   "todo",
 ];
 const sharedSkills = enabledSkills();
+const expectedStartupSkills = [
+  "bug",
+  "feature",
+  "feature-plan",
+  "goals",
+  "skill-finish",
+  "todo",
+];
+assert.deepEqual(startupSkills(), expectedStartupSkills);
 for (const name of requiredSkills) assert.ok(sharedSkills.includes(name), name);
 for (const name of ["doctor", "quiz-me", "research"]) {
   assert.ok(sharedSkills.includes(name), name);
@@ -125,6 +135,7 @@ try {
       "valid-skill",
     ],
   );
+  assert.deepEqual(startupSkills(inventoryFixture), []);
 } finally {
   fs.rmSync(inventoryFixture, { recursive: true, force: true });
 }
@@ -242,8 +253,12 @@ assert.ok(
   "the Pi extension must expose the validated canonical skill inventory",
 );
 assert.ok(
-  extensionSource.includes("skillPaths: discoverCanonicalSkills()"),
-  "native /skill commands must use the same catalog as aliases",
+  extensionSource.includes(".filter(({ name }) => startupSkillNames.has(name))"),
+  "native skill discovery must expose only the startup catalog",
+);
+assert.ok(
+  extensionSource.includes('registerSharedSkill(`skill:${name}`, name)'),
+  "non-startup skills must retain explicit /skill:name commands",
 );
 assert.equal(
   extensionSource.match(/resolveAutomaticSessionName/g)?.length,

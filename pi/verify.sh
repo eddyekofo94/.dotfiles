@@ -226,8 +226,11 @@ node --input-type=module - \
 import { pathToFileURL } from "node:url";
 
 const modulePath = process.argv[2];
-const { enabledSkills } = await import(pathToFileURL(modulePath));
-process.stdout.write(`${JSON.stringify(enabledSkills())}\n`);
+const { enabledSkills, startupSkills } = await import(pathToFileURL(modulePath));
+process.stdout.write(`${JSON.stringify({
+  enabled: enabledSkills(),
+  startup: startupSkills(),
+})}\n`);
 JS
 printf '%s\n' '{"id":"commands","type":"get_commands"}' |
   PI_PILOT_FIXTURE=1 "$pi_dir/pilot.sh" --mode rpc --no-session >"$rpc_log"
@@ -236,14 +239,16 @@ jq -e --slurpfile expected "$expected_skills" '
   .success == true and
   ([.data.commands[] | select(.name == "eddy-pilot")] | length == 1) and
   ([.data.commands[] | select(.source == "skill") | .name] | sort) ==
-    (([$expected[0][] | "skill:" + .] + ["skill:xcodebuildmcp-cli"]) | sort) and
+    (([$expected[0].startup[] | "skill:" + .] + ["skill:xcodebuildmcp-cli"]) | sort) and
   ([.data.commands[] | select(.source == "extension") | .name] as $extensions |
-    ($expected[0] | all(. as $name | $extensions | index($name)))) and
+    ($expected[0].enabled | all(. as $name | $extensions | index($name))) and
+    ($expected[0].enabled - $expected[0].startup |
+      all(. as $name | $extensions | index("skill:" + $name)))) and
   ([.data.commands[] | select(.name == "fff-health")] | length == 1) and
   ([.data.commands[] | select(.name == "fff-mode")] | length == 1) and
   ([.data.commands[] | select(.name == "fff-rescan")] | length == 1) and
   ([.data.commands[] | select(.source == "skill")] | length ==
-    (($expected[0] | length) + 1))
+    (($expected[0].startup | length) + 1))
 ' "$rpc_log" >/dev/null
 rm "$pi_pilot_config_dir/settings.json"
 ln -s "$pi_dir/settings.json" "$pi_pilot_config_dir/settings.json"

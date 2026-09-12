@@ -28,6 +28,7 @@ import {
   discoverCanonicalSkills,
   enabledSkills,
   parseHandoffRequest,
+  startupSkills,
   transformSkillInput,
 } from "./compat-core.mjs";
 import {
@@ -790,12 +791,15 @@ export default function eddyCompat(pi: ExtensionAPI) {
     });
   };
 
+  const startupSkillNames = new Set(startupSkills());
   pi.on("resources_discover", async () => ({
-    skillPaths: discoverCanonicalSkills().map(({ location }) => location),
+    skillPaths: discoverCanonicalSkills()
+      .filter(({ name }) => startupSkillNames.has(name))
+      .map(({ location }) => location),
   }));
 
-  for (const name of enabledSkills()) {
-    pi.registerCommand(name, {
+  const registerSharedSkill = (commandName: string, name: string) => {
+    pi.registerCommand(commandName, {
       description: `Run the shared ${name} skill`,
       handler: async (args, ctx) => {
         if (!ctx.isIdle()) {
@@ -834,6 +838,13 @@ export default function eddyCompat(pi: ExtensionAPI) {
         );
       },
     });
+  };
+
+  for (const name of enabledSkills()) {
+    registerSharedSkill(name, name);
+    if (!startupSkillNames.has(name)) {
+      registerSharedSkill(`skill:${name}`, name);
+    }
   }
 
   pi.on("session_before_compact", async (event, ctx) => {

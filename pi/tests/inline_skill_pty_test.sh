@@ -39,6 +39,10 @@ ln -s "$runtime/settings.json" "$settings"
   printf 'Open the current work and /goals restore its tabs\r'
   sleep 5
   printf '/eddy-pilot-fixture-show-active-skill\r'
+  sleep 3
+  printf 'Inspect system health with /skill:doctor read only\r'
+  sleep 5
+  printf '/eddy-pilot-fixture-show-active-skill\r'
   sleep 2
   printf '\004'
   sleep 1
@@ -68,6 +72,10 @@ if b"Active fixture skill: No interactive Pi skill recorded" not in plain:
     raise SystemExit(f"Rejected alias changed active-skill state\n{plain[-4000:]!r}")
 if b"Active fixture skill: goals" not in plain:
     raise SystemExit(f"Inline /goals did not become active in fresh Pi PTY\n{plain[-3000:]!r}")
+if b"Active fixture skill: doctor" not in plain:
+    raise SystemExit(
+        f"On-demand /skill:doctor did not become active in fresh Pi PTY\n{plain[-3000:]!r}"
+    )
 if b"Fixture response recorded without a network provider." not in plain:
     raise SystemExit(f"Inline /goals did not complete through fixture provider\n{plain[-3000:]!r}")
 PY

@@ -80,10 +80,25 @@ if rendered_session_name not in plain:
         f"Pi compact footer missing resolved session name: "
         f"{rendered_session_name!r}\n{plain[-2000:]!r}"
     )
-if not re.search(rb"\.dotfiles \xc2\xb7 (?:main|pi-session|p?\.\.\.)", plain):
+if not re.search(
+    rb"\.dotfiles \xc2\xb7 (?:main|detached|pi-session|p?\.\.\.)",
+    plain,
+):
     raise SystemExit(f"Pi compact footer missing branch/worktree identity\n{plain[-2000:]!r}")
-if not re.search(rb"~[0-9]+(?:\.[0-9])?k?/32\.8k \xc2\xb7 [0-9]+%", plain):
+usage = re.search(rb"~([0-9]+(?:\.[0-9])?k?)/32\.8k \xc2\xb7 [0-9]+%", plain)
+if not usage:
     raise SystemExit(f"Pi compact footer missing startup token estimate\n{plain[-2000:]!r}")
+displayed_tokens = usage.group(1).decode()
+estimated_tokens = (
+    float(displayed_tokens[:-1]) * 1000
+    if displayed_tokens.endswith("k")
+    else float(displayed_tokens)
+)
+if estimated_tokens >= 3500:
+    raise SystemExit(
+        f"Pi fresh startup estimate reached 3.5k budget: {displayed_tokens}"
+    )
+print(f"Pi fresh startup estimate: {displayed_tokens} tokens")
 for startup_heading in (b"[Context]", b"[Skills]", b"[Extensions]", b"[Themes]"):
     if startup_heading in plain:
         raise SystemExit(f"Pi quiet startup rendered inventory: {startup_heading!r}")

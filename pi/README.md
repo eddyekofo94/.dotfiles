@@ -14,14 +14,18 @@ standalone distribution lives under `~/.local/share/pi-pilot`.
 Pi's package installer does not modify Codex or Claude. The compatibility
 extension discovers every valid immediate child of the canonical
 `~/.agent-skills` repository; hidden, archived, staging, and malformed entries
-are excluded. Every catalog skill is available through native
-`/skill:<name>`, `$<name>`, and plain `/<name>` forms. One enabled skill token
-may appear anywhere at a whitespace-delimited boundary outside quotes or
-backtick code; Pi removes that token and passes the surrounding text to the
-skill in original order. Unknown dollar/native-skill references and prompts
-with multiple recognized skills fail closed. Plain slash tokens that are not
-enabled aliases remain prose so paths and URLs are not mistaken for skills.
-Punctuation attached to a token also leaves it as prose.
+are excluded. The core `bug`, `feature`, `feature-plan`, `goals`,
+`skill-finish`, and `todo` workflows load through native skill discovery at
+startup. Every other catalog skill stays available through an extension-backed
+`/skill:<name>` command without adding its description to fresh-session
+context. Every catalog skill also accepts `$<name>` and plain `/<name>`. One
+enabled skill token may appear anywhere at a whitespace-delimited boundary
+outside quotes or backtick code; Pi removes that token and passes the
+surrounding text to the skill in original order. Unknown dollar/native-skill
+references and prompts with multiple recognized skills fail closed. Plain
+slash tokens that are not enabled aliases remain prose so paths and URLs are
+not mistaken for skills. Punctuation attached to a token also leaves it as
+prose.
 
 Project-local `.agents/skills` and `.pi` resources remain fail-closed by
 default. `defaultProjectTrust` is `never`, but an explicit `/trust` decision is
@@ -96,12 +100,13 @@ pilot's fixed mode.
 
 The pilot also exposes a pinned XcodeBuildMCP 2.7.0 CLI through
 `xcodebuildmcp` and the exact official `xcodebuildmcp-cli` skill. Canonical
-shared skills, including the Swift specialists, load without repository copies
-and receive the same native, dollar, and plain-slash invocation forms. The CLI
-package and complete dependency tree are lockfile- and hash-verified before
-every launch; install lifecycle scripts and telemetry are disabled. Runtime
-state, daemon sockets, logs, screenshots, and DerivedData defaults use the
-marker-owned pilot state root.
+shared skills, including the Swift specialists, remain available without
+repository copies and receive the same `/skill:<name>`, dollar, and plain-slash
+invocation forms; only the six core workflows named above load into startup
+context. The CLI package and complete dependency tree are lockfile- and
+hash-verified before every launch; install lifecycle scripts and telemetry are
+disabled. Runtime state, daemon sockets, logs, screenshots, and DerivedData
+defaults use the marker-owned pilot state root.
 
 Use help-first CLI workflows:
 
