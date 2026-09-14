@@ -73,6 +73,8 @@ The reasoning-footer worktree is clean and its commit is not in main.
 
 ## Closure
 
-No manual check remains. Push main under Eddy's explicit `push everything`
-authorization. Do not merge the separately parked reasoning-footer branch as
-part of this goal.
+No manual check remains. Under Eddy's explicit `push everything`
+authorization, local main `4d8f917d..bca919a7` (74 commits, including this
+feature and its physical acceptance records) was pushed successfully to
+`origin/main`. The separately parked reasoning-footer branch was not merged or
+published as part of this goal.

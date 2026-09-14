@@ -82,7 +82,7 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 
 ## Ready To Act
 
-Implemented, merged locally, installed, physically accepted, and Ready for authorized push. Eddy's `push everything` instruction superseded the prior no-push restriction. The reasoning-footer branch remains separately parked and is not merged into this goal.
+Implemented, merged locally, installed, physically accepted, and pushed to `origin/main` under Eddy's `push everything` authorization. The first publication advanced `origin/main` from `4d8f917d` through closure commit `bca919a7` (74 commits). The reasoning-footer branch remains separately parked and was not merged or published as part of this goal.
 
 ## Open Questions
 
