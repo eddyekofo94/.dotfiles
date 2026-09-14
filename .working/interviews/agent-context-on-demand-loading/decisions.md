@@ -90,7 +90,7 @@ verifier. Do not add a second configuration owner or delete installed plugins.
 - Before the change, each observed Codex process started `node_repl`,
   `apple-doc-mcp`, `context7-mcp`, and `xcodebuildmcp` immediately.
 - The managed catalog verifier reports six visible personal workflow skills,
-  twenty-nine on-demand personal skills, fourteen disabled optional plugins,
+  thirty on-demand personal skills, fourteen disabled optional plugins,
   six disabled MCP servers, and seven explicit profiles.
 - Focused hook tests cover all three invocation forms, core-skill native
   delegation, quoted/path/code false positives, unknown skills, multiple
