@@ -101,24 +101,26 @@ function updateSessionRef(ctx: any): void {
   }
 }
 
-function withSessionRef(params: Record<string, unknown>): Record<string, unknown> {
-  if (currentAgentSessionPath) {
-    return { ...params, agent_session_path: currentAgentSessionPath };
+export function selectSessionRef(
+  sessionId: string | undefined,
+  sessionPath: string | undefined,
+): Record<string, unknown> | undefined {
+  if (sessionId) {
+    return { agent_session_id: sessionId };
   }
-  if (currentAgentSessionId) {
-    return { ...params, agent_session_id: currentAgentSessionId };
+  if (sessionPath) {
+    return { agent_session_path: sessionPath };
   }
-  return params;
+  return undefined;
 }
 
 function currentSessionRef(): Record<string, unknown> | undefined {
-  if (currentAgentSessionPath) {
-    return { agent_session_path: currentAgentSessionPath };
-  }
-  if (currentAgentSessionId) {
-    return { agent_session_id: currentAgentSessionId };
-  }
-  return undefined;
+  return selectSessionRef(currentAgentSessionId, currentAgentSessionPath);
+}
+
+function withSessionRef(params: Record<string, unknown>): Record<string, unknown> {
+  const sessionRef = currentSessionRef();
+  return sessionRef ? { ...params, ...sessionRef } : params;
 }
 
 function reportSession(sessionStartSource?: string): Promise<void> {
