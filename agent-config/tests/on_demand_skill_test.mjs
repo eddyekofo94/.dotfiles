@@ -7,7 +7,7 @@ import { STARTUP_SKILL_NAMES } from "../../pi/extensions/compat-core.mjs";
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "codex-skills-"));
 try {
-  for (const name of ["doctor", ...STARTUP_SKILL_NAMES]) {
+  for (const name of ["doctor", "client-site-revamp", ...STARTUP_SKILL_NAMES]) {
     const directory = path.join(root, name);
     fs.mkdirSync(directory);
     fs.writeFileSync(
@@ -23,6 +23,15 @@ try {
     assert.match(result.hookSpecificOutput.additionalContext, /Run doctor\./u);
     assert.ok(!result.hookSpecificOutput.additionalContext.includes("User: now"));
   }
+
+  const clientSite = handlePrompt(
+    { prompt: "Plan this $client-site-revamp now" },
+    root,
+  );
+  assert.match(
+    clientSite.hookSpecificOutput.additionalContext,
+    /<skill name="client-site-revamp"/u,
+  );
 
   for (const name of STARTUP_SKILL_NAMES) {
     assert.deepEqual(handlePrompt({ prompt: `$${name} request` }, root), {});
