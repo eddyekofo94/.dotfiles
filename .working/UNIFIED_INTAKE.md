@@ -2,7 +2,18 @@
 
 ## Active
 
-None.
+`pi-weekly-usage-live-refresh` — **LOCAL INTEGRATION IN PROGRESS**. The compact
+footer now refreshes Codex weekly allowance after completed provider activity
+and retains the last valid value on failure. Weekly allowance is neutral above
+20%, amber from 11–20%, and maroon at 10% or less. Rebased onto clean main;
+fresh review fixes, post-fix focused/full verification, and independent
+Standards/Fidelity re-review all pass. Local merge and installation are next.
+Local commit/merge/install are authorized, but push is prohibited. Physical
+Ghostty live-refresh and colour acceptance is NOT RUN. It `refines`
+`pi-session-info-color-hierarchy` and `shares implementation seam with`
+`pi/codex_weekly_usage.mjs`, `pi/pilot.sh`, and
+`pi/extensions/eddy-compat.ts`. Source:
+`.working/interviews/pi-weekly-usage-live-refresh/decisions.md`.
 
 ## Recently Completed
 

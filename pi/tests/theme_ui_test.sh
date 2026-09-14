@@ -28,7 +28,7 @@ grep -F 'ctx.ui.setFooter(' \
   "$pi_dir/extensions/eddy-compat.ts" >/dev/null
 grep -F '.extensions = [$extension]' \
   "$pi_dir/validate_sessions.sh" >/dev/null
-for scenario in context-69 context-70 context-84 context-85 weekly-10 normal; do
+for scenario in context-69 context-70 context-84 context-85 weekly-21 weekly-20 weekly-11 weekly-10 normal; do
   grep -F "$scenario" "$pi_dir/physical_qa.sh" >/dev/null
 done
 grep -F '"$pi_dir/install.sh"' "$pi_dir/physical_qa.sh" >/dev/null

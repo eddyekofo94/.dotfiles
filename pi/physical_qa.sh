@@ -15,11 +15,11 @@ case "$scenario" in
   context-69|context-70|context-84|context-85)
     export PI_PILOT_CONTEXT_PERCENT=${scenario#context-}
     ;;
-  weekly-10)
-    export PI_CODEX_WEEKLY_LEFT=10
+  weekly-21|weekly-20|weekly-11|weekly-10)
+    export PI_CODEX_WEEKLY_LEFT=${scenario#weekly-}
     ;;
   *)
-    echo 'usage: physical_qa.sh [normal|context-69|context-70|context-84|context-85|weekly-10]' >&2
+    echo 'usage: physical_qa.sh [normal|context-69|context-70|context-84|context-85|weekly-21|weekly-20|weekly-11|weekly-10]' >&2
     exit 2
     ;;
 esac

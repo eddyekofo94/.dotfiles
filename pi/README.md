@@ -84,11 +84,13 @@ repository, Git branch/worktree, tokens used/context window, and context
 percentage. Before the first provider response, the token count is marked `~`
 because it is estimated from Pi's complete current system prompt; it switches
 to provider-reported usage after a response. The right side shows the Codex weekly allowance left when Codex
-exposes it, plus the current directory. Context is green below 70%, amber from 70% through 84%,
-and red at 85% or higher. Model families use stable restrained identity colours:
-Astra/flagship/Opus yellow, default Sol pink, Terra blue, Luna peach, Sonnet
-mauve, and Haiku green. Weekly allowance stays neutral until 10% or less, when
-it turns maroon.
+exposes it, plus the current directory. The allowance refreshes after each
+completed Codex provider run without restarting Pi and retains its last valid
+value if Codex cannot report a new one. Context is green below 70%, amber from
+70% through 84%, and red at 85% or higher. Model families use stable
+restrained identity colours: Astra/flagship/Opus yellow, default Sol pink,
+Terra blue, Luna peach, Sonnet mauve, and Haiku green. Weekly allowance is
+neutral above 20%, amber from 11% through 20%, and maroon at 10% or less.
 
 FFF runs in `tools-and-ui` mode: it adds `fffind` and `ffgrep` while retaining
 Pi's native tool names. Its package, native dependencies, frecency database,

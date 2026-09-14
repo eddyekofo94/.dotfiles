@@ -38,6 +38,7 @@ import {
 } from "./compaction-core.mjs";
 import { resolveAutomaticSessionName } from "./session-name-core.mjs";
 import { extractPromptHistory } from "./ui-core.mjs";
+import { readWeeklyRemaining } from "../codex_weekly_usage.mjs";
 
 // Keep this rule in the extension entrypoint: Pi's /reload can retain imported
 // ESM dependencies from the previous load while re-evaluating this file.
@@ -121,7 +122,23 @@ function modelColor(modelId) {
 }
 
 function weeklyColor(percent) {
-  return percent !== null && percent <= 10 ? "thinkingMax" : "muted";
+  if (percent !== null && percent <= 10) return "thinkingMax";
+  if (percent !== null && percent <= 20) return "warning";
+  return "muted";
+}
+
+function retainWeeklyRemaining(previous, refreshed) {
+  return Number.isFinite(refreshed) && refreshed >= 0 && refreshed <= 100
+    ? refreshed
+    : previous;
+}
+
+async function refreshedWeeklyRemaining(previous, read) {
+  try {
+    return retainWeeklyRemaining(previous, await read());
+  } catch {
+    return previous;
+  }
 }
 // END CONTEXT DISPLAY HELPERS
 
@@ -448,7 +465,10 @@ function findRepositoryContext(cwd: string) {
   }
 }
 
-function installCompactFooter(ctx: ExtensionContext) {
+function installCompactFooter(
+  ctx: ExtensionContext,
+  weeklyRemaining: number | null,
+) {
   if (ctx.mode !== "tui") return;
   ctx.ui.setFooter((tui, theme, footerData) => {
     const unsubscribe = footerData.onBranchChange(() => tui.requestRender());
@@ -479,14 +499,14 @@ function installCompactFooter(ctx: ExtensionContext) {
         const separator = theme.fg("muted", " · ");
         const contextSegment = theme.fg(signal.color, contextText);
 
-        const weekly = weeklyRemainingPercent(
-          process.env.PI_CODEX_WEEKLY_LEFT,
-        );
         const cwd = path.basename(ctx.cwd) || ctx.cwd;
         const rightParts = [
-          weekly === null
+          weeklyRemaining === null
             ? ""
-            : theme.fg(weeklyColor(weekly), `weekly ${weekly}% left`),
+            : theme.fg(
+                weeklyColor(weeklyRemaining),
+                `weekly ${weeklyRemaining}% left`,
+              ),
           theme.fg("muted", cwd),
         ].filter(Boolean);
         const fullRight = rightParts.join(separator);
@@ -782,6 +802,36 @@ async function completeHandoffRequest(
 
 export default function eddyCompat(pi: ExtensionAPI) {
   let activeSkill = "No interactive Pi skill recorded";
+  let weeklyRemaining = weeklyRemainingPercent(
+    process.env.PI_CODEX_WEEKLY_LEFT,
+  );
+  let weeklyRefresh: Promise<void> | null = null;
+  const refreshWeeklyUsage = (ctx: ExtensionContext) => {
+    if (
+      process.env.PI_PILOT_FIXTURE === "1" ||
+      ctx.model?.provider !== "openai-codex"
+    ) {
+      return Promise.resolve();
+    }
+    if (weeklyRefresh) return weeklyRefresh;
+    weeklyRefresh = refreshedWeeklyRemaining(
+      weeklyRemaining,
+      readWeeklyRemaining,
+    )
+      .then((refreshed) => {
+        weeklyRemaining = refreshed;
+        // /reload creates a fresh extension instance. Keep a process-local
+        // handover snapshot so it cannot restore the stale launch allowance.
+        // No credentials or usage state are written to disk.
+        if (weeklyRemaining !== null) {
+          process.env.PI_CODEX_WEEKLY_LEFT = String(weeklyRemaining);
+        }
+      })
+      .finally(() => {
+        weeklyRefresh = null;
+      });
+    return weeklyRefresh;
+  };
   const setActiveSkill = (name: string) => {
     activeSkill = name;
     pi.appendEntry("eddy-pi-pilot-active-skill", {
@@ -933,7 +983,7 @@ export default function eddyCompat(pi: ExtensionAPI) {
         automaticName.release();
       }
     }
-    installCompactFooter(ctx);
+    installCompactFooter(ctx, weeklyRemaining);
     if (event.reason === "reload") {
       // InteractiveMode resets extension UI before session_start, then wires
       // the new extension shortcuts only after this event returns. Reinstall
@@ -949,17 +999,18 @@ export default function eddyCompat(pi: ExtensionAPI) {
   });
 
   pi.on("session_tree", async (_event, ctx) => {
-    installCompactFooter(ctx);
+    installCompactFooter(ctx, weeklyRemaining);
     installPromptEditor(pi, ctx);
   });
 
-  for (const refreshEvent of [
-    "model_select",
-    "agent_end",
-    "session_compact",
-  ] as const) {
+  pi.on("agent_end", async (_event, ctx) => {
+    await refreshWeeklyUsage(ctx);
+    installCompactFooter(ctx, weeklyRemaining);
+  });
+
+  for (const refreshEvent of ["model_select", "session_compact"] as const) {
     pi.on(refreshEvent, async (_event, ctx) => {
-      installCompactFooter(ctx);
+      installCompactFooter(ctx, weeklyRemaining);
     });
   }
 
