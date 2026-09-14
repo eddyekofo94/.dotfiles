@@ -92,9 +92,15 @@ PARSER_AWK='
             return remainder == "" && length(value) >= 8
         }
 
-        function pi_collapsed_chrome(value) {
+        function pi_collapsed_chrome(value, remainder) {
             value = trim(value)
-            return value ~ /^─+[[:space:]]+↑[[:space:]]+[0-9]+ more[[:space:]]+─+$/
+            if (index(value, "─") != 1) {
+                return 0
+            }
+            remainder = value
+            gsub(/─/, "", remainder)
+            remainder = trim(remainder)
+            return remainder ~ /^↑[[:space:]]+[0-9]+ more$/
         }
 
         # Claude closes a response with a duration line ("✻ Crunched for

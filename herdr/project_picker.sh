@@ -4,216 +4,95 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 herdr=${HERDR_BIN_PATH:-herdr}
 session=${HERDR_PROJECT_SESSION:-${HERDR_SESSION:-}}
-max_depth=${HERDR_PROJECT_MAX_DEPTH:-10}
-scanner=${HERDR_PROJECT_SCANNER:-auto}
+python=${HERDR_PROJECT_PYTHON:-/usr/bin/python3}
+catalog=${HERDR_PROJECT_CATALOG_MODULE:-$root/herdr/project_catalog.py}
 list_only=0
 lock_file=
 lock_acquired=0
 
 case "${1:-}" in
-  "")
-    ;;
-  --list)
-    list_only=1
-    ;;
-  *)
-    echo "usage: project_picker.sh [--list]" >&2
-    exit 64
-    ;;
+  "") ;;
+  --list) list_only=1 ;;
+  *) echo "usage: project_picker.sh [--list]" >&2; exit 64 ;;
 esac
-
 case "$session" in
   ""|*[!A-Za-z0-9._-]*)
-    if [ "$list_only" -eq 0 ]; then
+    [ "$list_only" -eq 1 ] || {
       echo "project picker requires a valid Herdr session identity" >&2
       exit 2
-    fi
+    }
     ;;
 esac
-case "$max_depth" in
-  ""|*[!0-9]*|0)
-    echo "HERDR_PROJECT_MAX_DEPTH must be a positive integer" >&2
-    exit 64
-    ;;
-esac
-case "$scanner" in
-  auto|fd|find)
-    ;;
-  *)
-    echo "HERDR_PROJECT_SCANNER must be auto, fd, or find" >&2
-    exit 64
-    ;;
-esac
-
-for dependency in find git jq; do
+for dependency in git jq "$python"; do
   command -v "$dependency" >/dev/null 2>&1 || {
     echo "project picker requires $dependency" >&2
     exit 127
   }
 done
+[ -f "$catalog" ] || {
+  echo "project picker catalog module is unavailable: $catalog" >&2
+  exit 127
+}
 
 runtime_base=${TMPDIR:-/tmp}
 work_dir=$(mktemp -d "$runtime_base/herdr-project-picker.XXXXXX")
 cleanup() {
   status=$?
   trap - EXIT HUP INT TERM
-  if [ "$lock_acquired" -eq 1 ]; then
-    if [ -L "$lock_file" ] &&
-        [ "$(readlink "$lock_file" 2>/dev/null || true)" = "$$" ]
-    then
-      rm -f -- "$lock_file"
-    fi
+  if [ "$lock_acquired" -eq 1 ] && [ -L "$lock_file" ] &&
+      [ "$(readlink "$lock_file" 2>/dev/null || true)" = "$$" ]; then
+    rm -f -- "$lock_file"
   fi
   rm -rf -- "$work_dir"
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
-roots_file="$work_dir/roots"
-markers_file="$work_dir/markers"
-repos_file="$work_dir/repos"
 candidates_file="$work_dir/candidates"
 records_file="$work_dir/records"
 picked_file="$work_dir/picked"
-: >"$roots_file"
-: >"$markers_file"
-: >"$repos_file"
-: >"$candidates_file"
-: >"$records_file"
 
 canonical_directory() {
   [ -d "$1" ] || return 1
   (CDPATH= cd -P -- "$1" 2>/dev/null && pwd)
 }
 
-append_root() {
-  candidate=$1
-  case "$candidate" in
-    "~")
-      candidate=$HOME
-      ;;
-    "~/"*)
-      candidate=$HOME/${candidate#\~/}
-      ;;
-  esac
-  canonical=$(canonical_directory "$candidate") || return 0
-  printf '%s\n' "$canonical" >>"$roots_file"
-}
-
-if [ -n "${HERDR_PROJECT_ROOTS:-}" ]; then
-  old_ifs=$IFS
-  IFS=:
-  # Intentional word splitting: HERDR_PROJECT_ROOTS is a colon-separated list.
-  for configured_root in $HERDR_PROJECT_ROOTS; do
-    [ -n "$configured_root" ] && append_root "$configured_root"
-  done
-  IFS=$old_ifs
-else
-  append_root "$root"
-  for default_root in \
-    "$HOME/Documents" "$HOME/Projects" "$HOME/projects" "$HOME/work" "$HOME/code"
-  do
-    [ -d "$default_root" ] && append_root "$default_root"
-  done
-fi
-LC_ALL=C sort -u "$roots_file" -o "$roots_file"
-
-while IFS= read -r project_root; do
-  top_level=$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null || true)
-  if [ -n "$top_level" ]; then
-    printf '%s\n' "$top_level" >>"$repos_file"
-    continue
-  fi
-  use_fd=0
-  if [ "$scanner" = fd ]; then
-    command -v fd >/dev/null 2>&1 || {
-      echo "HERDR_PROJECT_SCANNER=fd requires fd" >&2
-      exit 127
-    }
-    use_fd=1
-  elif [ "$scanner" = auto ] && command -v fd >/dev/null 2>&1; then
-    use_fd=1
-  fi
-  if [ "$use_fd" -eq 1 ]; then
-    fd -HI '^\.git$' "$project_root" --max-depth "$max_depth" --prune \
-      --exclude .build --exclude .cache --exclude .runtime --exclude .tox \
-      --exclude .venv --exclude build --exclude 'cmake-build-*' \
-      --exclude node_modules --exclude target --exclude vendor --exclude venv \
-      >>"$markers_file" 2>/dev/null || true
-  else
-    find "$project_root" -mindepth 1 -maxdepth "$max_depth" \
-      \( -type d -name .git -print -prune \) -o \
-      \( -type d \( \
-        -name .build -o -name .cache -o -name .runtime -o -name .tox -o \
-        -name .venv -o -name build -o -name 'cmake-build-*' -o \
-        -name node_modules -o -name target -o -name vendor -o -name venv \
-      \) -prune \) -o \
-      \( -type f -name .git -print \) 2>/dev/null \
-      >>"$markers_file" || true
-  fi
-done <"$roots_file"
-
-while IFS= read -r marker; do
-  marker=${marker%/}
-  repository=${marker%/.git}
-  top_level=$(git -C "$repository" rev-parse --show-toplevel 2>/dev/null || true)
-  [ -n "$top_level" ] && printf '%s\n' "$top_level" >>"$repos_file"
-done <"$markers_file"
-LC_ALL=C sort -u "$repos_file" -o "$repos_file"
-
-while IFS= read -r repository; do
-  canonical=$(canonical_directory "$repository") || continue
-  printf '%s\n' "$canonical" >>"$candidates_file"
-  worktree_registry=
-  if [ -d "$canonical/.git/worktrees" ]; then
-    worktree_registry=$canonical/.git/worktrees
-  elif [ -f "$canonical/.git" ]; then
-    common_dir=$(
-      git -C "$canonical" rev-parse --path-format=absolute \
-        --git-common-dir 2>/dev/null || true
-    )
-    [ -d "$common_dir/worktrees" ] && worktree_registry=$common_dir/worktrees
-  fi
-  if [ -n "$worktree_registry" ]; then
-    git -C "$canonical" worktree list --porcelain 2>/dev/null |
-      sed -n 's/^worktree //p' |
-      while IFS= read -r worktree; do
-        canonical_worktree=$(canonical_directory "$worktree") || continue
-        printf '%s\n' "$canonical_worktree"
-      done >>"$candidates_file"
-  fi
-done <"$repos_file"
-LC_ALL=C sort -u "$candidates_file" -o "$candidates_file"
-
+catalog_status=$($python "$catalog" status)
+[ "$catalog_status" != missing ] || catalog_status=refreshing
+$python "$catalog" list --format picker >"$records_file"
+awk -F "	" '{ print $3 }' "$records_file" >"$candidates_file"
 if [ "$list_only" -eq 1 ]; then
   cat "$candidates_file"
   exit 0
 fi
+if [ ! -s "$records_file" ] && [ "$catalog_status" = refreshing ]; then
+  printf 'Refreshing…\tCatalog is refreshing; Ctrl-r reloads\t\t\n' >"$records_file"
+fi
+if [ "$catalog_status" != current ]; then
+  "$python" "$catalog" refresh </dev/null >/dev/null 2>&1 &
+fi
 
-[ -s "$candidates_file" ] || {
-  echo "project picker found no Git repositories or worktrees" >&2
-  exit 1
-}
-
-while IFS= read -r candidate; do
-  case "$candidate" in
-    *"	"*|*"
-"*)
-      continue
-      ;;
-  esac
-  label=$(basename -- "$candidate")
-  display=$candidate
-  case "$candidate" in
-    "$HOME")
-      display="~"
-      ;;
-    "$HOME"/*)
-      display="~/${candidate#"$HOME"/}"
-      ;;
-  esac
-  printf '%s\t%s\t%s\n' "$label" "$display" "$candidate"
-done <"$candidates_file" |
-  LC_ALL=C sort -f -t "	" -k1,1 -k2,2 >"$records_file"
+# Workspace state is presentation metadata only. Canonicalize it before adding
+# [open], and never feed it back into catalog rank.
+if [ -z "${HERDR_PROJECT_SELECTION:-}" ]; then
+  open_json="$work_dir/open-workspaces.json"
+  open_paths="$work_dir/open-paths"
+  annotated="$work_dir/annotated-records"
+  if "$herdr" --session "$session" workspace list >"$open_json" 2>/dev/null &&
+      jq -er '.result.workspaces[] | .tokens.project_cwd // empty' "$open_json" \
+        >"$work_dir/open-aliases" 2>/dev/null
+  then
+    : >"$open_paths"
+    while IFS= read -r open_alias; do
+      [ -n "$open_alias" ] || continue
+      canonical_directory "$open_alias" >>"$open_paths" 2>/dev/null || true
+    done <"$work_dir/open-aliases"
+    awk -F "\t" -v OFS="\t" \
+      'NR == FNR { open[$0] = 1; next }
+       { if ($3 in open) $2 = $2 " [open]"; print }' \
+      "$open_paths" "$records_file" >"$annotated"
+    mv "$annotated" "$records_file"
+  fi
+fi
 
 if [ -n "${HERDR_PROJECT_SELECTION:-}" ]; then
   selected=$(canonical_directory "$HERDR_PROJECT_SELECTION") || {
@@ -226,20 +105,22 @@ else
     echo "project picker requires fzf" >&2
     exit 127
   }
-  if "$picker" --prompt="Project: " --layout=reverse \
-      --delimiter="	" --with-nth=1,2 <"$records_file" >"$picked_file"
+  refresh_command=$(printf '%s %s refresh >/dev/null 2>&1; %s %s list --format picker --open-paths %s' \
+    "$python" "$catalog" "$python" "$catalog" "$open_paths")
+  if command -v eza >/dev/null 2>&1; then
+    preview_command='eza --tree --icons auto --color=always --level=2 -- {3} 2>/dev/null | head -200'
+  else
+    preview_command='find {3} -mindepth 1 -maxdepth 2 -print 2>/dev/null | head -200'
+  fi
+  if "$picker" --prompt="Project: " --layout=reverse --header="$catalog_status; Ctrl-r refreshes" \
+      --delimiter="	" --with-nth=1,2 --nth=1,2,4 --no-multi \
+      --preview="$preview_command" --preview-window=right,55%,border-sharp,nocycle,~1 \
+      --bind="ctrl-r:reload:$refresh_command" <"$records_file" >"$picked_file"
   then
     :
   else
     picker_status=$?
-    case "$picker_status" in
-      1|130)
-        exit 0
-        ;;
-      *)
-        exit "$picker_status"
-        ;;
-    esac
+    case "$picker_status" in 1|130) exit 0 ;; *) exit "$picker_status" ;; esac
   fi
   [ -s "$picked_file" ] || exit 0
   selected=$(awk -F "	" 'NR == 1 { print $3 }' "$picked_file")
@@ -249,10 +130,19 @@ else
   }
 fi
 
-if ! grep -Fqx -- "$selected" "$candidates_file"; then
-  echo "selected project is outside the discovered project set" >&2
+# Re-read membership after any background or explicit refresh, then revalidate
+# identity again immediately before workspace mutation.
+$python "$catalog" list --format paths >"$candidates_file"
+if ! grep -Fqx -- "$selected" "$candidates_file" ||
+    ! "$python" "$catalog" validate "$selected"
+then
+  echo "selected project is outside the validated project catalog" >&2
   exit 1
 fi
+
+record_success() {
+  "$python" "$catalog" record-selection "$selected" >/dev/null 2>&1 || true
+}
 
 lock_root=${HERDR_PROJECT_LOCK_ROOT:-$runtime_base}
 [ -d "$lock_root" ] || {
@@ -662,6 +552,7 @@ if [ -n "$existing" ]; then
       exit 1
     fi
   fi
+  record_success
   exit 0
 fi
 
@@ -741,3 +632,4 @@ if ! verify_focused_workspace "$created_id"; then
   echo "could not verify the new Herdr workspace" >&2
   exit 1
 fi
+record_success

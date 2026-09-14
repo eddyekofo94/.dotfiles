@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "roots": [
+    { "path": "~/.dotfiles", "max_project_depth": 0 },
+    { "path": "~/.config/nvim", "max_project_depth": 0 },
+    { "path": "~/Programming/Projects", "max_project_depth": 3 },
+    { "path": "~/Documents/Family_Business", "max_project_depth": 2 },
+    { "path": "~/Documents/Theology/epub_conversion/books", "max_project_depth": 2 }
+  ],
+  "explicit_projects": [],
+  "pins": []
+}
