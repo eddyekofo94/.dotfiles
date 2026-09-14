@@ -110,6 +110,13 @@ Automated fixtures must not be used to mark this checklist complete.
 - [x] Close both Ghostty windows, reopen normally, and confirm the last closed
   session recovers while an already-active session still causes a fresh
   independent window/session.
+- [x] Owner-waived 2026-09-14 without physical execution: in a fresh Ghostty
+  window, create a named Pi conversation with a unique history marker, close
+  every client for that Herdr session, and reopen it. The expected result is
+  that the recovered Pi pane resumes that exact history without `session and
+  fork locators must be isolated IDs` and the original JSONL session file still
+  exists. Eddy accepts this behavior operationally until a contrary report; it
+  is not recorded as a witnessed pass.
 - [x] Confirm normal macOS `Cmd+V` paste still works.
 
 ## Agent prompt editor (Ctrl+G): Codex and Pi

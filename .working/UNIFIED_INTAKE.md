@@ -6,6 +6,15 @@ None.
 
 ## Recently Completed
 
+`pi-herdr-recovery-isolated-id-mismatch` — **DONE 2026-09-14 by owner
+acceptance.** The Pi Herdr integration prefers the isolated session ID, retains
+a path-only fallback, and passes an automated Herdr stop/restart replay with
+the same ID and preserved history. Focused coverage, `./pi/verify.sh`, and fresh
+Standards/Fidelity review pass. Eddy accepted the unrun physical Ghostty check
+operationally until a contrary report; this is an owner waiver, not a witnessed
+pass. Nothing was pushed. Source:
+`.working/interviews/pi-herdr-recovery-isolated-id-mismatch/decisions.md`.
+
 `herdr-direct-agent-cycling` — **DONE 2026-09-12.** Global `Ctrl+Alt+j/k`
 cycles next/previous current-session agents in native sidebar order, wraps, and
 skips non-agent tabs. Implementation `f6d0ed83` landed at local merge

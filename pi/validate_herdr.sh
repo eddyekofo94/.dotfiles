@@ -3,6 +3,8 @@ set -eu
 
 pi_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$pi_dir/.." && pwd)
+# shellcheck disable=SC1091
+. "$pi_dir/version.env"
 prototype="$root/herdr/prototype"
 herdr="$prototype/.runtime/bin/herdr"
 runtime_root=${PI_PILOT_HERDR_RUNTIME_ROOT:-/tmp}
@@ -132,6 +134,10 @@ visible_contains() {
     grep -Fq "$expected"
 }
 
+pid_dead() {
+  ! kill -0 "$1" 2>/dev/null
+}
+
 cli server >"$server_log" 2>&1 &
 server_pid=$!
 wait_for "Herdr socket" test -S "$socket"
@@ -170,8 +176,44 @@ wait_for "handoff output" sh -c \
 
 before_agent=$(cli agent list | jq -c \
   '.result.agents[] | select(.agent == "pi")')
-before_session=$(printf '%s\n' "$before_agent" | jq -er '.agent_session.value')
+before_session_kind=$(printf '%s\n' "$before_agent" |
+  jq -er '.agent_session.kind')
+before_session_id=$(printf '%s\n' "$before_agent" |
+  jq -er '.agent_session.value')
+[ "$before_session_kind" = id ] || {
+  echo "pi-pilot: Herdr recovery locator is not an isolated session ID" >&2
+  exit 1
+}
+case "$before_session_id" in
+  ''|*[!A-Za-z0-9._-]*)
+    echo "pi-pilot: Herdr recovery locator is not an isolated session ID" >&2
+    exit 1
+    ;;
+esac
+before_session=$(find "$runtime/pi-state/sessions" -maxdepth 1 -type f \
+  -name "*_${before_session_id}.jsonl" -print -quit)
 wait_for "persisted original Pi session" test -s "$before_session"
+
+# Herdr replays the reported locator after a server restart. Prove the
+# production isolation boundary accepts the emitted ID, still rejects the
+# corresponding absolute path, and leaves the saved history untouched.
+before_session_sha=$(shasum -a 256 "$before_session" | awk '{print $1}')
+ln -sfn "$pi_dir/settings.json" \
+  "$PI_PILOT_STATE_DIR/config/settings.json"
+"$pi_dir/pilot.sh" --session "$before_session_id" --version \
+  >"$runtime/id-locator-version"
+grep -Fxq "$PI_PILOT_VERSION" "$runtime/id-locator-version"
+if "$pi_dir/pilot.sh" --session "$before_session" --version \
+    >"$runtime/path-locator-version" 2>"$runtime/path-locator-error"; then
+  echo "pi-pilot: absolute recovery path bypassed isolated locator policy" >&2
+  exit 1
+fi
+grep -Fxq 'pi-pilot: session and fork locators must be isolated IDs' \
+  "$runtime/path-locator-error"
+test "$(shasum -a 256 "$before_session" | awk '{print $1}')" = \
+  "$before_session_sha"
+ln -sfn "$runtime/pi-settings.json" \
+  "$PI_PILOT_STATE_DIR/config/settings.json"
 
 wait_for "custom Pi prompt" editor_contains '❯'
 cli pane send-text "$pane" "history first" >/dev/null
@@ -307,10 +349,16 @@ wait_for "new Pi handoff editor" sh -c \
   _ "$herdr" "$session" "$pane"
 after_agent=$(cli agent list | jq -c \
   '.result.agents[] | select(.agent == "pi")')
-after_session=$(printf '%s\n' "$after_agent" | jq -er '.agent_session.value')
+after_session_kind=$(printf '%s\n' "$after_agent" |
+  jq -er '.agent_session.kind')
+after_session_id=$(printf '%s\n' "$after_agent" |
+  jq -er '.agent_session.value')
+test "$after_session_kind" = id
+after_session=$(find "$runtime/pi-state/sessions" -maxdepth 1 -type f \
+  -name "*_${after_session_id}.jsonl" -print -quit)
 wait_for "persisted replacement Pi session" test -s "$after_session"
 
-[ "$after_session" != "$before_session" ]
+[ "$after_session_id" != "$before_session_id" ]
 [ -s "$before_session" ]
 [ -s "$after_session" ]
 replacement_name=$(jq -sr '
@@ -358,32 +406,108 @@ wait_for "lowercase handoff output" sh -c \
   '"$1" --session "$2" pane read "$3" --source recent-unwrapped --lines 300 --format text |
     grep -q "Pi handoff second line lowercase"' \
   _ "$herdr" "$session" "$pane"
-lower_before=$(cli agent list | jq -er \
+lower_before_id=$(cli agent list | jq -er \
   '.result.agents[] | select(.agent == "pi") | .agent_session.value')
 lower_user_count_before=$(jq -s --arg first "Pi handoff first line lowercase" '
   [.[] |
     select(.type == "message" and .message.role == "user") |
     select(.message.content | tostring | contains($first))] |
   length
-' "$lower_before")
+' "$after_session")
 HERDR_PANE_ID="$pane" "$prototype/ready_prompt.sh"
 wait_for "lowercase Pi handoff editor" sh -c \
   '"$1" --session "$2" pane read "$3" --source visible --format text |
     grep -q "Pi handoff second line lowercase"' \
   _ "$herdr" "$session" "$pane"
-lower_after=$(cli agent list | jq -er \
+lower_after_id=$(cli agent list | jq -er \
   '.result.agents[] | select(.agent == "pi") | .agent_session.value')
-[ "$lower_after" = "$lower_before" ]
+[ "$lower_after_id" = "$lower_before_id" ]
 lower_user_count_after=$(jq -s --arg first "Pi handoff first line lowercase" '
   [.[] |
     select(.type == "message" and .message.role == "user") |
     select(.message.content | tostring | contains($first))] |
   length
-' "$lower_after")
+' "$after_session")
 if [ "$lower_user_count_after" -ne "$lower_user_count_before" ]; then
   echo "pi-pilot: lowercase handoff was submitted as a user message" >&2
   exit 1
 fi
+
+# Exercise the original failure path: stop the persisted Herdr session, start
+# it again, and let Herdr replay the managed Pi agent command. The restored
+# process must receive the isolated ID, report that same session, and retain
+# the conversation marker in both the TUI and its original JSONL file.
+recovery_marker="Pi handoff first line lowercase"
+restart_session_id=$lower_after_id
+restart_session=$after_session
+restart_history_count=$lower_user_count_after
+test "$restart_history_count" -eq 1
+wait_for "idle after recovery marker" sh -c \
+  '"$1" --session "$2" agent list |
+    jq -e "any(.result.agents[]?; .agent == \"pi\" and
+      .agent_status == \"idle\")" >/dev/null' \
+  _ "$herdr" "$session"
+restart_history_count=1
+before_restart_pid=$(cli pane process-info --pane "$pane" |
+  jq -er '.result.process_info.shell_pid')
+ln -sfn "$pi_dir/settings.json" \
+  "$PI_PILOT_STATE_DIR/config/settings.json"
+
+cli session stop "$session" --json >/dev/null
+wait "$server_pid" 2>/dev/null || true
+server_pid=
+exec 3>&-
+kill "$driver_pid" 2>/dev/null || true
+wait "$driver_pid" 2>/dev/null || true
+driver_pid=
+rm -f "$driver_fifo"
+wait_for "original Pi process exit" pid_dead "$before_restart_pid"
+test -f "$config_home/herdr/sessions/$session/session.json"
+
+# Initial setup launches Pi directly so the interaction fixture can drive it.
+# Recovery, like production, must start from a shell that can execute Herdr's
+# persisted `pi --session <ID>` command.
+sed 's|^default_shell = .*$|default_shell = "/bin/sh"|' \
+  "$config" >"$runtime/restart-config.toml"
+mv "$runtime/restart-config.toml" "$config"
+PATH="$PI_PILOT_COMMAND_DIR:$PATH"
+export PATH
+
+cli server >"$server_log" 2>&1 &
+server_pid=$!
+wait_for "restored Herdr socket" test -S "$socket"
+mkfifo "$driver_fifo"
+"$prototype/tab_client.py" "$herdr" "$config_home" "$config" \
+  "$session" "$prototype" <"$driver_fifo" >"$driver_log" 2>&1 &
+driver_pid=$!
+exec 3>"$driver_fifo"
+wait_for "restored Herdr client" grep -q '^READY$' "$driver_log"
+wait_for "restored Pi pane" sh -c \
+  '"$1" --session "$2" pane list | jq -e ".result.panes | length == 1" >/dev/null' \
+  _ "$herdr" "$session"
+pane=$(cli pane current --current | jq -er '.result.pane.pane_id')
+wait_for "restored Pi process" sh -c \
+  '"$1" --session "$2" pane process-info --pane "$3" |
+    jq -e "any(.result.process_info.foreground_processes[]?;
+      ((.argv0 // \"\") | endswith(\"/pi\")) or
+      ((.name // \"\") == \"pi\"))" >/dev/null' \
+  _ "$herdr" "$session" "$pane"
+after_restart_pid=$(cli pane process-info --pane "$pane" |
+  jq -er '.result.process_info.shell_pid')
+test "$after_restart_pid" != "$before_restart_pid"
+wait_for "restored Pi session ID" sh -c \
+  '"$1" --session "$2" agent list |
+    jq -e --arg id "$3" "any(.result.agents[]?;
+      .agent == \"pi\" and .agent_session.kind == \"id\" and
+      .agent_session.value == \$id)" >/dev/null' \
+  _ "$herdr" "$session" "$restart_session_id"
+wait_for "restored Pi history" visible_contains \
+  "Pi handoff second line lowercase"
+test -s "$restart_session"
+test "$(jq -s --arg marker "$recovery_marker" '[.[] |
+  select(.type == "message" and .message.role == "user") |
+  select(.message.content | tostring | contains($marker))] |
+  length' "$restart_session")" -eq "$restart_history_count"
 
 inventory=$("$prototype/agent_overview.sh" --inventory)
 printf '%s\n' "$inventory" | awk -F '\t' \
@@ -395,7 +519,9 @@ printf '%s\n' "$inventory" | awk -F '\t' \
 jq -n \
   --arg pane "$pane" \
   --arg before "$before_session" \
+  --arg before_id "$before_session_id" \
   --arg after "$after_session" \
+  --arg after_id "$after_session_id" \
   --arg replacement_name "$replacement_name" \
   --arg integration "$(printf '%s\n' "$after_agent" | jq -c '.agent_session')" \
   '{
@@ -403,9 +529,16 @@ jq -n \
     pane:$pane,
     managed_integration:($integration | fromjson),
     previous_session:$before,
+    previous_session_id:$before_id,
     replacement_session:$after,
+    replacement_session_id:$after_id,
     replacement_name:$replacement_name,
     sessions_distinct:($before != $after),
+    recovery_locator_id:true,
+    recovery_path_rejected:true,
+    recovery_history_preserved:true,
+    herdr_restart_replayed_session_id:true,
+    herdr_restart_history_visible:true,
     handoff_visible:true,
     submitted:false,
     lowercase_same_session:true,
