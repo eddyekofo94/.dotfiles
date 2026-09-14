@@ -76,7 +76,8 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 - Physical critical boundary: PASS at 10% (dark maroon), confirmed by Eddy 2026-09-15.
 - Physical warning entry boundary: PASS at 20% (amber), confirmed by Eddy 2026-09-15.
 - Physical neutral boundary: PASS at 21% (neutral), confirmed by Eddy 2026-09-15.
-- Physical 11% boundary fixture and failed-read retention: NOT RUN.
+- Physical lower warning boundary: PASS at 11% (amber), confirmed by Eddy 2026-09-15. All settled colour fixtures now pass.
+- Physical failed-read retention: NOT RUN.
 - 2026-09-15 `/reload` report: INVALID TEST BUILD, not a feature regression. The live settings symlink still targets `/Users/eddyekofo/.dotfiles/pi/settings.json`, whose extension targets main's unchanged launch-snapshot implementation. Main is clean; the feature remains uncommitted in its named worktree because Eddy explicitly prohibited merge/push. The live Codex reader returned 17% while this session retained its 20% launch snapshot.
 
 ## Ready To Act
