@@ -52,7 +52,16 @@ Its six modified Pi files' initial binary diff and committed diff against
 `6d6c9125a97c36dd8736ce63012645a11b40a43c7b35dc90ecd450cd8e453cc2`.
 The reasoning-footer worktree is clean and its commit is not in main.
 
-## Human Check
+## Physical Confirmation
+
+- 2026-09-15: PASS — after `/reload`, the footer began at the stale 20% launch
+  snapshot, then changed to 14% after one completed Codex response and to 13%
+  after the next. Direct upstream reads were 14% and 13%, respectively. Eddy
+  physically confirmed the footer showed 13%. Live refresh without restart is
+  therefore accepted.
+- Warning colour boundaries and failed-read retention remain NOT CONFIRMED.
+
+## Remaining Human Check
 
 1. Run `/reload` in the current Pi session.
 2. Complete one Codex provider run. The footer should refresh to the current
