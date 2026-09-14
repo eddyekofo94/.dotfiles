@@ -63,6 +63,7 @@ plain = re.sub(
 )
 for preserved in (
     b"fixture",
+    b"R:M",
     b".dotfiles",
     b"weekly 72% left",
 ):

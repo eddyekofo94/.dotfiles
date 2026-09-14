@@ -87,7 +87,7 @@ export default function mockProvider(pi: ExtensionAPI) {
     ].map(([id, name]) => ({
       id,
       name,
-      reasoning: false,
+      reasoning: id === "fixture",
       input: ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 32768,
