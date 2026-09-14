@@ -183,6 +183,10 @@ path = "/Users/eddyekofo/.agent-skills/ask-eddy/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/client-site-revamp/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/code-review/SKILL.md"
 enabled = false
 
