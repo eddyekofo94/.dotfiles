@@ -59,7 +59,8 @@ The reasoning-footer worktree is clean and its commit is not in main.
   after the next. Direct upstream reads were 14% and 13%, respectively. Eddy
   physically confirmed the footer showed 13%. Live refresh without restart is
   therefore accepted.
-- Warning colour boundaries and failed-read retention remain NOT CONFIRMED.
+- 2026-09-15: PASS — Eddy physically confirmed the live 13% weekly value appears amber.
+- Exact 21%/20%/11%/10% warning boundaries and failed-read retention remain NOT CONFIRMED.
 
 ## Remaining Human Check
 

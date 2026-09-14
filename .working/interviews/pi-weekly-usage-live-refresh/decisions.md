@@ -72,7 +72,8 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 - Full isolated `./pi/verify.sh`: PASS end to end. An isolated `AGENT_CONFIG_HOME` preserved the worktree's source identity, and the existing prepared Herdr binary supplied the ignored runtime prerequisite.
 - Fresh review: Standards 0 blocking findings; Fidelity 0 blocking findings. Source: `.working/interviews/pi-weekly-usage-live-refresh/review.md`.
 - Physical Ghostty live refresh: PASS 2026-09-15. After `/reload`, completed Codex responses moved the footer from its 20% launch snapshot to upstream-matching 14%, then 13%; Eddy physically confirmed 13%.
-- Physical warning-colour boundaries and failed-read retention: NOT RUN.
+- Physical warning colour: PASS at live 13% (amber), confirmed by Eddy 2026-09-15.
+- Physical 21%/20%/11%/10% boundary fixtures and failed-read retention: NOT RUN.
 - 2026-09-15 `/reload` report: INVALID TEST BUILD, not a feature regression. The live settings symlink still targets `/Users/eddyekofo/.dotfiles/pi/settings.json`, whose extension targets main's unchanged launch-snapshot implementation. Main is clean; the feature remains uncommitted in its named worktree because Eddy explicitly prohibited merge/push. The live Codex reader returned 17% while this session retained its 20% launch snapshot.
 
 ## Ready To Act
