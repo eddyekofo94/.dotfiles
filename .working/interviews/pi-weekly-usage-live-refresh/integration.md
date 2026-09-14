@@ -2,9 +2,11 @@
 
 ## Status
 
-Installed; awaiting physical Ghostty confirmation. The authorized stop condition
-is met: `/reload` can load live refresh. Nothing was pushed, and this session was
-not retired because manual acceptance remains outstanding.
+Done by verified implementation and owner acceptance. `/reload` loads live
+refresh; live values and every settled colour boundary were physically
+confirmed. Eddy accepted the working feature without forcing a physical
+failed-read fixture; deterministic coverage proves retention. `push everything`
+authorized publication. The reasoning-footer branch remains separate.
 
 ## Integration
 
@@ -64,16 +66,13 @@ The reasoning-footer worktree is clean and its commit is not in main.
 - 2026-09-15: PASS — Eddy physically confirmed the 20% fixture appears amber.
 - 2026-09-15: PASS — Eddy physically confirmed the 21% fixture appears neutral.
 - 2026-09-15: PASS — Eddy physically confirmed the 11% fixture appears amber.
-- All settled colour fixtures pass. Physical failed-read retention remains NOT CONFIRMED.
+- All settled colour fixtures pass.
+- 2026-09-15: OWNER ACCEPTANCE — Eddy confirmed the feature works and requested
+  commit/publication rather than forcing a physical read failure. Automated
+  event-level tests remain the evidence for failed-read and reload retention.
 
-## Remaining Human Check
+## Closure
 
-1. Run `/reload` in the current Pi session.
-2. Complete one Codex provider run. The footer should refresh to the current
-   upstream allowance without another reload or restart. It may initially show
-   the old launch value immediately after this first installation reload.
-3. Use `pi/MANUAL_QA.md` for 21%, 20%, 11%, and 10% fixture colours and failure
-   retention. Reload after a successful refresh must retain the refreshed value.
-
-Keep this goal active until physical acceptance. Do not resume or merge the
-parked reasoning-footer goal as part of this check. Do not push.
+No manual check remains. Push main under Eddy's explicit `push everything`
+authorization. Do not merge the separately parked reasoning-footer branch as
+part of this goal.

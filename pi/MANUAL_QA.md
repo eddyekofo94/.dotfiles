@@ -45,15 +45,17 @@ Automated fixtures must not be used to mark this checklist complete.
   higher. Use fixture sessions to reach thresholds; do not spend provider
   tokens solely to fill a live context window. Run `./pi/physical_qa.sh`
   separately with `context-69`, `context-70`, `context-84`, and `context-85`.
-- [ ] Confirm Astra/flagship is yellow, the default Sol model is pink, other
+- [x] Confirm Astra/flagship is yellow, the default Sol model is pink, other
   model families keep distinct restrained colours, and weekly allowance is
   neutral at 21%, amber at 20% and 11%, then dark maroon at 10%. Use `/model`
   for the fixture model families and the four `weekly-*` fixtures for the
-  allowance boundaries.
-- [ ] In a live Codex-backed Pi session, note the footer allowance, submit a
+  allowance boundaries. Weekly boundaries confirmed by Eddy 2026-09-15.
+- [x] In a live Codex-backed Pi session, note the footer allowance, submit a
   provider turn after Codex usage changes, and confirm the footer updates
   without `/reload` or a restart. Confirm a failed refresh leaves the last
-  valid displayed value intact.
+  valid displayed value intact. Live 20% → 14% → 13% refresh was physically
+  confirmed 2026-09-15. Eddy accepted automated event-level evidence for the
+  unforced failed-read path after confirming the feature works.
 - [ ] Run `/reload`, `/tree`, and a model change. Confirm the one-row footer
   remains present and refreshes without replacing the custom editor.
 - [x] Confirm the native footer's model, branch, and context information remains

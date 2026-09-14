@@ -77,12 +77,12 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 - Physical warning entry boundary: PASS at 20% (amber), confirmed by Eddy 2026-09-15.
 - Physical neutral boundary: PASS at 21% (neutral), confirmed by Eddy 2026-09-15.
 - Physical lower warning boundary: PASS at 11% (amber), confirmed by Eddy 2026-09-15. All settled colour fixtures now pass.
-- Physical failed-read retention: NOT RUN.
+- Physical failed-read retention: owner-accepted without forcing a failure on 2026-09-15 after confirming the feature works. Deterministic event-level tests cover null, invalid, thrown, recovery, concurrency, and reload retention paths.
 - 2026-09-15 `/reload` report: INVALID TEST BUILD, not a feature regression. The live settings symlink still targets `/Users/eddyekofo/.dotfiles/pi/settings.json`, whose extension targets main's unchanged launch-snapshot implementation. Main is clean; the feature remains uncommitted in its named worktree because Eddy explicitly prohibited merge/push. The live Codex reader returned 17% while this session retained its 20% launch snapshot.
 
 ## Ready To Act
 
-Implemented, merged locally, and installed. The requested `/reload` readiness stop condition is met. Awaiting physical Ghostty confirmation; push is prohibited.
+Implemented, merged locally, installed, physically accepted, and Ready for authorized push. Eddy's `push everything` instruction superseded the prior no-push restriction. The reasoning-footer branch remains separately parked and is not merged into this goal.
 
 ## Open Questions
 

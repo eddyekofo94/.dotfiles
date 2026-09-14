@@ -2,22 +2,22 @@
 
 ## Active
 
-`pi-weekly-usage-live-refresh` — **INSTALLED; AWAITING PHYSICAL CONFIRMATION**. The compact
-footer now refreshes Codex weekly allowance after completed provider activity
-and retains the last valid value on failure. Weekly allowance is neutral above
-20%, amber from 11–20%, and maroon at 10% or less. Rebased onto clean main;
-fresh review fixes, post-fix focused/full verification, and independent
-Standards/Fidelity re-review all pass. Implementation `fde7dd6a` is merged
-locally and installed; installed extension loading passes. `/reload` now loads
-the live-refresh build. Nothing was pushed. The reasoning-footer work remains
-separate at `751a91c9`. Physical
-Ghostty live-refresh and colour acceptance is NOT RUN. It `refines`
-`pi-session-info-color-hierarchy` and `shares implementation seam with`
-`pi/codex_weekly_usage.mjs`, `pi/pilot.sh`, and
-`pi/extensions/eddy-compat.ts`. Source:
-`.working/interviews/pi-weekly-usage-live-refresh/decisions.md`.
+None.
 
 ## Recently Completed
+
+`pi-weekly-usage-live-refresh` — **DONE 2026-09-15 by verified implementation
+and owner acceptance.** The compact footer refreshes Codex weekly allowance
+after completed provider activity, preserves the last valid value on read
+failure and `/reload`, and renders neutral above 20%, amber at 11–20%, and dark
+maroon at 0–10%. Focused/full verification and independent Standards/Fidelity
+review pass. Eddy physically confirmed live 20% → 14% → 13% refresh plus 21%,
+20%, 11%, and 10% colours, then accepted the working feature without forcing a
+physical failed-read fixture; deterministic event-level coverage proves that
+retention path. Installed locally. `push everything` authorized publication;
+final push evidence is in the decision record. The reasoning-footer branch
+remains separate. Source:
+`.working/interviews/pi-weekly-usage-live-refresh/decisions.md`.
 
 `herdr-shared-project-catalog` — **DONE 2026-09-14.** A tracked bounded-root catalog and disposable validated cache replace the blocking synchronous full-root picker scan. Optional Neovim/Zoxide signals converge aliases onto canonical Git main/worktree identities; cache-first ranking, detached atomic refresh, `[open]`, `Ctrl-r`, action-time validation, and a bounded canonical-path directory preview preserve the existing workspace safety model. Thirteen catalog tests, 55 parser tests, real-fzf/workspace validation, 20-run latency budgets, `./herdr/verify.sh`, `./fish/scripts/verify.sh`, diff checks, fresh Standards/Fidelity review, and Eddy's complete physical Ghostty checklist pass. It `refines` and `shares implementation seam with` the closed `herdr-project-sessionizer-workflow` and `resolves` its startup-latency symptom. Nothing was pushed, installed, or restarted. Source: `.working/interviews/herdr-shared-project-catalog/decisions.md`.
 

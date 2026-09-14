@@ -1,18 +1,6 @@
 # Active Goal
 
-`pi-weekly-usage-live-refresh` — **INSTALLED; AWAITING PHYSICAL CONFIRMATION.**
-The Pi compact footer refreshes Codex weekly allowance after completed provider
-activity, retains the last valid value on failure, and uses neutral above 20%,
-amber from 11–20%, then maroon at 10% or less. Rebased onto clean main
-`01b4a36c`. Post-fix focused tests and full `./pi/verify.sh` pass; independent
-Standards/Fidelity re-review reports no actionable findings. Implementation
-`fde7dd6a` is merged locally and installed; installed extension loading passes.
-`/reload` now targets the live-refresh build. Nothing was pushed.
-The reasoning-footer work remains parked separately at `751a91c9`. Physical
-Ghostty live-refresh and colour acceptance is NOT RUN. Source:
-`.working/interviews/pi-weekly-usage-live-refresh/decisions.md`. Worktree:
-`~/.dotfiles-sessions/pi-weekly-usage-live-refresh`; branch:
-`feature/pi-weekly-usage-live-refresh`.
+None.
 
 ---
 
