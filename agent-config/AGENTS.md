@@ -7,7 +7,7 @@ Canonical repository source for Codex, Claude, and the isolated Pi pilot.
 Owner — read before implementation:
 
 ```sh
-/Users/eddyekofo/Documents/Theology/epub_conversion/instructions/agentic_loop_standard.md
+/Users/eddyekofo/.dotfiles/agent-config/agentic_loop_standard.md
 ```
 
 For every serious project, default to loop-based work instead of one-shot

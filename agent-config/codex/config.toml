@@ -255,6 +255,10 @@ path = "/Users/eddyekofo/.agent-skills/research/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/ship/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/review-animations/SKILL.md"
 enabled = false
 

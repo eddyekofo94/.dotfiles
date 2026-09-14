@@ -65,6 +65,7 @@
     "refactor": "user-invocable-only",
     "research": "user-invocable-only",
     "review-animations": "user-invocable-only",
+    "ship": "user-invocable-only",
     "spec-ticket": "user-invocable-only",
     "swift-concurrency-expert": "user-invocable-only",
     "swiftui-liquid-glass": "user-invocable-only",

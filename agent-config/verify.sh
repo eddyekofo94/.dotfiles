@@ -34,6 +34,10 @@ verify_link "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindin
 grep -Fq '## Response Style (highest priority)' \
   "$repo_dir/agent-config/AGENTS.md"
 grep -Fq '## Closeout' "$repo_dir/agent-config/AGENTS.md"
+# The shared loop standard must be owned here, not by an unrelated project.
+[ -s "$config_dir/agentic_loop_standard.md" ]
+grep -Fxq '/Users/eddyekofo/.dotfiles/agent-config/agentic_loop_standard.md' \
+  "$config_dir/AGENTS.md"
 jq empty "$agent_home/.claude/keybindings.json"
 CODEX_HOME="$agent_home/.codex" \
   "${CODEX_BIN:-codex}" --strict-config --version >/dev/null
