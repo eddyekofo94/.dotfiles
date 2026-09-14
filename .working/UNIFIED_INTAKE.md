@@ -2,13 +2,15 @@
 
 ## Active
 
-`pi-weekly-usage-live-refresh` — **LOCAL INTEGRATION IN PROGRESS**. The compact
+`pi-weekly-usage-live-refresh` — **INSTALLED; AWAITING PHYSICAL CONFIRMATION**. The compact
 footer now refreshes Codex weekly allowance after completed provider activity
 and retains the last valid value on failure. Weekly allowance is neutral above
 20%, amber from 11–20%, and maroon at 10% or less. Rebased onto clean main;
 fresh review fixes, post-fix focused/full verification, and independent
-Standards/Fidelity re-review all pass. Local merge and installation are next.
-Local commit/merge/install are authorized, but push is prohibited. Physical
+Standards/Fidelity re-review all pass. Implementation `fde7dd6a` is merged
+locally and installed; installed extension loading passes. `/reload` now loads
+the live-refresh build. Nothing was pushed. The reasoning-footer work remains
+separate at `751a91c9`. Physical
 Ghostty live-refresh and colour acceptance is NOT RUN. It `refines`
 `pi-session-info-color-hierarchy` and `shares implementation seam with`
 `pi/codex_weekly_usage.mjs`, `pi/pilot.sh`, and

@@ -2,7 +2,7 @@
 
 ## Status
 
-Rebased onto clean main `01b4a36c`. Post-fix focused/full verification and independent Standards/Fidelity re-review pass. Ready for authorized local commit/merge and installation. Stop at `/reload` readiness; physical Ghostty confirmation remains outstanding.
+Implementation `fde7dd6a` rebased onto clean main `01b4a36c`, committed, fast-forward merged locally, and installed. Post-fix focused/full verification, independent Standards/Fidelity re-review, and installed extension loading pass. `/reload` readiness reached; physical Ghostty confirmation remains outstanding. Nothing was pushed. Integration evidence: `integration.md`.
 
 ## Sources
 

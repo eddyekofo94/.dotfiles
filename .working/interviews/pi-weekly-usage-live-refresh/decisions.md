@@ -61,7 +61,7 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 - Fixes restore unconditional `agent_end` footer installation, retain the latest valid allowance across extension reloads through a process-local handover snapshot, and exercise the actual refresh closure/event hook with reader/UI stubs.
 - Post-fix focused tests and full `./pi/verify.sh`: PASS. The final full gate ran after all code/test fixes with an isolated `AGENT_CONFIG_HOME` and disposable pilot state. Provider benchmark remained dry-run.
 - Independent Codex `gpt-5.6-sol` re-review: Standards PASS; Fidelity PASS; no actionable findings. Source: `review.md`.
-- Rebased onto clean local main `01b4a36c`. Local merge/installation are next; physical confirmation remains NOT RUN. The evidence below is historical.
+- Rebased onto clean local main `01b4a36c`; implementation `fde7dd6a` committed, fast-forward merged locally, and installed. Installed extension loading and main-checkout focused tests pass. `/reload` is ready; physical confirmation remains NOT RUN. No push. Final evidence: `integration.md`. The evidence below is historical.
 
 ## Prior Implementation / Verification Evidence
 
@@ -76,7 +76,7 @@ Keep the Pi footer's Codex weekly allowance current during a running session and
 
 ## Ready To Act
 
-Ready for authorized local integration and installation; physical Ghostty confirmation remains outstanding. Local commit and merge are authorized; push is prohibited.
+Implemented, merged locally, and installed. The requested `/reload` readiness stop condition is met. Awaiting physical Ghostty confirmation; push is prohibited.
 
 ## Open Questions
 
