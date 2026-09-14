@@ -97,6 +97,20 @@ after unreliable live rendering.
 
 ## Investigating
 
+- `pi-herdr-recovery-isolated-id-mismatch`: Herdr `window-70` restored eight
+  saved Pi panes by replaying `pi --session <absolute-jsonl-path>`, and every
+  replay failed with `pi-pilot: session and fork locators must be isolated
+  IDs`. The histories remain intact. Each JSONL header contains the UUID that
+  `pi --session <UUID>` accepts. Root cause is confirmed at the reporting seam:
+  `pi/integrations/herdr-agent-state.ts` prefers `agent_session_path` whenever
+  both path and ID exist, while `pi/pilot.sh` deliberately rejects path
+  locators outside fixture mode. This `affects` native Herdr restart recovery
+  and `shares implementation seam with` the separately managed Pi integration
+  migration excluded from the active `herdr-direct-agent-cycling` goal. Intake
+  and manual recovery only; no implementation is authorized while that goal is
+  active. Evidence: Eddy's 2026-09-12 Ghostty screenshot, saved
+  `window-70/session.json`, and all eight existing JSONL session headers.
+
 - `agent-context-on-demand-loading`: Eddy wants startup token usage to remain
   visible and wants skills and Model Context Protocol (MCP) servers loaded only
   for relevant projects or tasks. Figma is already `installed, disabled`, but

@@ -52,3 +52,6 @@ CMakeFile
 /fish/file1
 /fish/file2
 /fish/mock_file.txt
+# Codex resolves managed profile symlinks before placing its transient MCP
+# OAuth lock, so the lock can appear beside the tracked profile sources.
+/agent-config/codex/mcp-oauth-locks/

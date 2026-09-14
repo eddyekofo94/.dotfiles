@@ -1,0 +1,8 @@
+[mcp_servers.node_repl]
+enabled = true
+
+[mcp_servers.computer-use]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true

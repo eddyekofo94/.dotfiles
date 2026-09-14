@@ -8,14 +8,14 @@ const CANONICAL_SKILLS_ROOT = path.join(
 );
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const NATIVE_ONLY_SKILLS = new Set(["xcodebuildmcp-cli"]);
-const STARTUP_SKILL_NAMES = [
+export const STARTUP_SKILL_NAMES = Object.freeze([
   "bug",
   "feature",
   "feature-plan",
   "goals",
   "skill-finish",
   "todo",
-];
+]);
 const MAX_HANDOFF_BYTES = 131072;
 const inventoryCache = new Map();
 const PARSE_SKILL_METADATA = String.raw`
@@ -237,27 +237,16 @@ function skillArguments(text, invocation) {
 }
 
 export function transformSkillInput(text) {
-  const enabled = new Set(enabledSkills());
-  const references = candidateTokens(text)
-    .map((candidate) => classifyCandidate(candidate, enabled))
-    .filter((candidate) => candidate !== null);
-  const invalid = references.find((reference) => !reference.recognized);
-  if (invalid) {
+  const resolution = resolveSkillInput(text);
+  if (resolution.action === "blocked") {
     return {
       action: "blocked",
-      message: `Pi pilot skill is not enabled: ${invalid.name || invalid.raw}`,
+      message: `Pi pilot ${resolution.message}`,
     };
   }
+  if (resolution.action === "continue") return resolution;
 
-  if (references.length > 1) {
-    return {
-      action: "blocked",
-      message: "Pi pilot accepts exactly one skill per prompt",
-    };
-  }
-  if (references.length === 0) return { action: "continue" };
-
-  const [invocation] = references;
+  const { invocation } = resolution;
   if (invocation.nativeOnly) {
     return invocation.start === 0
       ? { action: "continue" }
@@ -270,6 +259,32 @@ export function transformSkillInput(text) {
   return {
     action: "transform",
     text: `/skill:${invocation.name}${args ? ` ${args}` : ""}`,
+  };
+}
+
+export function resolveSkillInput(text, root = CANONICAL_SKILLS_ROOT) {
+  const enabled = new Set(enabledSkills(root));
+  const references = candidateTokens(text)
+    .map((candidate) => classifyCandidate(candidate, enabled))
+    .filter((candidate) => candidate !== null);
+  const invalid = references.find((reference) => !reference.recognized);
+  if (invalid) {
+    return {
+      action: "blocked",
+      message: `skill is not enabled: ${invalid.name || invalid.raw}`,
+    };
+  }
+
+  if (references.length > 1) {
+    return {
+      action: "blocked",
+      message: "accepts exactly one skill per prompt",
+    };
+  }
+  if (references.length === 0) return { action: "continue" };
+  return {
+    action: "invoke",
+    invocation: references[0],
   };
 }
 
