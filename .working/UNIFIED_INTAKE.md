@@ -6,6 +6,8 @@ None.
 
 ## Recently Completed
 
+`herdr-shared-project-catalog` — **DONE 2026-09-14.** A tracked bounded-root catalog and disposable validated cache replace the blocking synchronous full-root picker scan. Optional Neovim/Zoxide signals converge aliases onto canonical Git main/worktree identities; cache-first ranking, detached atomic refresh, `[open]`, `Ctrl-r`, action-time validation, and a bounded canonical-path directory preview preserve the existing workspace safety model. Thirteen catalog tests, 55 parser tests, real-fzf/workspace validation, 20-run latency budgets, `./herdr/verify.sh`, `./fish/scripts/verify.sh`, diff checks, fresh Standards/Fidelity review, and Eddy's complete physical Ghostty checklist pass. It `refines` and `shares implementation seam with` the closed `herdr-project-sessionizer-workflow` and `resolves` its startup-latency symptom. Nothing was pushed, installed, or restarted. Source: `.working/interviews/herdr-shared-project-catalog/decisions.md`.
+
 `pi-herdr-recovery-isolated-id-mismatch` — **DONE 2026-09-14 by owner
 acceptance.** The Pi Herdr integration prefers the isolated session ID, retains
 a path-only fallback, and passes an automated Herdr stop/restart replay with

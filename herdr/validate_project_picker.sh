@@ -5,7 +5,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 herdr_dir="$root/herdr"
 prototype="$herdr_dir/prototype"
 picker="$herdr_dir/project_picker.sh"
-herdr="$prototype/.runtime/bin/herdr"
+herdr=${HERDR_VALIDATE_BIN:-"$prototype/.runtime/bin/herdr"}
 runtime_seed=$(mktemp -d /tmp/hpp.XXXXXX)
 runtime=$(CDPATH= cd -P -- "$runtime_seed" && pwd)
 config_home="$runtime/config-home"
@@ -164,7 +164,16 @@ export XDG_CONFIG_HOME="$config_home"
 export HERDR_CONFIG_PATH="$config"
 export HERDR_BIN_PATH="$herdr"
 export HERDR_PROTOTYPE_DIR="$prototype"
-export HERDR_PROJECT_ROOTS="$projects"
+export HERDR_PROJECT_CATALOG_CONFIG="$runtime/project-catalog.json"
+export HERDR_PROJECT_CATALOG_CACHE="$runtime/project-catalog-cache.json"
+export HERDR_PROJECT_NEOVIM_HISTORY="$runtime/neovim-projects.json"
+export HERDR_PROJECT_ZOXIDE_LIST="$runtime/zoxide-projects.txt"
+jq -n --arg root "$projects" \
+  '{version:1,roots:[{path:$root,max_project_depth:2}],explicit_projects:[],pins:[]}' \
+  >"$HERDR_PROJECT_CATALOG_CONFIG"
+printf '[]\n' >"$HERDR_PROJECT_NEOVIM_HISTORY"
+: >"$HERDR_PROJECT_ZOXIDE_LIST"
+/usr/bin/python3 "$herdr_dir/project_catalog.py" refresh
 
 production_before=$(production_state)
 config_result=$(cli config check)
@@ -185,9 +194,8 @@ discovered_find=$(
 )
 test "$discovered_find" = "$discovered"
 expected=$(printf '%s\n' \
-  "$alpha" "$alpha_feature" "$service_north" "$service_south" \
-  "$stale_project" "$failure_project" "$backslash_project" | sort)
-expected=$(printf '%s\n' "$expected" "$concurrent_project" | sort)
+  "$alpha" "$alpha_feature" "$backslash_project" "$concurrent_project" \
+  "$failure_project" "$service_north" "$service_south" "$stale_project")
 test "$discovered" = "$expected"
 test "$(printf '%s\n' "$discovered" | sort -u | wc -l | tr -d ' ')" -eq 8
 # The assertions above run against the real absolute paths; only the recorded
@@ -203,10 +211,10 @@ record discovery "$(jq -cn \
       jq -Rsc --arg runtime "$runtime" \
         'split("\n")[:-1] | map("<runtime>" + ltrimstr($runtime))'
   )" \
-  '{roots_configurable:true,git_repositories:true,linked_external_worktree:true,
-    duplicate_basenames_preserved:true,generated_dependency_pruned:true,
-    fd_accelerated_when_available:true,find_fallback_exercised:true,
-    canonical_paths:$paths}')"
+  '{tracked_bounded_roots:true,git_repositories:true,
+    linked_external_worktree:true,duplicate_basenames_preserved:true,
+    generated_dependency_pruned:true,validated_cache_first:true,
+    standard_library_catalog:true,canonical_paths:$paths}')"
 
 cli server >"$server_log" 2>&1 &
 server_pid=$!
@@ -220,6 +228,11 @@ alpha_workspace=$(workspace_for_cwd "$alpha")
 test "$(focused_workspace)" = "$alpha_workspace"
 count_after_create=$(workspace_count)
 HERDR_PROJECT_SESSION="$session" HERDR_PROJECT_SELECTION="$alpha" "$picker"
+test "$(workspace_count)" -eq "$count_after_create"
+test "$(focused_workspace)" = "$alpha_workspace"
+HERDR_PROJECT_SESSION="$session" HERDR_PROJECT_SELECTION= \
+HERDR_PROJECT_FZF="$herdr_dir/tests/fzf_open_annotation_fixture.sh" \
+HERDR_FZF_EXPECTED_OPEN="$alpha" "$picker"
 test "$(workspace_count)" -eq "$count_after_create"
 test "$(focused_workspace)" = "$alpha_workspace"
 cli session stop "$session" --json >/dev/null
@@ -256,7 +269,9 @@ record reuse "$(jq -cn --arg workspace "$alpha_workspace" \
     workspace_count_after_second_selection:$count,duplicate_created:false,
     metadata_absent_after_server_restart:true,
     restored_pane_cwd_drove_identity_re_adoption:true,
-    identity_reestablished_after_server_restart:true,pane_history:false}')"
+    identity_reestablished_after_server_restart:true,
+    open_annotation_without_rank_boost:true,ctrl_r_reload_bound:true,
+    pane_history:false}')"
 
 HERDR_PROJECT_SESSION="$session" HERDR_PROJECT_SELECTION="$service_north" "$picker"
 north_workspace=$(workspace_for_cwd "$service_north")
@@ -609,10 +624,13 @@ record scope_audit "$(jq -cn \
   --arg validator_hash "$(shasum -a 256 "$herdr_dir/validate_project_picker.sh" | awk '{print $1}')" \
   --arg client_hash "$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')" \
   --arg config_hash "$(shasum -a 256 "$herdr_dir/config.toml" | awk '{print $1}')" \
+  --arg catalog_hash "$(shasum -a 256 "$herdr_dir/project_catalog.py" | awk '{print $1}')" \
+  --arg catalog_config_hash "$(shasum -a 256 "$herdr_dir/project_catalog.json" | awk '{print $1}')" \
   --argjson production "$production_after" \
   '{unchanged:true,production_state:$production,
     artifact_sha256:{picker:$picker_hash,validator:$validator_hash,
-      client:$client_hash,config:$config_hash}}')"
+      client:$client_hash,config:$config_hash,catalog:$catalog_hash,
+      catalog_config:$catalog_config_hash}}')"
 record result "$(jq -cn --arg version "$("$herdr" --version)" \
   '{status:"PASS",version:$version,session:"project-picker",
     pane_history:false,tmux_available:true,herdr_upgraded:false,

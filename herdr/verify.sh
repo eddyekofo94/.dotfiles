@@ -39,6 +39,7 @@ for script in "$herdr_dir"/*.sh; do
   esac
 done
 python3 -m unittest -v tools.tests.session_worktree_test tools.tests.goal_done_test
+/usr/bin/python3 "$herdr_dir/tests/test_project_catalog.py" -v
 # The switch above only isolates the gate if install.sh actually honours it.
 rg -q 'HERDR_INSTALL_TAB_STATUS:-1' "$herdr_dir/install.sh"
 rg -q 'install_tab_status\.sh' "$herdr_dir/install.sh"
