@@ -61,7 +61,8 @@ The reasoning-footer worktree is clean and its commit is not in main.
   therefore accepted.
 - 2026-09-15: PASS — Eddy physically confirmed the live 13% weekly value appears amber.
 - 2026-09-15: PASS — Eddy physically confirmed the 10% fixture appears dark maroon.
-- Exact 21%/20%/11% boundaries and failed-read retention remain NOT CONFIRMED.
+- 2026-09-15: PASS — Eddy physically confirmed the 20% fixture appears amber.
+- Exact 21%/11% boundaries and failed-read retention remain NOT CONFIRMED.
 
 ## Remaining Human Check
 
