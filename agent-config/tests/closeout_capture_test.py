@@ -312,6 +312,32 @@ def main():
             for leftover in Path("/tmp").glob(f"agent-prompt-turn-closeout.{slug}.*"):
                 leftover.unlink()
 
+        # The keybinding may not name its Herdr session. A session id is unique,
+        # so its record is found under any window; a carry only when a single
+        # window holds one for this pane id.
+        win = dict(env, HERDR_SESSION="window-90")
+        path = transcript(root / "w90.jsonl", ["Window 90.\n\n" + CLOSEOUT])
+        run([], win, json.dumps({"transcript_path": str(path), "session_id": "s11"}))
+        result = run(["--pane-record", "s11"], env)
+        expect(
+            result.stdout.startswith("Window 90."),
+            "--pane-record without a Herdr session missed the session's record",
+            result,
+        )
+        run(["--session-end"], win, json.dumps({"session_id": "s11", "reason": "clear"}))
+        result = run(["--pane-record", "s12"], env)
+        expect(
+            result.stdout.startswith("Window 90."),
+            "--pane-record without a Herdr session missed the only carry",
+            result,
+        )
+        other_carry = root / "agent-prompt-turn-closeout.window-91._42.cleared.md"
+        other_carry.write_text("Window 91.\n\n" + CLOSEOUT, encoding="utf-8")
+        result = run(["--pane-record", "s12"], env)
+        expect(result.returncode != 0, "--pane-record guessed between two windows' carries")
+        for leftover in root.glob("agent-prompt-turn-closeout.window-9*"):
+            leftover.unlink()
+
         # --print is what the ctrl+g editor shim calls.
         home = root / "home"
         project = home / ".claude" / "projects" / "-tmp-project"
