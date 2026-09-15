@@ -1,5 +1,5 @@
 #!/bin/sh
-# Inject the repository-owned response and closeout contract every turn.
+# Inject the Stop hook's line budget every turn and run the closeout hooks.
 set -eu
 
 case "${1:-context}" in
@@ -23,15 +23,10 @@ case "${1:-context}" in
     # This branch reads nothing from the hook payload; drain it so the writer
     # never blocks. Must not happen before `length`, which needs that payload.
     cat >/dev/null 2>&1 || true
-    source_file=/Users/eddyekofo/.dotfiles/pi/AGENTS.md
-    [ -r "$source_file" ] || exit 1
-    # The prose contract says "aim under 15"; the Stop hook rejects at exact
-    # numbers it never stated. Append them, generated from the check's own
-    # constants, so the budget is known before the turn instead of after it.
-    {
-      awk '/^## Response Style / { emit = 1 } emit' "$source_file"
-      python3 "$(dirname -- "$0")/closeout_length.py" --contract
-    } |
+    # Response Style and Closeout already load once through CLAUDE.md's import
+    # of agent-config/AGENTS.md, so only the Stop hook's exact numbers are
+    # injected, generated from the check's own constants.
+    python3 "$(dirname -- "$0")/closeout_length.py" --contract |
       jq -Rs '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:.}}'
     ;;
   *)

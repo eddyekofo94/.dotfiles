@@ -12,9 +12,18 @@ transcript=$(echo "$input" | jq -r '.transcript_path // ""')
 # Context tokens in use, so a session nearing the window is visible before
 # it compacts. Colours match Pi's catppuccin-mocha footer: green below 70%,
 # yellow 70-84%, red at 85% or higher.
+# The window comes from Claude's own input when present; otherwise a [1m]
+# model id means 1M tokens, and anything else the standard 200k.
+window=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
+if [ -z "$window" ]; then
+  case "$model_id" in
+    *"[1m]"*) window=1000000 ;;
+    *)        window=200000 ;;
+  esac
+fi
 tokens=""
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
-  tokens=$(python3 "$HOME/.claude/statusline-tokens.py" "$transcript" 2>/dev/null)
+  tokens=$(python3 "$(dirname -- "$0")/statusline-tokens.py" "$transcript" "$window" 2>/dev/null)
 fi
 token_color="38;2;166;227;161"
 case "$tokens" in
