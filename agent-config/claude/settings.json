@@ -39,7 +39,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "claude-fable-5-1[1m]",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "animate": "user-invocable-only",
