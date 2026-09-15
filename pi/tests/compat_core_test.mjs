@@ -29,7 +29,6 @@ const requiredSkills = [
   "herdr",
   "loop",
   "skill-finish",
-  "spec-ticket",
   "todo",
 ];
 const sharedSkills = enabledSkills();
