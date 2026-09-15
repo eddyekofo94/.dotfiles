@@ -17,6 +17,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
+# A claim entry starting with this marks a path carved out of a folder claim:
+# `["!herdr/x.sh", "herdr"]` owns all of herdr except herdr/x.sh.
+EXCLUDE = "!"
 
 
 def git(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess[str]:
@@ -93,8 +96,48 @@ def paths_overlap(left: str, right: str) -> bool:
     return left_path == right_path or left_path in right_path.parents or right_path in left_path.parents
 
 
+def includes(owned) -> list[str]:
+    return [path for path in owned if not path.startswith(EXCLUDE)]
+
+
+def excludes(owned) -> list[str]:
+    return [path[len(EXCLUDE):] for path in owned if path.startswith(EXCLUDE)]
+
+
+def inside(path: str, container: str) -> bool:
+    """True when path is container itself or lies under it."""
+    return container == "." or path == container or Path(container) in Path(path).parents
+
+
+def covers(owned, path: str) -> bool:
+    """The goal owns all of path: a claim holds it and no carve-out reaches in."""
+    return (any(inside(path, claim) for claim in includes(owned))
+            and not any(paths_overlap(path, carved) for carved in excludes(owned)))
+
+
+def tidy(owned) -> list[str]:
+    """Canonical claim: carve-outs only where a remaining claim still holds them."""
+    held = includes(owned)
+    return sorted(set(held) | {
+        EXCLUDE + carved for carved in excludes(owned)
+        if any(inside(carved, claim) for claim in held)
+    })
+
+
+def without(owned, carved: list[str]) -> list[str]:
+    """owned, minus the claims inside paths this goal itself carved out."""
+    return [
+        path for path in owned
+        if path.startswith(EXCLUDE) or not any(inside(path, cut) for cut in carved)
+    ]
+
+
 def overlapping(paths: list[str], owned: list[str]) -> list[str]:
-    return sorted({path for path in paths for existing in owned if paths_overlap(path, existing)})
+    return sorted({
+        path for path in paths
+        if any(paths_overlap(path, claim) for claim in includes(owned))
+        and not any(inside(path, carved) for carved in excludes(owned))
+    })
 
 
 def worktree(slug: str) -> Path:
@@ -108,10 +151,13 @@ def open_goal(slug: str, paths: list[str]) -> None:
             die("shared checkout is dirty")
         claims = load_claims()
         existing = claims.get(slug)
-        if existing is not None and existing != paths:
+        if existing is not None and sorted(includes(existing)) != paths:
             die(f"{slug} already owns a different path set")
+        # A folder goal reopening its folder does not collide with the files it
+        # transferred out of that folder.
+        carved = excludes(existing or [])
         for owner, owned in claims.items():
-            overlap = overlapping(paths, owned)
+            overlap = overlapping(paths, without(owned, carved))
             if owner != slug and overlap:
                 die(f"paths owned by {owner}: {', '.join(overlap)}; use transfer")
         target = worktree(slug)
@@ -134,23 +180,47 @@ def open_goal(slug: str, paths: list[str]) -> None:
             result = git("worktree", "add", "-b", branch, str(target), "main")
             if result.returncode:
                 die(result.stderr.strip() or "git worktree add failed")
-        claims[slug] = paths
+        # Reopening a folder goal keeps the files transferred out of it.
+        claims[slug] = tidy(set(paths) | {
+            path for path in existing or [] if path.startswith(EXCLUDE)
+        })
         save_claims(claims)
     print(target)
 
 
 def transfer(source: str, target: str, paths: list[str]) -> None:
+    """Move paths from source to target, which need not be open yet.
+
+    A path handed over whole leaves the source's claim. A path inside a folder
+    claim is carved out of it, so the source keeps the rest of the folder and
+    the target can then `open` with just that path. Handing a carved path back
+    folds it into the folder claim again.
+    """
     paths = validate(target, paths)
     with claims_lock():
         claims = load_claims()
-        if source not in claims or target not in claims:
-            die("both source and target goals must be open")
-        if not set(paths) <= set(claims[source]):
+        if source not in claims:
+            die("source goal must be open")
+        if not all(covers(claims[source], path) for path in paths):
             die("source does not own every transferred path")
-        if overlapping(paths, claims[target]):
-            die("target already owns an overlapping transferred path")
-        claims[source] = sorted(set(claims[source]) - set(paths))
-        claims[target] = sorted(set(claims[target]) | set(paths))
+        for owner, owned in claims.items():
+            overlap = overlapping(paths, owned) if owner != source else []
+            if overlap and owner == target:
+                die("target already owns an overlapping transferred path")
+            if overlap:
+                die(f"paths owned by {owner}: {', '.join(overlap)}")
+        remaining = set(claims[source])
+        held = set(claims.get(target, []))
+        for path in paths:
+            remaining.discard(path)
+            if any(inside(path, claim) for claim in includes(remaining)):
+                remaining.add(EXCLUDE + path)
+            if EXCLUDE + path in held:
+                held.discard(EXCLUDE + path)
+            else:
+                held.add(path)
+        claims[source] = tidy(remaining)
+        claims[target] = tidy(held)
         save_claims(claims)
 
 
