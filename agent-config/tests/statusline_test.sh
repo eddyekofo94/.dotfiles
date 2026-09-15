@@ -1,5 +1,5 @@
 #!/bin/sh
-# Session (S) and weekly (W) allowance left must match Pi's footer boundaries
+# Session (S) and weekly (W) allowance left must use Pi's footer colour boundaries
 # (pi/MANUAL_QA.md): muted at 21%, yellow at 20% and 11%, maroon at 10%, and
 # each half absent when Claude does not report that window.
 set -eu
@@ -51,6 +51,13 @@ esac
 case "$(render ',"rate_limits":{"seven_day":{"used_percentage":35}}')" in
   *"S: "*)
     echo 'statusline: session segment shown without a five-hour limit' >&2
+    exit 1
+    ;;
+esac
+
+case "$(render ',"rate_limits":{"five_hour":{"used_percentage":50},"seven_day":{"used_percentage":null}}')" in
+  *"W: "*)
+    echo 'statusline: weekly segment shown without a seven-day limit' >&2
     exit 1
     ;;
 esac
