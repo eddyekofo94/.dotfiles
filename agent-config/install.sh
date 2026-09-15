@@ -107,6 +107,14 @@ preflight_link claude-keybindings \
   "$agent_home/.claude/keybindings.json" \
   "$config_dir/claude/keybindings.json" \
   d0dee62c8af8c0f743bdeddb471c4f1901e43aa767cd2e346a839651e7ee136c
+preflight_link claude-statusline \
+  "$agent_home/.claude/statusline-command.sh" \
+  "$config_dir/claude/statusline-command.sh" \
+  0c8f331b3da991da6c9bf6697b1cc98f77e9e53a82713d21653dfe564e78616b
+preflight_link claude-statusline-tokens \
+  "$agent_home/.claude/statusline-tokens.py" \
+  "$config_dir/claude/statusline-tokens.py" \
+  3d8e27f67c8bc0a9ae6dec95099ad6c5f931949e1c21a91762080032b5bee654
 
 install_link codex-agents \
   "$agent_home/.codex/AGENTS.md" "$repo_dir/agent-config/AGENTS.md"
@@ -134,6 +142,10 @@ install_link claude-settings \
   "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
 install_link claude-keybindings \
   "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
+install_link claude-statusline \
+  "$agent_home/.claude/statusline-command.sh" "$config_dir/claude/statusline-command.sh"
+install_link claude-statusline-tokens \
+  "$agent_home/.claude/statusline-tokens.py" "$config_dir/claude/statusline-tokens.py"
 
 AGENT_CONFIG_HOME="$agent_home" "$config_dir/verify.sh"
 echo 'agent config installation: PASS'
