@@ -1,6 +1,7 @@
 #!/bin/sh
-# Weekly allowance must match Pi's footer boundaries (pi/MANUAL_QA.md): muted at
-# 21%, yellow at 20% and 11%, maroon at 10%, and absent without rate limits.
+# Session (S) and weekly (W) allowance left must match Pi's footer boundaries
+# (pi/MANUAL_QA.md): muted at 21%, yellow at 20% and 11%, maroon at 10%, and
+# each half absent when Claude does not report that window.
 set -eu
 
 config_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
@@ -15,28 +16,48 @@ render() {
     bash "$statusline"
 }
 
-expect_weekly() {
-  used=$1
-  colour=$2
-  left=$3
-  output=$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":$used}}")
+expect_allowance() {
+  window=$1
+  label=$2
+  used=$3
+  colour=$4
+  left=$5
+  output=$(render ",\"rate_limits\":{\"$window\":{\"used_percentage\":$used}}")
   case "$output" in
-    *"${esc}[${colour}mweekly ${left}% left${esc}[0m"*) ;;
+    *"${esc}[${colour}m${label}: ${left}%${esc}[0m"*) ;;
     *)
-      echo "statusline: used $used should show weekly $left% left in $colour" >&2
+      echo "statusline: $window used $used should show $label: $left% in $colour" >&2
       exit 1
       ;;
   esac
 }
 
-expect_weekly 79 "$muted" 21
-expect_weekly 80 "$yellow" 20
-expect_weekly 89 "$yellow" 11
-expect_weekly 90.4 "$maroon" 10
+for pair in "five_hour S" "seven_day W"; do
+  expect_allowance "${pair% *}" "${pair#* }" 79 "$muted" 21
+  expect_allowance "${pair% *}" "${pair#* }" 80 "$yellow" 20
+  expect_allowance "${pair% *}" "${pair#* }" 89 "$yellow" 11
+  expect_allowance "${pair% *}" "${pair#* }" 90.4 "$maroon" 10
+done
+
+both=$(render ',"rate_limits":{"five_hour":{"used_percentage":50},"seven_day":{"used_percentage":35}}')
+case "$both" in
+  *"${esc}[${muted}mS: 50%${esc}[0m ${esc}[${muted}mW: 65%${esc}[0m"*) ;;
+  *)
+    echo 'statusline: both windows should show "S: 50% W: 65%" in that order' >&2
+    exit 1
+    ;;
+esac
+
+case "$(render ',"rate_limits":{"seven_day":{"used_percentage":35}}')" in
+  *"S: "*)
+    echo 'statusline: session segment shown without a five-hour limit' >&2
+    exit 1
+    ;;
+esac
 
 case "$(render '')" in
-  *weekly*)
-    echo 'statusline: weekly segment shown without rate limits' >&2
+  *"S: "*|*"W: "*)
+    echo 'statusline: allowance segment shown without rate limits' >&2
     exit 1
     ;;
 esac
@@ -63,4 +84,4 @@ expect_context 'claude-opus-5' '' '39k/20%'
 expect_context 'claude-opus-5[1m]' '' '39k/4%'
 expect_context 'claude-opus-5' ',"context_window":{"context_window_size":1000000}' '39k/4%'
 
-echo 'statusline weekly colours and context window: PASS'
+echo 'statusline session/weekly colours and context window: PASS'

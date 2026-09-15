@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude Code statusline: model (colour by tier), cwd, branch, context, weekly allowance.
+# Claude Code statusline: model (colour by tier), cwd, branch, context, session and weekly allowance.
 # Tracked in ~/.dotfiles/agent-config/claude and linked by agent-config/install.sh.
 
 input=$(cat)
@@ -31,19 +31,27 @@ case "$tokens" in
   *"/"7[0-9]"%"|*"/"8[0-4]"%") token_color="38;2;249;226;175" ;;
 esac
 
-# Weekly allowance left, coloured like Pi: muted above 20%, yellow at 20% and
-# below, maroon at 10% and below. Claude.ai plans only; absent otherwise.
-weekly=""
-weekly_used=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-if [ -n "$weekly_used" ]; then
-  weekly=$(awk -v u="$weekly_used" 'BEGIN { r = 100 - int(u + 0.5); print (r < 0 ? 0 : r > 100 ? 100 : r) }')
-fi
-weekly_color="38;2;127;132;156"
-if [ -n "$weekly" ]; then
-  if [ "$weekly" -le 10 ]; then weekly_color="38;2;235;160;172"
-  elif [ "$weekly" -le 20 ]; then weekly_color="38;2;249;226;175"
+# Session (five-hour) and weekly allowance left, coloured like Pi: muted above
+# 20%, yellow at 20% and below, maroon at 10% and below. Claude.ai plans only;
+# each half is absent when Claude does not report that window.
+allowance_left() {
+  used=$(echo "$input" | jq -r ".rate_limits.$1.used_percentage // empty")
+  [ -n "$used" ] || return 0
+  awk -v u="$used" 'BEGIN { r = 100 - int(u + 0.5); print (r < 0 ? 0 : r > 100 ? 100 : r) }'
+}
+allowance_color() {
+  if [ "$1" -le 10 ]; then echo "38;2;235;160;172"
+  elif [ "$1" -le 20 ]; then echo "38;2;249;226;175"
+  else echo "38;2;127;132;156"
   fi
-fi
+}
+allowance=""
+for window_label in "five_hour S" "seven_day W"; do
+  left=$(allowance_left "${window_label% *}")
+  [ -n "$left" ] || continue
+  [ -z "$allowance" ] || allowance="$allowance "
+  allowance="$allowance\033[$(allowance_color "$left")m${window_label#* }: $left%\033[0m"
+done
 
 
 # Color-code the model name so a tier change is immediately obvious.
@@ -70,7 +78,7 @@ fi
 if [ -n "$tokens" ]; then
   printf " \033[2m|\033[0m \033[%sm%s\033[0m" "$token_color" "$tokens"
 fi
-if [ -n "$weekly" ]; then
-  printf " \033[2m|\033[0m \033[%smweekly %s%% left\033[0m" "$weekly_color" "$weekly"
+if [ -n "$allowance" ]; then
+  printf " \033[2m|\033[0m %b" "$allowance"
 fi
 printf "\n"
