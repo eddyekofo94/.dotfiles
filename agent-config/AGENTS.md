@@ -4,48 +4,17 @@ Canonical repository source for Codex, Claude, and the isolated Pi pilot.
 
 ## Agentic Loop Standard
 
-Owner — read before implementation:
+Owner — read before intake or implementation:
 
 ```sh
 /Users/eddyekofo/.dotfiles/agent-config/agentic_loop_standard.md
 ```
 
-For every serious project, default to loop-based work instead of one-shot
-prompting. The owner file settles the pre-implementation checklist (trigger,
-scope, stop condition, verification, human handoff), the loop shapes, and the
-encode-the-lesson rule. Do not restate it here.
+It owns loop-based work, unified intake and authorization, the session start
+loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 
-## Unified Work Intake And Authorization
-
-Owned by the loop standard above, in three sections:
-
-- §Unified Intake, Selection, And Authorization — the work graph, relationship
-  links, provisional clustering, goal ranking, one active implementation goal
-  per repository, the `grill-me` / `feature-plan` / `ship` authorization split,
-  and the short list of reasons to interrupt Eddy.
-- §Session Start Loop — repository status, dirty files, local instructions,
-  one bounded target, stated stop condition.
-- §Enforcement Rules — required verification, manual QA, awaiting user
-  confirmation, and encoding prevention for repeated failures.
-
-Read those before intake or implementation. Do not restate them here.
-
-## Project Loop Bootstrap
-
-A project missing loop support needs four things, added before or alongside
-substantial implementation work: one verification command, one workflow
-status command, one workflow loop document, and one manual QA checklist for
-what automated tests cannot cover.
-
-Improve existing equivalents rather than replacing them; keep project-specific
-commands and conventions. Adapt the loop shape to the current stack — never
-copy Bible Standard's iOS verification or QA into an unrelated repository.
-
-Ask first only when the repository is tiny, read-only, unversioned, or the
-request is explicitly analysis-only. Otherwise make the smallest useful
-addition and explain it.
-
-Project-level `AGENTS.md` files override these global defaults when they are more specific.
+Project-level `AGENTS.md` files override these global defaults when they are
+more specific, and they own their project's delivery route.
 
 ## Named Worktrees
 
@@ -54,63 +23,26 @@ manager. It owns naming, branch/worktree lifecycle, and path-collision policy;
 global rules do not import another project's IDs, capacity, model routing, or
 delivery behavior. A goal may edit only its declared repository root.
 
-## Universal Skill Completion Contract
-
-Every skill-driven task must end with a concise, workflow-aware handoff, even
-when the task is blocked or awaiting the user. Owner — read before closing:
-
-```text
-/Users/eddyekofo/.agent-skills/skill-finish/SKILL.md
-```
-
-It owns the required closeout fields and their exact labels. Do not restate
-them here; the Closeout section below is the shape Eddy's terminal expects.
-
-Route the next prompt from the project workflow state. For Bible Standard, the
-default product route is:
-
-```text
-unified intake -> ranked goal selection -> grill-with-docs (prototype inside visual grills) -> Ready To Act -> quiet brief and optional agent-owned tickets -> implement/validate -> fresh Standards/Fidelity review -> automatic fix/re-review -> verified closure -> re-rank intake
-```
-
-Do not emit a skill closeout or handoff prompt between the internal stages of an
-authorized active goal. Do not infer unresolved product decisions, hide skipped
-verification, or restart a phase that is already complete.
-
 ## Response Style (highest priority)
 
-Budget ideas, not words. Cut what the reader does not need; never cut the words
-that make what remains parse.
+Budget ideas, not words. Never cut the words that make what remains parse.
 
-- Short, complete sentences. Articles and normal grammar stay. Not telegram-speak.
-- No preamble, no recap of the question, no "what I did / why it matters" narration.
-- Never explain reasoning unless asked. State the outcome.
-- No praise, no apology, no self-commentary.
-- Prose paragraphs are the failure mode. Default to short bullets.
-- One idea per bullet. If a bullet can be cut without losing an idea, cut it.
+- Short, complete sentences with normal grammar. Default to short bullets, one idea each.
+- No preamble, recap, reasoning narration, praise, apology, or self-commentary.
 - Name things concretely: exact paths, commands, identifiers, numbers.
-- Expand an acronym, ticket ID, or internal term the first time it appears in a
-  response. A reader who has to decode a line is being under-served, not served
-  fast.
+- Expand an acronym, ticket ID, or internal term the first time it appears.
 
-A line the reader must read twice is too short, not too long. The line caps below
-already stop bloat, so spend the room you have on clarity.
+In Claude, the Stop hook (`agent-config/claude/closeout_length.py`) injects the
+line ceilings every turn and rejects a turn that exceeds them.
 
 ## Closeout
 
-End every response with, in order: **Status**, Artifacts, Verification
-(including what was NOT run), Risks, one **Next move:**, then a final
-**Ready-to-paste prompt:** section containing a self-contained prompt in a code
-block, as the very last thing on screen.
+End every response, with no exemptions, with: **Status**, Artifacts,
+Verification (including what was NOT run), Risks, one **Next move:**, then
+**Ready-to-paste prompt:** with one fenced prompt as the last thing on screen.
+`prefix+b` / `prefix+B` paste that block, so a missing one breaks the workflow.
 
-No exemptions — read-only answers, questions, refusals and one-line tweaks all
-still end with it. `prefix+b` / `prefix+B` insert that last block into the next
-prompt, so a missing one breaks the workflow. If nothing changed, say so in
-Status and Artifacts and still give a Next move and prompt.
-
-When a ticket is finished — `DONE`, branch contained in `main`, clean tree, no
-manual check outstanding — the session closes itself: run `herdr-goal-done`. It
-sweeps the worktree, opens the next goal's tab (`/deliver <ID>`, or `/todo` when
-nothing ranks), and closes this one. Report what it opened. Where a condition is
-not met, name it instead of closing. `skill-finish` §Finished ticket owns the
-conditions; Bible Standard FS-130 D3 owns the flip from offering to running.
+- Claude: the Stop hook injects the exact skeleton each turn.
+- Field meanings, routing, no handoffs inside an authorized goal, and the
+  finished-ticket `herdr-goal-done` close — read before closing:
+  `/Users/eddyekofo/.agent-skills/skill-finish/SKILL.md`
