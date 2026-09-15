@@ -7,6 +7,7 @@ prototype=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(CDPATH= cd -- "$prototype/../.." && pwd)
 herdr=${HERDR_BIN_PATH:-herdr}
 parser=${HERDR_READY_PROMPT_PARSER:-"$prototype/ready_prompt_parser.sh"}
+capture=${HERDR_CLOSEOUT_CAPTURE:-"$root/agent-config/claude/closeout_capture.py"}
 capture_lines=${HERDR_READY_PROMPT_CAPTURE_LINES:-2000}
 ready_attempts=${HERDR_READY_PROMPT_READY_ATTEMPTS:-150}
 ready_interval=${HERDR_READY_PROMPT_READY_INTERVAL:-0.1}
@@ -152,6 +153,29 @@ HERDR_READY_PROMPT_CAPTURE_LINES="$capture_lines" \
   READY_PROMPT_CAPTURE_LINES="$capture_lines" \
   "$parser" --extract "$history_file" >"$prompt_file"
 extract_status=$?
+
+# /clear wipes the screen the handoff is read from. For Claude, fall back to the
+# closeout its Stop hook saved for this pane: the live session's own, or the one
+# /clear carried over (agent-config/claude/closeout_capture.py --pane-record).
+if [ "$extract_status" -eq 10 ] && [ "$agent" = claude ]; then
+  session_id=$($herdr pane get "$pane" 2>/dev/null | jq -r '
+    .result.pane.agent_session | select(.agent == "claude") | .value // empty
+  ' 2>/dev/null) || session_id=''
+  # The record's place is Herdr session plus pane; the socket path names the
+  # session when the keybinding environment does not.
+  herdr_session=${HERDR_SESSION:-}
+  if [ -z "$herdr_session" ] && [ -n "${HERDR_SOCKET_PATH:-}" ]; then
+    herdr_session=$(basename "$(dirname "$HERDR_SOCKET_PATH")")
+  fi
+  record_file="$work_dir/saved-closeout.md"
+  if HERDR_SESSION=$herdr_session HERDR_PANE_ID=$pane \
+      python3 "$capture" --pane-record "$session_id" >"$record_file" 2>/dev/null; then
+    HERDR_READY_PROMPT_CAPTURE_LINES="$capture_lines" \
+      READY_PROMPT_CAPTURE_LINES="$capture_lines" \
+      "$parser" --extract "$record_file" >"$prompt_file"
+    extract_status=$?
+  fi
+fi
 set -e
 case "$extract_status" in
   0) ;;

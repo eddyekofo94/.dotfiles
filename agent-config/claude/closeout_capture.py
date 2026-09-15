@@ -31,6 +31,10 @@ that stamp before it writes. Bounded: a turn that genuinely carries no closeout
 gives up after the wait and leaves the last real record in place, which is what
 a closeout-less turn does anyway.
 
+`/clear` is the one end that hands over. It wipes the screen prefix+b reads,
+but not the pane's work, so SessionEnd moves the record to a `cleared` slot that
+prefix+b falls back to until the next session writes a closeout of its own.
+
 Silent on anything unparseable: a broken transcript must not wedge a session.
 """
 
@@ -51,6 +55,10 @@ PREFIX = "agent-prompt-turn-closeout"
 # Deliberately not `.md`: the shim picks the newest `PREFIX.<place>.*.md` when
 # nobody can name the session, and a stamp must never be a candidate closeout.
 STAMP = ".stamp"
+# The slot a record moves to when `/clear` ends its session. The successor's
+# session id is unknown until its first turn, so the record cannot be renamed
+# to it; prefix+b reads this slot instead (`--pane-record`).
+CARRY = "cleared"
 # How long Stop waits for the turn's own message to reach the transcript. Kept
 # well under the hook's 10s timeout: guessing wrong costs one stale ctrl+g,
 # hanging costs every turn. Overridable so the test does not sleep for real.
@@ -108,6 +116,12 @@ def target_path(session):
     return temp_base() / f"{PREFIX}.{scope}.{session}.md"
 
 
+def carry_path():
+    """Where `/clear` leaves this place's last closeout for its successor."""
+    scope = place()
+    return temp_base() / f"{PREFIX}.{scope}.{CARRY}.md" if scope else None
+
+
 def stamp_path(record):
     """The sidecar beside a record, holding the timestamp it was taken from."""
     return record.with_suffix(STAMP) if record else None
@@ -136,6 +150,7 @@ def prune(keep):
     being served to its successor. The pane-only names predate Herdr-session
     scoping; no Herdr pane writes them any more, so under a Herdr session they
     are always stale. A stamp outlives its record for nobody, so it goes too.
+    Callers keep the `/clear` carry; it goes once the session has its own record.
     """
     scope = place()
     if not scope:
@@ -158,9 +173,23 @@ def prune(keep):
             pass
 
 
-def cleanup(session):
-    """SessionEnd: remove this session's record wherever it was written."""
+def cleanup(session, reason=None):
+    """SessionEnd: remove this session's record wherever it was written.
+
+    `/clear` moves this place's record to the carry slot instead, so prefix+b
+    can still replay it. A second `/clear` with no record of its own keeps the
+    carry. Any other end drops the carry too: the pane's next occupant must
+    never inherit it.
+    """
     base = temp_base()
+    carry = carry_path()
+    if reason == "clear" and session and carry:
+        record = target_path(session)
+        if record.exists():
+            try:
+                record.replace(carry)
+            except OSError:
+                pass
     paths = []
     if session:
         for suffix in ("md", STAMP.lstrip(".")):
@@ -168,12 +197,47 @@ def cleanup(session):
     scope = place()
     if scope:
         paths.extend(base / name.format(scope) for name in DERIVED)
+    if carry and reason != "clear":
+        paths.append(carry)
     for path in paths:
         try:
             path.unlink()
         except OSError:
             pass
     return 0
+
+
+def modified(path):
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0
+
+
+def pane_record(session):
+    """prefix+b's fallback when the screen holds no handoff.
+
+    The live session's own record first, then what `/clear` carried over from
+    the session before it. Unnamed, the newest record for this place, as the
+    ctrl+g shim does.
+    """
+    scope = place()
+    if not scope:
+        return None
+    if session:
+        candidates = [target_path(session), carry_path()]
+    else:
+        candidates = sorted(
+            temp_base().glob(f"{PREFIX}.{scope}.*.md"), key=modified, reverse=True
+        )
+    for path in candidates:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if text.strip():
+            return text
+    return None
 
 
 def project_dir(cwd=None):
@@ -318,6 +382,13 @@ def main():
         cwd = sys.argv[3] if len(sys.argv) > 3 else None
         return print_turn(session or None, cwd)
 
+    if len(sys.argv) > 1 and sys.argv[1] == "--pane-record":
+        text = pane_record(sys.argv[2] if len(sys.argv) > 2 else None)
+        if not text:
+            return 1
+        sys.stdout.write(text.rstrip() + "\n")
+        return 0
+
     end = len(sys.argv) > 1 and sys.argv[1] == "--session-end"
 
     try:
@@ -328,7 +399,8 @@ def main():
     session = payload.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID")
 
     if end:
-        return cleanup(session)
+        reason = payload.get("reason") if isinstance(payload, dict) else None
+        return cleanup(session, reason)
 
     path = target_path(session)
     if not path:
@@ -337,7 +409,7 @@ def main():
 
     # Even a turn that records nothing proves this pane now belongs to this
     # session, so the previous occupant's record goes either way.
-    prune((path, stamp_file))
+    prune((path, stamp_file, carry_path()))
 
     transcript = payload.get("transcript_path")
     if not transcript:
@@ -364,6 +436,12 @@ def main():
             handle.write(stamp + "\n")
     except OSError:
         return 0
+
+    # This session has a closeout of its own now; the carried one is answered.
+    try:
+        carry_path().unlink()
+    except OSError:
+        pass
 
     return 0
 

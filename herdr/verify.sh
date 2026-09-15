@@ -308,6 +308,9 @@ clean_multiplexer_env "$herdr_dir/validate_project_picker.sh"
 # The handoff parser is shared by prefix+b replay and the ctrl+g prompt editor,
 # so its suite is an everyday check: it needs no server and no prototype binary.
 "$prototype/tests/ready_prompt_parser_test.sh" >/dev/null
+# prefix+b's fallback to Claude's saved closeout once /clear wipes the screen.
+# It stubs herdr, so it needs no server either.
+"$prototype/tests/ready_prompt_saved_closeout_test.sh" >/dev/null
 
 # The tmux-to-Herdr parity audit. Its evidence files are dated records of what
 # was validated on a specific Herdr release, so it asserts that release's version

@@ -179,3 +179,19 @@ Ownership extension, 2026-09-09: `agent-config/codex/config.toml` and
 existing reviewed-predecessor installer. Exact pre-migration copies are under
 `.backups/agent-config/`. Installer fixtures cover regular-file migration,
 backup creation, idempotency, and fail-closed preflight.
+
+## Amendment: /clear hands over (Eddy, 2026-09-15)
+
+Reverses "a record under another session id must never be shown" for `/clear`
+only. `/clear` wipes the screen `prefix+b` reads, so the last closeout was lost.
+
+- SessionEnd with `reason == "clear"` moves this place's record to
+  `agent-prompt-turn-closeout.<scope>.cleared.md`. Any other end deletes it.
+- The Stop hook's prune keeps that carry until the session writes its own record.
+- `closeout_capture.py --pane-record <session>` prints the session's own record,
+  else the carry. `herdr/prototype/ready_prompt.sh` uses it for Claude panes
+  when the screen holds no handoff.
+- Out: the ctrl+g shim in `~/.config/nvim` still reads only the live session's
+  own record.
+- Tests: `agent-config/tests/closeout_capture_test.py`,
+  `herdr/prototype/tests/ready_prompt_saved_closeout_test.sh`.
