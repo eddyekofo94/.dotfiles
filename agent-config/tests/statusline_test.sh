@@ -41,4 +41,26 @@ case "$(render '')" in
     ;;
 esac
 
-echo 'statusline weekly colours: PASS'
+# Context percentage must use the model's real window, not a fixed 200k.
+transcript="$(mktemp -d "${TMPDIR:-/tmp}/statusline-test.XXXXXX")/t.jsonl"
+trap 'rm -rf -- "$(dirname -- "$transcript")"' EXIT HUP INT TERM
+printf '{"message":{"usage":{"input_tokens":1000,"cache_read_input_tokens":38000}}}\n' >"$transcript"
+expect_context() {
+  model=$1
+  extra=$2
+  want=$3
+  output=$(printf '{"model":{"display_name":"M","id":"%s"},"workspace":{"current_dir":"/"},"transcript_path":"%s"%s}\n' \
+    "$model" "$transcript" "$extra" | bash "$statusline")
+  case "$output" in
+    *"$want"*) ;;
+    *)
+      echo "statusline: $model $extra should show $want" >&2
+      exit 1
+      ;;
+  esac
+}
+expect_context 'claude-opus-5' '' '39k/20%'
+expect_context 'claude-opus-5[1m]' '' '39k/4%'
+expect_context 'claude-opus-5' ',"context_window":{"context_window_size":1000000}' '39k/4%'
+
+echo 'statusline weekly colours and context window: PASS'

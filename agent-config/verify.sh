@@ -76,8 +76,9 @@ jq -e '
 hook_json=$(printf '' | "$config_dir/claude/closeout.sh" context)
 jq -e '
   .hookSpecificOutput.hookEventName == "UserPromptSubmit" and
-  (.hookSpecificOutput.additionalContext | startswith("## Response Style")) and
-  (.hookSpecificOutput.additionalContext | contains("## Closeout")) and
+  (.hookSpecificOutput.additionalContext | contains("## Enforced Line Budget")) and
+  (.hookSpecificOutput.additionalContext | contains("## Response Style") | not) and
+  (.hookSpecificOutput.additionalContext | contains("## Closeout") | not) and
   (.hookSpecificOutput.additionalContext | contains("## Agentic Loop Standard") | not)
 ' <<EOF >/dev/null
 $hook_json
