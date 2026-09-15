@@ -39,6 +39,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "animate": "user-invocable-only",
