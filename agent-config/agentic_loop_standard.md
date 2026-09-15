@@ -165,7 +165,7 @@ Use before declaring risky work complete.
 
 ## Project Bootstrap Standard
 
-When working in a project that does not already have loop-support files, add project-appropriate equivalents before or alongside substantial implementation work. Do not blindly copy another project's commands. Adapt names, languages, build tools, and QA checklists to the current repository.
+When working in a project that does not already have loop-support files, add project-appropriate equivalents before or alongside substantial implementation work. Do not blindly copy another project's commands; never copy Bible Standard's iOS verification or QA into an unrelated repository. Adapt names, languages, build tools, and QA checklists to the current repository.
 
 Recommended project files:
 
