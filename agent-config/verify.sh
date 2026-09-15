@@ -27,6 +27,10 @@ verify_link \
   "$config_dir/claude/response-concision.md"
 verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
 verify_link "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
+verify_link "$agent_home/.claude/statusline-command.sh" \
+  "$config_dir/claude/statusline-command.sh"
+verify_link "$agent_home/.claude/statusline-tokens.py" \
+  "$config_dir/claude/statusline-tokens.py"
 
 [ -x "$config_dir/claude/closeout.sh" ]
 [ "$(cat "$config_dir/claude/CLAUDE.md")" = \
@@ -51,6 +55,7 @@ python3.14 "$repo_dir/tools/verify_agent_catalog.py"
 
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"
+sh "$config_dir/tests/statusline_test.sh"
 
 # settings.json is what actually wires the closeout hooks up, so a restore that
 # recovers the scripts but not their registrations is a silent no-op. Each entry
