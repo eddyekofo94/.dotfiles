@@ -85,6 +85,11 @@ foreign_workspace_for_cwd() {
 focused_workspace() {
   cli workspace list | jq -er '.result.workspaces[] | select(.focused).workspace_id'
 }
+# Focus moves after the workspace appears, so a single read raced it and failed
+# most runs. Wait for it the way the workspace itself is waited for.
+focused_is() {
+  [ "$(focused_workspace)" = "$1" ]
+}
 workspace_exists_for_cwd() {
   workspace_for_cwd "$1" >/dev/null 2>&1
 }
@@ -601,7 +606,7 @@ send_action enter
 wait_for "popup-created linked worktree" \
   workspace_exists_for_cwd "$alpha_feature"
 feature_workspace=$(workspace_for_cwd "$alpha_feature")
-test "$(focused_workspace)" = "$feature_workspace"
+wait_for "popup-created linked worktree focus" focused_is "$feature_workspace"
 count_after_popup=$(workspace_count)
 send_action "$project_picker_action"
 send_action type:alpha-feature
@@ -609,7 +614,7 @@ send_action enter
 wait_for "popup-reused linked worktree" \
   workspace_count_is "$count_after_popup"
 test "$(workspace_count)" -eq "$count_after_popup"
-test "$(focused_workspace)" = "$feature_workspace"
+wait_for "popup-reused linked worktree focus" focused_is "$feature_workspace"
 record popup "$(jq -cn --arg workspace "$feature_workspace" \
   --argjson count "$count_after_popup" \
   '{binding:"prefix+Shift+w",session_modal_popup:true,
