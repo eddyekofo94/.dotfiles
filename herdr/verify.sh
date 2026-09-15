@@ -65,6 +65,15 @@ test "$fallback_args" = \
 
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/herdr-production-verify.XXXXXX")
 trap 'rm -rf -- "$tmp"' EXIT HUP INT TERM
+
+# A pane spawned from a server that inherited NO_COLOR must still see colour.
+mkdir -p "$tmp/pane-bin"
+printf '#!/bin/sh\necho "NO_COLOR=${NO_COLOR-unset}"\n' >"$tmp/pane-bin/fish"
+chmod +x "$tmp/pane-bin/fish"
+pane_no_color=$(
+  NO_COLOR=1 PATH="$tmp/pane-bin:$PATH" "$prototype/prototype_shell.sh"
+)
+test "$pane_no_color" = 'NO_COLOR=unset'
 verify_source=${HERDR_VERIFY_SOURCE:-}
 if [ -z "$verify_source" ] && [ -x "$prepared_bin" ]; then
   verify_source=$prepared_bin
