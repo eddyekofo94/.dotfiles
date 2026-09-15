@@ -191,6 +191,9 @@ only. `/clear` wipes the screen `prefix+b` reads, so the last closeout was lost.
 - `closeout_capture.py --pane-record <session>` prints the session's own record,
   else the carry. `herdr/prototype/ready_prompt.sh` uses it for Claude panes
   when the screen holds no handoff.
+- `--pane-record` searches its own `$TMPDIR`, `/tmp`, and
+  `getconf DARWIN_USER_TEMP_DIR`. prefix+b runs in the Herdr client, whose
+  `$TMPDIR` differed from the pane's in the first live check (window-81).
 - Out: the ctrl+g shim in `~/.config/nvim` still reads only the live session's
   own record.
 - Tests: `agent-config/tests/closeout_capture_test.py`,

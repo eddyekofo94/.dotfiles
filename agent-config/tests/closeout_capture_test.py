@@ -289,6 +289,29 @@ def main():
             "--pane-record served a closeout after a real session end",
         )
 
+        # prefix+b runs in the Herdr client, whose $TMPDIR can differ from the
+        # pane's: a pane with none writes to /tmp while the client looks in its
+        # own /var/folders dir. --pane-record must still find the record. This
+        # one uses the real /tmp under a place no live pane has.
+        place_id = f"capture-test-{os.getpid()}:p1"
+        pane_env = dict(env, HERDR_PANE_ID=place_id)
+        pane_env.pop("TMPDIR", None)
+        slug = re.sub(r"[^A-Za-z0-9._-]", "_", place_id)
+        try:
+            path = transcript(root / "tmp-pane.jsonl", ["From /tmp.\n\n" + CLOSEOUT])
+            payload = json.dumps({"transcript_path": str(path), "session_id": "s10"})
+            result = run([], pane_env, payload)
+            expect(result.returncode == 0, "the /tmp pane's turn errored", result)
+            result = run(["--pane-record", "s10"], dict(env, HERDR_PANE_ID=place_id))
+            expect(
+                result.returncode == 0 and result.stdout.startswith("From /tmp."),
+                "--pane-record missed a record under another $TMPDIR",
+                result,
+            )
+        finally:
+            for leftover in Path("/tmp").glob(f"agent-prompt-turn-closeout.{slug}.*"):
+                leftover.unlink()
+
         # --print is what the ctrl+g editor shim calls.
         home = root / "home"
         project = home / ".claude" / "projects" / "-tmp-project"
