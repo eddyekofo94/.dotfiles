@@ -366,6 +366,31 @@ else
     pass 'typed Claude composer remains non-empty'
 fi
 
+# Claude Code pads its empty composer with a non-breaking space and ends the
+# line with a carriage return (v2.1.272). Neither is [[:space:]] in the C
+# locale, so clear-and-replay waited for a ready screen that never came.
+nbsp_claude=$TMP_ROOT/claude-nbsp-empty.txt
+printf '❯\302\240\r\n' >"$nbsp_claude"
+if "$SCRIPT" --ready-screen claude "$nbsp_claude"; then
+    pass 'empty Claude composer padded with a non-breaking space is ready'
+else
+    fail 'empty Claude composer padded with a non-breaking space was not ready'
+fi
+nbsp_typed_claude=$TMP_ROOT/claude-nbsp-typed.txt
+printf '❯\302\240typed\r\n' >"$nbsp_typed_claude"
+if "$SCRIPT" --ready-screen claude "$nbsp_typed_claude"; then
+    fail 'typed Claude composer after a non-breaking space was accepted as empty'
+else
+    pass 'typed Claude composer after a non-breaking space remains non-empty'
+fi
+nbsp_clear_claude=$TMP_ROOT/claude-nbsp-clear.txt
+printf '❯\302\240/clear\r\n' >"$nbsp_clear_claude"
+if "$SCRIPT" --clear-active claude "$nbsp_clear_claude"; then
+    pass 'Claude /clear after a non-breaking space is seen as active'
+else
+    fail 'Claude /clear after a non-breaking space was missed'
+fi
+
 queued_codex=$TMP_ROOT/codex-queued.txt
 printf '%s\n' 'Queued follow-up inputs' '› Summarize recent commits' >"$queued_codex"
 if "$SCRIPT" --ready-screen codex "$queued_codex" "$placeholder_styled"; then

@@ -452,10 +452,13 @@ agent_prompt_glyph() {
 latest_agent_prompt() {
     prompt_glyph=$1
     screen_file=$2
+    # Claude Code pads its composer with a non-breaking space and ends the line
+    # with a carriage return. Neither is [[:space:]] in the C locale Herdr runs
+    # this in, so normalize both or an empty composer never reads as ready.
     awk -v glyph="$prompt_glyph" '
         $0 ~ "^[[:space:]]*" glyph { line = $0 }
         END { if (line != "") print line }
-    ' "$screen_file"
+    ' "$screen_file" | perl -pe 's/\xc2\xa0/ /g; s/\r//g'
 }
 
 codex_styled_prompt_is_empty() {
