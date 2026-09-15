@@ -9,7 +9,9 @@ ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 READY=$ROOT/herdr/prototype/ready_prompt.sh
 CAPTURE=$ROOT/agent-config/claude/closeout_capture.py
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/ready-prompt-saved.XXXXXX")
-trap 'rm -rf "$TMP_ROOT"' EXIT HUP INT TERM
+window=window-9
+pane_tmp=$TMP_ROOT/records
+trap 'rm -rf "$TMP_ROOT"; rm -f /tmp/agent-prompt-turn-closeout.rp-test-'"$$"'.*' EXIT HUP INT TERM
 records=$TMP_ROOT/records
 mkdir -p "$records"
 
@@ -52,10 +54,15 @@ closeout() {
     printf '**Ready-to-paste prompt:**\n```\n%s\n```\n' "$1"
 }
 
-# The capture hook exactly as Claude runs it inside pane w1:p2 of window-9.
+# The capture hook exactly as Claude runs it inside pane w1:p2 of $window. An
+# empty $pane_tmp is a pane with no $TMPDIR, which writes to /tmp.
 hook() {
-    HERDR_PANE_ID=w1:p2 HERDR_SESSION=window-9 TMPDIR=$records \
-        CLOSEOUT_CAPTURE_WAIT=0 python3 "$CAPTURE" "$@"
+    if [ -n "$pane_tmp" ]; then
+        set -- env TMPDIR="$pane_tmp" python3 "$CAPTURE" "$@"
+    else
+        set -- env -u TMPDIR python3 "$CAPTURE" "$@"
+    fi
+    HERDR_PANE_ID=w1:p2 HERDR_SESSION=$window CLOSEOUT_CAPTURE_WAIT=0 "$@"
 }
 
 # One finished Claude turn whose closeout hands over <prompt>.
@@ -77,7 +84,7 @@ press() {
     printf '%s' "$2" >"$TMP_ROOT/session"
     rm -rf "$TMP_ROOT/sent" "$TMP_ROOT/state"
     env -u HERDR_SOCKET_PATH HERDR_BIN_PATH="$stub" HERDR_PANE_ID=w1:p2 \
-        HERDR_SESSION=window-9 HERDR_READY_PROMPT_STATE_DIR="$TMP_ROOT/state" \
+        HERDR_SESSION=$window HERDR_READY_PROMPT_STATE_DIR="$TMP_ROOT/state" \
         TMPDIR="$records" "$READY" >/dev/null 2>&1
 }
 
@@ -119,6 +126,18 @@ if ! press claude s3 && ! inserted "Replay s1."; then
     pass "a real session end leaves nothing for the next occupant"
 else
     fail "a real session end leaves nothing for the next occupant"
+fi
+
+# The Herdr client that runs prefix+b can have another $TMPDIR than the pane:
+# window-81's panes had none (/tmp) while its client had /var/folders/.../T/.
+window=rp-test-$$
+pane_tmp=
+turn s10 "Replay from /tmp."
+: >"$TMP_ROOT/screen"
+if press claude s10 && inserted "Replay from /tmp."; then
+    pass "the client finds a record the pane wrote under another TMPDIR"
+else
+    fail "the client finds a record the pane wrote under another TMPDIR"
 fi
 
 printf '%d passed, %d failed\n' "$passed" "$failed"

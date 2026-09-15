@@ -41,6 +41,7 @@ Silent on anything unparseable: a broken transcript must not wedge a session.
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -214,21 +215,57 @@ def modified(path):
         return 0
 
 
+def record_bases():
+    """Every temp dir a pane's Stop hook may have written its record to.
+
+    The hook writes under the pane's own $TMPDIR, but prefix+b runs in the Herdr
+    client, whose $TMPDIR can differ. On 2026-09-15 window-81's panes had none
+    (so /tmp) while its client had /var/folders/.../T/, and the fallback looked
+    in the wrong place. Search this process's dir, /tmp, and macOS's per-user
+    temp dir.
+    """
+    bases = [temp_base(), Path("/tmp")]
+    try:
+        darwin = subprocess.run(
+            ["getconf", "DARWIN_USER_TEMP_DIR"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        darwin = ""
+    if darwin:
+        bases.append(Path(darwin))
+    unique = []
+    for base in bases:
+        try:
+            resolved = base.resolve()
+        except OSError:
+            continue
+        if resolved not in unique:
+            unique.append(resolved)
+    return unique
+
+
 def pane_record(session):
     """prefix+b's fallback when the screen holds no handoff.
 
     The live session's own record first, then what `/clear` carried over from
-    the session before it. Unnamed, the newest record for this place, as the
-    ctrl+g shim does.
+    the session before it, each looked for in every temp dir the pane may use.
+    Unnamed, the newest record for this place, as the ctrl+g shim does.
     """
     scope = place()
     if not scope:
         return None
+    bases = record_bases()
     if session:
-        candidates = [target_path(session), carry_path()]
+        candidates = [base / f"{PREFIX}.{scope}.{slugify(session)}.md" for base in bases]
+        candidates += [base / f"{PREFIX}.{scope}.{CARRY}.md" for base in bases]
     else:
         candidates = sorted(
-            temp_base().glob(f"{PREFIX}.{scope}.*.md"), key=modified, reverse=True
+            (path for base in bases for path in base.glob(f"{PREFIX}.{scope}.*.md")),
+            key=modified,
+            reverse=True,
         )
     for path in candidates:
         try:
