@@ -235,6 +235,60 @@ def main():
         expect(not rec.exists(), "session end left the record")
         expect(not stamp.exists(), "session end left the stamp")
 
+        # /clear ends the session but not the pane's work. The record moves to
+        # the carry slot, prefix+b's --pane-record finds it under the new
+        # session, and it lasts until that session has a closeout of its own.
+        carry = root / "agent-prompt-turn-closeout._42.cleared.md"
+        rec5 = root / "agent-prompt-turn-closeout._42.s5.md"
+        path = transcript(root / "five.jsonl", ["Before clear.\n\n" + CLOSEOUT])
+        result = run([], env, json.dumps({"transcript_path": str(path), "session_id": "s5"}))
+        expect(rec5.exists(), "the turn before /clear wrote no record", result)
+        result = run(["--session-end"], env, json.dumps({"session_id": "s5", "reason": "clear"}))
+        expect(result.returncode == 0, "session end on /clear exited non-zero", result)
+        expect(not rec5.exists(), "/clear left the record under the ended session")
+        expect(
+            not (root / "agent-prompt-turn-closeout._42.s5.stamp").exists(),
+            "/clear left the ended session's stamp",
+        )
+        expect(text_of(carry).startswith("Before clear."), "/clear did not carry the record")
+
+        result = run(["--pane-record", "s6"], env)
+        expect(
+            result.returncode == 0 and result.stdout.startswith("Before clear."),
+            "--pane-record missed the closeout /clear carried over",
+            result,
+        )
+
+        path = transcript(root / "six.jsonl", [BODY_ONLY])
+        payload = json.dumps({"transcript_path": str(path), "session_id": "s6"})
+        run([], dict(env, CLOSEOUT_CAPTURE_WAIT="0.1"), payload)
+        expect(carry.exists(), "a closeout-less turn after /clear dropped the carry")
+
+        # A second /clear before any closeout keeps the carry for the next one.
+        run(["--session-end"], env, json.dumps({"session_id": "s6", "reason": "clear"}))
+        expect(carry.exists(), "a second /clear dropped the carried closeout")
+
+        path = transcript(root / "seven.jsonl", ["After clear.\n\n" + CLOSEOUT])
+        run([], env, json.dumps({"transcript_path": str(path), "session_id": "s7"}))
+        expect(not carry.exists(), "the carry outlived the new session's own closeout")
+        result = run(["--pane-record", "s7"], env)
+        expect(
+            result.stdout.startswith("After clear."),
+            "--pane-record did not prefer the session's own record",
+            result,
+        )
+
+        # Any other end drops the carry, so the pane's next occupant starts clean.
+        run(["--session-end"], env, json.dumps({"session_id": "s7", "reason": "clear"}))
+        expect(carry.exists(), "the third /clear carried nothing over")
+        run(["--session-end"], env, json.dumps({"session_id": "s8", "reason": "logout"}))
+        expect(not carry.exists(), "a real session end left the carry behind")
+        result = run(["--pane-record", "s9"], env)
+        expect(
+            result.returncode != 0 and not result.stdout.strip(),
+            "--pane-record served a closeout after a real session end",
+        )
+
         # --print is what the ctrl+g editor shim calls.
         home = root / "home"
         project = home / ".claude" / "projects" / "-tmp-project"
