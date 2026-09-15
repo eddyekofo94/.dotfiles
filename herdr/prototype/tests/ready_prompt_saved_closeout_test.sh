@@ -84,7 +84,8 @@ press() {
     printf '%s' "$2" >"$TMP_ROOT/session"
     rm -rf "$TMP_ROOT/sent" "$TMP_ROOT/state"
     env -u HERDR_SOCKET_PATH HERDR_BIN_PATH="$stub" HERDR_PANE_ID=w1:p2 \
-        HERDR_SESSION=$window HERDR_READY_PROMPT_STATE_DIR="$TMP_ROOT/state" \
+        HERDR_SESSION=${press_window-$window} HERDR_READY_PROMPT_STATE_DIR="$TMP_ROOT/state" \
+        HERDR_READY_PROMPT_LOG="$TMP_ROOT/ready-prompt.log" \
         TMPDIR="$records" "$READY" >/dev/null 2>&1
 }
 
@@ -138,6 +139,34 @@ if press claude s10 && inserted "Replay from /tmp."; then
     pass "the client finds a record the pane wrote under another TMPDIR"
 else
     fail "the client finds a record the pane wrote under another TMPDIR"
+fi
+
+# The keybinding may name no Herdr session. The session id still finds the
+# pane's own record, and a single carry for this pane id is still this pane's.
+window=window-9
+pane_tmp=$records
+press_window=
+turn s20 "No session name."
+if press claude s20 && inserted "No session name."; then
+    pass "a press with no Herdr session finds the session's own record"
+else
+    fail "a press with no Herdr session finds the session's own record"
+fi
+end_session s20 clear
+if press claude s21 && inserted "No session name."; then
+    pass "a press with no Herdr session finds the only carried closeout"
+else
+    fail "a press with no Herdr session finds the only carried closeout"
+fi
+unset press_window
+
+# Every press is logged, so a failure in the real keybinding environment can be
+# read afterwards instead of guessed at.
+end_session s21 logout
+if ! press claude s22 && grep -q "no saved closeout" "$TMP_ROOT/ready-prompt.log"; then
+    pass "a press that finds nothing logs why"
+else
+    fail "a press that finds nothing logs why"
 fi
 
 printf '%d passed, %d failed\n' "$passed" "$failed"

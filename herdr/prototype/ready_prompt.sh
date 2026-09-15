@@ -42,9 +42,20 @@ state="$state_dir/fingerprint"
 lock_dir="$state_dir/active"
 work_dir=''
 
+log=${HERDR_READY_PROMPT_LOG:-"$prototype/.runtime/ready-prompt.log"}
+# Logged on every press. The keybinding environment is not the pane's, and a
+# failing press could not be reproduced from a shell without this record.
+note() {
+  mkdir -p "$(dirname "$log")" 2>/dev/null || true
+  printf '%s [%s] %s\n' "$(date '+%F %T')" "$pane" "$*" >>"$log" 2>/dev/null || true
+}
+
+note "start clear=$clear_first HERDR_SESSION=${HERDR_SESSION:-} HERDR_SOCKET_PATH=${HERDR_SOCKET_PATH:-} TMPDIR=${TMPDIR:-} HERDR_PANE_ID=${HERDR_PANE_ID:-}"
+
 notify() {
   title=$1
   body=$2
+  note "$title: $body"
   $herdr notification show "$title" --body "$body" --sound none >/dev/null 2>&1 || true
   printf '%s: %s\n' "$title" "$body" >&2
 }
@@ -153,6 +164,8 @@ HERDR_READY_PROMPT_CAPTURE_LINES="$capture_lines" \
   READY_PROMPT_CAPTURE_LINES="$capture_lines" \
   "$parser" --extract "$history_file" >"$prompt_file"
 extract_status=$?
+note "screen extract status=$extract_status agent=$agent"
+fallback_note=''
 
 # /clear wipes the screen the handoff is read from. For Claude, fall back to the
 # closeout its Stop hook saved for this pane: the live session's own, or the one
@@ -168,19 +181,25 @@ if [ "$extract_status" -eq 10 ] && [ "$agent" = claude ]; then
     herdr_session=$(basename "$(dirname "$HERDR_SOCKET_PATH")")
   fi
   record_file="$work_dir/saved-closeout.md"
-  if HERDR_SESSION=$herdr_session HERDR_PANE_ID=$pane \
-      python3 "$capture" --pane-record "$session_id" >"$record_file" 2>/dev/null; then
+  HERDR_SESSION=$herdr_session HERDR_PANE_ID=$pane \
+    python3 "$capture" --pane-record "$session_id" >"$record_file" 2>"$work_dir/pane-record.err"
+  record_status=$?
+  note "saved closeout status=$record_status herdr_session=$herdr_session session=$session_id $(head -c 300 "$work_dir/pane-record.err" | tr '\n' ' ')"
+  if [ "$record_status" -eq 0 ]; then
     HERDR_READY_PROMPT_CAPTURE_LINES="$capture_lines" \
       READY_PROMPT_CAPTURE_LINES="$capture_lines" \
       "$parser" --extract "$record_file" >"$prompt_file"
     extract_status=$?
+    note "saved closeout extract status=$extract_status"
+  else
+    fallback_note="no saved closeout for ${herdr_session:-unknown session}/$pane"
   fi
 fi
 set -e
 case "$extract_status" in
   0) ;;
   10)
-    notify "Ready prompt" "No replayable handoff found"
+    notify "Ready prompt" "No replayable handoff found${fallback_note:+ ($fallback_note)}"
     exit 1
     ;;
   11)

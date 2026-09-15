@@ -258,9 +258,24 @@ def pane_record(session):
     if not scope:
         return None
     bases = record_bases()
+    pane = pane_slug()
     if session:
-        candidates = [base / f"{PREFIX}.{scope}.{slugify(session)}.md" for base in bases]
+        name = slugify(session)
+        candidates = [base / f"{PREFIX}.{scope}.{name}.md" for base in bases]
+        # A session id is unique, so its record is its own under any Herdr
+        # session; the keybinding environment may not name one.
+        candidates += sorted(
+            {path for base in bases for path in base.glob(f"{PREFIX}.*.{pane}.{name}.md")}
+        )
         candidates += [base / f"{PREFIX}.{scope}.{CARRY}.md" for base in bases]
+        if not os.environ.get("HERDR_SESSION"):
+            # Every window has a w1:p2, so a carry found without the Herdr
+            # session is this pane's only when it is the only one.
+            carries = {
+                path for base in bases for path in base.glob(f"{PREFIX}.*.{pane}.{CARRY}.md")
+            }
+            if len(carries) == 1:
+                candidates += list(carries)
     else:
         candidates = sorted(
             (path for base in bases for path in base.glob(f"{PREFIX}.{scope}.*.md")),
