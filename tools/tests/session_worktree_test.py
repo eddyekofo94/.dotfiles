@@ -127,6 +127,43 @@ class Worktrees(unittest.TestCase):
         self.assertEqual(self.invoke("transfer", "one", "two", "--path", "a").returncode, 0)
         self.assertEqual(self.claims(), {"one": [], "two": ["a", "b"]})
 
+    def test_transfer_carves_one_file_out_of_a_folder_claim(self):
+        (self.root / "herdr").mkdir()
+        (self.root / "herdr/x.sh").write_text("x")
+        (self.root / "herdr/y.sh").write_text("y")
+        self.command("git", "add", "herdr")
+        self.command("git", "commit", "-m", "herdr fixture")
+        folder = self.invoke("open", "folder", "--path", "herdr")
+        self.assertEqual(folder.returncode, 0, folder.stderr)
+        refused = self.invoke("open", "fix", "--path", "herdr/x.sh")
+        self.assertIn("paths owned by folder: herdr/x.sh; use transfer", refused.stderr)
+
+        # The target need not be open; it owns the file before its worktree exists.
+        moved = self.invoke("transfer", "folder", "fix", "--path", "herdr/x.sh")
+        self.assertEqual(moved.returncode, 0, moved.stderr)
+        self.assertEqual(self.claims(),
+                         {"folder": ["!herdr/x.sh", "herdr"], "fix": ["herdr/x.sh"]})
+        opened = self.invoke("open", "fix", "--path", "herdr/x.sh")
+        self.assertEqual(opened.returncode, 0, opened.stderr)
+        self.assertEqual(Path(opened.stdout.strip()).resolve(), self.worktree("fix").resolve())
+
+        # The folder goal keeps the rest of herdr, and reopening keeps the carve-out.
+        self.assertNotEqual(self.invoke("open", "other", "--path", "herdr/y.sh").returncode, 0)
+        self.assertNotEqual(self.invoke("open", "other", "--path", "herdr").returncode, 0)
+        reopened = self.invoke("open", "folder", "--path", "herdr")
+        self.assertEqual(reopened.returncode, 0, reopened.stderr)
+        self.assertEqual(self.claims()["folder"], ["!herdr/x.sh", "herdr"])
+
+        # A carved-out file cannot be handed out a second time by the folder goal.
+        again = self.invoke("transfer", "folder", "other", "--path", "herdr/x.sh")
+        self.assertNotEqual(again.returncode, 0)
+        self.assertIn("source does not own every transferred path", again.stderr)
+
+        # Handing it back folds it into the folder claim again.
+        back = self.invoke("transfer", "fix", "folder", "--path", "herdr/x.sh")
+        self.assertEqual(back.returncode, 0, back.stderr)
+        self.assertEqual(self.claims(), {"folder": ["herdr"], "fix": []})
+
     def test_claims_are_canonical_and_ancestor_overlaps_are_rejected(self):
         opened = self.invoke("open", "one", "--path", "./area/file")
         self.assertEqual(opened.returncode, 0, opened.stderr)

@@ -11,8 +11,14 @@ Dotfiles commands:
 ```sh
 python3 tools/session_worktree.py open fish-prompt --path fish/config.fish
 python3 tools/session_worktree.py transfer fish-prompt fish-keymaps --path fish/config.fish
+python3 tools/session_worktree.py transfer herdr-goal picker-fix --path herdr/x.sh
 python3 tools/session_worktree.py close fish-prompt
 ```
+
+`transfer` accepts a target that is not open yet. A path inside a folder claim
+is carved out of it: the source's claim becomes `["!herdr/x.sh", "herdr"]` and
+keeps the rest of the folder, and the target can then `open` with just that
+path. Handing the path back folds it into the folder claim again.
 
 `create` aliases `open`, and `remove` aliases `close`, preserving the lifecycle
 verbs used by `herdr/goals.sh` and `herdr/goal_done.sh`. `shared-status` reports
