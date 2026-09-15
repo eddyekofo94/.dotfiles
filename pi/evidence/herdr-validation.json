@@ -5,12 +5,12 @@
     "agent": "pi",
     "kind": "id",
     "source": "herdr:pi",
-    "value": "01a0a64e-2a32-7ed2-91cb-d8fdfb850eec"
+    "value": "01a0a658-e132-727b-becd-5f16fc00213e"
   },
-  "previous_session": "/tmp/pi-herdr.1jBJMg/pi-state/sessions/2026-09-15T18-22-08-367Z_pi-herdr-original.jsonl",
+  "previous_session": "/tmp/pi-herdr.U1DgHh/pi-state/sessions/2026-09-15T18-33-50-315Z_pi-herdr-original.jsonl",
   "previous_session_id": "pi-herdr-original",
-  "replacement_session": "/tmp/pi-herdr.1jBJMg/pi-state/sessions/2026-09-15T18-22-15-602Z_01a0a64e-2a32-7ed2-91cb-d8fdfb850eec.jsonl",
-  "replacement_session_id": "01a0a64e-2a32-7ed2-91cb-d8fdfb850eec",
+  "replacement_session": "/tmp/pi-herdr.U1DgHh/pi-state/sessions/2026-09-15T18-33-57-810Z_01a0a658-e132-727b-becd-5f16fc00213e.jsonl",
+  "replacement_session_id": "01a0a658-e132-727b-becd-5f16fc00213e",
   "replacement_name": ".dotfiles",
   "sessions_distinct": true,
   "recovery_locator_id": true,
