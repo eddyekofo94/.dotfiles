@@ -263,10 +263,6 @@ path = "/Users/eddyekofo/.agent-skills/review-animations/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/spec-ticket/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swift-concurrency-expert/SKILL.md"
 enabled = false
 
@@ -276,10 +272,6 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/swiftui-performance-audit/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/swiftui-ui-patterns/SKILL.md"
 enabled = false
 
 [[skills.config]]
