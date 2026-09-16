@@ -257,5 +257,6 @@
   "disabledMcpServers": [
     "computer-use",
     "claude-in-chrome"
-  ]
+  ],
+  "model": "claude-opus-5[1m]"
 }
