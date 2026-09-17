@@ -39,53 +39,17 @@ for pair in "five_hour S" "seven_day W"; do
   expect_allowance "${pair% *}" "${pair#* }" 90.4 "$maroon" 10
 done
 
-# Fable is a model_scoped weekly window, not a top-level rate_limits key,
-# matched on display_name (case-insensitively) rather than a fixed field.
-expect_fable_allowance() {
-  used=$1
-  colour=$2
-  left=$3
-  output=$(render ",\"rate_limits\":{\"model_scoped\":[{\"display_name\":\"Fable\",\"utilization\":$used}]}")
-  case "$output" in
-    *"${esc}[${colour}mF: ${left}%${esc}[0m"*) ;;
-    *)
-      echo "statusline: model_scoped Fable used $used should show F: $left% in $colour" >&2
-      exit 1
-      ;;
-  esac
-}
-expect_fable_allowance 79 "$muted" 21
-expect_fable_allowance 80 "$yellow" 20
-expect_fable_allowance 89 "$yellow" 11
-expect_fable_allowance 90.4 "$maroon" 10
-
-case "$(render ',"rate_limits":{"model_scoped":[{"display_name":"fable","utilization":40}]}')" in
-  *"${esc}[${muted}mF: 60%${esc}[0m"*) ;;
-  *)
-    echo 'statusline: display_name match should be case-insensitive' >&2
-    exit 1
-    ;;
-esac
-
-case "$(render ',"rate_limits":{"model_scoped":[{"display_name":"Opus","utilization":10}],"five_hour":{"used_percentage":10}}')" in
-  *"F: "*)
-    echo 'statusline: F segment shown without a model_scoped Fable entry' >&2
-    exit 1
-    ;;
-esac
-
-both=$(render ',"rate_limits":{"model_scoped":[{"display_name":"Fable","utilization":10}],"five_hour":{"used_percentage":50},"seven_day":{"used_percentage":35}}')
+both=$(render ',"rate_limits":{"five_hour":{"used_percentage":50},"seven_day":{"used_percentage":35}}')
 case "$both" in
-  *"${esc}[${muted}mF: 90%${esc}[0m ${esc}[${muted}mS: 50%${esc}[0m ${esc}[${muted}mW: 65%${esc}[0m"*) ;;
+  *"${esc}[${muted}mS: 50%${esc}[0m ${esc}[${muted}mW: 65%${esc}[0m"*) ;;
   *)
-    echo 'statusline: F, S, and W should show "F: 90% S: 50% W: 65%" in that order' >&2
+    echo 'statusline: both windows should show "S: 50% W: 65%" in that order' >&2
     exit 1
     ;;
 esac
 
 # Reset countdown: an hour or more shows "Xh", under an hour shows "Xm", and
-# a due-or-past reset shows "now". S/W resets_at is an epoch integer;
-# Fable's (model_scoped) is always an ISO 8601 string.
+# a due-or-past reset shows "now". resets_at is an epoch integer.
 now=$(date +%s)
 case "$(render ",\"rate_limits\":{\"five_hour\":{\"used_percentage\":50,\"resets_at\":$((now + 7200))}}")" in
   *"S: 50% (2h)"*) ;;
@@ -101,11 +65,10 @@ case "$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":50,\"resets
     exit 1
     ;;
 esac
-fable_iso=$(python3 -c "import datetime; print(datetime.datetime.fromtimestamp($now + 1800, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
-case "$(render ",\"rate_limits\":{\"model_scoped\":[{\"display_name\":\"Fable\",\"utilization\":50,\"resets_at\":\"$fable_iso\"}]}")" in
-  *"F: 50% (30m)"*) ;;
+case "$(render ",\"rate_limits\":{\"five_hour\":{\"used_percentage\":50,\"resets_at\":$((now + 1830))}}")" in
+  *"S: 50% (30m)"*) ;;
   *)
-    echo 'statusline: a 30-minute-out ISO reset should show "(30m)"' >&2
+    echo 'statusline: a 30-minute-out epoch reset should show "(30m)"' >&2
     exit 1
     ;;
 esac
