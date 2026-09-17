@@ -31,11 +31,13 @@ case "$tokens" in
   *"/"7[0-9]"%"|*"/"8[0-4]"%") token_color="38;2;249;226;175" ;;
 esac
 
-# Session (five-hour) and weekly allowance left, coloured like Pi: muted above
-# 20%, yellow at 20% and below, maroon at 10% and below. Claude.ai plans only;
-# each half is absent when Claude does not report that window.
+# Fable, session (five-hour), and weekly allowance left, coloured like Pi:
+# muted above 20%, yellow at 20% and below, maroon at 10% and below.
+# Claude.ai plans only; each segment is absent when Claude does not report
+# that window (Fable's per-model weekly cap is additive and may not be
+# populated for every account).
 allowance_left() {
-  used=$(echo "$input" | jq -r ".rate_limits.$1.used_percentage // empty")
+  used=$(echo "$input" | jq -r "$1 // empty")
   [ -n "$used" ] || return 0
   awk -v u="$used" 'BEGIN { r = 100 - int(u + 0.5); print (r < 0 ? 0 : r > 100 ? 100 : r) }'
 }
@@ -45,12 +47,53 @@ allowance_color() {
   else echo "38;2;127;132;156"
   fi
 }
+# Countdown to a window's reset, "Xh" at an hour or more, else "Xm" (floored
+# to 1m so a live reset never reads "0m"). Pure arithmetic, no subprocess.
+time_left() {
+  diff=$(( $1 - $(date +%s) ))
+  [ "$diff" -gt 0 ] || { echo "now"; return; }
+  hours=$(( diff / 3600 ))
+  if [ "$hours" -ge 1 ]; then echo "${hours}h"; else
+    minutes=$(( (diff % 3600) / 60 ))
+    echo "$(( minutes > 0 ? minutes : 1 ))m"
+  fi
+}
+# model_scoped[].resets_at is always an ISO 8601 string (the CLI converts any
+# epoch it gets before exposing it); five_hour/seven_day resets_at is always
+# an epoch integer already.
+iso_to_epoch() {
+  python3 -c '
+import datetime, sys
+try:
+    print(int(datetime.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00")).timestamp()))
+except Exception:
+    pass' "$1"
+}
 allowance=""
-for window_label in "five_hour S" "seven_day W"; do
-  left=$(allowance_left "${window_label% *}")
+fable_filter='(.rate_limits.model_scoped // [])[] | select((.display_name // "") | ascii_downcase == "fable")'
+labels=(F S W)
+used_filters=(
+  "$fable_filter | .utilization"
+  ".rate_limits.five_hour.used_percentage"
+  ".rate_limits.seven_day.used_percentage"
+)
+resets_filters=(
+  "$fable_filter | .resets_at"
+  ".rate_limits.five_hour.resets_at"
+  ".rate_limits.seven_day.resets_at"
+)
+resets_kinds=(iso epoch epoch)
+for i in 0 1 2; do
+  left=$(allowance_left "${used_filters[$i]}")
   [ -n "$left" ] || continue
+  resets=$(echo "$input" | jq -r "${resets_filters[$i]} // empty")
+  segment="${labels[$i]}: $left%"
+  if [ -n "$resets" ]; then
+    [ "${resets_kinds[$i]}" = iso ] && resets=$(iso_to_epoch "$resets")
+    [ -n "$resets" ] && segment="$segment ($(time_left "$resets"))"
+  fi
   [ -z "$allowance" ] || allowance="$allowance "
-  allowance="$allowance\033[$(allowance_color "$left")m${window_label#* }: $left%\033[0m"
+  allowance="$allowance\033[$(allowance_color "$left")m$segment\033[0m"
 done
 
 
