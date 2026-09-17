@@ -344,6 +344,46 @@ enabled = false
 path = "/Users/eddyekofo/.agent-skills/.system/skill-installer/SKILL.md"
 enabled = false
 
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/docs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/docx/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/import-memory/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/mcp-builder/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/morning/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/pdf/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/pptx/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/skill-creator/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/theme-factory/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/xlsx/SKILL.md"
+enabled = false
+
 [mcp_servers.node_repl]
 args = []
 command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"

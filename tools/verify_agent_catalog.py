@@ -171,6 +171,7 @@ def main() -> None:
     expected_configured = {
         *(AGENT_SKILLS / name / "SKILL.md" for name in on_demand),
         *archive_paths,
+        *AGENT_SKILLS.glob("synced/*/*/SKILL.md"),
         *(AGENT_SKILLS / ".system" / name / "SKILL.md" for name in SYSTEM_DISABLED),
     }
     if set(configured) != expected_configured:
