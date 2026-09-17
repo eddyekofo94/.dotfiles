@@ -215,10 +215,6 @@ path = "/Users/eddyekofo/.agent-skills/heal/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/herdr/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/html-doc/SKILL.md"
 enabled = false
 

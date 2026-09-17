@@ -13,6 +13,7 @@ export const STARTUP_SKILL_NAMES = Object.freeze([
   "feature",
   "feature-plan",
   "goals",
+  "herdr",
   "skill-finish",
   "todo",
 ]);

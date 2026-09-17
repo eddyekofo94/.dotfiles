@@ -54,7 +54,6 @@
     "grill-me": "user-invocable-only",
     "handoff": "user-invocable-only",
     "heal": "user-invocable-only",
-    "herdr": "on",
     "html-doc": "user-invocable-only",
     "implement": "user-invocable-only",
     "ios-debugger-agent": "user-invocable-only",
