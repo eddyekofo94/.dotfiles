@@ -23,6 +23,12 @@ manager. It owns naming, branch/worktree lifecycle, and path-collision policy;
 global rules do not import another project's IDs, capacity, model routing, or
 delivery behavior. A goal may edit only its declared repository root.
 
+## CanonFidei Repositories
+
+Projects under `~/Programming/Projects/CanonFidei/` publish to the
+`canonfidei` GitHub organization as private repositories. After creating one,
+invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
+
 ## Response Style (highest priority)
 
 Budget ideas, not words. Never cut the words that make what remains parse.
