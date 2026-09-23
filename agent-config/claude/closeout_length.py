@@ -57,8 +57,25 @@ def contract():
     return CONTRACT.format(body=BODY_MAX, width=WIDTH)
 
 
+def blocks_of(entry, kind):
+    content = entry.get("message", {}).get("content")
+    if not isinstance(content, list):
+        return []
+    return [
+        block
+        for block in content
+        if isinstance(block, dict) and block.get("type") == kind
+    ]
+
+
 def last_assistant_entry(path):
-    """The final assistant text in the transcript, and the entry's uuid.
+    """The final reply in the transcript, and the entry's uuid.
+
+    Only text after the last tool call counts. Progress text written partway
+    through a turn ("running the tests now") precedes a tool call and is not the
+    reply the closeout belongs to; measuring it rejected turns that ended fine.
+    A tool call or tool result therefore clears whatever text came before it,
+    and a turn whose reply has not reached the transcript yet reads as no text.
 
     The uuid is what makes a stale read detectable. The transcript is written
     asynchronously, so at Stop time this can still return the *previous* turn's
@@ -75,6 +92,11 @@ def last_assistant_entry(path):
             try:
                 entry = json.loads(line)
             except ValueError:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            if blocks_of(entry, "tool_use") or blocks_of(entry, "tool_result"):
+                uuid, text = "", None
                 continue
             if entry.get("type") != "assistant":
                 continue

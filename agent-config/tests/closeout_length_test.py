@@ -74,6 +74,53 @@ def transcript(directory, name, messages):
     return path
 
 
+def tool_turn(directory, name, progress, reply):
+    """Write a turn that narrates, calls a tool, and then (maybe) replies.
+
+    Claude Code stores the text and the tool call as separate assistant
+    entries, and the result as a user entry -- the layout the hook must see
+    through. A `reply` of None is a final message not yet in the transcript.
+    """
+    entries = [
+        {
+            "type": "assistant",
+            "uuid": f"{name}-progress",
+            "message": {"content": [{"type": "text", "text": progress}]},
+        },
+        {
+            "type": "assistant",
+            "uuid": f"{name}-call",
+            "message": {
+                "content": [
+                    {"type": "tool_use", "id": "call", "name": "Bash", "input": {}}
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "uuid": f"{name}-result",
+            "message": {
+                "content": [
+                    {"type": "tool_result", "tool_use_id": "call", "content": "ok"}
+                ]
+            },
+        },
+    ]
+    if reply is not None:
+        entries.append(
+            {
+                "type": "assistant",
+                "uuid": f"{name}-reply",
+                "message": {"content": [{"type": "text", "text": reply}]},
+            }
+        )
+    path = Path(directory) / f"{name}.jsonl"
+    path.write_text(
+        "".join(json.dumps(entry) + "\n" for entry in entries), encoding="utf-8"
+    )
+    return path
+
+
 def run(path, stop_hook_active=False):
     """Invoke the hook the way Claude Code does, and return its decision."""
     payload = json.dumps(
@@ -130,6 +177,22 @@ def main():
         expect(decision is not None, "an over-long body was allowed")
         expect("body is" in decision["reason"], "the rejection did not name the body")
         expect("backstop is 60" in decision["reason"], "the backstop is not 60")
+
+        # Progress text written before a tool call is not the reply. Measuring
+        # it rejected turns whose final message after the tool was compliant.
+        path = tool_turn(directory, "progress-then-reply", NO_CLOSEOUT, COMPLIANT)
+        expect(run(path) is None, "progress text before a tool call was measured")
+
+        path = tool_turn(directory, "progress-no-reply", LONG_BODY, None)
+        expect(
+            run(path) is None,
+            "progress text was measured while the final reply was still unwritten",
+        )
+
+        path = tool_turn(directory, "reply-without-closeout", COMPLIANT, NO_CLOSEOUT)
+        decision = run(path)
+        expect(decision is not None, "a final reply without a closeout was allowed")
+        expect("no closeout" in decision["reason"], "the final reply was not measured")
 
         # The regression. The transcript is written asynchronously, so the
         # re-send is often absent when the hook runs again: it re-reads the
