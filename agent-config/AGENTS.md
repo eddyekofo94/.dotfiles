@@ -39,7 +39,7 @@ Budget ideas, not words. Never cut the words that make what remains parse.
 - Expand an acronym, ticket ID, or internal term the first time it appears.
 
 In Claude, the Stop hook (`agent-config/claude/closeout_length.py`) injects the
-line ceilings every turn and rejects a turn that exceeds them.
+closeout skeleton every turn and rejects a turn that breaks it or runs away.
 
 ## Closeout
 

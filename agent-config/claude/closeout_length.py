@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Stop hook: reject a turn whose final message busts the line budget.
+"""Stop hook: reject a turn that breaks the closeout shape or runs away.
 
-Eddy's response contract caps the body at 19 lines before the closeout. Five
-recorded violations show that instructions and memory notes do not hold, so the
-budget is enforced here instead: an over-long turn is blocked once, with the
-actual counts, and the model has to re-send a shorter one.
+Eddy's response contract ends every turn with the closeout, and the fenced
+ready-to-paste prompt last on screen -- `prefix+b` pastes that block, so a turn
+without it breaks the workflow. Instructions alone did not hold, so the shape
+is enforced here. Length is judged by the Response Style rules, not a tight
+cap; only a runaway body past the backstop is rejected.
 
 Blocks at most once per turn (`stop_hook_active` guards the loop), never twice
 for the same message, and stays silent on anything it cannot parse -- a broken
@@ -14,24 +15,19 @@ transcript must never wedge a session.
 import json
 import sys
 
-BODY_MAX = 19  # ceiling, not a target; Eddy's number, do not invent another
-CLOSEOUT_MAX = 16  # Status..Next move (5) + prompt block (3-4) + fences, plus slack
+BODY_MAX = 60  # runaway backstop, not a budget; Eddy's number
 WIDTH = 100  # terminal columns; a paragraph costs what it costs to read
 MAX_BLOCKS = 4  # consecutive rejections per turn before the hook gives up
 
 
 CONTRACT = """
-## Enforced Line Budget (mechanical, not advice)
+## Enforced Closeout (mechanical, not advice)
 
-These are ceilings, not targets. Most turns should land well under them; the
-room is there for the turns that genuinely need it. Never pad to fill it.
-
-A Stop hook measures every turn and rejects it when:
-- the body (everything before `**Status**`) exceeds {body} lines
-- the closeout (`**Status**` to the end) exceeds {closeout} lines
-
-Lines are screen lines at {width} columns: a line of N characters costs
-ceil(N / {width}). Blank lines are free. A paragraph is not one line.
+Length follows the Response Style rules: precise, plain, only what the reader
+needs. A Stop hook rejects a turn when:
+- the closeout below is missing, or the fenced prompt is not the last thing
+- the body (everything before `**Status**`) exceeds {body} screen lines, a
+  runaway backstop -- not a target ({width} columns per line, blanks free)
 
 Write the closeout from this skeleton, one line per label, no sub-bullets:
 
@@ -47,7 +43,7 @@ Risks: one line, or none
 ```
 
 A rejected turn is already on the user's screen; the hook cannot unprint it.
-Fitting the budget on the first send is the only thing that works.
+Getting it right on the first send is the only thing that works.
 """
 
 
@@ -58,7 +54,7 @@ def contract():
     contract, so the numbers the model is told can never drift from the numbers
     it is measured against.
     """
-    return CONTRACT.format(body=BODY_MAX, closeout=CLOSEOUT_MAX, width=WIDTH)
+    return CONTRACT.format(body=BODY_MAX, width=WIDTH)
 
 
 def last_assistant_entry(path):
@@ -104,6 +100,32 @@ def split_at_closeout(text):
         if line.lstrip().startswith(("**Status:**", "**Status**", "Status:")):
             return lines[:index], lines[index:]
     return lines, []
+
+
+def shape_problems(closeout):
+    """What the closeout is missing, in the order the skeleton lists it.
+
+    The prompt block must close the message: anything after the final fence
+    is what `prefix+b` would miss.
+    """
+    if not closeout:
+        return ["no closeout (`**Status:**` line not found)"]
+    problems = []
+    joined = "\n".join(closeout)
+    if "**Next move:**" not in joined:
+        problems.append("no `**Next move:**` line")
+    labels = [
+        index
+        for index, line in enumerate(closeout)
+        if "Ready-to-paste prompt" in line
+    ]
+    if not labels:
+        return problems + ["no `**Ready-to-paste prompt:**` block"]
+    rest = [line.strip() for line in closeout[labels[-1] + 1 :] if line.strip()]
+    fences = [index for index, line in enumerate(rest) if line.startswith("```")]
+    if len(fences) < 2 or fences[-1] != len(rest) - 1:
+        problems.append("the fenced prompt is not the last thing in the message")
+    return problems
 
 
 def count(lines):
@@ -204,15 +226,10 @@ def main():
 
     body, closeout = split_at_closeout(text)
     body_lines = count(body)
-    closeout_lines = count(closeout)
 
-    problems = []
+    problems = shape_problems(closeout)
     if body_lines > BODY_MAX:
-        problems.append(f"body is {body_lines} lines, cap is {BODY_MAX}")
-    if closeout_lines > CLOSEOUT_MAX:
-        problems.append(
-            f"closeout is {closeout_lines} lines, cap is {CLOSEOUT_MAX}"
-        )
+        problems.append(f"body is {body_lines} lines, backstop is {BODY_MAX}")
     if not problems:
         record(transcript, 0, "")
         return 0
@@ -220,12 +237,10 @@ def main():
 
     reason = (
         "Response rejected: " + "; ".join(problems) + ". "
-        "Re-send the same facts inside the budget. Cut, do not summarize: "
-        "one line per section, no sub-bullets, no per-commit or per-file "
-        "enumeration (that is what git log and the diff are for), no "
-        "restating reasoning already written to a file. Ready-to-paste "
-        "prompt: 3-4 lines, task plus stop condition only. Do not add a "
-        "note about having been too long."
+        "Re-send the same facts with the closeout skeleton intact and the "
+        "fenced ready-to-paste prompt last. If the body ran away, cut it: no "
+        "per-commit or per-file enumeration, no restating reasoning already "
+        "written to a file. Do not add a note about the rejection."
     )
     json.dump({"decision": "block", "reason": reason}, sys.stdout)
     return 0

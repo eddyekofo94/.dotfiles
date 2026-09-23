@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cover the Stop hook's line budget, and the stale-read loop it once had.
+"""Cover the Stop hook's closeout shape, its backstop, and the stale-read loop.
 
 The hook is the only thing enforcing the response contract, so a bug in it is
 either an unbounded turn or an unclearable rejection. Both have happened.
@@ -33,8 +33,18 @@ until it is done
 ```
 """
 
+# Text after the fenced prompt: the block `prefix+b` pastes is no longer last.
 LONG_CLOSEOUT = "**Status:** DONE\n" + "".join(
     f"Artifacts: entry {index} " + "x" * 120 + "\n" for index in range(6)
+)
+
+NO_CLOSEOUT = "An answer with no closeout at all.\n"
+
+NO_PROMPT = COMPLIANT.split("**Ready-to-paste prompt:**")[0]
+
+# A long closeout is fine now; only its shape is checked.
+ROOMY_CLOSEOUT = COMPLIANT.replace(
+    "Artifacts: none", "Artifacts: " + "a" * 900
 )
 
 LONG_BODY = "y" * ((BODY_MAX + 1) * WIDTH) + "\n"
@@ -91,18 +101,35 @@ def main():
         path = transcript(directory, "compliant", [COMPLIANT])
         expect(run(path) is None, "a compliant turn was rejected")
 
-        path = transcript(directory, "long-closeout", [COMPLIANT + LONG_CLOSEOUT])
+        path = transcript(directory, "roomy-closeout", [ROOMY_CLOSEOUT])
+        expect(run(path) is None, "a well-shaped long closeout was rejected")
+
+        path = transcript(directory, "prompt-not-last", [COMPLIANT + LONG_CLOSEOUT])
         decision = run(path)
-        expect(decision is not None, "an over-long closeout was allowed")
+        expect(decision is not None, "text after the fenced prompt was allowed")
         expect(
-            decision["decision"] == "block" and "closeout is" in decision["reason"],
-            "the rejection did not name the closeout",
+            decision["decision"] == "block" and "not the last" in decision["reason"],
+            "the rejection did not name the misplaced prompt",
         )
+
+        path = transcript(directory, "no-closeout", [NO_CLOSEOUT])
+        decision = run(path)
+        expect(decision is not None, "a turn without a closeout was allowed")
+        expect("no closeout" in decision["reason"], "missing closeout not named")
+
+        path = transcript(directory, "no-prompt", [NO_PROMPT])
+        decision = run(path)
+        expect(decision is not None, "a turn without the prompt block was allowed")
+        expect("Ready-to-paste" in decision["reason"], "missing prompt not named")
+
+        path = transcript(directory, "under-backstop", ["z\n" * (BODY_MAX - 1) + COMPLIANT])
+        expect(run(path) is None, "a body at the backstop was rejected")
 
         path = transcript(directory, "long-body", [LONG_BODY + COMPLIANT])
         decision = run(path)
         expect(decision is not None, "an over-long body was allowed")
         expect("body is" in decision["reason"], "the rejection did not name the body")
+        expect("backstop is 60" in decision["reason"], "the backstop is not 60")
 
         # The regression. The transcript is written asynchronously, so the
         # re-send is often absent when the hook runs again: it re-reads the
