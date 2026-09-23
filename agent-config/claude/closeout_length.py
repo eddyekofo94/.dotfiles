@@ -14,10 +14,13 @@ transcript must never wedge a session.
 
 import json
 import sys
+import time
 
 BODY_MAX = 60  # runaway backstop, not a budget; Eddy's number
 WIDTH = 100  # terminal columns; a paragraph costs what it costs to read
 MAX_BLOCKS = 4  # consecutive rejections per turn before the hook gives up
+REREAD_SECONDS = 1.0  # how long to wait for a reply not yet in the transcript
+REREAD_STEP = 0.1
 
 
 CONTRACT = """
@@ -112,6 +115,21 @@ def last_assistant_entry(path):
             if joined:
                 uuid = entry.get("uuid") or ""
                 text = joined
+    return uuid, text
+
+
+def settled_reply(path):
+    """The final reply, re-read briefly when it has not reached the transcript.
+
+    Headless sessions run Stop before the reply is written, so the first read
+    finds only the tool result and the turn passed unmeasured. Waiting is
+    bounded well inside the hook timeout; a reply that never lands still passes.
+    """
+    uuid, text = last_assistant_entry(path)
+    deadline = time.monotonic() + REREAD_SECONDS
+    while not text and time.monotonic() < deadline:
+        time.sleep(REREAD_STEP)
+        uuid, text = last_assistant_entry(path)
     return uuid, text
 
 
@@ -231,7 +249,7 @@ def main():
         return 0
 
     try:
-        uuid, text = last_assistant_entry(transcript)
+        uuid, text = settled_reply(transcript)
     except OSError:
         return 0
     if not text:

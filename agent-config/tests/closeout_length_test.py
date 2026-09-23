@@ -10,6 +10,7 @@ import runpy
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HOOK = Path(__file__).resolve().parents[1] / "claude" / "closeout_length.py"
@@ -138,6 +139,35 @@ def run(path, stop_hook_active=False):
     return json.loads(result.stdout)
 
 
+def run_while_landing(path, reply, delay):
+    """Start the hook, then append the reply after `delay` seconds.
+
+    This is the headless race: Stop fires before the reply is written.
+    """
+    payload = json.dumps({"transcript_path": str(path), "stop_hook_active": False})
+    hook = subprocess.Popen(
+        [sys.executable, str(HOOK)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    hook.stdin.write(payload)
+    hook.stdin.close()
+    time.sleep(delay)
+    entry = {
+        "type": "assistant",
+        "uuid": f"{path.stem}-reply",
+        "message": {"content": [{"type": "text", "text": reply}]},
+    }
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry) + "\n")
+    output = hook.stdout.read()
+    hook.wait(timeout=5)
+    if not output.strip():
+        return None
+    return json.loads(output)
+
+
 def expect(condition, label):
     if not condition:
         raise SystemExit(f"closeout length hook: {label}")
@@ -187,6 +217,19 @@ def main():
         expect(
             run(path) is None,
             "progress text was measured while the final reply was still unwritten",
+        )
+
+        # Headless sessions run Stop before the reply is written. The hook must
+        # wait for it rather than pass a turn it never measured.
+        path = tool_turn(directory, "late-reply", COMPLIANT, None)
+        decision = run_while_landing(path, NO_CLOSEOUT, 0.3)
+        expect(decision is not None, "a reply that landed late went unmeasured")
+        expect("no closeout" in decision["reason"], "the late reply was not measured")
+
+        path = tool_turn(directory, "late-compliant", NO_CLOSEOUT, None)
+        expect(
+            run_while_landing(path, COMPLIANT, 0.3) is None,
+            "a compliant reply that landed late was rejected",
         )
 
         path = tool_turn(directory, "reply-without-closeout", COMPLIANT, NO_CLOSEOUT)
