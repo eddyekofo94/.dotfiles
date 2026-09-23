@@ -1,0 +1,17 @@
+Stale BS QA simulators:
+  Deleting: BS QA fs128-quick-search (2953711E-AEC4-40EB-91FC-FA3A7C5E89E0)
+  Deleting: BS QA fs176 (6A6D008E-4C32-4C8C-9133-7BA56E012DAD)
+  Deleting: BS QA bug245 (1B470D69-B6B1-47A8-88F2-A37D31E5EB11)
+  Deleting: BS QA fs109-393 (46CB4290-9668-4BAD-9871-48ECE3E74507)
+  Deleting: BS QA fs174 (C6B3F8F0-733A-4A0F-85DD-57FA095256A6)
+  Deleting: BS QA fs178 (6B15EA7C-6346-437C-B222-77970A1A5F6E)
+  Deleting: BS QA fs180 (A713CD2E-87DB-4139-8C6E-B7C54A9C9601)
+Running: xcrun simctl delete unavailable
+Clearing DerivedData: 55.8 GB
+Stale Claude job directories:
+  Deleting job: 2d9f26fe
+  Deleting job: 8f9aa3e9
+  Deleting job: 09189015
+  Deleting job: 264f67cf
+  Deleting job: 37b3d0e4
+  Deleting job: 95c661ff
