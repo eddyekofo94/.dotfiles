@@ -1,11 +1,14 @@
 #!/bin/bash
-# Claude Code statusline: model (colour by tier), cwd, branch, context, session and weekly allowance.
+# Claude Code statusline: model (colour by tier), effort, cwd, branch, context, session and weekly allowance.
 # Tracked in ~/.dotfiles/agent-config/claude and linked by agent-config/install.sh.
 
 input=$(cat)
 
 model_name=$(echo "$input" | jq -r '.model.display_name // "unknown"')
 model_id=$(echo "$input" | jq -r '.model.id // ""')
+# Live reasoning effort (low … max), /effort changes included; absent when the
+# model takes no effort setting, and then the segment is left out.
+effort=$(echo "$input" | jq -r '.effort.level // empty')
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // "."')
 transcript=$(echo "$input" | jq -r '.transcript_path // ""')
 
@@ -120,7 +123,11 @@ if git -C "$cwd" --no-optional-locks rev-parse --is-inside-work-tree >/dev/null 
   branch=$(git -C "$cwd" --no-optional-locks branch --show-current 2>/dev/null)
 fi
 
-printf "\033[1;%sm%s\033[0m \033[2m|\033[0m %s" "$model_color" "$model_name" "$dir_basename"
+printf "\033[1;%sm%s\033[0m" "$model_color" "$model_name"
+if [ -n "$effort" ]; then
+  printf " \033[%sm%s\033[0m" "$model_color" "$effort"
+fi
+printf " \033[2m|\033[0m %s" "$dir_basename"
 if [ -n "$branch" ]; then
   printf " \033[2m|\033[0m \033[2m%s\033[0m" "$branch"
 fi
