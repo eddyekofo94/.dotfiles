@@ -9,7 +9,7 @@
 #
 #   1. refuse unless the branch is genuinely merged  (nothing is thrown away)
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
-#   3. sweep the worktree                            (frees the cap slot)
+#   3. sweep the worktree and shut down its QA simulators (frees the slot)
 #   4. advance: open a fresh same-agent `/deliver <ID>` tab for every free build
 #      slot, one per track (FS-130 D3, FS-243 D6); a full cap with nothing
 #      opened boots /grill-next, nothing ranked boots /todo      (FS-243 D5)
@@ -132,6 +132,22 @@ if [ -n "$slug" ] && [ -f "$shared/tools/session_worktree.py" ]; then
   cd "$shared" || die "cannot enter $shared"
   run python3 tools/session_worktree.py remove "$slug" ||
     die "worktree $slug not swept — tab left open so the reason is readable"
+fi
+
+# The goal's QA simulators go with its worktree (Eddy, 2026-09-25: "can we have
+# a way that simulators close after the task is done?"). `sim_input.py acquire`
+# names each one `BS QA <goal slug>`; nothing retired them, so six sat booted.
+# Shut down, not deleted: the pool reuses a device, and a shutdown one costs
+# no memory. Other goals' simulators are untouched — theirs close when they do.
+if [ -n "$slug" ] && command -v xcrun >/dev/null; then
+  goal_id=$(printf '%s' "$slug" | sed -E 's/^((fs|bug)[0-9]+).*/\1/')
+  while IFS= read -r udid; do
+    [ -n "$udid" ] || continue
+    run xcrun simctl shutdown "$udid" >/dev/null 2>&1 ||
+      echo "goal-done: could not shut down simulator $udid" >&2
+  done < <(xcrun simctl list devices booted 2>/dev/null |
+             grep -E "BS QA (${slug}|${goal_id})( |-)[^(]*\(|BS QA (${slug}|${goal_id}) \(" |
+             sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
 fi
 
 # FS-130 D3, as filled by FS-243 D6: the finished tab starts the next goals
