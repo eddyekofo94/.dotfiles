@@ -11,8 +11,8 @@
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree and shut down its QA simulators (frees the slot)
 #   4. advance: open a fresh same-agent `/deliver <ID>` tab for every free build
-#      slot, one per track (FS-130 D3, FS-243 D6); a full cap with nothing
-#      opened boots /grill-next, nothing ranked boots /todo      (FS-243 D5)
+#      slot, one per track (FS-130 D3, FS-243 D6); when none can open, name
+#      the decision lane and open nothing  (FS-243 D5 as amended, 2026-09-25)
 #   5. close the tab this ran in                     (last: it kills us)
 #
 # Step 5 is why the order matters and why the new tab is created before
@@ -27,7 +27,6 @@
 #   herdr-goal-done                 # from inside the finished goal's worktree
 #   herdr-goal-done --force         # skip the merged check (branch is kept)
 #   herdr-goal-done --keep-tab      # open the next tab, leave this one open
-#   herdr-goal-done --model NAME    # override the model the next tab gets
 #   herdr-goal-done --no-todo       # just retire; do not advance or open anything
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
 set -uo pipefail
@@ -36,8 +35,7 @@ FORCE=0
 KEEP_TAB=0
 OPEN_TODO=1
 DRY=0
-MODEL=opus  # alias; Fable is not used (FS-100 as amended by Eddy, 2026-09-25)
-BOOT=/todo
+BOOT=""
 BOOT_SET=0
 
 while [ $# -gt 0 ]; do
@@ -46,9 +44,8 @@ while [ $# -gt 0 ]; do
     --keep-tab) KEEP_TAB=1 ;;
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
-    --model)    MODEL="${2:?--model needs a value}"; shift ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
-    -h|--help)  sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -154,9 +151,10 @@ fi
 # itself — one `/deliver` tab per free build slot, one per track, walking the
 # work graph's fill set (`--focus --json` `next`). Each open is gated by the
 # repository's manager: exit 3 is a full cap (stop), exit 4 is a busy track
-# (FS-243 D4: that record waits; try the next). When nothing could be opened
-# because the cap is full, the next decision is what the machine is short of,
-# so the tab it opens is `/grill-next` (D5); with nothing ranked at all, `/todo`.
+# (FS-243 D4: that record waits; try the next). When nothing could be opened it
+# names the decision lane — `/grill-next` at a full cap, `/todo` otherwise — and
+# opens no tab for it: a decision tab waits on Eddy, and one opened per finished
+# build piled up unread (FS-243 D5 as amended by Eddy, 2026-09-25).
 
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
@@ -272,15 +270,11 @@ if [ "$OPEN_TODO" = 1 ]; then
   fi
   if [ "$opened" = 0 ]; then
     if [ "$cap_full" = 1 ]; then
-      echo "goal-done: nothing could start, so the next decision is the bottleneck — opening /grill-next"
-      open_tab "$shared" grill-next /grill-next "$MODEL" "--permission-mode plan"
+      echo "goal-done: nothing could start; the next decision is the bottleneck — /grill-next when you have the attention (no tab opened)"
+    elif [ "$tried" -gt 0 ]; then
+      echo "goal-done: ${tried} ranked, none could open (busy tracks or errors above) — /todo when you have the attention (no tab opened)"
     else
-      if [ "$tried" -gt 0 ]; then
-        echo "goal-done: ${tried} ranked, none could open (busy tracks or errors above) — opening ${BOOT}"
-      else
-        echo "goal-done: nothing ranked — the decision backlog is the bottleneck — opening ${BOOT}"
-      fi
-      open_tab "$shared" "$(printf '%s' "${BOOT#/}" | cut -d' ' -f1)" "$BOOT" "$MODEL" "--permission-mode plan"
+      echo "goal-done: nothing ranked — /todo when you have the attention (no tab opened)"
     fi
   fi
 fi
