@@ -35,8 +35,8 @@ opening.add_argument('--paths', nargs='*')
 args = parser.parse_args()
 with open(os.environ['WORKTREE_CALLS'], 'a') as out:
     out.write(json.dumps(sys.argv[1:]) + '\\n')
-if os.environ.get('WORKTREE_FAIL') == '1':
-    raise SystemExit(1)
+if os.environ.get('WORKTREE_EXIT', '0') != '0':
+    raise SystemExit(int(os.environ['WORKTREE_EXIT']))
 print(os.environ['WORKTREE_PATH'])
 """)
         self.bin = self.repo / "bin"
@@ -68,7 +68,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         )
 
     def invoke(
-        self, fail=False, dry_run=False, caller="claude", ranked=True,
+        self, manager_exit=0, dry_run=False, caller="claude", ranked=True,
         identity_env=None,
     ):
         env = os.environ.copy()
@@ -86,7 +86,7 @@ if sys.argv[1:3] == ['pane', 'get']:
             WORKTREE_CALLS=str(self.worktree_calls),
             HERDR_CALLS=str(self.herdr_calls),
             WORKTREE_PATH=str(self.repo.parent / "repo-sessions/df1"),
-            WORKTREE_FAIL="1" if fail else "0",
+            WORKTREE_EXIT=str(manager_exit),
         )
         if identity_env:
             env.update(identity_env)
@@ -110,22 +110,30 @@ if sys.argv[1:3] == ['pane', 'get']:
         )
         calls = self.calls(self.herdr_calls)
         create = next(call for call in calls if call[:2] == ["tab", "create"])
-        self.assertEqual(create[create.index("--label") + 1], "df1")
+        self.assertEqual(create[create.index("--label") + 1], "▸ df1")
         self.assertIn("/deliver DF-1", next(call for call in calls if call[:2] == ["pane", "run"])[3])
 
-    def test_manager_refusal_opens_fable_todo_in_shared_checkout(self):
-        result = self.invoke(fail=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("opening the planning backlog instead", result.stderr)
-        calls = self.calls(self.herdr_calls)
-        create = next(call for call in calls if call[:2] == ["tab", "create"])
-        self.assertEqual(
-            Path(create[create.index("--cwd") + 1]).resolve(), self.repo.resolve()
-        )
-        self.assertEqual(create[create.index("--label") + 1], "todo")
-        launch = next(call for call in calls if call[:2] == ["pane", "run"])[3]
-        self.assertIn("--model fable --permission-mode plan", launch)
-        self.assertIn('"/todo"', launch)
+    def test_nothing_startable_names_the_decision_lane_and_opens_no_tab(self):
+        # FS-243 D5 as amended (Eddy, 2026-09-25): a decision tab waits on
+        # Eddy, so the chain names the lane and opens nothing.
+        for manager_exit, ranked, lane in (
+            (3, True, "/grill-next"),  # the cap is full
+            (1, True, "/todo"),        # the manager refused for another reason
+            (0, False, "/todo"),       # nothing ranked
+        ):
+            with self.subTest(manager_exit=manager_exit, ranked=ranked):
+                self.herdr_calls.write_text("")
+                result = self.invoke(manager_exit=manager_exit, ranked=ranked)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(
+                    f"{lane} when you have the attention (no tab opened)",
+                    result.stdout,
+                )
+                self.assertEqual(
+                    [call for call in self.calls(self.herdr_calls)
+                     if call[:2] == ["tab", "create"]],
+                    [],
+                )
 
     def test_dry_run_reports_manager_resolved_destination(self):
         result = self.invoke(dry_run=True)
@@ -133,27 +141,11 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertIn("<resolved by repository worktree manager>", result.stdout)
         self.assertFalse(self.worktree_calls.exists())
 
-    def test_todo_preserves_the_current_agent_family(self):
-        for caller, expected in (
-            ("claude", 'claude --model fable --permission-mode plan "/todo"'),
-            ("codex", 'codex "/todo"'),
-            ("pi", 'pi "/todo"'),
-        ):
-            with self.subTest(caller=caller):
-                self.herdr_calls.write_text("")
-                result = self.invoke(caller=caller, ranked=False)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                calls = self.calls(self.herdr_calls)
-                launch = next(
-                    call for call in calls if call[:2] == ["pane", "run"]
-                )[3]
-                self.assertEqual(launch, expected)
-
     def test_ranked_delivery_preserves_the_current_agent_family(self):
         for caller, expected in (
             (
                 "claude",
-                'claude --model opus --permission-mode auto "/deliver DF-1"',
+                'claude --model opus --effort medium --permission-mode auto "/deliver DF-1"',
             ),
             ("codex", 'codex "/deliver DF-1"'),
             ("pi", 'pi "/deliver DF-1"'),
@@ -178,9 +170,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         ):
             with self.subTest(variable=variable):
                 self.herdr_calls.write_text("")
-                result = self.invoke(
-                    caller="", ranked=False, identity_env={variable: "1"}
-                )
+                result = self.invoke(caller="", identity_env={variable: "1"})
                 self.assertEqual(result.returncode, 0, result.stderr)
                 launch = next(
                     call for call in self.calls(self.herdr_calls)
@@ -191,7 +181,6 @@ if sys.argv[1:3] == ['pane', 'get']:
     def test_explicit_agent_override_wins_and_unknown_refuses_before_mutation(self):
         result = self.invoke(
             caller="claude",
-            ranked=False,
             identity_env={"HERDR_GOAL_DONE_AGENT": "pi", "CLAUDECODE": "1"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -199,7 +188,7 @@ if sys.argv[1:3] == ['pane', 'get']:
             call for call in self.calls(self.herdr_calls)
             if call[:2] == ["pane", "run"]
         )[3]
-        self.assertEqual(launch, 'pi "/todo"')
+        self.assertEqual(launch, 'pi "/deliver DF-1"')
 
         self.herdr_calls.unlink()
         result = self.invoke(
