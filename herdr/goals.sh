@@ -25,8 +25,9 @@
 #
 # With no SPEC this asks the work graph what is next (FS-129 D7): the focus
 # track's ranked, unclaimed candidates from
-# `features_index.py --focus --json`, one build tab each (max three), booted
-# into `/deliver <ID>`, plus the plan tab. `/goals` may still pass SPECs to
+# `features_index.py --focus --json` — one record per free track (FS-243 D6) —
+# one build tab each until the manager's build cap refuses (exit 3), booted
+# into `/deliver <ID>`, plus the plan tab. A busy track (exit 4) is skipped. `/goals` may still pass SPECs to
 # override the ranking; nothing else has to.
 #
 # The `plan` tab starts in plan mode (--permission-mode plan), not YOLO: FS-100
@@ -141,6 +142,7 @@ esac
 $WORKTREE shared-status >/dev/null || true
 
 index=-1
+cap_full=0
 for spec in "${SPECS[@]}"; do
   index=$((index + 1))
   IFS=: read -r label model resume home paths <<<"$spec"
@@ -169,13 +171,27 @@ for spec in "${SPECS[@]}"; do
       echo "skipped ${label}: worktree manager has no owned-path interface" >&2
       continue
     fi
-    if ! cwd=$(python3 "${REPO}/tools/session_worktree.py" "${worktree_args[@]}"); then
-      echo "skipped ${label}: could not open worktree ${home}" >&2
-      continue
+    if cwd=$(python3 "${REPO}/tools/session_worktree.py" "${worktree_args[@]}"); then
+      :
+    else
+      rc=$?
+      case "$rc" in
+        3) echo "build cap full — ${label} and the rest wait for a slot (FS-243 D1)" >&2; cap_full=1; break ;;
+        4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
+        *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
+      esac
     fi
-  elif ! cwd=$($WORKTREE open "$home" --goal "$label" $PLACE); then
-    echo "skipped ${label}: could not open worktree ${home}" >&2
-    continue
+  elif cwd=$($WORKTREE open "$home" --goal "$label" $PLACE); then
+    :
+  else
+    # The manager's gates exit apart (FS-243 D8): a full build cap ends the
+    # build tabs, a busy track skips only this record.
+    rc=$?
+    case "$rc" in
+      3) echo "build cap full — ${label} and the rest wait for a slot (FS-243 D1)" >&2; cap_full=1; break ;;
+      4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
+      *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
+    esac
   fi
 
   # The tab is named for the checkout it actually got, not for the id it was
@@ -225,3 +241,8 @@ for spec in "${SPECS[@]}"; do
   boot_note="${boot:+ boot ${boot}}"
   echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
 done
+# FS-243 D5: at a full cap the next decision is the bottleneck, and the plan
+# tab is the grill lane (`/grill-next` runs there, .claude/skills/grill-next).
+if [ "$cap_full" = 1 ]; then
+  echo "build cap full — the plan tab is where the next decision goes:  /grill-next" >&2
+fi

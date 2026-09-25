@@ -10,9 +10,9 @@
 #   1. refuse unless the branch is genuinely merged  (nothing is thrown away)
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree                            (frees the cap slot)
-#   4. advance: ask the work graph for the next focus-track record and open a
-#      fresh same-agent tab booted into `/deliver <ID>`; with nothing ranked,
-#      a /todo tab on the shared checkout instead               (FS-130 D3)
+#   4. advance: open a fresh same-agent `/deliver <ID>` tab for every free build
+#      slot, one per track (FS-130 D3, FS-243 D6); a full cap with nothing
+#      opened boots /grill-next, nothing ranked boots /todo      (FS-243 D5)
 #   5. close the tab this ran in                     (last: it kills us)
 #
 # Step 5 is why the order matters and why the new tab is created before
@@ -134,106 +134,138 @@ if [ -n "$slug" ] && [ -f "$shared/tools/session_worktree.py" ]; then
     die "worktree $slug not swept — tab left open so the reason is readable"
 fi
 
-# FS-130 D3: the finished tab picks the next goal itself. The work graph ranks
-# the focus track's unclaimed records (FS-129 D7); with none anywhere the grill
-# lane is the bottleneck and saying so out loud is the point.
-label=todo
-mode="--permission-mode plan"
-cwd="$shared"
-next_id=""
-next_paths=""
+# FS-130 D3, as filled by FS-243 D6: the finished tab starts the next goals
+# itself — one `/deliver` tab per free build slot, one per track, walking the
+# work graph's fill set (`--focus --json` `next`). Each open is gated by the
+# repository's manager: exit 3 is a full cap (stop), exit 4 is a busy track
+# (FS-243 D4: that record waits; try the next). When nothing could be opened
+# because the cap is full, the next decision is what the machine is short of,
+# so the tab it opens is `/grill-next` (D5); with nothing ranked at all, `/todo`.
+
+# Open one agent tab and start its session. The `▸ ` marks a tab an agent
+# opened (FS-237 D8); repo_lock keeps it.
+open_tab() {  # cwd label boot model mode
+  local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane
+  if [ "$session_agent" = "claude" ]; then
+    launch="claude --model ${model} ${tab_mode} \"${boot}\""
+  elif [ "$session_agent" = "codex" ]; then
+    launch="codex \"${boot}\""
+  else
+    launch="pi \"${boot}\""
+  fi
+  if [ "$DRY" = 1 ]; then
+    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
+    echo "would run: herdr pane run <new> ${launch}"
+    return 0
+  fi
+  pane=$(herdr tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
+           jq -r '.result.root_pane.pane_id') || die "could not open the ${boot} tab"
+  [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
+  herdr pane run "$pane" "$launch" ||
+    die "opened the tab but could not start ${session_agent} in $pane"
+  echo "goal-done: opened ${boot} in ${pane} (${session_agent}) — ${tab_cwd}"
+}
+
+opened=0
+tried=0
+cap_full=0
+waiting=""
+cap=""
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
-  next_record=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
-                   jq -c '.next[0] // empty' ) || next_record=""
-  if [ -n "$next_record" ]; then
-    next_id=$(printf '%s\n' "$next_record" | jq -r '.id // empty')
-    next_paths=$(printf '%s\n' "$next_record" |
-                   jq -r '(.owned_paths // .paths // [])[]?')
-  fi
-fi
-if [ -n "$next_id" ]; then
-  MODEL=opus  # alias, so the tab follows the latest Opus (5 today)
-  mode="--permission-mode auto"
-  [ "$BOOT_SET" = 1 ] || BOOT="/deliver ${next_id}"
-  # The id is all this step knows, so the name it can build is `fs094` — while
-  # the goal's checkout is called `fs094-offers`. `open` adopts the existing
-  # tree for a bare id (FS-099), and the tab is then labelled from the path it
-  # actually got: deriving the label here instead would name the tab after a
-  # directory that does not exist.
-  label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
-  worktree_args=(open "$label" --goal "$next_id")
+  fill=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
+            jq -c '.next[]?' ) || fill=""
   manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
-  # This open runs in the finishing tab, for the next goal's tab: a manager
-  # that knows `--place` must not name this one after it (BibleStandard BUG-313).
-  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
-    worktree_args+=(--place)
-  fi
-  if [ -n "$next_paths" ]; then
-    if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
-      while IFS= read -r owned_path; do
-        [ -n "$owned_path" ] && worktree_args+=(--path "$owned_path")
-      done <<<"$next_paths"
-    elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
-      worktree_args+=(--paths)
-      while IFS= read -r owned_path; do
-        [ -n "$owned_path" ] && worktree_args+=("$owned_path")
-      done <<<"$next_paths"
-    else
-      echo "goal-done: worktree manager has no owned-path interface" >&2
-      next_id=""
+  # Dry-run cannot ask the gate without opening, so it asks how many slots are
+  # free and walks that many; a real run lets exit 3 say when to stop.
+  free=""
+  if [ "$DRY" = 1 ]; then
+    free=$(cd "$shared" && python3 -c 'import sys; sys.path.insert(0, "tools")
+import repo_lock, session_worktree
+print(repo_lock.SESSION_CAP - len(session_worktree.occupied_slots()))' 2>/dev/null) || free=""
+    # The finishing checkout is still on disk in a dry run; a real run has
+    # swept it by now, so its slot is free. Its track still reads as busy
+    # here, which a real run would not — said once, not silently.
+    if [ -n "$free" ] && [ -n "$slug" ]; then
+      free=$((free + 1))
+      echo "goal-done: dry run — ${slug} is not swept, so its track may read as busy here"
     fi
   fi
-  if [ -z "$next_id" ]; then
-    label=todo
-    MODEL=fable
-    mode="--permission-mode plan"
-    BOOT=/todo
-  elif [ "$DRY" = 1 ]; then
-    printf 'would run: python3 tools/session_worktree.py'
-    printf ' %q' "${worktree_args[@]}"
-    printf '\n'
-    # Repository-local managers own naming and adoption. Opening one would
-    # mutate state, so dry-run reports that unresolved boundary explicitly.
-    cwd="<resolved by repository worktree manager>"
-  elif cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
-    # Adoption can land somewhere other than $label; the tab is named for where
-    # it will actually sit.
-    label=$(basename "$cwd")
-  else
-    echo "goal-done: could not open a worktree for ${next_id}; opening the planning backlog instead" >&2
-    next_id=""
-    label=todo
-    MODEL=fable
-    mode="--permission-mode plan"
-    BOOT=/todo
-    cwd="$shared"
-  fi
+  cap=$(cd "$shared" && python3 -c 'import sys; sys.path.insert(0, "tools")
+import repo_lock; print(repo_lock.SESSION_CAP)' 2>/dev/null) || cap=""
+  while IFS= read -r record; do
+    [ -n "$record" ] || continue
+    next_id=$(printf '%s\n' "$record" | jq -r '.id // empty')
+    next_track=$(printf '%s\n' "$record" | jq -r '.track // empty')
+    next_paths=$(printf '%s\n' "$record" | jq -r '(.owned_paths // .paths // [])[]?')
+    [ -n "$next_id" ] || continue
+    tried=$((tried + 1))
+    # The id is all this step knows, so the name it can build is `fs094` — while
+    # the goal's checkout may be `fs094-offers`. `open` adopts the existing tree
+    # for a bare id (FS-099), and the tab is labelled from the path it got.
+    label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
+    worktree_args=(open "$label" --goal "$next_id")
+    # This open runs in the finishing tab, for the next goal's tab: a manager
+    # that knows `--place` must not name this one after it (BibleStandard BUG-313).
+    if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
+      worktree_args+=(--place)
+    fi
+    if [ -n "$next_paths" ]; then
+      if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
+        while IFS= read -r owned_path; do
+          [ -n "$owned_path" ] && worktree_args+=(--path "$owned_path")
+        done <<<"$next_paths"
+      elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
+        worktree_args+=(--paths)
+        while IFS= read -r owned_path; do
+          [ -n "$owned_path" ] && worktree_args+=("$owned_path")
+        done <<<"$next_paths"
+      else
+        echo "goal-done: worktree manager has no owned-path interface; skipping ${next_id}" >&2
+        continue
+      fi
+    fi
+    boot="/deliver ${next_id}"
+    if [ "$BOOT_SET" = 1 ] && [ "$opened" = 0 ]; then boot="$BOOT"; fi
+    if [ "$DRY" = 1 ]; then
+      if [ -n "$free" ] && [ "$opened" -ge "$free" ]; then cap_full=1; waiting="$next_id"; break; fi
+      printf 'would run: python3 tools/session_worktree.py'
+      printf ' %q' "${worktree_args[@]}"
+      printf '\n'
+      echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
+      open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto"
+      opened=$((opened + 1))
+      continue
+    fi
+    if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
+      open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto"
+      opened=$((opened + 1))
+    else
+      rc=$?
+      case "$rc" in
+        3) cap_full=1; waiting="$next_id"; break ;;
+        4) echo "goal-done: ${next_track:-its track} busy — ${next_id} waits on that build; trying the next record" >&2 ;;
+        *) echo "goal-done: could not open a worktree for ${next_id} (exit ${rc}); trying the next record" >&2 ;;
+      esac
+    fi
+  done <<<"$fill"
 fi
 
 if [ "$OPEN_TODO" = 1 ]; then
-  if [ "$session_agent" = "claude" ]; then
-    launch="claude --model ${MODEL} ${mode} \"${BOOT}\""
-  elif [ "$session_agent" = "codex" ]; then
-    launch="codex \"${BOOT}\""
-  else
-    launch="pi \"${BOOT}\""
+  if [ "$cap_full" = 1 ]; then
+    echo "goal-done: cap ${cap:-full}${cap:+/$cap} — ${waiting} waits; ${opened} build tab(s) opened (FS-243 D1)"
   fi
-  if [ "$DRY" = 1 ]; then
-    if [ -n "$next_id" ]; then
-      echo "would advance to: ${next_id}"
+  if [ "$opened" = 0 ]; then
+    if [ "$cap_full" = 1 ]; then
+      echo "goal-done: nothing could start, so the next decision is the bottleneck — opening /grill-next"
+      open_tab "$shared" grill-next /grill-next "$MODEL" "--permission-mode plan"
     else
-      echo "would advance to: nothing ranked — the decision backlog is the bottleneck"
+      if [ "$tried" -gt 0 ]; then
+        echo "goal-done: ${tried} ranked, none could open (busy tracks or errors above) — opening ${BOOT}"
+      else
+        echo "goal-done: nothing ranked — the decision backlog is the bottleneck — opening ${BOOT}"
+      fi
+      open_tab "$shared" "$(printf '%s' "${BOOT#/}" | cut -d' ' -f1)" "$BOOT" "$MODEL" "--permission-mode plan"
     fi
-    echo "would run: herdr tab create --cwd $cwd --label \"▸ $label\" --no-focus"
-    echo "would run: herdr pane run <new> ${launch}"
-  else
-    # FS-237 D8: the `▸ ` marks a tab an agent opened; repo_lock keeps it.
-    pane=$(herdr tab create --cwd "$cwd" --label "▸ $label" --no-focus |
-             jq -r '.result.root_pane.pane_id') || die "could not open the ${BOOT} tab"
-    [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
-    herdr pane run "$pane" "$launch" ||
-      die "opened the tab but could not start ${session_agent} in $pane"
-    echo "goal-done: opened ${BOOT} in ${pane} (${session_agent}) — ${cwd}"
   fi
 fi
 
