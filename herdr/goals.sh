@@ -66,6 +66,16 @@ if [ -f "${REPO}/tools/session_worktree.py" ]; then
 else
   WORKTREE="true"
 fi
+# Every `open` below runs in this tab's process, for a tab not yet made. A
+# manager that knows `--place` names nothing then; without it, the open names
+# the tab this ran from (BibleStandard BUG-313). Older managers lack the flag.
+PLACE=""
+if [ "$WORKTREE" != "true" ]; then
+  open_help=$($WORKTREE open --help 2>&1 || true)
+  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$open_help"; then
+    PLACE="--place"
+  fi
+fi
 
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
@@ -147,6 +157,7 @@ for spec in "${SPECS[@]}"; do
   elif [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
     IFS=, read -ra owned_paths <<<"$paths"
     worktree_args=(open "$home")
+    [ -n "$PLACE" ] && worktree_args+=("$PLACE")
     manager_help=$(python3 "${REPO}/tools/session_worktree.py" open --help 2>&1)
     if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
       for owned_path in "${owned_paths[@]}"; do
@@ -162,7 +173,7 @@ for spec in "${SPECS[@]}"; do
       echo "skipped ${label}: could not open worktree ${home}" >&2
       continue
     fi
-  elif ! cwd=$($WORKTREE open "$home" --goal "$label"); then
+  elif ! cwd=$($WORKTREE open "$home" --goal "$label" $PLACE); then
     echo "skipped ${label}: could not open worktree ${home}" >&2
     continue
   fi

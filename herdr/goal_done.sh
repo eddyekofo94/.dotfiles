@@ -162,8 +162,13 @@ if [ -n "$next_id" ]; then
   # directory that does not exist.
   label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
   worktree_args=(open "$label" --goal "$next_id")
+  manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
+  # This open runs in the finishing tab, for the next goal's tab: a manager
+  # that knows `--place` must not name this one after it (BibleStandard BUG-313).
+  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
+    worktree_args+=(--place)
+  fi
   if [ -n "$next_paths" ]; then
-    manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
     if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
       while IFS= read -r owned_path; do
         [ -n "$owned_path" ] && worktree_args+=(--path "$owned_path")
