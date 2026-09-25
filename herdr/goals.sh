@@ -1,10 +1,10 @@
 #!/bin/bash
 # herdr-goals: open one Herdr tab per live goal using the caller's agent family.
-# Claude callers keep Fable/Opus routing. Codex and Pi callers stay in their
+# Claude callers keep Opus max/medium routing. Codex and Pi callers stay in their
 # own agent family and inherit that agent's configured model and permissions.
 #
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
-#   model is an alias (`fable`, `opus`), not a pinned id, so a tab follows the
+#   model is an alias (`opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   resume-target is a session id (resumes it directly), the literal `pick`
 #   (opens the interactive picker), or omitted (fresh session).
@@ -31,7 +31,7 @@
 # override the ranking; nothing else has to.
 #
 # The `plan` tab starts in plan mode (--permission-mode plan), not YOLO: FS-100
-# says Fable plans and grills, and plan mode is what enforces it.
+# says the max-effort plan tab plans and grills, and plan mode is what enforces it.
 #
 # Every build tab starts in auto mode (--permission-mode auto): these are Eddy's
 # own goal sessions on his own repo, and a permission prompt in an unfocused tab
@@ -93,7 +93,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   # no argument and no ranking session. `/deliver` runs a settled record to a
   # merged slice; before it exists, fall back to the global build entry.
   if [ -d "${REPO}/.claude/skills/deliver" ]; then RUN="/deliver"; else RUN="feature-plan"; fi
-  SPECS=("plan:fable")
+  SPECS=("plan:opus")
   BOOTS=("")
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue
@@ -202,7 +202,7 @@ for spec in "${SPECS[@]}"; do
   if [ "$home" = "shared" ]; then tab_label="$label"; else tab_label=$(basename "$cwd"); fi
 
   # FS-100: the plan tab plans. Plan mode is the mechanical half of that rule —
-  # Fable cannot quietly start editing — so it replaces the build-tab mode
+  # the plan tab cannot quietly start editing — so it replaces the build-tab mode
   # rather than joining it (one --permission-mode per session).
   if [ "$label" = "plan" ]; then mode_flag="--permission-mode plan"; else mode_flag="$BUILD_MODE_FLAG"; fi
 
@@ -223,7 +223,10 @@ for spec in "${SPECS[@]}"; do
       pick)   resume_args=" --resume" ;;
       *)      resume_args=" --resume ${resume}" ;;
     esac
-    launch="claude --model ${model} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
+    # FS-100 (Eddy, 2026-09-25): the plan tab decides at max effort, build tabs
+    # build at medium.
+    if [ "$label" = "plan" ]; then effort=max; else effort=medium; fi
+    launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in
       "")     launch="codex${boot:+ \"${boot}\"}" ;;

@@ -19,7 +19,7 @@
 # anything is destroyed: if tab creation fails there is still a live session
 # holding the evidence of why.
 #
-# Claude keeps its Fable/Opus and permission-mode routing. Codex and Pi stay in
+# Claude keeps its Opus max/medium and permission-mode routing. Codex and Pi stay in
 # their current agent family and inherit that agent's configured model and
 # permissions.
 #
@@ -36,7 +36,7 @@ FORCE=0
 KEEP_TAB=0
 OPEN_TODO=1
 DRY=0
-MODEL=fable  # alias, so the tab follows the latest Fable (5.1 today)
+MODEL=opus  # alias; Fable is not used (FS-100 as amended by Eddy, 2026-09-25)
 BOOT=/todo
 BOOT_SET=0
 
@@ -161,9 +161,12 @@ fi
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
 open_tab() {  # cwd label boot model mode
-  local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane
+  local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
+  # FS-100 (Eddy, 2026-09-25): decision tabs (plan mode) run at max effort,
+  # build tabs at medium.
+  case "$tab_mode" in *plan*) effort=max ;; *) effort=medium ;; esac
   if [ "$session_agent" = "claude" ]; then
-    launch="claude --model ${model} ${tab_mode} \"${boot}\""
+    launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
   elif [ "$session_agent" = "codex" ]; then
     launch="codex \"${boot}\""
   else
