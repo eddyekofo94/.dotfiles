@@ -219,10 +219,11 @@ if [ "$OPEN_TODO" = 1 ]; then
     else
       echo "would advance to: nothing ranked — the decision backlog is the bottleneck"
     fi
-    echo "would run: herdr tab create --cwd $cwd --label $label --no-focus"
+    echo "would run: herdr tab create --cwd $cwd --label \"▸ $label\" --no-focus"
     echo "would run: herdr pane run <new> ${launch}"
   else
-    pane=$(herdr tab create --cwd "$cwd" --label "$label" --no-focus |
+    # FS-237 D8: the `▸ ` marks a tab an agent opened; repo_lock keeps it.
+    pane=$(herdr tab create --cwd "$cwd" --label "▸ $label" --no-focus |
              jq -r '.result.root_pane.pane_id') || die "could not open the ${BOOT} tab"
     [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
     herdr pane run "$pane" "$launch" ||

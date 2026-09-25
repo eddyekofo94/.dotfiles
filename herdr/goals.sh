@@ -187,7 +187,9 @@ for spec in "${SPECS[@]}"; do
   # A no-argument run already knows what each tab is for (FS-129 D7).
   if [ ${#BOOTS[@]} -gt "$index" ] && [ -n "${BOOTS[$index]:-}" ]; then boot="${BOOTS[$index]}"; fi
 
-  pane=$(herdr tab create --cwd "$cwd" --label "$tab_label" --no-focus | jq -r '.result.root_pane.pane_id')
+  # FS-237 D8: an agent-opened tab carries `▸ `; Eddy's own tabs carry none.
+  # The opener owns the mark, and repo_lock's later renames keep it.
+  pane=$(herdr tab create --cwd "$cwd" --label "▸ $tab_label" --no-focus | jq -r '.result.root_pane.pane_id')
   if [ "$session_agent" = "claude" ]; then
     case "${resume:-}" in
       "")     resume_args="" ;;
