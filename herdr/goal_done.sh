@@ -179,16 +179,13 @@ if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
   # free and walks that many; a real run lets exit 3 say when to stop.
   free=""
   if [ "$DRY" = 1 ]; then
-    free=$(cd "$shared" && python3 -c 'import sys; sys.path.insert(0, "tools")
-import repo_lock, session_worktree
-print(repo_lock.SESSION_CAP - len(session_worktree.occupied_slots()))' 2>/dev/null) || free=""
     # The finishing checkout is still on disk in a dry run; a real run has
-    # swept it by now, so its slot is free. Its track still reads as busy
-    # here, which a real run would not — said once, not silently.
-    if [ -n "$free" ] && [ -n "$slug" ]; then
-      free=$((free + 1))
-      echo "goal-done: dry run — ${slug} is not swept, so its track may read as busy here"
-    fi
+    # swept it by now, so its slot is free — but only if it counts at all (a
+    # landed checkout already does not).
+    free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
+import repo_lock, session_worktree
+held = [s for s in session_worktree.slot_details() if s["name"] != os.environ.get("GOAL_DONE_SLUG")]
+print(repo_lock.SESSION_CAP - len(held))' 2>/dev/null) || free=""
   fi
   cap=$(cd "$shared" && python3 -c 'import sys; sys.path.insert(0, "tools")
 import repo_lock; print(repo_lock.SESSION_CAP)' 2>/dev/null) || cap=""
