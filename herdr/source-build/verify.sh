@@ -28,7 +28,7 @@ test "$HERDR_ZIG_VERSION" = 0.15.2
 # re-authored against v0.8.2 because upstream still does neither: the toast
 # title is not triage-coloured and the Working dot does not breathe.
 test "$HERDR_PATCH_SERIES" = \
-  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch toast-triage-colours-status.patch working-spinner-tick.patch"
+  "copy-mode-vim-muscle-memory.patch toast-triage-colours-mobile.patch toast-triage-colours-status.patch working-spinner-tick.patch agent-focus-keeps-agent-in-view.patch"
 test "$(
   for patch_name in $HERDR_PATCH_SERIES; do
     cat "$source_build/$patch_name"
@@ -156,6 +156,17 @@ test "$(rg -c '^diff --git ' "$spinner_patch")" -eq 3
 # A regression test no filter selects is decoration, and build.sh's filters are
 # the whole test run. The gate line is part of the patch's contract.
 rg -q '^  cargo test --locked working_$' "$source_build/build.sh"
+
+# `herdr agent focus` keeps the focused agent in view, as native next_agent does,
+# so agent_cycle.py on Ctrl+Alt+j/k never focuses an agent past the panel's last
+# row out of sight (BibleStandard FS-261).
+agent_focus_patch="$source_build/agent-focus-keeps-agent-in-view.patch"
+rg -q '^\+            self\.state\.ensure_agent_panel_entry_visible\(idx\);$' \
+  "$agent_focus_patch"
+rg -q '^\+    fn agent_focus_keeps_the_focused_agent_visible_in_agent_panel\(\) \{$' \
+  "$agent_focus_patch"
+test "$(rg -c '^diff --git ' "$agent_focus_patch")" -eq 2
+rg -q '^  cargo test --locked agent_focus_$' "$source_build/build.sh"
 
 # The built binary is a gitignored work product, so a fresh checkout cannot have
 # it. Skip only the binary identity checks in that case; everything above is
