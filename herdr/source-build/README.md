@@ -43,7 +43,7 @@ which previously forced a change into a patch named for an unrelated feature.
 Each file owns a disjoint set of source paths so it can be re-reviewed, rebased,
 or dropped on its own at the next upstream tag.
 
-Seven narrow changes across four patch files. There is no injected-input path.
+Eight narrow changes across five patch files. There is no injected-input path.
 
 Not everything private is a patch. The agent panel's active row used to need
 one; v0.8.2 gave the palette an `active_row_bg` token, so the change is now a
@@ -70,6 +70,13 @@ for frames: a 120 ms deadline joins the same set upstream's
 attached-terminal loop and the headless server call. Arming it in `App` alone is
 how the feature shipped dead once and was reverted, so `build.sh` runs
 `cargo test --locked working_` to keep the headless test selected.
+
+`agent-focus-keeps-agent-in-view.patch` (`app/agents.rs`, `app/api/agents.rs`)
+— `herdr agent focus` scrolls the agent panel to the agent it focused, the way
+the native `next_agent`/`previous_agent` actions already do. Without it a
+scripted focus (`agent_cycle.py` on Ctrl+Alt+j/k, the agent overview) lands on
+an agent past the panel's last row with nothing on screen saying so (2026-09-26,
+BibleStandard FS-261). `build.sh` runs `cargo test --locked agent_focus_`.
 
 `copy-mode-vim-muscle-memory.patch`:
 

@@ -243,6 +243,22 @@ path = "/Users/eddyekofo/.agent-skills/interrogate/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/bro/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/how/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/why/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/teach/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/prototype/SKILL.md"
 enabled = false
 

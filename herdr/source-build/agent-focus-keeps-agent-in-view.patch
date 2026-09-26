@@ -1,0 +1,67 @@
+diff --git a/src/app/agents.rs b/src/app/agents.rs
+index b2aac01c..5155417b 100644
+--- a/src/app/agents.rs
++++ b/src/app/agents.rs
+@@ -79,6 +79,15 @@ impl App {
+         let resolved = self.resolve_agent_target(target)?;
+         self.state
+             .focus_pane_in_workspace(resolved.ws_idx, resolved.pane_id);
++        // Keep a scripted focus in view the way the native next/previous agent
++        // actions do; otherwise an agent past the panel's last row is focused
++        // out of sight.
++        if let Some(idx) = crate::ui::agent_panel_entries(&self.state)
++            .iter()
++            .position(|entry| entry.ws_idx == resolved.ws_idx && entry.pane_id == resolved.pane_id)
++        {
++            self.state.ensure_agent_panel_entry_visible(idx);
++        }
+         self.state.mark_active_tab_seen();
+         self.state.settle_terminal_mode_after_focus();
+         self.agent_info(resolved.ws_idx, resolved.pane_id)
+diff --git a/src/app/api/agents.rs b/src/app/api/agents.rs
+index 1ed13efc..cdf58d63 100644
+--- a/src/app/api/agents.rs
++++ b/src/app/api/agents.rs
+@@ -600,6 +600,42 @@ mod tests {
+         assert_eq!(agent.agent_status, AgentStatus::Idle);
+     }
+ 
++    #[test]
++    fn agent_focus_keeps_the_focused_agent_visible_in_agent_panel() {
++        let mut app = app_with_agent();
++        for idx in 1..8 {
++            app.state.workspaces[0].test_add_tab(Some(&format!("tab-{idx}")));
++        }
++        app.state.ensure_test_terminals();
++        for tab in &app.state.workspaces[0].tabs {
++            let pane_id = tab.root_pane;
++            let terminal_id = tab.panes[&pane_id].attached_terminal_id.clone();
++            app.state
++                .terminals
++                .get_mut(&terminal_id)
++                .unwrap()
++                .set_detected_state(Some(Agent::Pi), AgentState::Idle);
++        }
++        let first = app.state.workspaces[0].tabs[0].root_pane;
++        app.state.workspaces[0].switch_tab(0);
++        app.state.workspaces[0].tabs[0].layout.focus_pane(first);
++        crate::ui::compute_view(&mut app.state, ratatui::layout::Rect::new(0, 0, 80, 14));
++        assert_eq!(app.state.agent_panel_scroll, 0);
++
++        let last_tab = app.state.workspaces[0].tabs.len() - 1;
++        let last = app.state.workspaces[0].tabs[last_tab].root_pane;
++        let response = app.handle_agent_focus(
++            "req".into(),
++            AgentTarget {
++                target: app.public_pane_id(0, last).unwrap(),
++            },
++        );
++
++        let _: SuccessResponse = serde_json::from_str(&response).unwrap();
++        assert_eq!(app.state.workspaces[0].active_tab, last_tab);
++        assert!(app.state.agent_panel_scroll > 0);
++    }
++
+     #[test]
+     fn agent_rename_does_not_replace_the_pane_label() {
+         let mut app = app_with_agent();
