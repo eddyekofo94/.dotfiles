@@ -26,6 +26,8 @@ verify_link \
   "$agent_home/.claude/projects/-Users-eddyekofo--dotfiles/memory/response-concision.md" \
   "$config_dir/claude/response-concision.md"
 verify_link "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
+verify_link "$agent_home/.claude/agents/interrogate-reviewer.md" \
+  "$config_dir/claude/agents/interrogate-reviewer.md"
 verify_link "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
 verify_link "$agent_home/.claude/statusline-command.sh" \
   "$config_dir/claude/statusline-command.sh"

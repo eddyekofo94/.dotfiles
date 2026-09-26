@@ -26,8 +26,9 @@
 # With no SPEC this asks the work graph what is next (FS-129 D7): the focus
 # track's ranked, unclaimed candidates from
 # `features_index.py --focus --json` — one record per free track (FS-243 D6) —
-# one build tab each until the manager's build cap refuses (exit 3), booted
-# into `/deliver <ID>`, plus the plan tab. A busy track (exit 4) is skipped. `/goals` may still pass SPECs to
+# one build tab each until the manager's build cap or tab ceiling refuses (exit 3), booted
+# into `/deliver <ID>`, plus the plan tab when the tab ceiling has room
+# (FS-245 D1). A busy track (exit 4) is skipped. `/goals` may still pass SPECs to
 # override the ranking; nothing else has to.
 #
 # The `plan` tab starts in plan mode (--permission-mode plan), not YOLO: FS-100
@@ -77,12 +78,19 @@ if [ "$WORKTREE" != "true" ]; then
     PLACE="--place"
   fi
 fi
+# FS-245 D1: a tab that opens no checkout (the plan tab, a resumed shared-tree
+# session) never reaches `open`'s gate, so it asks the manager's read-only tab
+# count first. A manager without `tabs` has no ceiling to ask.
+TABS_GATE=0
+if [ "$WORKTREE" != "true" ] && $WORKTREE tabs --help >/dev/null 2>&1; then
+  TABS_GATE=1
+fi
 
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
 # Refuse anything flag-shaped before a single tab exists.
 case "${1:-}" in
-  -h|--help) sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
 esac
 
@@ -155,6 +163,11 @@ for spec in "${SPECS[@]}"; do
   # unresolvable home would hand the tab an empty cwd. Everything shares the root.
   [ "$WORKTREE" = "true" ] && home="shared"
   if [ "$home" = "shared" ]; then
+    if [ "$TABS_GATE" = 1 ] && ! $WORKTREE tabs --place >/dev/null; then
+      echo "tabs full — ${label} not opened (FS-245 D1); the manager's lines above list the open tabs" >&2
+      cap_full=1
+      continue
+    fi
     cwd="$REPO"
   elif [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
     IFS=, read -ra owned_paths <<<"$paths"
@@ -176,7 +189,7 @@ for spec in "${SPECS[@]}"; do
     else
       rc=$?
       case "$rc" in
-        3) echo "build cap full — ${label} and the rest wait for a slot (FS-243 D1)" >&2; cap_full=1; break ;;
+        3) echo "cap full (builds or tabs — the manager's lines above say which) — ${label} and the rest wait (FS-243 D1, FS-245 D1)" >&2; cap_full=1; break ;;
         4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
         *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
       esac
@@ -188,7 +201,7 @@ for spec in "${SPECS[@]}"; do
     # build tabs, a busy track skips only this record.
     rc=$?
     case "$rc" in
-      3) echo "build cap full — ${label} and the rest wait for a slot (FS-243 D1)" >&2; cap_full=1; break ;;
+      3) echo "cap full (builds or tabs — the manager's lines above say which) — ${label} and the rest wait (FS-243 D1, FS-245 D1)" >&2; cap_full=1; break ;;
       4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
       *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
     esac
@@ -244,8 +257,8 @@ for spec in "${SPECS[@]}"; do
   boot_note="${boot:+ boot ${boot}}"
   echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
 done
-# FS-243 D5: at a full cap the next decision is the bottleneck, and the plan
-# tab is the grill lane (`/grill-next` runs there, .claude/skills/grill-next).
+# FS-243 D5 as amended, FS-245 D4: a full count opens nothing more; the plan
+# tab, when it opened, is where the next decision goes (`/grill-next`).
 if [ "$cap_full" = 1 ]; then
-  echo "build cap full — the plan tab is where the next decision goes:  /grill-next" >&2
+  echo "cap full (builds or tabs — the manager's lines above say which) — nothing more opens; /grill-next when you have the attention" >&2
 fi

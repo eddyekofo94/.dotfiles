@@ -222,7 +222,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertIsNotNone(create, f"stdout={result.stdout!r} stderr={result.stderr!r} calls={recorded!r}")
         self.assertEqual(Path(create[create.index("--cwd") + 1]).resolve(),
                          self.worktree("one").resolve())
-        self.assertEqual(create[create.index("--label") + 1], "one")
+        self.assertEqual(create[create.index("--label") + 1], "▸ one")
         self.assertEqual(self.claims(), {"one": ["a", "b"]})
 
         (self.root / "a").write_text("dirty")
@@ -264,6 +264,59 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.claims(), {"one": ["a"]})
 
+    def test_goals_opens_no_plan_tab_past_the_tab_ceiling(self):
+        # FS-245 D1: the plan tab opens no checkout, so it never reaches
+        # `open`'s gate; it asks `tabs --place` first and opens only when
+        # granted. The granted run is the control that the gate is live.
+        repo = self.root.parent / "ceiling-repo"
+        (repo / "tools").mkdir(parents=True)
+        (repo / "tools/features_index.py").write_text(
+            "print('{\"next\":[{\"id\":\"FS-123\",\"title\":\"Ranked\"}]}')\n")
+        (repo / "tools/session_worktree.py").write_text("""import os, sys
+args = sys.argv[1:]
+if args[:1] == ['tabs']:
+    if '--help' in args:
+        raise SystemExit(0)
+    if os.environ.get('TABS_FULL') == '1':
+        print('tabs 5/4', file=sys.stderr)
+        raise SystemExit(3)
+    print('tabs 4/4')
+    raise SystemExit(0)
+if args[:1] == ['open']:
+    if '--help' in args:
+        print('--place')
+        raise SystemExit(0)
+    raise SystemExit(3)
+""")
+        bin_dir = self.root / "ceiling-bin"
+        bin_dir.mkdir()
+        calls = self.root.parent / "ceiling-calls.jsonl"
+        (bin_dir / "herdr").write_text("""#!/usr/bin/env python3
+import json, os, sys
+with open(os.environ['HERDR_CALLS'], 'a') as out:
+    out.write(json.dumps(sys.argv[1:]) + '\\n')
+if sys.argv[1:3] == ['tab', 'create']:
+    print('{"result":{"root_pane":{"pane_id":"p1"}}}')
+""")
+        (bin_dir / "herdr").chmod(0o755)
+        goals = SCRIPT.parents[1] / "herdr/goals.sh"
+        env = os.environ.copy()
+        env.update(HERDR_GOALS_REPO=str(repo), HERDR_CALLS=str(calls),
+                   HERDR_GOALS_AGENT="claude", PATH=f"{bin_dir}:{env['PATH']}")
+        for full, creates in (("1", 0), ("0", 1)):
+            with self.subTest(tabs_full=full):
+                calls.write_text("")
+                env["TABS_FULL"] = full
+                result = subprocess.run([str(goals)], cwd=repo, env=env,
+                                        text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+                self.assertEqual(len([c for c in recorded if c[:2] == ["tab", "create"]]),
+                                 creates, result.stderr)
+                self.assertIn("cap full (builds or tabs", result.stderr)
+                if full == "1":
+                    self.assertIn("tabs full — plan not opened", result.stderr)
+
     def test_goals_preserves_claude_codex_and_pi_agent_families(self):
         (self.root / "herdr").mkdir()
         goals = self.root / "herdr/goals.sh"
@@ -296,7 +349,7 @@ if sys.argv[1:3] == ['tab', 'create']:
             env.pop(name, None)
 
         for caller, expected in (
-            ("claude", "claude --model opus --permission-mode auto"),
+            ("claude", "claude --model opus --effort medium --permission-mode auto"),
             ("codex", "codex"),
             ("pi", "pi"),
         ):
@@ -316,11 +369,11 @@ if sys.argv[1:3] == ['tab', 'create']:
         for caller, resume, expected in (
             (
                 "claude", "pick",
-                "claude --model opus --permission-mode auto --resume",
+                "claude --model opus --effort medium --permission-mode auto --resume",
             ),
             (
                 "claude", "session-123",
-                "claude --model opus --permission-mode auto --resume session-123",
+                "claude --model opus --effort medium --permission-mode auto --resume session-123",
             ),
             ("codex", "pick", "codex resume"),
             ("codex", "session-123", "codex resume session-123"),
@@ -350,8 +403,8 @@ if sys.argv[1:3] == ['tab', 'create']:
             (
                 "claude",
                 [
-                    'claude --model fable --permission-mode plan "/grill-next"',
-                    'claude --model opus --permission-mode auto "feature-plan FS-123"',
+                    'claude --model opus --effort max --permission-mode plan "/grill-next"',
+                    'claude --model opus --effort medium --permission-mode auto "feature-plan FS-123"',
                 ],
             ),
             (
