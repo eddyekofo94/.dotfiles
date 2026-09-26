@@ -31,15 +31,16 @@ new_cwd = "follow"
 [keys]
 prefix = "ctrl+a"
 new_tab = "prefix+c"
-# Alt+Ctrl+n/p and Alt+Ctrl+l/h mirror Prefix+n/p so tab stepping is a single
-# chord, matching the Alt+Ctrl+t new-tab chord below. Herdr claims them globally
-# (no vim forward): tab movement means one thing in every app.
+# Alt+Ctrl+l/h mirror Prefix+n/p so tab stepping is a single chord, matching
+# the Alt+Ctrl+t new-tab chord below. Herdr claims them globally (no vim
+# forward): tab movement means one thing in every app. Tabs belong to the
+# active workspace, so they never step into another project (FS-261).
 #
 # Alt+Ctrl+Left/Right are the same two actions under the arrows, for when the
 # hand is already off the home row. Left is previous, Right is next. macOS binds
 # bare Ctrl+Left/Right to Mission Control spaces; adding Alt clears that.
-next_tab = ["prefix+n", "alt+ctrl+n", "alt+ctrl+l", "alt+ctrl+right"]
-previous_tab = ["prefix+p", "alt+ctrl+p", "alt+ctrl+h", "alt+ctrl+left"]
+next_tab = ["prefix+n", "alt+ctrl+l", "alt+ctrl+right"]
+previous_tab = ["prefix+p", "alt+ctrl+h", "alt+ctrl+left"]
 close_tab = "prefix+shift+x"
 workspace_picker = "prefix+w"
 goto = "prefix+f"
@@ -62,8 +63,19 @@ resize_mode = "prefix+r"
 copy_mode = ["prefix+s", "alt+/"]
 copy_mode_search = "alt+b"
 toggle_sidebar = "prefix+shift+s"
-previous_workspace = "prefix+("
-next_workspace = "prefix+)"
+# One workspace per project (FS-261, Eddy 2026-09-26): Alt+Ctrl+n/p step
+# between projects, Alt+Ctrl+h/l step tabs inside one, Alt+Ctrl+j/k step agents.
+# Alt+Ctrl+Shift+n/d create and close a workspace; close asks first.
+previous_workspace = ["prefix+(", "alt+ctrl+p"]
+next_workspace = ["prefix+)", "alt+ctrl+n"]
+new_workspace = ["prefix+shift+n", "alt+ctrl+shift+n"]
+close_workspace = ["prefix+shift+d", "alt+ctrl+shift+d"]
+# Vertical Ctrl+Alt home-row chords step agents in agent-panel order. Herdr's
+# native actions scroll the panel to keep the focused agent in view; the old
+# `agent_cycle.py` went through `herdr agent focus`, which never scrolls, so an
+# agent past the panel's last visible row was focused out of sight.
+next_agent = "alt+ctrl+j"
+previous_agent = "alt+ctrl+k"
 # `prefix+Tab` is tmux's last *window*, not its last pane (tmux binds the pane
 # counterpart to `M-p`/`M-C-p`), so it belongs to the tab-history action below.
 last_pane = ["ctrl+^"]
@@ -73,21 +85,6 @@ key = "prefix+a"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
 description = "adaptive split from focused pane shape"
-
-# Vertical Ctrl+Alt home-row chords cycle only native current-session agent
-# rows. The helper consumes Herdr's emitted order unchanged and delegates the
-# actual focus to `agent focus`; horizontal Ctrl+Alt+h/l remain tab navigation.
-[[keys.command]]
-key = "alt+ctrl+j"
-type = "shell"
-command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" next"
-description = "focus next agent in sidebar order"
-
-[[keys.command]]
-key = "alt+ctrl+k"
-type = "shell"
-command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" previous"
-description = "focus previous agent in sidebar order"
 
 # Global tmux-style smart navigation. Herdr intercepts Alt+h/j/k/l before any
 # app (including non-adapter TUIs like Claude Code, Codex, lazygit); smart_nav.sh
