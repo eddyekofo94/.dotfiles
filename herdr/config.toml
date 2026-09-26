@@ -70,12 +70,6 @@ previous_workspace = ["prefix+(", "alt+ctrl+p"]
 next_workspace = ["prefix+)", "alt+ctrl+n"]
 new_workspace = ["prefix+shift+n", "alt+ctrl+shift+n"]
 close_workspace = ["prefix+shift+d", "alt+ctrl+shift+d"]
-# Vertical Ctrl+Alt home-row chords step agents in agent-panel order. Herdr's
-# native actions scroll the panel to keep the focused agent in view; the old
-# `agent_cycle.py` went through `herdr agent focus`, which never scrolls, so an
-# agent past the panel's last visible row was focused out of sight.
-next_agent = "alt+ctrl+j"
-previous_agent = "alt+ctrl+k"
 # `prefix+Tab` is tmux's last *window*, not its last pane (tmux binds the pane
 # counterpart to `M-p`/`M-C-p`), so it belongs to the tab-history action below.
 last_pane = ["ctrl+^"]
@@ -85,6 +79,22 @@ key = "prefix+a"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/adaptive_split.sh\""
 description = "adaptive split from focused pane shape"
+
+# Vertical Ctrl+Alt home-row chords step agents in sidebar order, starting from
+# the focused tab when no agent is focused (Herdr's native next_agent starts at
+# the top instead). The helper focuses through `herdr agent focus`, which the
+# reviewed build's agent-focus-keeps-agent-in-view.patch scrolls into view.
+[[keys.command]]
+key = "alt+ctrl+j"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" next"
+description = "focus next agent in sidebar order"
+
+[[keys.command]]
+key = "alt+ctrl+k"
+type = "shell"
+command = "exec \"$HERDR_PROTOTYPE_DIR/agent_cycle.py\" previous"
+description = "focus previous agent in sidebar order"
 
 # Global tmux-style smart navigation. Herdr intercepts Alt+h/j/k/l before any
 # app (including non-adapter TUIs like Claude Code, Codex, lazygit); smart_nav.sh

@@ -257,6 +257,7 @@ fi
   # selects is decoration — which is how a spinner that never advanced under the
   # headless server got shipped once already.
   cargo test --locked working_
+  cargo test --locked agent_focus_
   cargo build --release --locked
 )
 
