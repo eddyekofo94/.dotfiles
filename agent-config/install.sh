@@ -140,6 +140,12 @@ install_link claude-response-memory \
   "$config_dir/claude/response-concision.md"
 install_link claude-settings \
   "$agent_home/.claude/settings.json" "$config_dir/claude/settings.json"
+# User-level agents: `~/.claude/agents` holds one link per definition, so a
+# project's own `.claude/agents` still wins for its name.
+mkdir -p "$agent_home/.claude/agents"
+install_link claude-agent-interrogate-reviewer \
+  "$agent_home/.claude/agents/interrogate-reviewer.md" \
+  "$config_dir/claude/agents/interrogate-reviewer.md"
 install_link claude-keybindings \
   "$agent_home/.claude/keybindings.json" "$config_dir/claude/keybindings.json"
 install_link claude-statusline \

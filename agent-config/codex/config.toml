@@ -231,7 +231,15 @@ path = "/Users/eddyekofo/.agent-skills/loop/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/mattpocock-skill-sync/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/skill-sync/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/blast-radius/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/interrogate/SKILL.md"
 enabled = false
 
 [[skills.config]]
