@@ -14,27 +14,27 @@
 # opens in its own worktree on `feature/<slug>` cut from local `main` — never
 # inheriting whatever branch the shared checkout happens to be parked on. A
 # *resumed* session keeps the home it already had, which is the shared checkout
-# unless `home` names its worktree. `plan` stays in the shared checkout: ranking
-# and grilling read the whole repo and write records, not code.
+# unless `home` names its worktree. `grill` stays in the shared checkout:
+# grilling reads the whole repo and writes records, not code. `verdict` opens
+# the one `verdict-drain` checkout.
 #
 #   goal-x:opus                     fresh   -> worktree ../BibleStandard-sessions/goal-x
 #   goal-x:opus:pick                resumed -> shared checkout
 #   goal-x:opus:pick:fs110-ledge    resumed -> that worktree
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
 #   notes:opus::shared              fresh   -> shared checkout anyway
+#   grill:opus                      Eddy asked for one: shared, Opus max, /grill-next
+#   verdict:opus                    the verdict lane: verdict-drain, /verdict-next agent
 #
-# With no SPEC this asks the work graph what is next (FS-129 D7): the focus
-# track's ranked, unclaimed candidates from
-# `features_index.py --focus --json` — one record per free track (FS-243 D6) —
-# one build tab each until the manager's build cap or tab ceiling refuses (exit 3), booted
-# into `/deliver <ID>`, plus the plan tab when the tab ceiling has room
-# (FS-245 D1). A busy track (exit 4) is skipped. `/goals` may still pass SPECs to
-# override the ranking; nothing else has to.
+# With no SPEC this opens the lanes, and only the lanes (FS-262 D5): the work
+# graph's fill order from `features_index.py --focus --json` — one record per
+# track first, then more from a busy track — one `/deliver <ID>` build tab each
+# until the build cap refuses (exit 3); a record whose seams overlap a live
+# build (exit 4) is skipped. Then the verdict lane, when unjudged agent rows
+# wait and its seat is free (D3). Never a plan, grill or todo tab: grilling is
+# Eddy's, at his pace (D4). A landed Ready To Act flip runs this too (D8).
 #
-# The `plan` tab starts in plan mode (--permission-mode plan), not YOLO: FS-100
-# says the max-effort plan tab plans and grills, and plan mode is what enforces it.
-#
-# Every build tab starts in auto mode (--permission-mode auto): these are Eddy's
+# Every tab starts in auto mode (--permission-mode auto): these are Eddy's
 # own goal sessions on his own repo, and a permission prompt in an unfocused tab
 # stalls the goal until he finds it, while full bypass gave up more than it
 # bought. The repo_lock PreToolUse hook still runs, so cross-session write
@@ -78,19 +78,11 @@ if [ "$WORKTREE" != "true" ]; then
     PLACE="--place"
   fi
 fi
-# FS-245 D1: a tab that opens no checkout (the plan tab, a resumed shared-tree
-# session) never reaches `open`'s gate, so it asks the manager's read-only tab
-# count first. A manager without `tabs` has no ceiling to ask.
-TABS_GATE=0
-if [ "$WORKTREE" != "true" ] && $WORKTREE tabs --help >/dev/null 2>&1; then
-  TABS_GATE=1
-fi
-
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
 # Refuse anything flag-shaped before a single tab exists.
 case "${1:-}" in
-  -h|--help) sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
 esac
 
@@ -101,20 +93,21 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   # no argument and no ranking session. `/deliver` runs a settled record to a
   # merged slice; before it exists, fall back to the global build entry.
   if [ -d "${REPO}/.claude/skills/deliver" ]; then RUN="/deliver"; else RUN="feature-plan"; fi
-  SPECS=("plan:opus")
-  BOOTS=("")
+  focus_json=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null) || focus_json="{}"
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue
     label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
     SPECS+=("${label}:opus")
     BOOTS+=("${RUN} ${id}")
-  done < <(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null \
-             | jq -r '.next[] | [.id, .title] | @tsv')
-  if [ ${#SPECS[@]} -eq 1 ]; then
-    # Nothing ranked anywhere: the decision backlog is the bottleneck, visibly.
-    SPECS+=("todo:opus")
-    BOOTS+=("/todo")
+  done < <(jq -r '.next[]? | [.id, .title] | @tsv' <<<"$focus_json")
+  # FS-262 D3: the verdict lane opens only while unjudged agent rows wait and
+  # its one seat is free; an empty queue opens none.
+  if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
+     [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
+    SPECS+=("verdict:opus")
+    BOOTS+=("/verdict-next agent")
   fi
+  [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /grill-next when you have the attention (no tab opened)" >&2
 fi
 
 herdr status server >/dev/null 2>&1 || { echo "herdr server not running; open Herdr first" >&2; exit 1; }
@@ -151,60 +144,63 @@ $WORKTREE shared-status >/dev/null || true
 
 index=-1
 cap_full=0
-for spec in "${SPECS[@]}"; do
+for spec in ${SPECS[@]+"${SPECS[@]}"}; do
   index=$((index + 1))
   IFS=: read -r label model resume home paths <<<"$spec"
+  # FS-262 D5: a full build cap ends the builds, not the verdict lane after them.
+  if [ "$cap_full" = 1 ] && [ "$label" != verdict ] && [ "$label" != grill ]; then continue; fi
   # Resolve the tab's working directory before creating the tab: a worktree that
   # cannot be made must not leave a half-opened window behind.
   if [ -z "${home:-}" ]; then
-    if [ "$label" = "plan" ] || [ -n "${resume:-}" ]; then home="shared"; else home="$label"; fi
+    if [ "$label" = "grill" ] || [ -n "${resume:-}" ]; then home="shared"
+    elif [ "$label" = "verdict" ]; then home="verdict-drain"
+    else home="$label"; fi
   fi
   # No worktree tooling in this repo means no per-goal checkout to open, and an
   # unresolvable home would hand the tab an empty cwd. Everything shares the root.
   [ "$WORKTREE" = "true" ] && home="shared"
   if [ "$home" = "shared" ]; then
-    if [ "$TABS_GATE" = 1 ] && ! $WORKTREE tabs --place >/dev/null; then
-      echo "tabs full — ${label} not opened (FS-245 D1); the manager's lines above list the open tabs" >&2
-      cap_full=1
-      continue
-    fi
     cwd="$REPO"
-  elif [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
-    IFS=, read -ra owned_paths <<<"$paths"
+  else
     worktree_args=(open "$home")
     [ -n "$PLACE" ] && worktree_args+=("$PLACE")
-    manager_help=$(python3 "${REPO}/tools/session_worktree.py" open --help 2>&1)
-    if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
-      for owned_path in "${owned_paths[@]}"; do
-        worktree_args+=(--path "$owned_path")
-      done
-    elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
-      worktree_args+=(--paths "${owned_paths[@]}")
-    else
-      echo "skipped ${label}: worktree manager has no owned-path interface" >&2
-      continue
+    [ "$label" = "verdict" ] || worktree_args+=(--goal "$label")
+    if [ "$WORKTREE" != "true" ] && [ -n "${paths:-}" ]; then
+      IFS=, read -ra owned_paths <<<"$paths"
+      manager_help=$($WORKTREE open --help 2>&1)
+      if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
+        for owned_path in "${owned_paths[@]}"; do
+          worktree_args+=(--path "$owned_path")
+        done
+      elif grep -Eq -- '(^|[[:space:]])--paths([[:space:]=]|$)' <<<"$manager_help"; then
+        worktree_args+=(--paths "${owned_paths[@]}")
+      else
+        echo "skipped ${label}: worktree manager has no owned-path interface" >&2
+        continue
+      fi
     fi
-    if cwd=$(python3 "${REPO}/tools/session_worktree.py" "${worktree_args[@]}"); then
+    if cwd=$($WORKTREE "${worktree_args[@]}"); then
       :
     else
+      # The manager's gates exit apart (FS-243 D8): a full build cap ends the
+      # build tabs, an overlapping seam skips only this record (FS-262 D5).
       rc=$?
+      # FS-262 D1: the manager owns the one verdict seat; exit 3 there means
+      # a drain is already open, never a full build cap.
+      if [ "$label" = verdict ]; then
+        if [ "$rc" = 3 ]; then
+          echo "skipped verdict: the verdict lane is already open (verdict-drain)" >&2
+        else
+          echo "skipped verdict: could not open verdict-drain (exit ${rc})" >&2
+        fi
+        continue
+      fi
       case "$rc" in
-        3) echo "cap full (builds or tabs — the manager's lines above say which) — ${label} and the rest wait (FS-243 D1, FS-245 D1)" >&2; cap_full=1; break ;;
-        4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
+        3) echo "build lanes full — ${label} and the builds after it wait (FS-243 D1)" >&2; cap_full=1; continue ;;
+        4) echo "skipped ${label}: its seams overlap a live build — the manager's line above names it (FS-262 D5)" >&2; continue ;;
         *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
       esac
     fi
-  elif cwd=$($WORKTREE open "$home" --goal "$label" $PLACE); then
-    :
-  else
-    # The manager's gates exit apart (FS-243 D8): a full build cap ends the
-    # build tabs, a busy track skips only this record.
-    rc=$?
-    case "$rc" in
-      3) echo "cap full (builds or tabs — the manager's lines above say which) — ${label} and the rest wait (FS-243 D1, FS-245 D1)" >&2; cap_full=1; break ;;
-      4) echo "skipped ${label}: its track already has a build in flight (FS-243 D4)" >&2; continue ;;
-      *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
-    esac
   fi
 
   # The tab is named for the checkout it actually got, not for the id it was
@@ -214,16 +210,15 @@ for spec in "${SPECS[@]}"; do
   # a tab opened here and a tab opened there carry one shape.
   if [ "$home" = "shared" ]; then tab_label="$label"; else tab_label=$(basename "$cwd"); fi
 
-  # FS-100: the plan tab plans. Plan mode is the mechanical half of that rule —
-  # the plan tab cannot quietly start editing — so it replaces the build-tab mode
-  # rather than joining it (one --permission-mode per session).
-  if [ "$label" = "plan" ]; then mode_flag="--permission-mode plan"; else mode_flag="$BUILD_MODE_FLAG"; fi
+  mode_flag="$BUILD_MODE_FLAG"
 
-  # The plan tab opens already working the decision backlog: 29 records sit at
-  # `Status: Spec Needed` and drain only when someone remembers them. A
-  # positional prompt seeds the session and leaves it interactive — `-p` would
-  # print one answer and exit, which is not a lane.
-  if [ "$label" = "plan" ] && [ -z "${resume:-}" ]; then boot="/grill-next"; else boot=""; fi
+  # An explicit `grill` opens already working the decision backlog, and
+  # `verdict` already draining (FS-262 D4/D2). A positional prompt seeds the
+  # session and leaves it interactive — `-p` would print one answer and exit.
+  boot=""
+  if [ -z "${resume:-}" ]; then
+    case "$label" in grill) boot="/grill-next" ;; verdict) boot="/verdict-next agent" ;; esac
+  fi
   # A no-argument run already knows what each tab is for (FS-129 D7).
   if [ ${#BOOTS[@]} -gt "$index" ] && [ -n "${BOOTS[$index]:-}" ]; then boot="${BOOTS[$index]}"; fi
 
@@ -236,9 +231,9 @@ for spec in "${SPECS[@]}"; do
       pick)   resume_args=" --resume" ;;
       *)      resume_args=" --resume ${resume}" ;;
     esac
-    # FS-100 (Eddy, 2026-09-25): the plan tab decides at max effort, build tabs
-    # build at medium.
-    if [ "$label" = "plan" ]; then effort=max; else effort=medium; fi
+    # FS-100 (Eddy, 2026-09-25): a grill decides at max effort; builds and the
+    # verdict lane build at medium (its judge runs at max on its own, FS-262 D2).
+    if [ "$label" = "grill" ]; then effort=max; else effort=medium; fi
     launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in
@@ -257,8 +252,8 @@ for spec in "${SPECS[@]}"; do
   boot_note="${boot:+ boot ${boot}}"
   echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
 done
-# FS-243 D5 as amended, FS-245 D4: a full count opens nothing more; the plan
-# tab, when it opened, is where the next decision goes (`/grill-next`).
+# FS-262 D8: a full build cap opens nothing more; the chain fills a lane when
+# a build lands. Nothing here asks Eddy to deliver.
 if [ "$cap_full" = 1 ]; then
-  echo "cap full (builds or tabs — the manager's lines above say which) — nothing more opens; /grill-next when you have the attention" >&2
+  echo "build lanes full — the chain fills a lane when a build lands; /grill-next when you have the attention" >&2
 fi

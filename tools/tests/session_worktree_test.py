@@ -264,33 +264,46 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.claims(), {"one": ["a"]})
 
-    def test_goals_opens_no_plan_tab_past_the_tab_ceiling(self):
-        # FS-245 D1: the plan tab opens no checkout, so it never reaches
-        # `open`'s gate; it asks `tabs --place` first and opens only when
-        # granted. The granted run is the control that the gate is live.
-        repo = self.root.parent / "ceiling-repo"
-        (repo / "tools").mkdir(parents=True)
-        (repo / "tools/features_index.py").write_text(
-            "print('{\"next\":[{\"id\":\"FS-123\",\"title\":\"Ranked\"}]}')\n")
-        (repo / "tools/session_worktree.py").write_text("""import os, sys
+    def run_lanes(self, ranked, unjudged, seat="free", cap=4, args=()):
+        """BibleStandard FS-262: `herdr-goals` against a fake manager and a
+        fake work graph. Returns (result, [(label, launch)] per opened tab)."""
+        repo = self.root.parent / "lanes-repo"
+        (repo / "tools").mkdir(parents=True, exist_ok=True)
+        (repo / ".claude/skills/deliver").mkdir(parents=True, exist_ok=True)
+        graph = {"next": [{"id": f"FS-{n}", "title": "Ranked"} for n in ranked],
+                 "unjudged": unjudged, "verdict_seat": seat}
+        (repo / "tools/features_index.py").write_text(f"print({json.dumps(json.dumps(graph))})\n")
+        sessions = self.root.parent / "lanes-sessions"
+        (repo / "tools/session_worktree.py").write_text(f"""import json, os, sys
+from pathlib import Path
 args = sys.argv[1:]
-if args[:1] == ['tabs']:
-    if '--help' in args:
-        raise SystemExit(0)
-    if os.environ.get('TABS_FULL') == '1':
-        print('tabs 5/4', file=sys.stderr)
-        raise SystemExit(3)
-    print('tabs 4/4')
-    raise SystemExit(0)
 if args[:1] == ['open']:
     if '--help' in args:
         print('--place')
         raise SystemExit(0)
-    raise SystemExit(3)
+    slug = args[1]
+    log = Path({str(sessions)!r}) / 'opened'
+    log.parent.mkdir(parents=True, exist_ok=True)
+    if slug == 'verdict-drain' and '--place' in args and (Path({str(sessions)!r}) / slug).exists():
+        print('verdict lane already open', file=sys.stderr)
+        raise SystemExit(3)
+    builds = [l for l in (log.read_text().split() if log.exists() else []) if l != 'verdict-drain']
+    if slug != 'verdict-drain' and len(builds) >= {cap}:
+        print('cap reached: build cap', file=sys.stderr)
+        raise SystemExit(3)
+    with log.open('a') as out:
+        out.write(slug + '\\n')
+    path = Path({str(sessions)!r}) / slug
+    path.mkdir(parents=True, exist_ok=True)
+    print(path)
 """)
-        bin_dir = self.root / "ceiling-bin"
-        bin_dir.mkdir()
-        calls = self.root.parent / "ceiling-calls.jsonl"
+        bin_dir = self.root / "lanes-bin"
+        bin_dir.mkdir(exist_ok=True)
+        calls = self.root.parent / "lanes-calls.jsonl"
+        calls.write_text("")
+        if sessions.exists():
+            import shutil
+            shutil.rmtree(sessions)
         (bin_dir / "herdr").write_text("""#!/usr/bin/env python3
 import json, os, sys
 with open(os.environ['HERDR_CALLS'], 'a') as out:
@@ -299,23 +312,53 @@ if sys.argv[1:3] == ['tab', 'create']:
     print('{"result":{"root_pane":{"pane_id":"p1"}}}')
 """)
         (bin_dir / "herdr").chmod(0o755)
-        goals = SCRIPT.parents[1] / "herdr/goals.sh"
         env = os.environ.copy()
         env.update(HERDR_GOALS_REPO=str(repo), HERDR_CALLS=str(calls),
                    HERDR_GOALS_AGENT="claude", PATH=f"{bin_dir}:{env['PATH']}")
-        for full, creates in (("1", 0), ("0", 1)):
-            with self.subTest(tabs_full=full):
-                calls.write_text("")
-                env["TABS_FULL"] = full
-                result = subprocess.run([str(goals)], cwd=repo, env=env,
-                                        text=True, capture_output=True)
+        result = subprocess.run([str(SCRIPT.parents[1] / "herdr/goals.sh"), *args], cwd=repo,
+                                env=env, text=True, capture_output=True)
+        recorded = [json.loads(line) for line in calls.read_text().splitlines()]
+        labels = [c[c.index("--label") + 1] for c in recorded if c[:2] == ["tab", "create"]]
+        runs = [c[3] for c in recorded if c[:2] == ["pane", "run"]]
+        return result, list(zip(labels, runs))
+
+    def test_goals_opens_four_builds_then_the_verdict_lane_and_nothing_else(self):
+        result, tabs = self.run_lanes([101, 102, 103, 104, 105], unjudged=3)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([label for label, _ in tabs],
+                         ["▸ fs101", "▸ fs102", "▸ fs103", "▸ fs104", "▸ verdict-drain"])
+        self.assertEqual(tabs[-1][1], 'claude --model opus --effort medium '
+                                      '--permission-mode auto "/verdict-next agent"')
+        self.assertTrue(all("--effort medium" in launch for _, launch in tabs))
+        self.assertFalse(any("grill" in launch or "/todo" in launch or "plan" in launch
+                             for _, launch in tabs))
+        self.assertIn("build lanes full", result.stderr)
+        self.assertNotIn("/deliver", result.stderr)
+
+    def test_goals_opens_no_verdict_lane_without_unjudged_rows_or_a_free_seat(self):
+        for unjudged, seat in ((0, "free"), (4, "held")):
+            with self.subTest(unjudged=unjudged, seat=seat):
+                result, tabs = self.run_lanes([101], unjudged=unjudged, seat=seat)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                recorded = [json.loads(line) for line in calls.read_text().splitlines()]
-                self.assertEqual(len([c for c in recorded if c[:2] == ["tab", "create"]]),
-                                 creates, result.stderr)
-                self.assertIn("cap full (builds or tabs", result.stderr)
-                if full == "1":
-                    self.assertIn("tabs full — plan not opened", result.stderr)
+                self.assertEqual([label for label, _ in tabs], ["▸ fs101"])
+
+    def test_goals_with_nothing_to_do_opens_nothing(self):
+        result, tabs = self.run_lanes([], unjudged=0)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(tabs, [])
+        self.assertIn("/grill-next when you have the attention", result.stderr)
+
+    def test_an_explicit_grill_opens_in_the_shared_checkout_at_max(self):
+        result, tabs = self.run_lanes([101], unjudged=3, args=("grill:opus",))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort max '
+                                           '--permission-mode auto "/grill-next"')])
+
+    def test_an_explicit_verdict_is_refused_while_the_seat_is_held(self):
+        result, tabs = self.run_lanes([], unjudged=3, args=("verdict:opus", "verdict:opus"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([label for label, _ in tabs], ["▸ verdict-drain"])
+        self.assertIn("verdict lane is already open", result.stderr)
 
     def test_goals_preserves_claude_codex_and_pi_agent_families(self):
         (self.root / "herdr").mkdir()
@@ -403,15 +446,11 @@ if sys.argv[1:3] == ['tab', 'create']:
             (
                 "claude",
                 [
-                    'claude --model opus --effort max --permission-mode plan "/grill-next"',
                     'claude --model opus --effort medium --permission-mode auto "feature-plan FS-123"',
                 ],
             ),
-            (
-                "codex",
-                ['codex "/grill-next"', 'codex "feature-plan FS-123"'],
-            ),
-            ("pi", ['pi "/grill-next"', 'pi "feature-plan FS-123"']),
+            ("codex", ['codex "feature-plan FS-123"']),
+            ("pi", ['pi "feature-plan FS-123"']),
         ):
             with self.subTest(caller=caller, automatic=True):
                 calls.write_text("")

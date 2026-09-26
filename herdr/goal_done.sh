@@ -11,8 +11,10 @@
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree and shut down its QA simulators (frees the slot)
 #   4. advance: open a fresh same-agent `/deliver <ID>` tab for every free build
-#      slot, one per track (FS-130 D3, FS-243 D6); when none can open, name
-#      the decision lane and open nothing  (FS-243 D5 as amended, 2026-09-25)
+#      lane, one per track first, then more from a busy track (FS-130 D3,
+#      BibleStandard FS-262 D5); then the verdict lane when unjudged agent rows
+#      wait and its seat is free (D3). Never a grill (D4); when nothing can
+#      open, it says so and opens nothing
 #   5. close the tab this ran in                     (last: it kills us)
 #
 # Step 5 is why the order matters and why the new tab is created before
@@ -26,12 +28,14 @@
 # Usage:
 #   herdr-goal-done                 # from inside the finished goal's worktree
 #   herdr-goal-done --force         # skip the merged check (branch is kept)
+#   herdr-goal-done --park          # a stuck build: park its branch, free its lane
 #   herdr-goal-done --keep-tab      # open the next tab, leave this one open
 #   herdr-goal-done --no-todo       # just retire; do not advance or open anything
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
 set -uo pipefail
 
 FORCE=0
+PARK=0
 KEEP_TAB=0
 OPEN_TODO=1
 DRY=0
@@ -41,11 +45,12 @@ BOOT_SET=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --force)    FORCE=1 ;;
+    --park)     PARK=1 ;;
     --keep-tab) KEEP_TAB=1 ;;
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
-    -h|--help)  sed -n '2,31p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -100,13 +105,19 @@ if [ "$root" = "$shared" ]; then
 else
   branch=$(cd "$root" && git rev-parse --abbrev-ref HEAD)
   dirty=$(cd "$root" && git status --porcelain)
-  [ -z "$dirty" ] || [ "$FORCE" = 1 ] || die "$slug has uncommitted changes; commit, or --force"
-  # Merged means "main already contains this HEAD" — true after a --no-ff merge
-  # and equally true for a branch that never diverged. Either way nothing is
-  # lost by sweeping it.
-  if ! (cd "$shared" && git merge-base --is-ancestor "$branch" main) 2>/dev/null; then
-    [ "$FORCE" = 1 ] || die "main does not contain $branch yet; merge it first, or --force"
-    echo "goal-done: --force with $branch unmerged — keeping the branch"
+  # FS-262 D9: a stuck build parks instead — its dirt and its unmerged branch
+  # go to `parked/<slug>`, where `open <id>` resumes them, and its lane frees.
+  if [ "$PARK" = 1 ]; then
+    echo "goal-done: --park — $slug's work goes to parked/$slug; its lane frees"
+  else
+    [ -z "$dirty" ] || [ "$FORCE" = 1 ] || die "$slug has uncommitted changes; commit, --park a stuck build, or --force"
+    # Merged means "main already contains this HEAD" — true after a --no-ff merge
+    # and equally true for a branch that never diverged. Either way nothing is
+    # lost by sweeping it.
+    if ! (cd "$shared" && git merge-base --is-ancestor "$branch" main) 2>/dev/null; then
+      [ "$FORCE" = 1 ] || die "main does not contain $branch yet; merge it first, --park a stuck build, or --force"
+      echo "goal-done: --force with $branch unmerged — keeping the branch"
+    fi
   fi
 fi
 
@@ -127,8 +138,17 @@ if [ -n "$slug" ] && [ -f "$shared/tools/session_worktree.py" ]; then
   # Leave the current directory before it is removed, or every later command
   # runs from a deleted inode.
   cd "$shared" || die "cannot enter $shared"
-  run python3 tools/session_worktree.py remove "$slug" ||
-    die "worktree $slug not swept — tab left open so the reason is readable"
+  if [ "$PARK" = 1 ]; then
+    run python3 tools/session_worktree.py park "$slug" ||
+      die "worktree $slug not parked — tab left open so the reason is readable"
+  elif [ "$slug" = verdict-drain ]; then
+    # FS-262 D3: the drain reopens on current `main`, never on its old branch.
+    run python3 tools/session_worktree.py remove "$slug" --delete-branch ||
+      die "worktree $slug not swept — tab left open so the reason is readable"
+  else
+    run python3 tools/session_worktree.py remove "$slug" ||
+      die "worktree $slug not swept — tab left open so the reason is readable"
+  fi
 fi
 
 # The goal's QA simulators go with its worktree (Eddy, 2026-09-25: "can we have
@@ -147,23 +167,20 @@ if [ -n "$slug" ] && command -v xcrun >/dev/null; then
              sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
 fi
 
-# FS-130 D3, as filled by FS-243 D6: the finished tab starts the next goals
-# itself — one `/deliver` tab per free build slot, one per track, walking the
-# work graph's fill set (`--focus --json` `next`). Each open is gated by the
-# repository's manager: exit 3 is a full cap or tab ceiling (stop, FS-245
-# D1), exit 4 is a busy track (FS-243 D4: that record waits; try the next).
-# When nothing could be opened it names the decision lane — `/grill-next` at
-# a full cap, `/todo` otherwise — and opens no tab for it: a decision tab waits
-# on Eddy, and one opened per finished build piled up unread (FS-243 D5 as
-# amended by Eddy, 2026-09-25).
+# FS-130 D3, as filled by BibleStandard FS-262 D5: the finished tab starts the
+# next goals itself — one `/deliver` tab per free build lane, walking the work
+# graph's fill order (`--focus --json` `next`: one per track first, then the
+# rest). Each open is gated by the repository's manager: exit 3 is a full
+# build cap (the builds stop), exit 4 is a record whose seams overlap a live
+# build (it waits; try the next). Then the verdict lane (D3), which a full
+# build cap never blocks. Never a grill: grilling is Eddy's (D4).
 
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
 open_tab() {  # cwd label boot model mode
   local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
-  # FS-100 (Eddy, 2026-09-25): decision tabs (plan mode) run at max effort,
-  # build tabs at medium.
-  case "$tab_mode" in *plan*) effort=max ;; *) effort=medium ;; esac
+  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium.
+  effort=medium
   if [ "$session_agent" = "claude" ]; then
     launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
   elif [ "$session_agent" = "codex" ]; then
@@ -188,26 +205,28 @@ opened=0
 tried=0
 cap_full=0
 waiting=""
+verdict_opened=0
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
-  fill=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
-            jq -c '.next[]?' ) || fill=""
+  focus_json=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) ) || focus_json="{}"
+  fill=$(jq -c '.next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
   manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
-  # Dry-run cannot ask the gate without opening, so it asks how many slots and
-  # tabs are free and walks the smaller; a real run lets exit 3 say when to stop.
+  place_flag=()
+  # This open runs in the finishing tab, for the next goal's tab: a manager
+  # that knows `--place` must not name this one after it (BibleStandard BUG-313).
+  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
+    place_flag=(--place)
+  fi
+  # Dry-run cannot ask the gate without opening, so it asks how many build
+  # lanes are free and walks that many; a real run lets exit 3 say when to stop.
   free=""
   if [ "$DRY" = 1 ]; then
     # The finishing checkout is still on disk in a dry run; a real run has
-    # swept it by now, so its slot is free — but only if it counts at all (a
+    # swept it by now, so its lane is free — but only if it counts at all (a
     # landed checkout already does not).
-    free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" GOAL_DONE_KEEP="$KEEP_TAB" python3 -c 'import os, sys; sys.path.insert(0, "tools")
+    free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
 import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s["name"] != os.environ.get("GOAL_DONE_SLUG")]
-free = repo_lock.SESSION_CAP - len(held)
-# FS-245 D1/D6: the tab ceiling too, this tab given back unless it stays.
-if hasattr(session_worktree, "bible_tabs"):
-    tabs = len(session_worktree.bible_tabs()) - (os.environ.get("GOAL_DONE_KEEP") == "0")
-    free = min(free, repo_lock.TAB_CEILING - tabs)
-print(max(free, 0))' 2>/dev/null) || free=""
+print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
   fi
   while IFS= read -r record; do
     [ -n "$record" ] || continue
@@ -220,17 +239,7 @@ print(max(free, 0))' 2>/dev/null) || free=""
     # the goal's checkout may be `fs094-offers`. `open` adopts the existing tree
     # for a bare id (FS-099), and the tab is labelled from the path it got.
     label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
-    worktree_args=(open "$label" --goal "$next_id")
-    # This open runs in the finishing tab, for the next goal's tab: a manager
-    # that knows `--place` must not name this one after it (BibleStandard BUG-313).
-    if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
-      worktree_args+=(--place)
-    fi
-    # FS-245 D1: this tab closes last, so the tab ceiling gives it back —
-    # unless `--keep-tab` leaves it open for Eddy to read.
-    if [ "$KEEP_TAB" = 0 ] && grep -Eq -- '(^|[[:space:]])--closing([[:space:]=]|$)' <<<"$manager_help"; then
-      worktree_args+=(--closing)
-    fi
+    worktree_args=(open "$label" --goal "$next_id" ${place_flag[@]+"${place_flag[@]}"})
     if [ -n "$next_paths" ]; then
       if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
         while IFS= read -r owned_path; do
@@ -265,24 +274,50 @@ print(max(free, 0))' 2>/dev/null) || free=""
       rc=$?
       case "$rc" in
         3) cap_full=1; waiting="$next_id"; break ;;
-        4) echo "goal-done: ${next_track:-its track} busy — ${next_id} waits on that build; trying the next record" >&2 ;;
+        4) echo "goal-done: ${next_id}'s seams overlap a live build — it waits; trying the next record (FS-262 D5)" >&2 ;;
         *) echo "goal-done: could not open a worktree for ${next_id} (exit ${rc}); trying the next record" >&2 ;;
       esac
     fi
   done <<<"$fill"
+
+  # FS-262 D3: the verdict lane, when unjudged agent rows wait and its one
+  # seat is free. A full build cap never blocks it: it is not a build lane.
+  if [ "$(jq -r '.unjudged // 0' <<<"$focus_json" 2>/dev/null)" -gt 0 ] 2>/dev/null &&
+     [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
+    if [ "$DRY" = 1 ]; then
+      echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-}"
+      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict-next agent" opus "--permission-mode auto"
+      verdict_opened=1
+    elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"}); then
+      open_tab "$cwd" "$(basename "$cwd")" "/verdict-next agent" opus "--permission-mode auto"
+      verdict_opened=1
+    else
+      rc=$?
+      if [ "$rc" = 3 ]; then
+        echo "goal-done: the verdict lane is already open (verdict-drain)" >&2
+      else
+        echo "goal-done: could not open the verdict lane (exit ${rc})" >&2
+      fi
+    fi
+  fi
+  # FS-262 D3: a drain that closes names what it left for Eddy.
+  if [ "$slug" = verdict-drain ]; then
+    eddy=$(jq -r '.eddy_waiting // 0' <<<"$focus_json" 2>/dev/null) || eddy=0
+    echo "goal-done: ${eddy} wait on Eddy: /verdict-next"
+  fi
 fi
 
 if [ "$OPEN_TODO" = 1 ]; then
   if [ "$cap_full" = 1 ]; then
-    echo "goal-done: cap full (builds or tabs — the manager's lines above say which) — ${waiting} waits; ${opened} build tab(s) opened (FS-243 D1, FS-245 D1)"
+    echo "goal-done: build lanes full — ${waiting} waits; ${opened} build tab(s) opened; the chain fills a lane when one lands (FS-243 D1)"
   fi
-  if [ "$opened" = 0 ]; then
+  if [ "$opened" = 0 ] && [ "$verdict_opened" = 0 ]; then
     if [ "$cap_full" = 1 ]; then
       echo "goal-done: nothing could start — /grill-next when you have the attention (no tab opened)"
     elif [ "$tried" -gt 0 ]; then
-      echo "goal-done: ${tried} ranked, none could open (busy tracks or errors above) — /todo when you have the attention (no tab opened)"
+      echo "goal-done: ${tried} ranked, none could open (overlapping seams or errors above) — /grill-next when you have the attention (no tab opened)"
     else
-      echo "goal-done: nothing ranked — /todo when you have the attention (no tab opened)"
+      echo "goal-done: nothing Ready — /grill-next when you have the attention (no tab opened)"
     fi
   fi
 fi
