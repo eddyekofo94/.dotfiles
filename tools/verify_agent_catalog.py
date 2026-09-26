@@ -185,7 +185,9 @@ def main() -> None:
     overrides = claude.get("skillOverrides", {})
     expected_overrides = {
         **{name: "user-invocable-only" for name in on_demand},
-        **{name: "off" for name in archive_names},
+        # An archived skill whose name a live skill has since taken (Matt's
+        # `teach` vs pstack's) is not forced off: the override key is the name.
+        **{name: "off" for name in archive_names - personal_dirs},
     }
     if overrides != expected_overrides:
         fail("Claude skillOverrides drifted")
