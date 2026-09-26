@@ -10,6 +10,7 @@ pane. Exercise the hook as Claude Code actually runs it.
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -369,6 +370,59 @@ def main():
         expect(result.returncode != 0, "--print served another session's transcript")
         expect(not result.stdout.strip(), "--print printed for an unknown session")
         expect("fresh-session" in result.stderr, "--print did not name the missing session")
+
+        # The agent, not the tab: run under a process named `claude`, as Claude
+        # Code runs its hooks, and the hook points that process at its session
+        # so the ctrl+g shim -- the same process's descendant -- finds it after
+        # the agent is resumed, moved or handed off.
+        fake = root / "bin" / "claude"
+        fake.parent.mkdir()
+        fake.symlink_to(shutil.which("bash"))
+
+        def run_as_claude(args, payload):
+            return subprocess.run(
+                [str(fake), "-c", '"$0" "$@"', sys.executable, str(HOOK), *args],
+                input=payload,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+
+        path = transcript(root / "agent.jsonl", ["Body.\n\n" + CLOSEOUT])
+        result = run_as_claude([], json.dumps({"transcript_path": str(path), "session_id": "s9"}))
+        expect(result.returncode == 0, "the hook under claude errored", result)
+        pointers = list(root.glob("agent-prompt-agent.*"))
+        expect(len(pointers) == 1, "the Claude process was not pointed at its session", result)
+        expect(text_of(pointers[0]).strip() == "s9", "the pointer names the wrong session")
+
+        # One Claude process: a turn, then `/clear` keeps the pointer for the
+        # next turn to re-point, then exit removes it.
+        for pointer in pointers:
+            pointer.unlink()
+        both = subprocess.run(
+            [
+                str(fake),
+                "-c",
+                'printf %s "$TURN" | "$0" "$1"; '
+                'printf %s "$CLEAR" | "$0" "$1" --session-end; '
+                'ls "$TMPDIR" | grep -c "^agent-prompt-agent\\." ; '
+                'printf %s "$EXIT" | "$0" "$1" --session-end; '
+                'ls "$TMPDIR" | grep -c "^agent-prompt-agent\\." ; true',
+                sys.executable,
+                str(HOOK),
+            ],
+            capture_output=True,
+            text=True,
+            env=dict(
+                env,
+                TURN=json.dumps({"transcript_path": str(path), "session_id": "s9"}),
+                CLEAR=json.dumps({"session_id": "s9", "reason": "clear"}),
+                EXIT=json.dumps({"session_id": "s9", "reason": "prompt_input_exit"}),
+            ),
+        )
+        counts = both.stdout.split()
+        expect(counts[:1] == ["1"], "/clear dropped the agent pointer", both)
+        expect(counts[1:2] == ["0"], "session end left the agent pointer behind", both)
 
     print("closeout capture hook: PASS")
     return 0

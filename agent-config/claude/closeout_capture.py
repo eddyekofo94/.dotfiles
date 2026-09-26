@@ -109,6 +109,59 @@ def place():
     return pane
 
 
+# One file per running Claude Code process naming the session it hosts now. The
+# ctrl+g shim is a descendant of that same process, so it finds its agent by
+# walking its own ancestry -- no pane id, tab, window or Herdr session involved.
+# Those name where the agent *was* launched; a resumed, moved or handed-off
+# agent keeps its process and loses its place.
+AGENT = "agent-prompt-agent"
+
+
+def agent_pid():
+    """The Claude Code process this hook runs under, or None outside one."""
+    pid = os.getppid()
+    for _ in range(12):
+        if pid <= 1:
+            return None
+        try:
+            out = subprocess.run(
+                ["ps", "-o", "ppid=,comm=", "-p", str(pid)],
+                capture_output=True,
+                text=True,
+                timeout=2,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+        if not out:
+            return None
+        ppid, _, comm = out.partition(" ")
+        if os.path.basename(comm.strip()) == "claude":
+            return pid
+        try:
+            pid = int(ppid)
+        except ValueError:
+            return None
+    return None
+
+
+def agent_path(pid=None):
+    pid = pid or agent_pid()
+    return temp_base() / f"{AGENT}.{pid}" if pid else None
+
+
+def claim_agent(session):
+    """Point this Claude process at `session`, the one that just ran a turn."""
+    path = agent_path()
+    if not path or not session:
+        return
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(session + "\n")
+    except OSError:
+        pass
+
+
 def target_path(session):
     scope = place()
     if not scope:
@@ -200,6 +253,11 @@ def cleanup(session, reason=None):
         paths.extend(base / name.format(scope) for name in DERIVED)
     if carry and reason != "clear":
         paths.append(carry)
+    if reason != "clear":
+        # The process is exiting; `/clear` keeps it, and its next turn re-points.
+        pointer = agent_path()
+        if pointer:
+            paths.append(pointer)
     for path in paths:
         try:
             path.unlink()
@@ -453,6 +511,8 @@ def main():
     if end:
         reason = payload.get("reason") if isinstance(payload, dict) else None
         return cleanup(session, reason)
+
+    claim_agent(session)
 
     path = target_path(session)
     if not path:
