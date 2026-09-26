@@ -150,11 +150,12 @@ fi
 # FS-130 D3, as filled by FS-243 D6: the finished tab starts the next goals
 # itself — one `/deliver` tab per free build slot, one per track, walking the
 # work graph's fill set (`--focus --json` `next`). Each open is gated by the
-# repository's manager: exit 3 is a full cap (stop), exit 4 is a busy track
-# (FS-243 D4: that record waits; try the next). When nothing could be opened it
-# names the decision lane — `/grill-next` at a full cap, `/todo` otherwise — and
-# opens no tab for it: a decision tab waits on Eddy, and one opened per finished
-# build piled up unread (FS-243 D5 as amended by Eddy, 2026-09-25).
+# repository's manager: exit 3 is a full cap or tab ceiling (stop, FS-245
+# D1), exit 4 is a busy track (FS-243 D4: that record waits; try the next).
+# When nothing could be opened it names the decision lane — `/grill-next` at
+# a full cap, `/todo` otherwise — and opens no tab for it: a decision tab waits
+# on Eddy, and one opened per finished build piled up unread (FS-243 D5 as
+# amended by Eddy, 2026-09-25).
 
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
@@ -187,25 +188,27 @@ opened=0
 tried=0
 cap_full=0
 waiting=""
-cap=""
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
   fill=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) |
             jq -c '.next[]?' ) || fill=""
   manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
-  # Dry-run cannot ask the gate without opening, so it asks how many slots are
-  # free and walks that many; a real run lets exit 3 say when to stop.
+  # Dry-run cannot ask the gate without opening, so it asks how many slots and
+  # tabs are free and walks the smaller; a real run lets exit 3 say when to stop.
   free=""
   if [ "$DRY" = 1 ]; then
     # The finishing checkout is still on disk in a dry run; a real run has
     # swept it by now, so its slot is free — but only if it counts at all (a
     # landed checkout already does not).
-    free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
+    free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" GOAL_DONE_KEEP="$KEEP_TAB" python3 -c 'import os, sys; sys.path.insert(0, "tools")
 import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s["name"] != os.environ.get("GOAL_DONE_SLUG")]
-print(repo_lock.SESSION_CAP - len(held))' 2>/dev/null) || free=""
+free = repo_lock.SESSION_CAP - len(held)
+# FS-245 D1/D6: the tab ceiling too, this tab given back unless it stays.
+if hasattr(session_worktree, "bible_tabs"):
+    tabs = len(session_worktree.bible_tabs()) - (os.environ.get("GOAL_DONE_KEEP") == "0")
+    free = min(free, repo_lock.TAB_CEILING - tabs)
+print(max(free, 0))' 2>/dev/null) || free=""
   fi
-  cap=$(cd "$shared" && python3 -c 'import sys; sys.path.insert(0, "tools")
-import repo_lock; print(repo_lock.SESSION_CAP)' 2>/dev/null) || cap=""
   while IFS= read -r record; do
     [ -n "$record" ] || continue
     next_id=$(printf '%s\n' "$record" | jq -r '.id // empty')
@@ -222,6 +225,11 @@ import repo_lock; print(repo_lock.SESSION_CAP)' 2>/dev/null) || cap=""
     # that knows `--place` must not name this one after it (BibleStandard BUG-313).
     if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
       worktree_args+=(--place)
+    fi
+    # FS-245 D1: this tab closes last, so the tab ceiling gives it back —
+    # unless `--keep-tab` leaves it open for Eddy to read.
+    if [ "$KEEP_TAB" = 0 ] && grep -Eq -- '(^|[[:space:]])--closing([[:space:]=]|$)' <<<"$manager_help"; then
+      worktree_args+=(--closing)
     fi
     if [ -n "$next_paths" ]; then
       if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
@@ -266,11 +274,11 @@ fi
 
 if [ "$OPEN_TODO" = 1 ]; then
   if [ "$cap_full" = 1 ]; then
-    echo "goal-done: cap ${cap:-full}${cap:+/$cap} — ${waiting} waits; ${opened} build tab(s) opened (FS-243 D1)"
+    echo "goal-done: cap full (builds or tabs — the manager's lines above say which) — ${waiting} waits; ${opened} build tab(s) opened (FS-243 D1, FS-245 D1)"
   fi
   if [ "$opened" = 0 ]; then
     if [ "$cap_full" = 1 ]; then
-      echo "goal-done: nothing could start; the next decision is the bottleneck — /grill-next when you have the attention (no tab opened)"
+      echo "goal-done: nothing could start — /grill-next when you have the attention (no tab opened)"
     elif [ "$tried" -gt 0 ]; then
       echo "goal-done: ${tried} ranked, none could open (busy tracks or errors above) — /todo when you have the attention (no tab opened)"
     else

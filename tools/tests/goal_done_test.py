@@ -32,6 +32,9 @@ opening = sub.add_parser('open')
 opening.add_argument('slug')
 opening.add_argument('--goal')
 opening.add_argument('--paths', nargs='*')
+if os.environ.get('MANAGER_CLOSING') == '1':
+    opening.add_argument('--place', action='store_true')
+    opening.add_argument('--closing', action='store_true')
 args = parser.parse_args()
 with open(os.environ['WORKTREE_CALLS'], 'a') as out:
     out.write(json.dumps(sys.argv[1:]) + '\\n')
@@ -69,7 +72,7 @@ if sys.argv[1:3] == ['pane', 'get']:
 
     def invoke(
         self, manager_exit=0, dry_run=False, caller="claude", ranked=True,
-        identity_env=None,
+        identity_env=None, keep_tab=True, closing_manager=False,
     ):
         env = os.environ.copy()
         for name in (
@@ -87,10 +90,11 @@ if sys.argv[1:3] == ['pane', 'get']:
             HERDR_CALLS=str(self.herdr_calls),
             WORKTREE_PATH=str(self.repo.parent / "repo-sessions/df1"),
             WORKTREE_EXIT=str(manager_exit),
+            MANAGER_CLOSING="1" if closing_manager else "0",
         )
         if identity_env:
             env.update(identity_env)
-        args = ["bash", "herdr/goal_done.sh", "--keep-tab"]
+        args = ["bash", "herdr/goal_done.sh"] + (["--keep-tab"] if keep_tab else [])
         if dry_run:
             args.append("--dry-run")
         return subprocess.run(
@@ -134,6 +138,31 @@ if sys.argv[1:3] == ['pane', 'get']:
                      if call[:2] == ["tab", "create"]],
                     [],
                 )
+
+    def test_the_closing_tab_gives_its_tab_back_unless_it_stays(self):
+        # FS-245 D1: goal-done closes its own tab last, so the tab ceiling
+        # counts it as given back — but not under `--keep-tab`.
+        for keep_tab, expected in ((False, True), (True, False)):
+            with self.subTest(keep_tab=keep_tab):
+                self.worktree_calls.write_text("")
+                result = self.invoke(keep_tab=keep_tab, closing_manager=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                opened = [call for call in self.calls(self.worktree_calls) if call[0] == "open"]
+                self.assertEqual(len(opened), 1, opened)
+                self.assertIn("--place", opened[0])
+                self.assertEqual("--closing" in opened[0], expected)
+
+    def test_a_manager_without_closing_is_not_passed_it(self):
+        result = self.invoke(keep_tab=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("--closing", self.calls(self.worktree_calls)[0])
+
+    def test_exit_3_says_either_count_may_be_full(self):
+        # FS-245 D6: exit 3 is the build cap or the tab ceiling; the manager's
+        # own lines say which, so this line must not claim one.
+        result = self.invoke(manager_exit=3)
+        self.assertIn("cap full (builds or tabs", result.stdout)
+        self.assertNotIn("build cap full", result.stdout)
 
     def test_dry_run_reports_manager_resolved_destination(self):
         result = self.invoke(dry_run=True)
