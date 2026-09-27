@@ -10,7 +10,8 @@
 #   1. refuse unless the branch is genuinely merged  (nothing is thrown away)
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree and shut down its QA simulators (frees the slot)
-#   4. advance: open a fresh same-agent `/deliver <ID>` tab for every free build
+#   4. advance: resume each orphaned build in its own checkout (D9), then
+#      open a fresh same-agent `/deliver <ID>` tab for every free build
 #      lane, one per track first, then more from a busy track (FS-130 D3,
 #      BibleStandard FS-262 D5); then the verdict lane when unjudged agent rows
 #      wait and its seat is free (D3). Never a grill (D4); when nothing can
@@ -50,7 +51,7 @@ while [ $# -gt 0 ]; do
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
-    -h|--help)  sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -202,13 +203,16 @@ open_tab() {  # cwd label boot model mode
 }
 
 opened=0
+resumed=0
 tried=0
 cap_full=0
 waiting=""
 verdict_opened=0
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
   focus_json=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) ) || focus_json="{}"
-  fill=$(jq -c '.next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
+  # FS-262 D9: orphaned builds first, each in its own checkout (`slug`); they
+  # already hold their lanes. Then the new records.
+  fill=$(jq -c '(.resume[]? | . + {resume: true}), .next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
   manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
   place_flag=()
   # This open runs in the finishing tab, for the next goal's tab: a manager
@@ -233,12 +237,15 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
     next_id=$(printf '%s\n' "$record" | jq -r '.id // empty')
     next_track=$(printf '%s\n' "$record" | jq -r '.track // empty')
     next_paths=$(printf '%s\n' "$record" | jq -r '(.owned_paths // .paths // [])[]?')
+    resuming=$(printf '%s\n' "$record" | jq -r '.resume // false')
     [ -n "$next_id" ] || continue
     tried=$((tried + 1))
     # The id is all this step knows, so the name it can build is `fs094` — while
     # the goal's checkout may be `fs094-offers`. `open` adopts the existing tree
-    # for a bare id (FS-099), and the tab is labelled from the path it got.
-    label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
+    # for a bare id (FS-099), and the tab is labelled from the path it got. A
+    # resume names its checkout outright.
+    label=$(printf '%s\n' "$record" | jq -r '.slug // empty')
+    [ -n "$label" ] || label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
     worktree_args=(open "$label" --goal "$next_id" ${place_flag[@]+"${place_flag[@]}"})
     if [ -n "$next_paths" ]; then
       if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then
@@ -256,25 +263,32 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
       fi
     fi
     boot="/deliver ${next_id}"
+    # FS-262 D9: a resumed branch was cut before main's record; it merges first.
+    [ "$resuming" = true ] && boot="${boot} — resumed (FS-262 D9): git merge main first"
     if [ "$BOOT_SET" = 1 ] && [ "$opened" = 0 ]; then boot="$BOOT"; fi
     if [ "$DRY" = 1 ]; then
-      if [ -n "$free" ] && [ "$opened" -ge "$free" ]; then cap_full=1; waiting="$next_id"; break; fi
+      if [ "$resuming" != true ] && [ -n "$free" ] && [ "$((opened - resumed))" -ge "$free" ]; then
+        cap_full=1; waiting="$next_id"; break
+      fi
       printf 'would run: python3 tools/session_worktree.py'
       printf ' %q' "${worktree_args[@]}"
       printf '\n'
       echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
       open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto"
       opened=$((opened + 1))
+      [ "$resuming" = true ] && resumed=$((resumed + 1))
       continue
     fi
     if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
       open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto"
       opened=$((opened + 1))
+      [ "$resuming" = true ] && resumed=$((resumed + 1))
     else
       rc=$?
       case "$rc" in
         3) cap_full=1; waiting="$next_id"; break ;;
         4) echo "goal-done: ${next_id}'s seams overlap a live build — it waits; trying the next record (FS-262 D5)" >&2 ;;
+        5) echo "goal-done: ${label} is a live session's, or a fill just placed a tab there — skipped (BUG-316, FS-262 D9)" >&2 ;;
         *) echo "goal-done: could not open a worktree for ${next_id} (exit ${rc}); trying the next record" >&2 ;;
       esac
     fi

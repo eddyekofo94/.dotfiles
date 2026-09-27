@@ -26,8 +26,9 @@
 #   grill:opus                      Eddy asked for one: shared, Opus max, /grill-next
 #   verdict:opus                    the verdict lane: verdict-drain, /verdict-next agent
 #
-# With no SPEC this opens the lanes, and only the lanes (FS-262 D5): the work
-# graph's fill order from `features_index.py --focus --json` — one record per
+# With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
+# `/deliver <ID>` tab in each orphaned build's own checkout (`resume`, D9),
+# then the work graph's fill order from `features_index.py --focus --json` — one record per
 # track first, then more from a busy track — one `/deliver <ID>` build tab each
 # until the build cap refuses (exit 3); a record whose seams overlap a live
 # build (exit 4) is skipped. Then the verdict lane, when unjudged agent rows
@@ -82,7 +83,7 @@ fi
 # opened a tab called `--help` in a directory that was argparse's usage text.
 # Refuse anything flag-shaped before a single tab exists.
 case "${1:-}" in
-  -h|--help) sed -n '2,34p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
 esac
 
@@ -94,6 +95,14 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   # merged slice; before it exists, fall back to the global build entry.
   if [ -d "${REPO}/.claude/skills/deliver" ]; then RUN="/deliver"; else RUN="feature-plan"; fi
   focus_json=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null) || focus_json="{}"
+  # FS-262 D9: a build whose owner is dead is resumed in its own checkout
+  # before any new record takes a lane; it already holds its lane.
+  while IFS=$'\t' read -r id slug; do
+    [ -n "$id" ] && [ -n "$slug" ] || continue
+    label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
+    SPECS+=("${label}:opus::${slug}")
+    BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
+  done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue
     label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
@@ -198,6 +207,7 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
       case "$rc" in
         3) echo "build lanes full — ${label} and the builds after it wait (FS-243 D1)" >&2; cap_full=1; continue ;;
         4) echo "skipped ${label}: its seams overlap a live build — the manager's line above names it (FS-262 D5)" >&2; continue ;;
+        5) echo "skipped ${label}: a live session owns ${home}, or a fill just placed a tab there (BUG-316, FS-262 D9)" >&2; continue ;;
         *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
       esac
     fi
