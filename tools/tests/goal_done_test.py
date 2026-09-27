@@ -182,7 +182,8 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(self.calls(self.worktree_calls)[0],
                          ["open", "df7-old", "--goal", "DF-7", "--place"])
         self.assertEqual([launch.split('"')[1] for _, launch in self.opened()],
-                         ["/deliver DF-7", "/deliver DF-1"])
+                         ["/deliver DF-7 — resumed (FS-262 D9): git merge main first",
+                          "/deliver DF-1"])
 
     def test_a_resume_another_fill_placed_is_skipped_not_doubled(self):
         # Two fills at once: the manager refuses the second placing open (exit 5).

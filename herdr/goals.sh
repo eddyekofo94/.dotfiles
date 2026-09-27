@@ -101,7 +101,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
     [ -n "$id" ] && [ -n "$slug" ] || continue
     label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
     SPECS+=("${label}:opus::${slug}")
-    BOOTS+=("${RUN} ${id}")
+    BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
   done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue

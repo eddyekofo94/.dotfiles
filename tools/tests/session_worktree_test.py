@@ -343,7 +343,8 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([label for label, _ in tabs],
                          ["▸ fs90-old", "▸ fs101", "▸ fs102", "▸ fs103"])
-        self.assertTrue(tabs[0][1].endswith('"/deliver FS-90"'), tabs[0][1])
+        self.assertTrue(tabs[0][1].endswith('"/deliver FS-90 — resumed (FS-262 D9): git merge main first"'),
+                        tabs[0][1])
 
     def test_goals_opens_no_verdict_lane_without_unjudged_rows_or_a_free_seat(self):
         for unjudged, seat in ((0, "free"), (4, "held")):

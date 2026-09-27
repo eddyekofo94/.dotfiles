@@ -263,6 +263,8 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
       fi
     fi
     boot="/deliver ${next_id}"
+    # FS-262 D9: a resumed branch was cut before main's record; it merges first.
+    [ "$resuming" = true ] && boot="${boot} — resumed (FS-262 D9): git merge main first"
     if [ "$BOOT_SET" = 1 ] && [ "$opened" = 0 ]; then boot="$BOOT"; fi
     if [ "$DRY" = 1 ]; then
       if [ "$resuming" != true ] && [ -n "$free" ] && [ "$((opened - resumed))" -ge "$free" ]; then
