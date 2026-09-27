@@ -264,14 +264,15 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.claims(), {"one": ["a"]})
 
-    def run_lanes(self, ranked, unjudged, seat="free", cap=4, args=()):
+    def run_lanes(self, ranked, unjudged, seat="free", cap=4, args=(), resume=()):
         """BibleStandard FS-262: `herdr-goals` against a fake manager and a
         fake work graph. Returns (result, [(label, launch)] per opened tab)."""
         repo = self.root.parent / "lanes-repo"
         (repo / "tools").mkdir(parents=True, exist_ok=True)
         (repo / ".claude/skills/deliver").mkdir(parents=True, exist_ok=True)
         graph = {"next": [{"id": f"FS-{n}", "title": "Ranked"} for n in ranked],
-                 "unjudged": unjudged, "verdict_seat": seat}
+                 "unjudged": unjudged, "verdict_seat": seat,
+                 "resume": [{"id": ident, "slug": slug, "title": "Orphan"} for ident, slug in resume]}
         (repo / "tools/features_index.py").write_text(f"print({json.dumps(json.dumps(graph))})\n")
         sessions = self.root.parent / "lanes-sessions"
         (repo / "tools/session_worktree.py").write_text(f"""import json, os, sys
@@ -334,6 +335,15 @@ if sys.argv[1:3] == ['tab', 'create']:
                              for _, launch in tabs))
         self.assertIn("build lanes full", result.stderr)
         self.assertNotIn("/deliver", result.stderr)
+
+    def test_goals_resumes_an_orphaned_build_before_new_records(self):
+        # BibleStandard FS-262 D9: `resume` opens first, in its own checkout.
+        result, tabs = self.run_lanes([101, 102, 103, 104], unjudged=0,
+                                      resume=[("FS-90", "fs90-old")])
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([label for label, _ in tabs],
+                         ["▸ fs90-old", "▸ fs101", "▸ fs102", "▸ fs103"])
+        self.assertTrue(tabs[0][1].endswith('"/deliver FS-90"'), tabs[0][1])
 
     def test_goals_opens_no_verdict_lane_without_unjudged_rows_or_a_free_seat(self):
         for unjudged, seat in ((0, "free"), (4, "held")):

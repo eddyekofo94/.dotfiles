@@ -25,6 +25,8 @@ if os.environ.get('EMPTY_RANKING') == '1':
     graph['next'] = []
 else:
     graph['next'] = [{'id':'DF-1','owned_paths':['a','b']}]
+if os.environ.get('RESUME') == '1':
+    graph['resume'] = [{'id':'DF-7','slug':'df7-old'}]
 print(json.dumps(graph))
 """)
         (self.repo / "tools/session_worktree.py").write_text("""#!/usr/bin/env python3
@@ -46,6 +48,8 @@ with open(os.environ['WORKTREE_CALLS'], 'a') as out:
     out.write(json.dumps(sys.argv[1:]) + '\\n')
 if args.command != 'open':
     raise SystemExit(0)
+if os.environ.get('EXIT_' + args.slug.replace('-', '_')):
+    raise SystemExit(int(os.environ['EXIT_' + args.slug.replace('-', '_')]))
 if args.slug != 'verdict-drain' and os.environ.get('WORKTREE_EXIT', '0') != '0':
     raise SystemExit(int(os.environ['WORKTREE_EXIT']))
 print(os.path.join(os.path.dirname(os.environ['WORKTREE_PATH']), args.slug))
@@ -81,7 +85,7 @@ if sys.argv[1:3] == ['pane', 'get']:
     def invoke(
         self, manager_exit=0, dry_run=False, caller="claude", ranked=True,
         identity_env=None, keep_tab=True, place_manager=False, unjudged=0, seat="free",
-        cwd=None, extra=(),
+        cwd=None, extra=(), resume=False, env_extra=None,
     ):
         env = os.environ.copy()
         for name in (
@@ -102,7 +106,9 @@ if sys.argv[1:3] == ['pane', 'get']:
             MANAGER_PLACE="1" if place_manager else "0",
             UNJUDGED=str(unjudged),
             SEAT=seat,
+            RESUME="1" if resume else "0",
         )
+        env.update(env_extra or {})
         if identity_env:
             env.update(identity_env)
         args = ["bash", str(self.repo / "herdr/goal_done.sh")] + (["--keep-tab"] if keep_tab else [])
@@ -166,6 +172,24 @@ if sys.argv[1:3] == ['pane', 'get']:
              'claude --model opus --effort medium --permission-mode auto "/verdict-next agent"'),
         ])
         self.assertEqual(self.calls(self.worktree_calls)[-1], ["open", "verdict-drain", "--place"])
+
+    def test_an_orphaned_build_is_resumed_in_its_checkout_before_new_records(self):
+        # BibleStandard FS-262 D9: `resume` comes first and names its checkout.
+        result = self.invoke(resume=True, place_manager=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([c[:2] for c in self.calls(self.worktree_calls)],
+                         [["open", "df7-old"], ["open", "df1"]])
+        self.assertEqual(self.calls(self.worktree_calls)[0],
+                         ["open", "df7-old", "--goal", "DF-7", "--place"])
+        self.assertEqual([launch.split('"')[1] for _, launch in self.opened()],
+                         ["/deliver DF-7", "/deliver DF-1"])
+
+    def test_a_resume_another_fill_placed_is_skipped_not_doubled(self):
+        # Two fills at once: the manager refuses the second placing open (exit 5).
+        result = self.invoke(resume=True, place_manager=True, env_extra={"EXIT_df7_old": "5"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("df7-old is a live session's, or a fill just placed a tab there", result.stderr)
+        self.assertEqual([launch.split('"')[1] for _, launch in self.opened()], ["/deliver DF-1"])
 
     def test_a_full_build_cap_still_opens_the_verdict_lane(self):
         result = self.invoke(manager_exit=3, unjudged=2)
