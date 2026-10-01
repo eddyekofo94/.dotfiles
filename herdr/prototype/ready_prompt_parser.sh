@@ -216,6 +216,25 @@ PARSER_AWK='
                 next
             }
 
+            # Claude draws a prompt without its fence, so a plain prompt runs
+            # until chrome; a new `⏺` message (an agent finishing, the next
+            # reply) ends it too, so the line below can still be judged.
+            if (state == "plain" && line ~ /^[[:space:]]*⏺/) {
+                state = "done"
+                commit_closeout(plain_last)
+            }
+
+            # A newer WAITING closeout has nothing to paste: the tab resumes
+            # itself when its own job exits (BUG-348). Forget every older
+            # prompt, or prefix+b would paste a stale resume into it.
+            if (mode != "closeout" && state != "plain" && status_heading(line) && \
+                    line ~ /Status[:*]*[[:space:]]*WAITING/) {
+                saw_label = 0; saw_marker = 0; candidate = ""; candidate_status = 0
+                fallback_value = ""; fallback_inline = ""; fallback_state = "done"
+                state = "done"
+                next
+            }
+
             # Only outside a prompt body: a "Status:" line inside a replayed
             # prompt belongs to that prompt, not to a new closeout.
             if (mode == "closeout" && state != "plain" && status_heading(line)) {

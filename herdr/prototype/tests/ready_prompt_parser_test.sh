@@ -506,6 +506,42 @@ assert_extract 'ASCII prose mentioning a duration survives the chrome rule' \
     $'Run the soak for 30m and record the result.\nKeep this line even though it reads like a duration.' \
     "$duration_prose"
 
+# The closeout block above leaves `set -e` on; assert_status needs it off.
+set +e
+waiting_after=$TMP_ROOT/waiting-after.txt
+printf '%s\n' \
+    '**Status:** PARTIAL' \
+    '**Ready-to-paste prompt:**' \
+    '```text' \
+    'Resume the old thing.' \
+    '```' \
+    '' \
+    '⏺ Gate running.' \
+    '' \
+    '  **Status:** WAITING — `verify_app.py`; resumes when it exits, nothing to paste' >"$waiting_after"
+assert_status 'a newer WAITING closeout leaves nothing to paste (BUG-348)' 10 "$waiting_after"
+
+# Claude's real screen: no fence, and an agent line between the old prompt and
+# the WAITING line (the bug339 pane, 2026-10-01).
+waiting_unfenced=$TMP_ROOT/waiting-unfenced.txt
+printf '%s\n' \
+    '⏺ Status: PARTIAL' \
+    '' \
+    '  Ready-to-paste prompt:' \
+    '' \
+    '  Resume /build BUG-339 from its plan.' \
+    '' \
+    '⏺ Agent "planner" finished · 35m 16s' \
+    '' \
+    '⏺ Status: WAITING — the planner agent is re-planning; resumes when it reports, nothing to paste' \
+    '' \
+    '✻ Waiting for 1 background agent(s) to finish' >"$waiting_unfenced"
+assert_status 'an unfenced old prompt does not survive a newer WAITING (BUG-348)' 10 "$waiting_unfenced"
+
+prompt_after_waiting=$TMP_ROOT/prompt-after-waiting.txt
+{ cat "$waiting_after"; printf '%s\n' '**Status:** DONE' '**Ready-to-paste prompt:**' '```text' 'The next thing.' '```'; } >"$prompt_after_waiting"
+assert_extract 'a closeout after WAITING is pasted again' 'The next thing.' "$prompt_after_waiting"
+
 printf '1..%d\n' "$((passed + failed))"
 if [ "$failed" -ne 0 ]; then
     printf '%d test(s) failed\n' "$failed" >&2

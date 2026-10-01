@@ -121,6 +121,65 @@ def tool_turn(directory, name, progress, reply):
     return path
 
 
+WAITING = (
+    "Gate running.\n\n"
+    "**Status:** WAITING — `verify_app.py`; resumes when it exits, nothing to paste\n"
+)
+
+
+def background_turn(directory, name, launch, ends, reply, tool="Bash"):
+    """Write a turn that launches a background job, maybe hears it end, then replies.
+
+    `launch` is Claude Code's tool-result text for the launch; each of `ends`
+    is a raw entry announcing an end, in the shapes the transcript uses.
+    """
+    entries = [
+        {
+            "type": "assistant",
+            "uuid": f"{name}-call",
+            "message": {
+                "content": [
+                    {"type": "tool_use", "id": "call", "name": tool, "input": {}}
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "uuid": f"{name}-result",
+            "message": {
+                "content": [
+                    {"type": "tool_result", "tool_use_id": "call", "content": launch}
+                ]
+            },
+        },
+        *ends,
+        {
+            "type": "assistant",
+            "uuid": f"{name}-reply",
+            "message": {"content": [{"type": "text", "text": reply}]},
+        },
+    ]
+    path = Path(directory) / f"{name}.jsonl"
+    path.write_text(
+        "".join(json.dumps(entry) + "\n" for entry in entries), encoding="utf-8"
+    )
+    return path
+
+
+BASH_LAUNCH = "Command running in background with ID: bjob1. Output is being written to: /tmp/x"
+TIMEOUT_LAUNCH = "Command did not complete within its 120s timeout and was moved to the background (ID: bjob2)."
+AGENT_LAUNCH = "Async agent launched successfully.\nagentId: a123 (internal ID)"
+BASH_END = {
+    "type": "queue-operation",
+    "content": "<task-notification>\n<task-id>bjob1</task-id>\n"
+    "<tool-use-id>t</tool-use-id>\n<status>completed</status>\n</task-notification>",
+}
+AGENT_END = {
+    "type": "user",
+    "message": {"content": 'Another Claude session sent a message:\n<agent-message from="a123">\n[Subagent hand-back] done'},
+}
+
+
 def run(path, stop_hook_active=False):
     """Invoke the hook the way Claude Code does, and return its decision."""
     payload = json.dumps(
@@ -180,7 +239,7 @@ def main():
         path = transcript(directory, "roomy-closeout", [ROOMY_CLOSEOUT])
         expect(run(path) is None, "a well-shaped long closeout was rejected")
 
-        path = transcript(directory, "prompt-not-last", [COMPLIANT + LONG_CLOSEOUT])
+        path = transcript(directory, "prompt-not-last", [COMPLIANT + "Trailing prose after the prompt.\n"])
         decision = run(path)
         expect(decision is not None, "text after the fenced prompt was allowed")
         expect(
@@ -309,6 +368,89 @@ def main():
             run(path, stop_hook_active=True) is not None,
             "a spent budget carried into the next turn and freed its re-send",
         )
+
+        # BUG-348: a turn waiting on its own background job ends with WAITING
+        # and no prompt, so it never reads as a handoff.
+        for name, launch in (("wait-bash", BASH_LAUNCH), ("wait-timeout", TIMEOUT_LAUNCH),
+                             ("wait-agent", AGENT_LAUNCH)):
+            path = background_turn(directory, name, launch, [], WAITING)
+            expect(run(path) is None, f"{name}: WAITING on a pending job was rejected")
+
+        for name, launch, end in (("ended-bash", BASH_LAUNCH, BASH_END),
+                                  ("ended-agent", AGENT_LAUNCH, AGENT_END)):
+            path = background_turn(directory, name, launch, [end], WAITING)
+            decision = run(path)
+            expect(decision is not None, f"{name}: WAITING on a finished job was allowed")
+            expect("no background job pending" in decision["reason"],
+                   f"{name}: the rejection did not name the missing job")
+
+        path = transcript(directory, "wait-no-job", [WAITING])
+        expect(run(path) is not None, "WAITING with no job at all was allowed")
+
+        path = background_turn(directory, "wait-with-prompt", BASH_LAUNCH, [],
+                               WAITING + COMPLIANT.split("**Next move:** stop")[1])
+        decision = run(path)
+        expect(decision is not None, "WAITING with a paste prompt was allowed")
+        expect("ready-to-paste" in decision["reason"], "the prompt under WAITING was not named")
+
+        path = background_turn(directory, "wait-unnamed", BASH_LAUNCH, [],
+                               "**Status:** WAITING\n")
+        decision = run(path)
+        expect(decision is not None and "name the job" in decision["reason"],
+               "WAITING that names no job was allowed")
+
+        # A bare fence under WAITING is still a prompt `prefix+b` would paste.
+        path = background_turn(directory, "wait-bare-fence", BASH_LAUNCH, [],
+                               WAITING + "```\nresume\n```\n")
+        expect(run(path) is not None, "a bare fenced block under WAITING was allowed")
+
+        # A tool result that merely quotes the launch wording (a `cat` of this
+        # very file) is not a launch: only a result that opens with it is.
+        quoted = "WAITING = ...\nBASH_LAUNCH = \"Command running in background with ID: bjob9\""
+        path = background_turn(directory, "wait-quoted", quoted, [], WAITING)
+        expect(run(path) is not None, "launch wording quoted in tool output counted as a job")
+
+        # A real agent launch: an `Agent` call whose result is a list of text blocks.
+        path = background_turn(directory, "wait-real-agent", [{"type": "text", "text": AGENT_LAUNCH}],
+                               [], WAITING, tool="Agent")
+        expect(run(path) is None, "WAITING on a real Agent launch was rejected")
+        path = background_turn(directory, "wait-read-agent", AGENT_LAUNCH, [], WAITING, tool="Read")
+        expect(run(path) is not None, "launch wording in a Read result counted as a job")
+
+        # Jobs outlive `/clear`: the new session cannot see them launch, so it
+        # cannot refuse (BUG-327's tab at 20:10, gate still running).
+        def cleared(age):
+            stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - age))
+            return json.dumps({"type": "user", "timestamp": stamp, "message": {
+                "content": "<command-name>/clear</command-name>"}}, separators=(",", ":"))
+        path = transcript(directory, "wait-after-clear", [WAITING])
+        path.write_text(cleared(60) + "\n" + path.read_text(), encoding="utf-8")
+        expect(run(path) is None, "WAITING just after /clear was refused")
+        # Past a job's lifetime nothing launched before the clear can still run.
+        path = transcript(directory, "wait-long-after-clear", [WAITING])
+        path.write_text(cleared(3 * 3600) + "\n" + path.read_text(), encoding="utf-8")
+        expect(run(path) is not None, "WAITING hours after /clear was let through")
+
+        # Claude Code may put a cwd line before the launch (`cd` out of the session).
+        prefixed = "Shell cwd was reset to /tmp/x\n" + BASH_LAUNCH
+        path = background_turn(directory, "wait-prefixed", prefixed, [], WAITING)
+        expect(run(path) is None, "a launch after a cwd-reset line was missed")
+
+        # The closeout is the last Status line: a body quoting a WAITING line
+        # (as skill-finish does) is still judged as the DONE closeout it ends in.
+        path = transcript(directory, "quotes-waiting", [
+            "The new form:\n```text\n**Status:** WAITING — x; resumes\n```\n" + COMPLIANT])
+        expect(run(path) is None, "a quoted WAITING line made a DONE closeout fail")
+        path = background_turn(directory, "waiting-after-quote", BASH_LAUNCH, [],
+                               "Earlier: **Status:** DONE\n**Status:** DONE was last turn.\n" + WAITING)
+        expect(run(path) is None, "an older Status line in the body broke a real WAITING")
+
+        # Quoting an agent ID in prose is not a launch.
+        path = transcript(directory, "wait-talk", ["agentId: a999 was mentioned\n" + WAITING])
+        expect(run(path) is not None, "an agent ID in assistant text counted as a job")
+
+        expect("**Status:** WAITING" in HOOK_CONFIG["contract"](),
+               "the injected contract does not teach WAITING")
 
     print("closeout length hook: PASS")
     return 0

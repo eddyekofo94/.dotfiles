@@ -92,3 +92,4 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 ## Lessons
 
 <!-- Newest on top. Delete what no longer applies. -->
+- When another tab looks idle, read its session log for a background job before saying it stalled or telling Eddy to prompt it (Eddy, 2026-10-01).
