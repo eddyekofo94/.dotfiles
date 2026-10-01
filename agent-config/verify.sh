@@ -57,6 +57,7 @@ python3.14 "$repo_dir/tools/verify_agent_catalog.py"
 
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"
+python3 "$config_dir/tests/context_budget_check_test.py"
 sh "$config_dir/tests/statusline_test.sh"
 
 # settings.json is what actually wires the closeout hooks up, so a restore that
@@ -78,7 +79,7 @@ jq -e '
 hook_json=$(printf '' | "$config_dir/claude/closeout.sh" context)
 jq -e '
   .hookSpecificOutput.hookEventName == "UserPromptSubmit" and
-  (.hookSpecificOutput.additionalContext | contains("## Enforced Line Budget")) and
+  (.hookSpecificOutput.additionalContext | contains("## Enforced Closeout")) and
   (.hookSpecificOutput.additionalContext | contains("## Response Style") | not) and
   (.hookSpecificOutput.additionalContext | contains("## Closeout") | not) and
   (.hookSpecificOutput.additionalContext | contains("## Agentic Loop Standard") | not)
