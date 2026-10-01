@@ -11,7 +11,7 @@
 #   2. release any path claim (a no-op since FS-153 D1: a worktree holds none)
 #   3. sweep the worktree and shut down its QA simulators (frees the slot)
 #   4. advance: resume each orphaned build in its own checkout (D9), then
-#      open a fresh same-agent `/deliver <ID>` tab for every free build
+#      open a fresh same-agent `/build <ID>` tab for every free build
 #      lane, one per track first, then more from a busy track (FS-130 D3,
 #      BibleStandard FS-262 D5); then the verdict lane when unjudged agent rows
 #      wait and its seat is free (D3). Never a grill (D4); when nothing can
@@ -169,7 +169,7 @@ if [ -n "$slug" ] && command -v xcrun >/dev/null; then
 fi
 
 # FS-130 D3, as filled by BibleStandard FS-262 D5: the finished tab starts the
-# next goals itself — one `/deliver` tab per free build lane, walking the work
+# next goals itself — one `/build` tab per free build lane, walking the work
 # graph's fill order (`--focus --json` `next`: one per track first, then the
 # rest). Each open is gated by the repository's manager: exit 3 is a full
 # build cap (the builds stop), exit 4 is a record whose seams overlap a live
@@ -262,7 +262,7 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
         continue
       fi
     fi
-    boot="/deliver ${next_id}"
+    boot="/build ${next_id}"
     # FS-262 D9: a resumed branch was cut before main's record; it merges first.
     [ "$resuming" = true ] && boot="${boot} — resumed (FS-262 D9): git merge main first"
     if [ "$BOOT_SET" = 1 ] && [ "$opened" = 0 ]; then boot="$BOOT"; fi
@@ -300,10 +300,10 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     if [ "$DRY" = 1 ]; then
       echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-}"
-      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict-next agent" opus "--permission-mode auto"
+      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" opus "--permission-mode auto"
       verdict_opened=1
     elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"}); then
-      open_tab "$cwd" "$(basename "$cwd")" "/verdict-next agent" opus "--permission-mode auto"
+      open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" opus "--permission-mode auto"
       verdict_opened=1
     else
       rc=$?
@@ -317,7 +317,7 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
   # FS-262 D3: a drain that closes names what it left for Eddy.
   if [ "$slug" = verdict-drain ]; then
     eddy=$(jq -r '.eddy_waiting // 0' <<<"$focus_json" 2>/dev/null) || eddy=0
-    echo "goal-done: ${eddy} wait on Eddy: /verdict-next"
+    echo "goal-done: ${eddy} wait on Eddy: /verdict"
   fi
 fi
 
@@ -327,11 +327,11 @@ if [ "$OPEN_TODO" = 1 ]; then
   fi
   if [ "$opened" = 0 ] && [ "$verdict_opened" = 0 ]; then
     if [ "$cap_full" = 1 ]; then
-      echo "goal-done: nothing could start — /grill-next when you have the attention (no tab opened)"
+      echo "goal-done: nothing could start — /spec when you have the attention (no tab opened)"
     elif [ "$tried" -gt 0 ]; then
-      echo "goal-done: ${tried} ranked, none could open (overlapping seams or errors above) — /grill-next when you have the attention (no tab opened)"
+      echo "goal-done: ${tried} ranked, none could open (overlapping seams or errors above) — /spec when you have the attention (no tab opened)"
     else
-      echo "goal-done: nothing Ready — /grill-next when you have the attention (no tab opened)"
+      echo "goal-done: nothing Ready — /spec when you have the attention (no tab opened)"
     fi
   fi
 fi

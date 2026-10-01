@@ -22,9 +22,8 @@ MAX_BLOCKS = HOOK_CONFIG["MAX_BLOCKS"]
 COMPLIANT = """Two facts, one line each.
 
 **Status:** DONE
-Artifacts: none
-Verification: nothing to run
-Risks: none
+Picked / gave up / why: nothing to pick
+Not run: nothing
 **Next move:** stop
 
 **Ready-to-paste prompt:**
@@ -36,7 +35,7 @@ until it is done
 
 # Text after the fenced prompt: the block `prefix+b` pastes is no longer last.
 LONG_CLOSEOUT = "**Status:** DONE\n" + "".join(
-    f"Artifacts: entry {index} " + "x" * 120 + "\n" for index in range(6)
+    f"Not run: entry {index} " + "x" * 120 + "\n" for index in range(6)
 )
 
 NO_CLOSEOUT = "An answer with no closeout at all.\n"
@@ -45,7 +44,7 @@ NO_PROMPT = COMPLIANT.split("**Ready-to-paste prompt:**")[0]
 
 # A long closeout is fine now; only its shape is checked.
 ROOMY_CLOSEOUT = COMPLIANT.replace(
-    "Artifacts: none", "Artifacts: " + "a" * 900
+    "Not run: nothing", "Not run: " + "a" * 900
 )
 
 LONG_BODY = "y" * ((BODY_MAX + 1) * WIDTH) + "\n"

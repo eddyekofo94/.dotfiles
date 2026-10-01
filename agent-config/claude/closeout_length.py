@@ -32,12 +32,12 @@ needs. A Stop hook rejects a turn when:
 - the body (everything before `**Status**`) exceeds {body} screen lines, a
   runaway backstop -- not a target ({width} columns per line, blanks free)
 
-Write the closeout from this skeleton, one line per label, no sub-bullets:
+Write the closeout from this skeleton: Picked / gave up / why in 2-3 lines,
+every other label one line, no sub-bullets:
 
 **Status:** DONE | PARTIAL | BLOCKED | AWAITING USER APPROVAL
-Artifacts: paths, or none
-Verification: what ran, and what did not
-Risks: one line, or none
+Picked / gave up / why: 2-3 lines
+Not run: each check that did not run, or "nothing"
 **Next move:** one action
 
 **Ready-to-paste prompt:**

@@ -53,7 +53,7 @@ try {
     assert.deepEqual(handlePrompt({ prompt }, root), {}, prompt);
   }
 
-  for (const prompt of ["$unknown", "/skill:unknown", "$doctor /todo"]) {
+  for (const prompt of ["$unknown", "/skill:unknown", "$doctor /build"]) {
     assert.equal(handlePrompt({ prompt }, root).decision, "block", prompt);
   }
   assert.equal(handlePrompt({}).decision, "block");

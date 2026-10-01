@@ -207,10 +207,6 @@ path = "/Users/eddyekofo/.agent-skills/grill-me/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/handoff/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/heal/SKILL.md"
 enabled = false
 
@@ -224,10 +220,6 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/ios-debugger-agent/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/loop/SKILL.md"
 enabled = false
 
 [[skills.config]]
@@ -275,10 +267,6 @@ path = "/Users/eddyekofo/.agent-skills/research/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/ship/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/review-animations/SKILL.md"
 enabled = false
 
@@ -298,36 +286,16 @@ enabled = false
 path = "/Users/eddyekofo/.agent-skills/swiftui-view-refactor/SKILL.md"
 enabled = false
 
-# Archived skills are not part of the on-demand inventory. Codex recursively
-# discovers this source, so each actual archive path must remain disabled.
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/canvas-design/SKILL.md"
-enabled = false
-
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/claude-api/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/doc-coauthoring/SKILL.md"
 enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/find-animation-opportunities/SKILL.md"
 enabled = false
 
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/frontend-design/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/improve-animations/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/webapp-testing/SKILL.md"
-enabled = false
-
+# Archived skills are not part of the on-demand inventory. Codex recursively
+# discovers this source, so each actual archive path must remain disabled.
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/_archive/app-store-changelog/SKILL.md"
 enabled = false
@@ -394,6 +362,62 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/.system/skill-installer/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/feature-plan/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/goals/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/herdr/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/skill-finish/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/todo/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/write-swift/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/canvas-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/doc-coauthoring/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/frontend-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/handoff/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/improve-animations/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/loop/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/_archive/webapp-testing/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/ship/SKILL.md"
 enabled = false
 
 [mcp_servers.node_repl]

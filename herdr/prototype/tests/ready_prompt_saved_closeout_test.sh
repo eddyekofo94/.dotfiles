@@ -50,7 +50,7 @@ EOF
 chmod +x "$stub"
 
 closeout() {
-    printf 'Body.\n\n**Status:** DONE\nArtifacts: none\n**Next move:** go\n\n'
+    printf 'Body.\n\n**Status:** DONE\nPicked / gave up / why: nothing to pick\nNot run: nothing\n**Next move:** go\n\n'
     printf '**Ready-to-paste prompt:**\n```\n%s\n```\n' "$1"
 }
 
