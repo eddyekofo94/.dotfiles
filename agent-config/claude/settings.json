@@ -1,4 +1,6 @@
 {
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false,
   "env": {
     "VISUAL": "/Users/eddyekofo/.config/nvim/tools/agent_prompt_editor.sh",
     "AGENT_PROMPT_DEBUG": "/tmp/agent-prompt-debug.log"
@@ -274,6 +276,5 @@
     "computer-use",
     "claude-in-chrome"
   ],
-  "syncClaudeAiPlugins": false,
-  "syncClaudeAiSkills": false
+  "model": "opus"
 }
