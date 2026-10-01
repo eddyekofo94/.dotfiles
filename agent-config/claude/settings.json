@@ -75,6 +75,13 @@
     "swiftui-liquid-glass": "user-invocable-only",
     "swiftui-performance-audit": "user-invocable-only",
     "swiftui-view-refactor": "user-invocable-only",
+    "canvas-design": "user-invocable-only",
+    "claude-api": "user-invocable-only",
+    "doc-coauthoring": "user-invocable-only",
+    "find-animation-opportunities": "user-invocable-only",
+    "frontend-design": "user-invocable-only",
+    "improve-animations": "user-invocable-only",
+    "webapp-testing": "user-invocable-only",
     "app-store-changelog": "off",
     "codebase-design": "off",
     "codex-first": "off",
@@ -266,5 +273,7 @@
   "disabledMcpServers": [
     "computer-use",
     "claude-in-chrome"
-  ]
+  ],
+  "syncClaudeAiPlugins": false,
+  "syncClaudeAiSkills": false
 }

@@ -301,6 +301,34 @@ enabled = false
 # Archived skills are not part of the on-demand inventory. Codex recursively
 # discovers this source, so each actual archive path must remain disabled.
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/canvas-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/claude-api/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/doc-coauthoring/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/find-animation-opportunities/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/frontend-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/improve-animations/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/webapp-testing/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/_archive/app-store-changelog/SKILL.md"
 enabled = false
 
@@ -406,6 +434,10 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/xlsx/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/synced/fbaaddce-1dc3-4aba-80b5-eb28cc924333_65b5a20f-00f9-4c2f-8a15-8544c21ebc04/google-workspace/SKILL.md"
 enabled = false
 
 [mcp_servers.node_repl]
