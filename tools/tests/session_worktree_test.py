@@ -269,7 +269,8 @@ if sys.argv[1:3] == ['tab', 'create']:
         fake work graph. Returns (result, [(label, launch)] per opened tab)."""
         repo = self.root.parent / "lanes-repo"
         (repo / "tools").mkdir(parents=True, exist_ok=True)
-        (repo / ".claude/skills/deliver").mkdir(parents=True, exist_ok=True)
+        (repo / ".claude/playbooks").mkdir(parents=True, exist_ok=True)
+        (repo / ".claude/playbooks/build.md").write_text("# /build\n")
         graph = {"next": [{"id": f"FS-{n}", "title": "Ranked"} for n in ranked],
                  "unjudged": unjudged, "verdict_seat": seat,
                  "resume": [{"id": ident, "slug": slug, "title": "Orphan"} for ident, slug in resume]}
@@ -329,12 +330,12 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual([label for label, _ in tabs],
                          ["▸ fs101", "▸ fs102", "▸ fs103", "▸ fs104", "▸ verdict-drain"])
         self.assertEqual(tabs[-1][1], 'claude --model opus --effort medium '
-                                      '--permission-mode auto "/verdict-next agent"')
+                                      '--permission-mode auto "/verdict auto"')
         self.assertTrue(all("--effort medium" in launch for _, launch in tabs))
-        self.assertFalse(any("grill" in launch or "/todo" in launch or "plan" in launch
+        self.assertFalse(any("grill" in launch or "/spec" in launch or "/todo" in launch or "plan" in launch
                              for _, launch in tabs))
         self.assertIn("build lanes full", result.stderr)
-        self.assertNotIn("/deliver", result.stderr)
+        self.assertNotIn("/build", result.stderr)
 
     def test_goals_resumes_an_orphaned_build_before_new_records(self):
         # BibleStandard FS-262 D9: `resume` opens first, in its own checkout.
@@ -343,7 +344,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([label for label, _ in tabs],
                          ["▸ fs90-old", "▸ fs101", "▸ fs102", "▸ fs103"])
-        self.assertTrue(tabs[0][1].endswith('"/deliver FS-90 — resumed (FS-262 D9): git merge main first"'),
+        self.assertTrue(tabs[0][1].endswith('"/build FS-90 — resumed (FS-262 D9): git merge main first"'),
                         tabs[0][1])
 
     def test_goals_opens_no_verdict_lane_without_unjudged_rows_or_a_free_seat(self):
@@ -357,13 +358,13 @@ if sys.argv[1:3] == ['tab', 'create']:
         result, tabs = self.run_lanes([], unjudged=0)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(tabs, [])
-        self.assertIn("/grill-next when you have the attention", result.stderr)
+        self.assertIn("/spec when you have the attention", result.stderr)
 
     def test_an_explicit_grill_opens_in_the_shared_checkout_at_max(self):
         result, tabs = self.run_lanes([101], unjudged=3, args=("grill:opus",))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort max '
-                                           '--permission-mode auto "/grill-next"')])
+                                           '--permission-mode auto "/spec"')])
 
     def test_an_explicit_verdict_is_refused_while_the_seat_is_held(self):
         result, tabs = self.run_lanes([], unjudged=3, args=("verdict:opus", "verdict:opus"))
@@ -457,11 +458,11 @@ if sys.argv[1:3] == ['tab', 'create']:
             (
                 "claude",
                 [
-                    'claude --model opus --effort medium --permission-mode auto "feature-plan FS-123"',
+                    'claude --model opus --effort medium --permission-mode auto "/build FS-123"',
                 ],
             ),
-            ("codex", ['codex "feature-plan FS-123"']),
-            ("pi", ['pi "feature-plan FS-123"']),
+            ("codex", ['codex "/build FS-123"']),
+            ("pi", ['pi "/build FS-123"']),
         ):
             with self.subTest(caller=caller, automatic=True):
                 calls.write_text("")

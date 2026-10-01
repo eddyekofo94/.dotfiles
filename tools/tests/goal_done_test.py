@@ -149,16 +149,16 @@ if sys.argv[1:3] == ['pane', 'get']:
         calls = self.calls(self.herdr_calls)
         create = next(call for call in calls if call[:2] == ["tab", "create"])
         self.assertEqual(create[create.index("--label") + 1], "▸ df1")
-        self.assertIn("/deliver DF-1", next(call for call in calls if call[:2] == ["pane", "run"])[3])
+        self.assertIn("/build DF-1", next(call for call in calls if call[:2] == ["pane", "run"])[3])
 
-    def test_nothing_startable_names_grill_next_and_opens_no_tab(self):
+    def test_nothing_startable_names_spec_and_opens_no_tab(self):
         # BibleStandard FS-262 D4: never a grill tab; the line offers it.
         for manager_exit, ranked in ((3, True), (1, True), (0, False)):
             with self.subTest(manager_exit=manager_exit, ranked=ranked):
                 self.herdr_calls.write_text("")
                 result = self.invoke(manager_exit=manager_exit, ranked=ranked)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertIn("/grill-next when you have the attention (no tab opened)",
+                self.assertIn("/spec when you have the attention (no tab opened)",
                               result.stdout)
                 self.assertNotIn("/todo", result.stdout)
                 self.assertEqual(self.opened(), [])
@@ -167,9 +167,9 @@ if sys.argv[1:3] == ['pane', 'get']:
         result = self.invoke(unjudged=2, place_manager=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.opened(), [
-            ("▸ df1", 'claude --model opus --effort medium --permission-mode auto "/deliver DF-1"'),
+            ("▸ df1", 'claude --model opus --effort medium --permission-mode auto "/build DF-1"'),
             ("▸ verdict-drain",
-             'claude --model opus --effort medium --permission-mode auto "/verdict-next agent"'),
+             'claude --model opus --effort medium --permission-mode auto "/verdict auto"'),
         ])
         self.assertEqual(self.calls(self.worktree_calls)[-1], ["open", "verdict-drain", "--place"])
 
@@ -182,15 +182,15 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(self.calls(self.worktree_calls)[0],
                          ["open", "df7-old", "--goal", "DF-7", "--place"])
         self.assertEqual([launch.split('"')[1] for _, launch in self.opened()],
-                         ["/deliver DF-7 — resumed (FS-262 D9): git merge main first",
-                          "/deliver DF-1"])
+                         ["/build DF-7 — resumed (FS-262 D9): git merge main first",
+                          "/build DF-1"])
 
     def test_a_resume_another_fill_placed_is_skipped_not_doubled(self):
         # Two fills at once: the manager refuses the second placing open (exit 5).
         result = self.invoke(resume=True, place_manager=True, env_extra={"EXIT_df7_old": "5"})
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("df7-old is a live session's, or a fill just placed a tab there", result.stderr)
-        self.assertEqual([launch.split('"')[1] for _, launch in self.opened()], ["/deliver DF-1"])
+        self.assertEqual([launch.split('"')[1] for _, launch in self.opened()], ["/build DF-1"])
 
     def test_a_full_build_cap_still_opens_the_verdict_lane(self):
         result = self.invoke(manager_exit=3, unjudged=2)
@@ -212,7 +212,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertIn(["remove", "verdict-drain", "--delete-branch"],
                       self.calls(self.worktree_calls))
         self.assertEqual(self.opened(), [], "nothing left: no verdict lane reopens")
-        self.assertIn("7 wait on Eddy: /verdict-next", result.stdout)
+        self.assertIn("7 wait on Eddy: /verdict", result.stdout)
 
     def test_park_takes_a_stuck_unmerged_build_instead_of_refusing(self):
         stuck = self.worktree("df9-stuck", merged=False)
@@ -235,10 +235,10 @@ if sys.argv[1:3] == ['pane', 'get']:
         for caller, expected in (
             (
                 "claude",
-                'claude --model opus --effort medium --permission-mode auto "/deliver DF-1"',
+                'claude --model opus --effort medium --permission-mode auto "/build DF-1"',
             ),
-            ("codex", 'codex "/deliver DF-1"'),
-            ("pi", 'pi "/deliver DF-1"'),
+            ("codex", 'codex "/build DF-1"'),
+            ("pi", 'pi "/build DF-1"'),
         ):
             with self.subTest(caller=caller):
                 self.herdr_calls.write_text("")
@@ -278,7 +278,7 @@ if sys.argv[1:3] == ['pane', 'get']:
             call for call in self.calls(self.herdr_calls)
             if call[:2] == ["pane", "run"]
         )[3]
-        self.assertEqual(launch, 'pi "/deliver DF-1"')
+        self.assertEqual(launch, 'pi "/build DF-1"')
 
         self.herdr_calls.unlink()
         result = self.invoke(

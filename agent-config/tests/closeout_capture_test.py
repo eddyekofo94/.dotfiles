@@ -21,7 +21,8 @@ HOOK = Path(__file__).resolve().parents[1] / "claude" / "closeout_capture.py"
 PANE = "%42"
 
 CLOSEOUT = """**Status:** DONE
-Artifacts: none
+Picked / gave up / why: nothing to pick
+Not run: nothing
 **Next move:** stop
 """
 

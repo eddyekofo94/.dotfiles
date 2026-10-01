@@ -10,12 +10,12 @@ const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const NATIVE_ONLY_SKILLS = new Set(["xcodebuildmcp-cli"]);
 export const STARTUP_SKILL_NAMES = Object.freeze([
   "bug",
+  "build",
   "feature",
-  "feature-plan",
-  "goals",
-  "herdr",
-  "skill-finish",
-  "todo",
+  "plan",
+  "review",
+  "spec",
+  "test",
 ]);
 const MAX_HANDOFF_BYTES = 131072;
 const inventoryCache = new Map();

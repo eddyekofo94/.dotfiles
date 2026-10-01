@@ -23,13 +23,13 @@
 #   goal-x:opus:pick:fs110-ledge    resumed -> that worktree
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
 #   notes:opus::shared              fresh   -> shared checkout anyway
-#   grill:opus                      Eddy asked for one: shared, Opus max, /grill-next
-#   verdict:opus                    the verdict lane: verdict-drain, /verdict-next agent
+#   grill:opus                      Eddy asked for one: shared, Opus max, /spec
+#   verdict:opus                    the verdict lane: verdict-drain, /verdict auto
 #
 # With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
-# `/deliver <ID>` tab in each orphaned build's own checkout (`resume`, D9),
+# `/build <ID>` tab in each orphaned build's own checkout (`resume`, D9),
 # then the work graph's fill order from `features_index.py --focus --json` — one record per
-# track first, then more from a busy track — one `/deliver <ID>` build tab each
+# track first, then more from a busy track — one `/build <ID>` build tab each
 # until the build cap refuses (exit 3); a record whose seams overlap a live
 # build (exit 4) is skipped. Then the verdict lane, when unjudged agent rows
 # wait and its seat is free (D3). Never a plan, grill or todo tab: grilling is
@@ -91,9 +91,10 @@ SPECS=("$@")
 BOOTS=()
 if [ ${#SPECS[@]} -eq 0 ]; then
   # FS-129 D7 / FS-130 D3: the focus track chooses, so "open my windows" needs
-  # no argument and no ranking session. `/deliver` runs a settled record to a
-  # merged slice; before it exists, fall back to the global build entry.
-  if [ -d "${REPO}/.claude/skills/deliver" ]; then RUN="/deliver"; else RUN="feature-plan"; fi
+  # no argument and no ranking session. `/build` runs a settled record to a
+  # merged slice (BibleStandard FS-285 D1): the global verb opens the
+  # repository's playbook when its `AGENTS.md` maps one, else its own.
+  RUN="/build"
   focus_json=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null) || focus_json="{}"
   # FS-262 D9: a build whose owner is dead is resumed in its own checkout
   # before any new record takes a lane; it already holds its lane.
@@ -114,9 +115,9 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     SPECS+=("verdict:opus")
-    BOOTS+=("/verdict-next agent")
+    BOOTS+=("/verdict auto")
   fi
-  [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /grill-next when you have the attention (no tab opened)" >&2
+  [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
 fi
 
 herdr status server >/dev/null 2>&1 || { echo "herdr server not running; open Herdr first" >&2; exit 1; }
@@ -227,7 +228,7 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
   # session and leaves it interactive — `-p` would print one answer and exit.
   boot=""
   if [ -z "${resume:-}" ]; then
-    case "$label" in grill) boot="/grill-next" ;; verdict) boot="/verdict-next agent" ;; esac
+    case "$label" in grill) boot="/spec" ;; verdict) boot="/verdict auto" ;; esac
   fi
   # A no-argument run already knows what each tab is for (FS-129 D7).
   if [ ${#BOOTS[@]} -gt "$index" ] && [ -n "${BOOTS[$index]:-}" ]; then boot="${BOOTS[$index]}"; fi
@@ -265,5 +266,5 @@ done
 # FS-262 D8: a full build cap opens nothing more; the chain fills a lane when
 # a build lands. Nothing here asks Eddy to deliver.
 if [ "$cap_full" = 1 ]; then
-  echo "build lanes full — the chain fills a lane when a build lands; /grill-next when you have the attention" >&2
+  echo "build lanes full — the chain fills a lane when a build lands; /spec when you have the attention" >&2
 fi
