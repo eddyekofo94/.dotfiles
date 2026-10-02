@@ -92,4 +92,6 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 ## Lessons
 
 <!-- Newest on top. Delete what no longer applies. -->
+- When designing a client site, benchmark it against canonfidei.com and biblestandard.app (motion, interaction, layering, landing-page ambition); a clean but static layout is a failed design, so aim for more, not less (Eddy, 2026-10-02).
+- When a push or merge lands, read the GitHub Actions run for that commit before calling it done; a local verify script may not run every CI step (Eddy, 2026-10-02).
 - When another tab looks idle, read its session log for a background job before saying it stalled or telling Eddy to prompt it (Eddy, 2026-10-01).

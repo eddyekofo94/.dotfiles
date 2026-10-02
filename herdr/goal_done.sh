@@ -59,6 +59,14 @@ done
 
 die() { echo "goal-done: $*" >&2; exit 1; }
 
+# Eddy, 2026-10-02: while this file exists a finished goal retires without
+# opening the next tab, as if `--no-todo`. `rm` it to resume the chain.
+CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
+if [ "$OPEN_TODO" = 1 ] && [ -e "$CHAIN_PAUSE" ]; then
+  OPEN_TODO=0
+  echo "goal-done: chain paused ($CHAIN_PAUSE) — retiring without opening a tab" >&2
+fi
+
 # Every step that destroys or creates something goes through this, so --dry-run
 # covers the real sequence rather than a second copy of it that can drift.
 run() {

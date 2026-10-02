@@ -41,6 +41,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "animate": "user-invocable-only",
@@ -75,7 +76,8 @@
     "swift-concurrency-expert": "user-invocable-only",
     "swiftui-liquid-glass": "user-invocable-only",
     "swiftui-performance-audit": "user-invocable-only",
-    "swiftui-view-refactor": "user-invocable-only",
+    "swiftui-pro": "user-invocable-only",
+    "chain": "user-invocable-only",
     "canvas-design": "off",
     "claude-api": "user-invocable-only",
     "doc-coauthoring": "off",
@@ -281,6 +283,5 @@
   "disabledMcpServers": [
     "computer-use",
     "claude-in-chrome"
-  ],
-  "model": "opus"
+  ]
 }

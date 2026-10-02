@@ -8,7 +8,7 @@
     sslVerify = true
 
 [credential "https://github.com"]
-	helper =
+	helper = 
 	helper = !/opt/homebrew/bin/gh auth git-credential
 
 [pager]
@@ -73,3 +73,6 @@
 	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-completions
 	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-history-substring-search
 	repo = /Users/eddyekofo/.config/zsh/zsh-users/zsh-syntax-highlighting
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/opt/homebrew/bin/gh auth git-credential

@@ -89,6 +89,13 @@ esac
 
 SPECS=("$@")
 BOOTS=()
+# Eddy, 2026-10-02: while this file exists the chain opens no tab by itself;
+# a named SPEC still opens. `rm` it to let the lanes fill again.
+CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
+if [ ${#SPECS[@]} -eq 0 ] && [ -e "$CHAIN_PAUSE" ]; then
+  echo "herdr-goals: chain paused ($CHAIN_PAUSE) — no tab opened; name one: herdr-goals <label>:opus::<worktree>" >&2
+  exit 0
+fi
 if [ ${#SPECS[@]} -eq 0 ]; then
   # FS-129 D7 / FS-130 D3: the focus track chooses, so "open my windows" needs
   # no argument and no ranking session. `/build` runs a settled record to a

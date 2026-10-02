@@ -283,7 +283,7 @@ path = "/Users/eddyekofo/.agent-skills/swiftui-performance-audit/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/swiftui-view-refactor/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/swiftui-pro/SKILL.md"
 enabled = false
 
 [[skills.config]]
