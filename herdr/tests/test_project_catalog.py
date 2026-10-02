@@ -209,6 +209,10 @@ class CatalogTest(unittest.TestCase):
         self.assertIn(" [open] [main", output.getvalue())
         self.assertEqual(records[0]["path"], str(repo))
 
+    # The budget is the picker's feel on Eddy's machine, enforced by
+    # herdr/verify.sh. A shared CI runner measured corrupt p95 at 531 ms against
+    # 66 ms locally, so there it gates runner load, not the code.
+    @unittest.skipIf(os.environ.get("CI"), "latency budget is enforced locally")
     def test_twenty_run_latency_budgets_for_cached_and_seed_states(self):
         repo = self.git_repo("repo")
         self.write_config([{"path": str(repo), "max_project_depth": 0}], [], [])
