@@ -43,13 +43,15 @@ record() {
   jq -cn --arg check "$1" --argjson evidence "$2" \
     '{check:$check,evidence:$evidence}' >>"$evidence_tmp"
 }
+# A deadline, not an attempt count. 120 attempts at 0.05 s gave about 6 s, and
+# on a machine busy with agent sessions focus after a popup-created worktree
+# landed just past it, failing about half the runs (Eddy, 2026-10-02).
 wait_for() {
   description=$1
   shift
-  attempts=0
+  deadline=$(($(date +%s) + ${HERDR_VALIDATE_WAIT_SECONDS:-20}))
   until "$@"; do
-    attempts=$((attempts + 1))
-    if [ "$attempts" -ge 120 ]; then
+    if [ "$(date +%s)" -ge "$deadline" ]; then
       echo "project-picker validation timed out: $description" >&2
       return 1
     fi
