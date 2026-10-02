@@ -36,6 +36,39 @@ picker_reference_evidence=${HERDR_PICKER_REFERENCE_EVIDENCE:-"$prototype/evidenc
 agent_overview_evidence=${HERDR_AGENT_OVERVIEW_EVIDENCE:-"$prototype/evidence/agent-overview-validation.jsonl"}
 agent_cycle_evidence=${HERDR_AGENT_CYCLE_EVIDENCE:-"$prototype/evidence/agent-cycle-validation.jsonl"}
 
+# Evidence is a recorded live run, pinned to the hashes of the files it ran
+# against. When a check below fails, say which run to repeat rather than
+# leaving a bare jq exit: the usual cause is a changed config, and the fix is
+# the validator, not an edit to the evidence (Eddy, 2026-10-02).
+evidence_failed() {
+  file=$1
+  case "$(basename -- "$file" -validation.jsonl)" in
+    agent-state) validator=validate_agent_states.sh ;;
+    binding) validator=validate_bindings.sh ;;
+    capability-gap) validator=validate_capability_gaps.sh ;;
+    multi-agent-compat) validator=validate_multi_agent_compat.sh ;;
+    pane-lifecycle) validator=validate_panes.sh ;;
+    popup) validator=validate_popups.sh ;;
+    tab-lifecycle) validator=validate_tabs.sh ;;
+    url) validator=validate_urls.sh ;;
+    utility-parity) validator=validate_utilities.sh ;;
+    *) validator=validate_$(basename -- "$file" -validation.jsonl | tr - _).sh ;;
+  esac
+  echo "herdr prototype verify: stale or failing evidence: $file" >&2
+  # Every pinned hash keyed as one of the two Herdr configs, against both today.
+  now_prototype=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
+  now_production=$(shasum -a 256 "$root/herdr/config.toml" | awk '{print $1}')
+  jq -r '.evidence | paths(type == "string" and test("^[0-9a-f]{64}$")) as $p
+    | select($p | last | tostring | test("^(config|config_sha256|config\\.toml|herdr_config_sha256|production_config|prototype_config)$"))
+    | "\($p | map(tostring) | join(".")) \(getpath($p))"' "$file" 2>/dev/null |
+    sort -u | while read -r key pinned; do
+      [ "$pinned" = "$now_prototype" ] || [ "$pinned" = "$now_production" ] ||
+        echo "  pinned $key ${pinned%"${pinned#????????????}"} matches neither herdr/prototype/config.toml (${now_prototype%"${now_prototype#????????????}"}) nor herdr/config.toml (${now_production%"${now_production#????????????}"})" >&2
+    done
+  echo "  re-run: herdr/prototype/$validator with the reviewed build, then commit the refreshed evidence; if it fails, that is a real regression" >&2
+  exit 1
+}
+
 test -x "$prototype/run.sh"
 test -x "$prototype/live_ghostty.sh"
 test -x "$prototype/launch_live_ghostty.sh"
@@ -363,7 +396,7 @@ jq -se --arg config_hash "$binding_config_hash" \
     status:"PASS",session:"trial-focused",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$binding_evidence" >/dev/null
+' "$binding_evidence" >/dev/null || evidence_failed "$binding_evidence"
 
 popup_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 popup_fixture_hash=$(shasum -a 256 "$prototype/popup_fixture.sh" | awk '{print $1}')
@@ -422,7 +455,7 @@ jq -se --arg root "$root" \
     status:"PASS",session:"pu",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$popup_evidence" >/dev/null
+' "$popup_evidence" >/dev/null || evidence_failed "$popup_evidence"
 
 layout_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 layout_helper_hash=$(shasum -a 256 "$prototype/layout_menu.sh" | awk '{print $1}')
@@ -528,7 +561,7 @@ jq -se --arg config_hash "$layout_config_hash" \
     status:"PASS",session:"lm",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$layout_menu_evidence" >/dev/null
+' "$layout_menu_evidence" >/dev/null || evidence_failed "$layout_menu_evidence"
 
 utility_pane_transfer_hash=$(shasum -a 256 "$prototype/pane_transfer.sh" | awk '{print $1}')
 utility_history_hash=$(shasum -a 256 "$prototype/export_history.sh" | awk '{print $1}')
@@ -618,7 +651,7 @@ jq -se --arg pane_transfer "$utility_pane_transfer_hash" \
     tmux:{available:true,path:$tmux_path,version:$tmux_version},
     production_configuration_modified:false
   }
-' "$utility_parity_evidence" >/dev/null
+' "$utility_parity_evidence" >/dev/null || evidence_failed "$utility_parity_evidence"
 
 copy_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 copy_client_hash=$(shasum -a 256 "$prototype/copy_mode_client.py" | awk '{print $1}')
@@ -669,7 +702,7 @@ jq -se --arg config_hash "$copy_config_hash" \
     status:"PASS",version:"herdr 0.8.2",session:"cm",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$copy_mode_evidence" >/dev/null
+' "$copy_mode_evidence" >/dev/null || evidence_failed "$copy_mode_evidence"
 
 url_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 url_helper_hash=$(shasum -a 256 "$prototype/open_visible_url.sh" | awk '{print $1}')
@@ -708,7 +741,7 @@ jq -se --arg config_hash "$url_config_hash" \
     status:"PASS",version:"herdr 0.8.2",session:"url",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$url_evidence" >/dev/null
+' "$url_evidence" >/dev/null || evidence_failed "$url_evidence"
 
 remote_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 remote_validator_hash=$(shasum -a 256 "$prototype/validate_remote.sh" | awk '{print $1}')
@@ -744,7 +777,7 @@ jq -se --arg config_hash "$remote_config_hash" \
     remote_login_enabled:false,integration_installed:false,
     migration_authorized:false
   }
-' "$remote_evidence" >/dev/null
+' "$remote_evidence" >/dev/null || evidence_failed "$remote_evidence"
 
 # The prototype binary is a gitignored work product. Re-derive the upstream
 # default-config hash from it when it exists; a fresh checkout can only carry the
@@ -797,7 +830,7 @@ jq -se --arg defaults_hash "$capability_defaults_hash" \
     status:"PASS",production_configuration_modified:false,
     unsupported_emulation_installed:false,migration_authorized:false
   }
-' "$capability_gap_evidence" >/dev/null
+' "$capability_gap_evidence" >/dev/null || evidence_failed "$capability_gap_evidence"
 
 recovery_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 recovery_fixture_hash=$(shasum -a 256 "$prototype/recovery_agent_fixture.sh" | awk '{print $1}')
@@ -844,7 +877,7 @@ jq -se --arg config_hash "$recovery_config_hash" \
     native_agent_resumed:true,arbitrary_process_resume:false,
     production_configuration_modified:false,migration_authorized:false
   }
-' "$recovery_evidence" >/dev/null
+' "$recovery_evidence" >/dev/null || evidence_failed "$recovery_evidence"
 
 workspace_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 workspace_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
@@ -877,7 +910,7 @@ jq -se --arg config_hash "$workspace_config_hash" \
     model:"workspaces-within-session",
     production_configuration_modified:false,migration_authorized:false
   }
-' "$workspace_navigation_evidence" >/dev/null
+' "$workspace_navigation_evidence" >/dev/null || evidence_failed "$workspace_navigation_evidence"
 
 jq -se '
   def nonempty_string: type == "string" and length > 0;
@@ -1000,7 +1033,7 @@ jq -se '
     production_configuration_modified:false,
     migration_authorized:false
   }
-' "$tab_lifecycle_evidence" >/dev/null
+' "$tab_lifecycle_evidence" >/dev/null || evidence_failed "$tab_lifecycle_evidence"
 
 ready_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 ready_helper_hash=$(shasum -a 256 "$prototype/ready_prompt.sh" | awk '{print $1}')
@@ -1044,7 +1077,7 @@ jq -se --arg config_hash "$ready_config_hash" \
     production_configuration_modified:false,
     migration_authorized:false
   }
-' "$ready_prompt_evidence" >/dev/null
+' "$ready_prompt_evidence" >/dev/null || evidence_failed "$ready_prompt_evidence"
 
 pane_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 pane_helper_hash=$(shasum -a 256 "$prototype/equalize_panes.sh" | awk '{print $1}')
@@ -1111,7 +1144,7 @@ jq -se --arg config_hash "$pane_config_hash" --arg helper_hash "$pane_helper_has
     production_configuration_modified:false,
     migration_authorized:false
   }
-' "$pane_lifecycle_evidence" >/dev/null
+' "$pane_lifecycle_evidence" >/dev/null || evidence_failed "$pane_lifecycle_evidence"
 
 agent_state_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 agent_state_helper_hash=$(shasum -a 256 "$prototype/semantic_agent_state.py" | awk '{print $1}')
@@ -1163,7 +1196,7 @@ jq -se --arg config_hash "$agent_state_config_hash" \
     integration_installed:false,
     migration_authorized:false
   }
-' "$agent_state_evidence" >/dev/null
+' "$agent_state_evidence" >/dev/null || evidence_failed "$agent_state_evidence"
 
 multi_agent_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 multi_agent_helper_hash=$(shasum -a 256 "$prototype/semantic_agent_state.py" | awk '{print $1}')
@@ -1225,7 +1258,7 @@ jq -se --arg config_hash "$multi_agent_config_hash" \
     named_agents:["claude","opencode","agy","gemini"],
     production_configuration_modified:false,integration_installed:false,migration_authorized:false
   }
-' "$multi_agent_evidence" >/dev/null
+' "$multi_agent_evidence" >/dev/null || evidence_failed "$multi_agent_evidence"
 
 login_adapter_hash=$(shasum -a 256 "$prototype/herdr_login_attach.fish" | awk '{print $1}')
 login_allocator_hash=$(shasum -a 256 "$root/herdr/window_session.sh" | awk '{print $1}')
@@ -1298,7 +1331,7 @@ jq -se --arg adapter_hash "$login_adapter_hash" \
     installed:false,
     migration_authorized:false
   }
-' "$login_attach_evidence" >/dev/null
+' "$login_attach_evidence" >/dev/null || evidence_failed "$login_attach_evidence"
 
 picker_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 picker_client_hash=$(shasum -a 256 "$prototype/picker_client.py" | awk '{print $1}')
@@ -1440,7 +1473,7 @@ jq -se \
     migration_authorized:false,
     validation_plan_steps:7
   }
-' "$picker_evidence" >/dev/null
+' "$picker_evidence" >/dev/null || evidence_failed "$picker_evidence"
 
 picker_reference_config_hash=$(shasum -a 256 "$prototype/config.toml" | awk '{print $1}')
 picker_reference_manager_hash=$(shasum -a 256 "$prototype/manage_objects.sh" | awk '{print $1}')
@@ -1517,7 +1550,7 @@ jq -se \
     visible_reference_types:["uri","path","hash"],
     copy_mode_emulation:false
   }
-' "$picker_reference_evidence" >/dev/null
+' "$picker_reference_evidence" >/dev/null || evidence_failed "$picker_reference_evidence"
 
 agent_overview_hash=$(shasum -a 256 "$prototype/agent_overview.sh" | awk '{print $1}')
 agent_composer_hash=$(shasum -a 256 "$prototype/agent_message_composer.py" | awk '{print $1}')
@@ -1578,7 +1611,7 @@ jq -se \
   .[7].evidence.destructive_actions == false and
   .[7].evidence.polling == false and
   .[7].evidence.commit_or_push == false
-' "$agent_overview_evidence" >/dev/null
+' "$agent_overview_evidence" >/dev/null || evidence_failed "$agent_overview_evidence"
 
 agent_cycle_helper_hash=$(shasum -a 256 "$prototype/agent_cycle.py" | awk '{print $1}')
 agent_cycle_client_hash=$(shasum -a 256 "$prototype/tab_client.py" | awk '{print $1}')
@@ -1608,7 +1641,7 @@ jq -se \
     helper:$helper,client:$client,validator:$validator,
     production_config:$production,prototype_config:$prototype_config
   }
-' "$agent_cycle_evidence" >/dev/null
+' "$agent_cycle_evidence" >/dev/null || evidence_failed "$agent_cycle_evidence"
 
 nvim_config=${XDG_CONFIG_HOME:-"$HOME/.config"}/nvim/lua/plugin/tmux.lua
 if [ ! -f "$nvim_config" ]; then
