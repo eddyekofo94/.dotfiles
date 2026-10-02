@@ -141,6 +141,13 @@ if [ ! -e "$config_link" ] && [ ! -L "$config_link" ]; then
   staged_link=
   created_link=1
 fi
+# The Claude detection override (background jobs read as working) is tracked
+# here; a real file already in place is left alone rather than overwritten.
+detect_link="$config_dir/agent-detection/claude.toml"
+if [ ! -e "$detect_link" ] && [ ! -L "$detect_link" ]; then
+  mkdir -p "$config_dir/agent-detection"
+  ln -s "$root/herdr/agent-detection/claude.toml" "$detect_link"
+fi
 
 if [ "$activate" -eq 1 ]; then
   HERDR_CONFIG_DIR="$config_dir" "$root/herdr/set_default.sh" herdr >/dev/null
