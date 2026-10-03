@@ -27,6 +27,11 @@ function _fzf_preview_image -d "fzf preview: paint an image into a preview pane"
         # Production uses Ghostty's real cell geometry. Tests provide a
         # deterministic substitute because their pseudo-terminal cannot
         # answer pixel-size queries.
+        # Herdr answers shared-memory images with "EINVAL: unsupported
+        # medium" and accepts only inline transfer, so stream inside it.
+        set -l transfer_mode memory
+        set -q HERDR_ENV; and set transfer_mode stream
+
         set -l window_size_arg
         if set -q FZF_PREVIEW_TEST_WINDOW_SIZE
             set -l pixel_width (math "$cols * 10")
@@ -34,7 +39,7 @@ function _fzf_preview_image -d "fzf preview: paint an image into a preview pane"
             set window_size_arg --use-window-size="$cols,$rows,$pixel_width,$pixel_height"
         end
 
-        "$kitten_cmd" icat --clear --transfer-mode=memory \
+        "$kitten_cmd" icat --clear --transfer-mode=$transfer_mode \
             --unicode-placeholder --stdin=no --scale-up $window_size_arg \
             --place=$cols"x"$rows"@0x"$offset "$target" \
             | perl -0777 -pe 's/\n[^\n]*\z/\e[m\n/s'

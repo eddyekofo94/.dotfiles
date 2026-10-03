@@ -107,7 +107,7 @@ mkdir -p "$mock_bin"
 printf '%s\n' '#!/bin/sh' 'printf "%s\\n" "$@" >"$FZF_TEST_KITTEN_ARGS"' \
     'printf "\\033[m\\n"' >"$mock_bin/kitten"
 chmod +x "$mock_bin/kitten"
-env PATH="$mock_bin:$PATH" FZF_TEST_KITTEN_ARGS="$mock_args" \
+env -u HERDR_ENV PATH="$mock_bin:$PATH" FZF_TEST_KITTEN_ARGS="$mock_args" \
     FZF_PREVIEW_COLUMNS=20 FZF_PREVIEW_LINES=8 \
     fish --no-config -c '
         set -p fish_function_path "$argv[1]/functions"
@@ -115,6 +115,20 @@ env PATH="$mock_bin:$PATH" FZF_TEST_KITTEN_ARGS="$mock_args" \
     ' "$package_dir" "$image" >/dev/null
 if ! rg --fixed-strings --line-regexp --quiet -- '--transfer-mode=memory' "$mock_args"; then
     echo 'fzf preview integration: images must use bounded shared-memory transfer' >&2
+    exit 1
+fi
+
+# Herdr rejects shared-memory images ("EINVAL: unsupported medium") and the
+# quiet flag hides that, leaving a blank pane, so inside Herdr images stream.
+herdr_args="$tmp_dir/herdr-kitten.args"
+env HERDR_ENV=1 PATH="$mock_bin:$PATH" FZF_TEST_KITTEN_ARGS="$herdr_args" \
+    FZF_PREVIEW_COLUMNS=20 FZF_PREVIEW_LINES=8 \
+    fish --no-config -c '
+        set -p fish_function_path "$argv[1]/functions"
+        _fzf_preview "$argv[2]"
+    ' "$package_dir" "$image" >/dev/null
+if ! rg --fixed-strings --line-regexp --quiet -- '--transfer-mode=stream' "$herdr_args"; then
+    echo 'fzf preview integration: Herdr images must use stream transfer' >&2
     exit 1
 fi
 
