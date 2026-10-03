@@ -91,6 +91,8 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 
 ## Lessons
 
+- When building any SwiftUI feature in any iOS app, give every appear, disappear and action its motion (ease, spring, friction and inertia, haptics) and a tuning panel for multi-phase transitions; a visible change with no motion is a review finding, not a style choice (Eddy, 2026-10-03).
+- When an old decision quietly excludes something Eddy asks for (e.g. FS-060 D4 kept recognised portraits of Augustine and Aquinas off author art), name the rule and its record to him at once; don't silently honour it across sessions (Eddy, 2026-10-03).
 <!-- Newest on top. Delete what no longer applies. -->
 - When designing a client site, benchmark it against canonfidei.com and biblestandard.app (motion, interaction, layering, landing-page ambition); a clean but static layout is a failed design, so aim for more, not less (Eddy, 2026-10-02).
 - When a push or merge lands, read the GitHub Actions run for that commit before calling it done; a local verify script may not run every CI step (Eddy, 2026-10-02).
