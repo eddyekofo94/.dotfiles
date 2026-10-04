@@ -53,6 +53,24 @@ class Decide(unittest.TestCase):
                          (False, "unlanded: worktree dirty"))
 
 
+class Fill(unittest.TestCase):
+    def test_always_build_reads_one_root_per_line_and_skips_comments(self):
+        with tempfile.NamedTemporaryFile("w", delete=False) as handle:
+            handle.write("# repos\n~/Code/App  # the app\n\n/abs/Other\n")
+        self.addCleanup(Path(handle.name).unlink)
+        real = reap_idle.ALWAYS_BUILD
+        reap_idle.ALWAYS_BUILD = Path(handle.name)
+        self.addCleanup(setattr, reap_idle, "ALWAYS_BUILD", real)
+        self.assertEqual(reap_idle.always_build(),
+                         [Path("~/Code/App").expanduser(), Path("/abs/Other")])
+
+    def test_new_builds_open_in_the_window_already_showing_the_repo(self):
+        tabs = [tab(cwd="/r/App", socket="a"), tab(cwd="/r/App-sessions/fs1", socket="b"),
+                tab(cwd="/r/App-sessions/fs2", socket="b"), tab(cwd="/r/Apple", socket="c")]
+        self.assertEqual(reap_idle.window_for(Path("/r/App"), tabs), "b")
+        self.assertIsNone(reap_idle.window_for(Path("/r/Elsewhere"), tabs))
+
+
 class Transcript(unittest.TestCase):
     def write(self, *entries):
         handle = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False)
