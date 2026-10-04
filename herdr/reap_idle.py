@@ -46,6 +46,7 @@ CLOSING_STATUSES = {"DONE", "BLOCKED"}
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))
+HERDR_HOME = Path(os.environ.get("HERDR_REAP_HOME", Path.home() / ".config/herdr"))
 TRANSCRIPTS = Path(os.environ.get("HERDR_REAP_TRANSCRIPTS", Path.home() / ".claude/projects"))
 
 
@@ -63,6 +64,7 @@ class Tab:
     closeout: str | None = None         # the last turn's Status word
     next_move: str = ""
     unlanded: list[str] = field(default_factory=list)
+    socket: str = ""                    # the Herdr server (one per window) it lives in
 
 
 def decide(tab: Tab, grace: float) -> tuple[bool, str]:
@@ -89,8 +91,19 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
     return True, f"{tab.closeout}, idle {int(tab.quiet_for // 60)}m, landed"
 
 
-def herdr(*args: str) -> dict:
-    out = subprocess.run(["herdr", *args], capture_output=True, text=True, timeout=15)
+def sockets() -> list[str]:
+    """Every Herdr server's socket. Herdr runs one server per window, each
+    under `sessions/<name>/`, and the bare default socket is usually dead
+    (tab_status.sh learned this first), so a pass walks them all."""
+    found = sorted(str(p) for p in HERDR_HOME.glob("sessions/*/herdr.sock"))
+    default = HERDR_HOME / "herdr.sock"
+    return found + ([str(default)] if default.exists() else [])
+
+
+def herdr(sock: str, *args: str) -> dict:
+    env = {**os.environ, "HERDR_SOCKET_PATH": sock}
+    # A socket nothing serves can block a call forever without a terminal.
+    out = subprocess.run(["herdr", *args], capture_output=True, text=True, timeout=8, env=env)
     if out.returncode != 0:
         raise RuntimeError(out.stderr.strip() or f"herdr {' '.join(args)} failed")
     return json.loads(out.stdout)["result"]
@@ -176,17 +189,17 @@ def unlanded(cwd: str, session: str) -> list[str]:
     return problems
 
 
-def gather(only: str | None) -> list[Tab]:
+def gather(sock: str, only: str | None) -> list[Tab]:
     panes = {}
-    for pane in herdr("pane", "list").get("panes", []):
+    for pane in herdr(sock, "pane", "list").get("panes", []):
         panes.setdefault(pane["tab_id"], pane)
     tabs = []
     now = time.time()
-    for raw in herdr("tab", "list").get("tabs", []):
+    for raw in herdr(sock, "tab", "list").get("tabs", []):
         if only and raw["tab_id"] != only:
             continue
         tab = Tab(raw["tab_id"], raw.get("label", ""), bool(raw.get("focused")),
-                  raw.get("agent_status", ""), int(raw.get("pane_count", 1)))
+                  raw.get("agent_status", ""), int(raw.get("pane_count", 1)), socket=sock)
         pane = panes.get(tab.tab_id)
         if pane:
             tab.agent = pane.get("agent") or ""
@@ -221,23 +234,27 @@ def main() -> int:
         except BlockingIOError:
             log("another herdr-reap is running; skipping this pass")
             return 0
-        try:
-            tabs = gather(args.only)
-        except (RuntimeError, OSError, json.JSONDecodeError, subprocess.TimeoutExpired) as error:
-            # No Herdr server yet (login, before the first `herdr`) is the normal case.
-            if args.dry_run or args.only:
-                log(f"herdr unavailable: {error}")
-            return 0
+        tabs = []
+        for sock in sockets():
+            try:
+                tabs += gather(sock, args.only)
+            except (RuntimeError, OSError, json.JSONDecodeError, subprocess.TimeoutExpired):
+                # A window closed since its socket was made: nothing serves it.
+                continue
+        if not tabs and (args.dry_run or args.only):
+            log("no live Herdr server" + (f" has tab {args.only}" if args.only else ""))
         for tab in tabs:
             close, reason = decide(tab, args.grace)
-            line = f"{tab.tab_id} {tab.label!r}: {'close' if close else 'keep'} — {reason}"
+            window = Path(tab.socket).parent.name
+            line = f"{window} {tab.tab_id} {tab.label!r}: {'close' if close else 'keep'} — {reason}"
             if args.dry_run or not close:
                 if args.dry_run:
                     print(line)
                 continue
             log(line + (f" · next move was: {tab.next_move}" if tab.next_move else ""))
             done = subprocess.run(["bash", str(GOAL_DONE), "--tab", tab.tab_id],
-                                  capture_output=True, text=True)
+                                  capture_output=True, text=True,
+                                  env={**os.environ, "HERDR_SOCKET_PATH": tab.socket})
             for out in (done.stdout + done.stderr).splitlines():
                 log(f"  {out}")
             if done.returncode != 0:
