@@ -25,6 +25,15 @@ Usage:
   herdr-reap --dry-run       # one line per tab: close or keep, and why
   herdr-reap --only <tab>    # consider just this tab
   herdr-reap --grace 600     # idle seconds before a tab may close
+
+After the closes, every pass also fills: for each repository listed in
+`~/.config/herdr/always-build` whose build lanes are not all held, it runs
+`herdr-goal-done --fill <repo>`, so a lane that frees with no tab retiring
+(a parked build, a record turned Ready) starts the next build within two
+minutes. The repository's own gate still refuses a full cap or a busy machine.
+
+While any agent tab is working, a pass holds a three-minute `caffeinate`
+assertion, so the Mac does not idle-sleep (or system-sleep on power) mid-build.
 """
 
 import argparse
@@ -47,6 +56,7 @@ STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))
 HERDR_HOME = Path(os.environ.get("HERDR_REAP_HOME", Path.home() / ".config/herdr"))
+ALWAYS_BUILD = Path(os.environ.get("HERDR_REAP_ALWAYS_BUILD", HERDR_HOME / "always-build"))
 TRANSCRIPTS = Path(os.environ.get("HERDR_REAP_TRANSCRIPTS", Path.home() / ".claude/projects"))
 
 
@@ -216,6 +226,91 @@ def gather(sock: str, only: str | None) -> list[Tab]:
     return tabs
 
 
+def always_build() -> list[Path]:
+    """The repositories that should always have a build running, one root per line."""
+    if not ALWAYS_BUILD.exists():
+        return []
+    roots = []
+    for line in ALWAYS_BUILD.read_text().splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            roots.append(Path(line).expanduser())
+    return roots
+
+
+def lanes(repo: Path) -> dict | None:
+    """The repository's own lane count, or None when it has no manager that says."""
+    manager = repo / "tools/session_worktree.py"
+    if not manager.exists():
+        return None
+    out = subprocess.run([sys.executable, str(manager), "lanes", "--json"],
+                         cwd=repo, capture_output=True, text=True, timeout=60)
+    try:
+        return json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def window_for(repo: Path, tabs: list[Tab]) -> str | None:
+    """The Herdr server already showing this repository's tabs: new builds open
+    beside them. None when no window has the repository open."""
+    counts: dict[str, int] = {}
+    for tab in tabs:
+        if tab.cwd and (tab.cwd == str(repo) or tab.cwd.startswith(f"{repo}/")
+                        or tab.cwd.startswith(f"{repo}-sessions/")):
+            counts[tab.socket] = counts.get(tab.socket, 0) + 1
+    return max(counts, key=counts.get) if counts else None
+
+
+def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
+    held = lanes(repo)
+    if held is None:
+        if dry_run:
+            print(f"fill: {repo.name} — no lane count (tools/session_worktree.py lanes --json)")
+        return
+    free = held["build_cap"] - held["build"]
+    seat = held["verdict_seats"] - held["verdict"]
+    summary = f"build {held['build']}/{held['build_cap']} · verdict {held['verdict']}/{held['verdict_seats']}"
+    if free <= 0 and seat <= 0:
+        if dry_run:
+            print(f"fill: {repo.name} {summary} — lanes full, nothing to open")
+        return
+    sock = window_for(repo, tabs)
+    if sock is None:
+        if dry_run:
+            print(f"fill: {repo.name} {summary} — no Herdr window has it open")
+        return
+    args = ["bash", str(GOAL_DONE), "--fill", str(repo)] + (["--dry-run"] if dry_run else [])
+    done = subprocess.run(args, capture_output=True, text=True,
+                          env={**os.environ, "HERDR_SOCKET_PATH": sock})
+    lines = (done.stdout + done.stderr).splitlines()
+    if dry_run:
+        print(f"fill: {repo.name} {summary} — {max(free, 0)} build lane(s) free")
+        for line in lines:
+            if "would advance to" in line or "nothing" in line or "full" in line:
+                print(f"  {line}")
+        return
+    # Every pass with nothing Ready would say so; log only a pass that started one.
+    if any("goal-done: opened" in line for line in lines):
+        log(f"fill: {repo.name} {summary}")
+        for line in lines:
+            log(f"  {line}")
+
+
+def keep_awake(tabs: list[Tab]) -> bool:
+    """Hold off sleep for three minutes while any agent tab is working.
+
+    A pass runs every two, so the assertion overlaps the next one and lapses on
+    its own within three minutes of the last build stopping: no pid to track,
+    and a crashed pass cannot keep the Mac awake for ever. `-i` holds off idle
+    sleep, `-s` system sleep on AC power; a closed lid on battery still sleeps."""
+    if not any(AGENT_MARK in t.label and t.status == "working" for t in tabs):
+        return False
+    subprocess.Popen(["caffeinate", "-i", "-s", "-t", "180"], start_new_session=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return True
+
+
 def log(message: str) -> None:
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {message}", flush=True)
 
@@ -259,6 +354,15 @@ def main() -> int:
                 log(f"  {out}")
             if done.returncode != 0:
                 log(f"  goal-done exit {done.returncode}: {tab.tab_id} left open")
+        if args.only:
+            return 0
+        for repo in always_build():
+            fill(repo, tabs, args.dry_run)
+        if args.dry_run:
+            awake = any(AGENT_MARK in t.label and t.status == "working" for t in tabs)
+            print(f"awake: {'caffeinate -i -s -t 180 (an agent tab is working)' if awake else 'no agent tab working — the Mac may sleep'}")
+        else:
+            keep_awake(tabs)
     return 0
 
 

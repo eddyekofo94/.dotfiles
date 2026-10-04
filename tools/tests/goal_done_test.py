@@ -156,6 +156,23 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertIn(["tab", "close", "w1:t9"], herdr)
         self.assertNotIn(["tab", "close", "w1:t1"], herdr)
 
+    def test_fill_opens_the_next_build_and_retires_nothing(self):
+        result = self.invoke(keep_tab=False, extra=("--fill", str(self.repo)),
+                             cwd=self.repo.parent, env_extra={"HERDR_TAB_ID": ""})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.calls(self.worktree_calls),
+                         [["open", "df1", "--goal", "DF-1", "--paths", "a", "b"]])
+        self.assertEqual(len(self.opened()), 1)
+        self.assertFalse(any(c[:2] == ["tab", "close"] for c in self.calls(self.herdr_calls)))
+
+    def test_fill_does_nothing_while_the_chain_is_paused(self):
+        paused = self.repo / "paused"
+        paused.write_text("")
+        result = self.invoke(extra=("--fill", str(self.repo)),
+                             env_extra={"HERDR_CHAIN_PAUSE": str(paused)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.worktree_calls.exists())
+
     def test_tab_with_no_pane_dies_and_closes_nothing(self):
         result = self.invoke(keep_tab=False, extra=("--tab", "w1:t404"))
         self.assertNotEqual(result.returncode, 0)

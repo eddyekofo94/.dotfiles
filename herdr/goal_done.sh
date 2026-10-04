@@ -34,6 +34,7 @@
 #   herdr-goal-done --no-todo       # just retire; do not advance or open anything
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
 #   herdr-goal-done --tab <id>      # retire another tab (herdr-reap), not this one
+#   herdr-goal-done --fill <repo>   # retire nothing: only fill <repo>'s free lanes
 set -uo pipefail
 
 FORCE=0
@@ -44,6 +45,7 @@ DRY=0
 BOOT=""
 BOOT_SET=0
 TARGET_TAB=""
+FILL_REPO=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,7 +56,8 @@ while [ $# -gt 0 ]; do
     --dry-run)  DRY=1 ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
     --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
-    -h|--help)  sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --fill)     FILL_REPO="${2:?--fill needs a repository root}"; shift ;;
+    -h|--help)  sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -92,6 +95,19 @@ if [ -n "$TARGET_TAB" ]; then
   cd "$(jq -r '.cwd' <<<"$target")" || die "cannot enter tab $TARGET_TAB's checkout"
 fi
 
+# `--fill`: step 4 alone, for a lane that freed with no tab retiring — a build
+# parked, a claim lapsed, a record turned Ready while a lane sat free. Eddy,
+# 2026-10-04: "when there's a free lane, if I am not there the harness should
+# go on". `herdr-reap` runs it every pass; the manager's gate still says no to
+# a full cap or a busy machine (BUG-349), so it never piles builds up.
+if [ -n "$FILL_REPO" ]; then
+  [ "$OPEN_TODO" = 1 ] || exit 0
+  cd "$FILL_REPO" || die "cannot enter $FILL_REPO"
+  KEEP_TAB=1
+  HERDR_GOAL_DONE_AGENT="${HERDR_GOAL_DONE_AGENT:-claude}"
+  HERDR_TAB_ID="${HERDR_TAB_ID:-fill}"
+fi
+
 [ -n "${HERDR_TAB_ID:-}" ] || die "not inside a Herdr pane (no \$HERDR_TAB_ID)"
 
 caller_agent="${HERDR_GOAL_DONE_AGENT:-}"
@@ -124,7 +140,11 @@ case "$common" in /*) ;; *) common="$root/$common" ;; esac
 shared=$(dirname "$common")
 slug=$(basename "$root")
 
-if [ "$root" = "$shared" ]; then
+if [ -n "$FILL_REPO" ]; then
+  # Nothing retires: no branch to check, no worktree to sweep.
+  [ "$root" = "$shared" ] || die "--fill takes the shared checkout, not a worktree ($root)"
+  slug=""
+elif [ "$root" = "$shared" ]; then
   # A tab in the shared checkout owns no worktree and no branch of its own.
   slug=""
   echo "goal-done: shared checkout — nothing to sweep, retiring the tab only"
@@ -254,7 +274,7 @@ if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
     # landed checkout already does not).
     free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
 import repo_lock, session_worktree
-held = [s for s in session_worktree.slot_details() if s["name"] != os.environ.get("GOAL_DONE_SLUG")]
+held = [s for s in session_worktree.slot_details() if s.get("kind", "worktree") == "worktree" and s["name"] != os.environ.get("GOAL_DONE_SLUG")]
 print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
   fi
   while IFS= read -r record; do
