@@ -91,6 +91,8 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 
 ## Lessons
 
+- When ending any turn that is not WAITING, give Eddy the choice to close the tab beside the next prompt: one line before **Status** naming `herdr-goal-done` (it opens the next ranked tab, then closes this one; `--no-todo` only closes it), and run it when he says close (Eddy, 2026-10-04).
+- When a SwiftUI build writes state from scrolling or changes a list's layout as it scrolls, swipe it in the simulator with a DEBUG flip and body-pass counter before calling it done; still frames and a recording missed a fold flipping every frame ("unusably janky", FS-196) (Eddy, 2026-10-03).
 - When building any SwiftUI feature in any iOS app, give every appear, disappear and action its motion (ease, spring, friction and inertia, haptics) and a tuning panel for multi-phase transitions; a visible change with no motion is a review finding, not a style choice (Eddy, 2026-10-03).
 - When an old decision quietly excludes something Eddy asks for (e.g. FS-060 D4 kept recognised portraits of Augustine and Aquinas off author art), name the rule and its record to him at once; don't silently honour it across sessions (Eddy, 2026-10-03).
 <!-- Newest on top. Delete what no longer applies. -->
