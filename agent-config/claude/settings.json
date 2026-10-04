@@ -70,6 +70,7 @@
     "teach": "user-invocable-only",
     "prototype": "user-invocable-only",
     "quiz-me": "user-invocable-only",
+    "clean-tests": "user-invocable-only",
     "refactor": "user-invocable-only",
     "research": "user-invocable-only",
     "review-animations": "user-invocable-only",

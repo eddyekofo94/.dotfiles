@@ -259,6 +259,10 @@ path = "/Users/eddyekofo/.agent-skills/quiz-me/SKILL.md"
 enabled = false
 
 [[skills.config]]
+path = "/Users/eddyekofo/.agent-skills/clean-tests/SKILL.md"
+enabled = false
+
+[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/refactor/SKILL.md"
 enabled = false
 
