@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Template. install_reap.sh renders @PLACEHOLDERS@ into ~/Library/LaunchAgents.
+  One pass every @INTERVAL@ seconds closes the agent tabs that sit idle on
+  landed work and refills their lanes (reap_idle.py). A pass with no Herdr
+  server up does nothing, so this can start at login.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>@LABEL@</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>python3</string>
+    <string>@SCRIPT@</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>@INTERVAL@</integer>
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- launchd hands a user agent a bare PATH: herdr lives in ~/.local/bin and
+       jq and python3 in Homebrew. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>@BIN_DIR@:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>@LOG@</string>
+  <key>StandardErrorPath</key>
+  <string>@LOG@</string>
+
+  <key>ProcessType</key>
+  <string>Background</string>
+</dict>
+</plist>

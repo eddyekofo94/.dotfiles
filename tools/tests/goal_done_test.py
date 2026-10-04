@@ -62,6 +62,8 @@ with open(os.environ['HERDR_CALLS'], 'a') as out:
     out.write(json.dumps(sys.argv[1:]) + '\\n')
 if sys.argv[1:3] == ['tab', 'create']:
     print('{"result":{"root_pane":{"pane_id":"p-new"}}}')
+if sys.argv[1:3] == ['pane', 'list']:
+    print(os.environ.get('PANE_LIST', '{"result":{"panes":[]}}'))
 if sys.argv[1:3] == ['pane', 'get']:
     print(json.dumps({'result': {'pane': {'agent': os.environ.get('TEST_CALLER_AGENT', '')}}}))
 """)
@@ -138,6 +140,27 @@ if sys.argv[1:3] == ['pane', 'get']:
 
     def calls(self, path):
         return [json.loads(line) for line in path.read_text().splitlines()]
+
+    def test_tab_retires_the_named_tab_from_its_own_checkout(self):
+        path = self.worktree("df9")
+        panes = {"result": {"panes": [
+            {"tab_id": "w1:t9", "pane_id": "w1:p9", "agent": "codex", "cwd": str(path)},
+        ]}}
+        result = self.invoke(
+            keep_tab=False, ranked=False, extra=("--tab", "w1:t9"),
+            env_extra={"PANE_LIST": json.dumps(panes)},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(["remove", "df9"], self.calls(self.worktree_calls))
+        herdr = self.calls(self.herdr_calls)
+        self.assertIn(["tab", "close", "w1:t9"], herdr)
+        self.assertNotIn(["tab", "close", "w1:t1"], herdr)
+
+    def test_tab_with_no_pane_dies_and_closes_nothing(self):
+        result = self.invoke(keep_tab=False, extra=("--tab", "w1:t404"))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no Herdr pane in tab w1:t404", result.stderr)
+        self.assertFalse(any(c[:2] == ["tab", "close"] for c in self.calls(self.herdr_calls)))
 
     def test_ranked_goal_passes_plural_owned_paths_to_manager(self):
         result = self.invoke()
