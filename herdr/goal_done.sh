@@ -33,6 +33,7 @@
 #   herdr-goal-done --keep-tab      # open the next tab, leave this one open
 #   herdr-goal-done --no-todo       # just retire; do not advance or open anything
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
+#   herdr-goal-done --tab <id>      # retire another tab (herdr-reap), not this one
 set -uo pipefail
 
 FORCE=0
@@ -42,6 +43,7 @@ OPEN_TODO=1
 DRY=0
 BOOT=""
 BOOT_SET=0
+TARGET_TAB=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -51,7 +53,8 @@ while [ $# -gt 0 ]; do
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
-    -h|--help)  sed -n '2,35p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
+    -h|--help)  sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -74,8 +77,22 @@ run() {
   "$@"
 }
 
-[ -n "${HERDR_TAB_ID:-}" ] || die "not inside a Herdr pane (no \$HERDR_TAB_ID)"
 command -v jq >/dev/null || die "jq required"
+
+# `--tab`: retire that tab as if this ran inside it — its pane, its checkout,
+# its agent — so `herdr-reap` can close an idle tab from outside (Eddy,
+# 2026-10-04: "I don't want to clog space with idle sessions").
+if [ -n "$TARGET_TAB" ]; then
+  target=$(herdr pane list 2>/dev/null |
+    jq -c --arg tab "$TARGET_TAB" '[.result.panes[]? | select(.tab_id == $tab)][0] // empty') || target=""
+  [ -n "$target" ] || die "no Herdr pane in tab $TARGET_TAB"
+  HERDR_TAB_ID="$TARGET_TAB"
+  HERDR_PANE_ID=$(jq -r '.pane_id' <<<"$target")
+  HERDR_GOAL_DONE_AGENT=$(jq -r '.agent // empty' <<<"$target")
+  cd "$(jq -r '.cwd' <<<"$target")" || die "cannot enter tab $TARGET_TAB's checkout"
+fi
+
+[ -n "${HERDR_TAB_ID:-}" ] || die "not inside a Herdr pane (no \$HERDR_TAB_ID)"
 
 caller_agent="${HERDR_GOAL_DONE_AGENT:-}"
 if [ -z "$caller_agent" ] && [ -n "${HERDR_PANE_ID:-}" ]; then
