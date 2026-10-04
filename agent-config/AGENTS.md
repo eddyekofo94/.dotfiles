@@ -91,6 +91,7 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 
 ## Lessons
 
+- When building or prototyping any motion in any iOS app, hold it to FS-297's polish bar without being asked: one velocity-continuous timeline (no chained delays), only transforms and opacity per frame (render-server playback while main works), no dropped frames measured on a ProMotion iPhone, and a lab A/B against the previous round; "looks great" is not done until it is that smooth ("I am enforcing it now as a standard", Eddy, 2026-10-04).
 - When ending any turn that is not WAITING, give Eddy the choice to close the tab beside the next prompt: one line before **Status** naming `herdr-goal-done` (it opens the next ranked tab, then closes this one; `--no-todo` only closes it), and run it when he says close (Eddy, 2026-10-04).
 - When a SwiftUI build writes state from scrolling or changes a list's layout as it scrolls, swipe it in the simulator with a DEBUG flip and body-pass counter before calling it done; still frames and a recording missed a fold flipping every frame ("unusably janky", FS-196) (Eddy, 2026-10-03).
 - When building any SwiftUI feature in any iOS app, give every appear, disappear and action its motion (ease, spring, friction and inertia, haptics) and a tuning panel for multi-phase transitions; a visible change with no motion is a review finding, not a style choice (Eddy, 2026-10-03).
