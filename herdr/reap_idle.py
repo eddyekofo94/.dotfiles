@@ -34,6 +34,22 @@ minutes. The repository's own gate still refuses a full cap or a busy machine.
 
 While any agent tab is working, a pass holds a three-minute `caffeinate`
 assertion, so the Mac does not idle-sleep (or system-sleep on power) mid-build.
+
+Continue (Eddy, 2026-10-12: "these sessions should continue building without
+me"). An agent tab whose last closeout reads `PARTIAL` stopped with work left
+and wrote the prompt that resumes it. After `--continue-grace` (default 3
+minutes) a pass sends that prompt back, as `/build <ID> <prompt>` for a build
+tab. When its context holds `--clear-at` tokens or more (default 120k), the
+pass sends `/clear` first, so the work goes on in a fresh context in the same
+tab, checkout and lane. The guards:
+
+  * the same tab rules as a close: `▸`, unfocused, one pane, idle or done
+  * never `AWAITING USER APPROVAL`, `WAITING`, or a turn Eddy spoke after
+  * a fenced prompt under the closeout, or nothing is sent
+  * no progress stops it: a closeout whose Next move matches the one already
+    continued is left for Eddy, and a tab gets at most 8 continues a day
+  * the allowance: none while the five-hour window is 90% used or the
+    seven-day window 95% (the statusline's cache, if under 30 minutes old)
 """
 
 import argparse
@@ -52,12 +68,20 @@ HERE = Path(__file__).resolve().parent
 GOAL_DONE = HERE / "goal_done.sh"
 AGENT_MARK = "▸ "
 CLOSING_STATUSES = {"DONE", "BLOCKED"}
+CONTINUE_STATUSES = {"PARTIAL"}
+IDLE_STATES = {"idle", "done"}         # `done`: Herdr's finished-and-unseen
+MAX_CONTINUES = 8                      # per tab per day
+FIVE_HOUR_STOP, SEVEN_DAY_STOP = 90, 95
+PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
+RECORD = re.compile(r"\b(fs|bug)-?(\d{3,})\b", re.I)
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))
 HERDR_HOME = Path(os.environ.get("HERDR_REAP_HOME", Path.home() / ".config/herdr"))
 ALWAYS_BUILD = Path(os.environ.get("HERDR_REAP_ALWAYS_BUILD", HERDR_HOME / "always-build"))
 TRANSCRIPTS = Path(os.environ.get("HERDR_REAP_TRANSCRIPTS", Path.home() / ".claude/projects"))
+CONTINUES = Path(os.environ.get("HERDR_REAP_CONTINUES", Path.home() / ".cache/herdr-reap/continues.json"))
+ALLOWANCE = Path(os.environ.get("HERDR_REAP_ALLOWANCE", Path.home() / ".cache/claude-allowance.json"))
 
 
 @dataclass
@@ -75,6 +99,9 @@ class Tab:
     next_move: str = ""
     unlanded: list[str] = field(default_factory=list)
     socket: str = ""                    # the Herdr server (one per window) it lives in
+    pane_id: str = ""
+    context: int = 0                    # tokens in the last turn's context
+    prompt: str = ""                    # the closeout's ready-to-paste prompt
 
 
 def decide(tab: Tab, grace: float) -> tuple[bool, str]:
@@ -86,7 +113,7 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
         return False, "focused"
     if tab.pane_count != 1:
         return False, f"{tab.pane_count} panes"
-    if tab.status != "idle":
+    if tab.status not in IDLE_STATES:
         return False, f"agent {tab.status or 'unknown'}"
     if tab.quiet_for is None:
         return False, f"no transcript for {tab.agent or 'the agent'}"
@@ -99,6 +126,118 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
     if tab.unlanded:
         return False, "unlanded: " + "; ".join(tab.unlanded)
     return True, f"{tab.closeout}, idle {int(tab.quiet_for // 60)}m, landed"
+
+
+def build_record(tab: Tab) -> str:
+    """The record a build tab works (`▸ fs200` -> FS-200); '' for a grill or verdict tab."""
+    name = tab.label.split(AGENT_MARK, 1)[-1]
+    if "grill" in name or "verdict" in name:
+        return ""
+    for text in (name, Path(tab.cwd).name if tab.cwd else ""):
+        match = RECORD.search(text)
+        if match:
+            return f"{match.group(1).upper()}-{match.group(2)}"
+    return ""
+
+
+def allowance_hold(now: float) -> str:
+    """Why the allowance holds a continue, or '' when it does not (or is unknown)."""
+    try:
+        cached = json.loads(ALLOWANCE.read_text())
+    except (OSError, ValueError):
+        return ""
+    if now - float(cached.get("at") or 0) > 1800:
+        return ""
+    five, seven = cached.get("five_hour"), cached.get("seven_day")
+    if five is not None and five >= FIVE_HOUR_STOP:
+        return f"five-hour allowance {five:.0f}% used"
+    if seven is not None and seven >= SEVEN_DAY_STOP:
+        return f"seven-day allowance {seven:.0f}% used"
+    return ""
+
+
+def decide_continue(tab: Tab, grace: float, clear_at: int, record: dict, hold: str,
+                    today: str) -> tuple[str, str]:
+    """`continue`, `clear` or '' (leave it), and the reason. Pure."""
+    if AGENT_MARK not in tab.label or tab.closeout not in CONTINUE_STATUSES:
+        return "", ""
+    if tab.focused or tab.pane_count != 1 or tab.status not in IDLE_STATES:
+        return "", "focused, split or busy"
+    if tab.quiet_for is None or tab.quiet_for < grace:
+        return "", f"PARTIAL, idle under {int(grace // 60)}m"
+    if not tab.prompt:
+        return "", "PARTIAL with no ready-to-paste prompt"
+    if hold:
+        return "", f"PARTIAL, held: {hold}"
+    if record.get("day") == today and record.get("count", 0) >= MAX_CONTINUES:
+        return "", f"PARTIAL, {MAX_CONTINUES} continues today: needs Eddy"
+    if record.get("move") and record.get("move") == tab.next_move:
+        return "", "PARTIAL, no progress since the last continue: needs Eddy"
+    if tab.context >= clear_at:
+        return "clear", f"PARTIAL at {tab.context // 1000}k: /clear, then its prompt"
+    return "continue", f"PARTIAL at {tab.context // 1000}k: its prompt"
+
+
+def continue_text(tab: Tab) -> str:
+    record = build_record(tab)
+    prompt = " ".join(line.strip() for line in tab.prompt.splitlines() if line.strip())
+    if record and not prompt.startswith("/"):
+        return f"/build {record} {prompt}"
+    return prompt
+
+
+def send_continue(tab: Tab, action: str) -> str:
+    """Send the prompt (after `/clear` for a full context); '' when sent, else the error."""
+    env = {**os.environ, "HERDR_SOCKET_PATH": tab.socket}
+
+    def prompt(text: str, until: str, timeout: int) -> subprocess.CompletedProcess:
+        states = [arg for state in until.split("|") for arg in ("--until", state)]
+        return subprocess.run(["herdr", "agent", "prompt", tab.pane_id, text, "--wait",
+                               *states, "--timeout", str(timeout)],
+                              capture_output=True, text=True, timeout=timeout / 1000 + 10, env=env)
+    try:
+        if action == "clear":
+            # `/clear` changes no agent state, so a waited prompt reports it stalled.
+            cleared = subprocess.run(["herdr", "agent", "prompt", tab.pane_id, "/clear"],
+                                     capture_output=True, text=True, timeout=15, env=env)
+            if cleared.returncode != 0:
+                return "/clear: " + (cleared.stderr.strip() or "failed")
+            time.sleep(5)  # SessionStart hooks inject the tab's goal
+        for _ in range(2):  # once more: a cleared tab must not sit without its prompt
+            sent = prompt(continue_text(tab), "working", 30000)
+            if sent.returncode == 0:
+                return ""
+            time.sleep(5)
+        return sent.stderr.strip() or "prompt failed"
+    except subprocess.TimeoutExpired:
+        return "herdr timed out"
+
+
+def read_handoff(transcript: Path, tail: int = 4 << 20) -> tuple[int, str]:
+    """The last turn's context size and the prompt under its closeout."""
+    with transcript.open("rb") as raw:
+        raw.seek(max(0, transcript.stat().st_size - tail))
+        lines = raw.read().decode("utf-8", "replace").splitlines()
+    context, text = 0, None
+    for line in reversed(lines):
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        message = entry.get("message") if isinstance(entry.get("message"), dict) else {}
+        usage = message.get("usage")
+        if usage and not context:
+            context = (usage.get("input_tokens", 0) + usage.get("cache_read_input_tokens", 0)
+                       + usage.get("cache_creation_input_tokens", 0))
+        if text is None and entry.get("type") == "assistant":
+            parts = [p.get("text", "") for p in message.get("content", [])
+                     if isinstance(p, dict) and p.get("type") == "text"]
+            if any(part.strip() for part in parts):
+                text = "\n".join(parts)
+        if context and text is not None:
+            break
+    found = PROMPT.search(text or "")
+    return context, (found.group(1).strip() if found else "")
 
 
 def sockets() -> list[str]:
@@ -215,11 +354,14 @@ def gather(sock: str, only: str | None) -> list[Tab]:
             tab.agent = pane.get("agent") or ""
             tab.session = (pane.get("agent_session") or {}).get("value", "")
             tab.cwd = pane.get("cwd", "")
+            tab.pane_id = pane.get("pane_id", "")
         if tab.agent == "claude" and tab.session:
             found = next(TRANSCRIPTS.glob(f"*/{tab.session}.jsonl"), None)
             if found:
                 spoke, tab.closeout, tab.next_move = read_transcript(found)
                 tab.quiet_for = None if spoke is None else now - spoke
+                if AGENT_MARK in tab.label and tab.closeout in CONTINUE_STATUSES:
+                    tab.context, tab.prompt = read_handoff(found)
         if tab.cwd and tab.closeout in CLOSING_STATUSES:
             tab.unlanded = unlanded(tab.cwd, tab.session)
         tabs.append(tab)
@@ -311,6 +453,41 @@ def keep_awake(tabs: list[Tab]) -> bool:
     return True
 
 
+def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
+    """Send each PARTIAL agent tab its own prompt, under the guards above."""
+    try:
+        records = json.loads(CONTINUES.read_text())
+    except (OSError, ValueError):
+        records = {}
+    now = time.time()
+    today = datetime.now().strftime("%Y-%m-%d")
+    hold = allowance_hold(now)
+    changed = False
+    for tab in tabs:
+        key = f"{Path(tab.socket).parent.name}/{tab.tab_id}"
+        record = records.get(key, {})
+        action, reason = decide_continue(tab, args.continue_grace, args.clear_at, record, hold, today)
+        if not reason:
+            continue
+        line = f"{Path(tab.socket).parent.name} {tab.tab_id} {tab.label!r}: {action or 'leave'} — {reason}"
+        if args.dry_run:
+            print(line + (f"\n  would send: {continue_text(tab)[:160]}" if action else ""))
+            continue
+        if not action:
+            continue
+        log(line)
+        error = send_continue(tab, action)
+        if error:
+            log(f"  not sent: {error}")
+            continue
+        count = record.get("count", 0) + 1 if record.get("day") == today else 1
+        records[key] = {"day": today, "count": count, "move": tab.next_move, "at": now}
+        changed = True
+    if changed:
+        CONTINUES.parent.mkdir(parents=True, exist_ok=True)
+        CONTINUES.write_text(json.dumps(records, indent=1))
+
+
 def log(message: str) -> None:
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {message}", flush=True)
 
@@ -320,6 +497,9 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--only", metavar="TAB")
     parser.add_argument("--grace", type=float, default=float(os.environ.get("HERDR_REAP_GRACE", 600)))
+    parser.add_argument("--continue-grace", type=float,
+                        default=float(os.environ.get("HERDR_REAP_CONTINUE_GRACE", 180)))
+    parser.add_argument("--clear-at", type=int, default=int(os.environ.get("HERDR_REAP_CLEAR_AT", 120000)))
     args = parser.parse_args()
 
     LOCK.parent.mkdir(parents=True, exist_ok=True)
@@ -354,6 +534,7 @@ def main() -> int:
                 log(f"  {out}")
             if done.returncode != 0:
                 log(f"  goal-done exit {done.returncode}: {tab.tab_id} left open")
+        resume_partial(tabs, args)
         if args.only:
             return 0
         for repo in always_build():

@@ -108,6 +108,13 @@ for i in 0 1 2; do
   [ -z "$allowance" ] || allowance="$allowance "
   allowance="$allowance\033[$(allowance_color "$left")m$segment\033[0m"
 done
+# herdr-reap reads this to hold its auto-continues when the allowance runs low.
+allowance_cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-allowance.json"
+echo "$input" | jq -c '{at: now, five_hour: .rate_limits.five_hour.used_percentage,
+  seven_day: .rate_limits.seven_day.used_percentage}
+  | select(.five_hour != null or .seven_day != null)' >"$allowance_cache.$$" 2>/dev/null \
+  && [ -s "$allowance_cache.$$" ] && mv "$allowance_cache.$$" "$allowance_cache" \
+  || rm -f "$allowance_cache.$$"
 
 
 # Color-code the model name so a tier change is immediately obvious.

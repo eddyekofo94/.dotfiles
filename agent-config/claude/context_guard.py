@@ -7,8 +7,12 @@ the transcript tail, the same measure the statusline shows, against the
 auto-compact window in ~/.claude/settings.json (`autoCompactWindow`, default
 200k). It speaks once per band per session, then stays silent:
 
-  70%  make the resume file current at the next step boundary, tell Eddy
+  70%  make the resume file current at the next step boundary
   90%  compaction is near: write the resume file now, start nothing new
+
+Auto-compact does the compacting (Eddy, 2026-10-12: "I don't want to be sitting
+here and doing it"); compact_handoff.py carries the goal across it. The guard
+never asks Eddy to /compact or open a tab.
 
 After a compaction drops the context under 50%, the bands re-arm. Any error
 exits 0 silently: the guard never blocks a tool call or a prompt.
@@ -60,8 +64,7 @@ def message(band: str, used: int, limit: int) -> str:
         return (f"Context guard: this session holds {where}; compaction is near. Start nothing new: "
                 f"write {resume} now, then continue. After compaction, re-read only that file.")
     return (f"Context guard: this session holds {where}. At your next step boundary, make {resume} "
-            f"current, and add one line before **Status** telling Eddy the session is at "
-            f"{used // 1000}k so he can /compact with a focus or open a fresh tab.")
+            f"current. Auto-compact runs by itself; do not ask Eddy to /compact or open a tab.")
 
 
 def main() -> int:

@@ -164,12 +164,15 @@ esac
 transcript="$(mktemp -d "${TMPDIR:-/tmp}/statusline-test.XXXXXX")/t.jsonl"
 trap 'rm -rf -- "$(dirname -- "$transcript")"' EXIT HUP INT TERM
 printf '{"message":{"usage":{"input_tokens":1000,"cache_read_input_tokens":38000}}}\n' >"$transcript"
+# A HOME of its own: the real settings.json's autoCompactWindow must not decide the answer.
+fake_home="$(dirname -- "$transcript")/home"
+mkdir -p "$fake_home/.claude"
 expect_context() {
   model=$1
   extra=$2
   want=$3
   output=$(printf '{"model":{"display_name":"M","id":"%s"},"workspace":{"current_dir":"/"},"transcript_path":"%s"%s}\n' \
-    "$model" "$transcript" "$extra" | bash "$statusline")
+    "$model" "$transcript" "$extra" | HOME="$fake_home" bash "$statusline")
   case "$output" in
     *"$want"*) ;;
     *)
@@ -181,5 +184,8 @@ expect_context() {
 expect_context 'claude-opus-5' '' '39k/20%'
 expect_context 'claude-opus-5[1m]' '' '39k/4%'
 expect_context 'claude-opus-5' ',"context_window":{"context_window_size":1000000}' '39k/4%'
+# The auto-compact window, when smaller, is the measure (2026-10-12).
+printf '{"autoCompactWindow": 185000}\n' >"$fake_home/.claude/settings.json"
+expect_context 'claude-opus-5[1m]' '' '39k/21%'
 
 echo 'statusline session/weekly colours and context window: PASS'

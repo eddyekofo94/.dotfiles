@@ -185,6 +185,27 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/compact_handoff.py\" resume",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/compact_handoff.py\" precompact",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -275,7 +296,7 @@
       "effortLevel": "medium"
     }
   },
-  "autoCompactWindow": 200000,
+  "autoCompactWindow": 185000,
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "inputNeededNotifEnabled": true,
