@@ -121,6 +121,29 @@ function modelColor(modelId) {
   return "accent";
 }
 
+function thinkingColor(level) {
+  if (level === "off") return "thinkingOff";
+  if (level === "minimal") return "thinkingMinimal";
+  if (level === "low") return "thinkingLow";
+  if (level === "medium") return "thinkingMedium";
+  if (level === "high") return "thinkingHigh";
+  if (level === "xhigh") return "thinkingXhigh";
+  if (level === "max") return "thinkingMax";
+  return "muted";
+}
+
+function thinkingLabel(level, width) {
+  if (width >= 100) return `reasoning ${level}`;
+  if (level === "off") return "R:O";
+  if (level === "minimal") return "R:m";
+  if (level === "low") return "R:L";
+  if (level === "medium") return "R:M";
+  if (level === "high") return "R:H";
+  if (level === "xhigh") return "R:X";
+  if (level === "max") return "R:!";
+  return "R:?";
+}
+
 function weeklyColor(percent) {
   if (percent !== null && percent <= 10) return "thinkingMax";
   if (percent !== null && percent <= 20) return "warning";
@@ -488,6 +511,11 @@ function installCompactFooter(
         )}/${formatTokenCount(context?.contextWindow ?? 0)} · ${percentage}`;
         const modelId = ctx.model?.id ?? "no model";
         const model = theme.fg(modelColor(modelId), theme.bold(modelId));
+        const thinkingLevel = ctx.thinkingLevel ?? "off";
+        const thinking = theme.fg(
+          thinkingColor(thinkingLevel),
+          thinkingLabel(thinkingLevel, width),
+        );
         const branch = footerData.getGitBranch();
         const { repository, worktree } = findRepositoryContext(ctx.cwd);
         const repositoryText = [
@@ -516,14 +544,16 @@ function installCompactFooter(
         );
         const fixedLeftWidth =
           visibleWidth(model) +
+          visibleWidth(thinking) +
           visibleWidth(contextSegment) +
-          2 * visibleWidth(separator);
+          3 * visibleWidth(separator);
         const repositoryWidth = Math.max(
           0,
           width - visibleWidth(right) - fixedLeftWidth - 1,
         );
         const left = [
           model,
+          thinking,
           truncateToWidth(theme.fg("muted", repositoryText), repositoryWidth),
           contextSegment,
         ]
@@ -1008,7 +1038,11 @@ export default function eddyCompat(pi: ExtensionAPI) {
     installCompactFooter(ctx, weeklyRemaining);
   });
 
-  for (const refreshEvent of ["model_select", "session_compact"] as const) {
+  for (const refreshEvent of [
+    "model_select",
+    "thinking_level_select",
+    "session_compact",
+  ] as const) {
     pi.on(refreshEvent, async (_event, ctx) => {
       installCompactFooter(ctx, weeklyRemaining);
     });

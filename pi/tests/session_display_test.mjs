@@ -16,11 +16,13 @@ const {
   modelColor,
   refreshedWeeklyRemaining,
   retainWeeklyRemaining,
+  thinkingColor,
+  thinkingLabel,
   weeklyColor,
   weeklyRemainingPercent,
 } =
   Function(
-    `"use strict";\n${helperBlock}\nreturn { contextTrafficLight, contextUsageForDisplay, formatTokenCount, modelColor, refreshedWeeklyRemaining, retainWeeklyRemaining, weeklyColor, weeklyRemainingPercent };`,
+    `"use strict";\n${helperBlock}\nreturn { contextTrafficLight, contextUsageForDisplay, formatTokenCount, modelColor, refreshedWeeklyRemaining, retainWeeklyRemaining, thinkingColor, thinkingLabel, weeklyColor, weeklyRemainingPercent };`,
   )();
 
 assert.deepEqual(contextTrafficLight(null), {
@@ -70,6 +72,24 @@ assert.equal(modelColor("fixture"), "accent");
 assert.equal(weeklyColor(21), "muted");
 assert.equal(weeklyColor(20), "warning");
 assert.equal(weeklyColor(11), "warning");
+assert.equal(thinkingColor("off"), "thinkingOff");
+assert.equal(thinkingColor("minimal"), "thinkingMinimal");
+assert.equal(thinkingColor("low"), "thinkingLow");
+assert.equal(thinkingColor("medium"), "thinkingMedium");
+assert.equal(thinkingColor("high"), "thinkingHigh");
+assert.equal(thinkingColor("xhigh"), "thinkingXhigh");
+assert.equal(thinkingColor("max"), "thinkingMax");
+assert.equal(thinkingColor("unknown"), "muted");
+assert.equal(thinkingLabel("medium", 160), "reasoning medium");
+assert.equal(thinkingLabel("off", 80), "R:O");
+assert.equal(thinkingLabel("minimal", 80), "R:m");
+assert.equal(thinkingLabel("low", 80), "R:L");
+assert.equal(thinkingLabel("medium", 80), "R:M");
+assert.equal(thinkingLabel("high", 80), "R:H");
+assert.equal(thinkingLabel("xhigh", 80), "R:X");
+assert.equal(thinkingLabel("max", 80), "R:!");
+assert.equal(thinkingLabel("unknown", 80), "R:?");
+
 assert.equal(weeklyColor(10), "thinkingMax");
 assert.equal(weeklyColor(0), "thinkingMax");
 
@@ -198,7 +218,11 @@ assert.ok(extensionSource.includes("weekly ${weeklyRemaining}% left"));
 assert.ok(extensionSource.includes("footerData.getGitBranch()"));
 assert.ok(extensionSource.includes("ctx.getContextUsage()"));
 assert.ok(extensionSource.includes("findRepositoryContext(ctx.cwd)"));
-for (const refreshEvent of ["model_select", "session_compact"]) {
+for (const refreshEvent of [
+  "model_select",
+  "thinking_level_select",
+  "session_compact",
+]) {
   assert.ok(
     extensionSource.includes(`\"${refreshEvent}\"`),
     `compact footer must refresh for ${refreshEvent}`,
@@ -208,6 +232,7 @@ assert.ok(extensionSource.includes('pi.on("agent_end"'));
 assert.ok(extensionSource.includes("await refreshWeeklyUsage(ctx)"));
 assert.ok(extensionSource.includes("refreshedWeeklyRemaining("));
 assert.ok(extensionSource.includes('ctx.model?.provider !== "openai-codex"'));
+assert.ok(extensionSource.includes("thinkingLabel(thinkingLevel, width)"));
 assert.ok(!extensionSource.includes("ctx.ui.setStatus("));
 assert.ok(!extensionSource.includes('pi.registerCommand("details"'));
 

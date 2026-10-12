@@ -80,8 +80,9 @@ arrow keys, and press Enter to insert the selected path. `/fff-health` shows
 index status and `/fff-rescan` forces a refresh.
 
 Pi starts quietly and uses one compact footer row. The left side shows model,
-repository, Git branch/worktree, tokens used/context window, and context
-percentage. Before the first provider response, the token count is marked `~`
+current reasoning level, repository, Git branch/worktree, tokens used/context
+window, and context percentage. Narrow terminals abbreviate the reasoning level
+as `R:O/m/L/M/H/X/!` for off/minimal/low/medium/high/xhigh/max. Before the first provider response, the token count is marked `~`
 because it is estimated from Pi's complete current system prompt; it switches
 to provider-reported usage after a response. The right side shows the Codex weekly allowance left when Codex
 exposes it, plus the current directory. The allowance refreshes after each
