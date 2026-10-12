@@ -24,6 +24,10 @@ if [ -z "$window" ]; then
     *)        window=200000 ;;
   esac
 fi
+# Measure against the auto-compact window when it is smaller (2026-10-12), so
+# the colours warn before compaction rather than before the model's limit.
+compact=$(jq -r '.autoCompactWindow // empty' "$HOME/.claude/settings.json" 2>/dev/null)
+if [ -n "$compact" ] && [ "$compact" -lt "$window" ] 2>/dev/null; then window=$compact; fi
 tokens=""
 if [ -n "$transcript" ] && [ -f "$transcript" ]; then
   tokens=$(python3 "$(dirname -- "$0")/statusline-tokens.py" "$transcript" "$window" 2>/dev/null)

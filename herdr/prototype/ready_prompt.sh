@@ -170,7 +170,10 @@ fallback_note=''
 # /clear wipes the screen the handoff is read from. For Claude, fall back to the
 # closeout its Stop hook saved for this pane: the live session's own, or the one
 # /clear carried over (agent-config/claude/closeout_capture.py --pane-record).
-if [ "$extract_status" -eq 10 ] && [ "$agent" = claude ]; then
+# An incomplete handoff (11) falls back too: a Claude Code side panel glues
+# "│ …" onto every screen line, so the fence never closes.
+if { [ "$extract_status" -eq 10 ] || [ "$extract_status" -eq 11 ]; } && \
+    [ "$agent" = claude ]; then
   session_id=$($herdr pane get "$pane" 2>/dev/null | jq -r '
     .result.pane.agent_session | select(.agent == "claude") | .value // empty
   ' 2>/dev/null) || session_id=''

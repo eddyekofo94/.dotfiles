@@ -109,6 +109,16 @@ else
     fail "a blank screen falls back to the session's saved closeout"
 fi
 
+# A Claude Code side panel glues "│ …" onto every screen line, so the fence never
+# closes and the screen extract reports an incomplete handoff (11), not none.
+closeout "From the panel screen." | sed 's/$/   │ Side panel text/' >"$TMP_ROOT/screen"
+if press claude s1 && inserted "Replay s1." && ! inserted "From the panel screen."; then
+    pass "a side-panel screen falls back to the session's saved closeout"
+else
+    fail "a side-panel screen falls back to the session's saved closeout"
+fi
+: >"$TMP_ROOT/screen"
+
 end_session s1 clear
 if press claude s2 && inserted "Replay s1."; then
     pass "after /clear the new session replays the carried closeout"

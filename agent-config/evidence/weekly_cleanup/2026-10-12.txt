@@ -1,0 +1,16 @@
+Stale BS QA simulators:
+  Deleting: BS QA help (1843C425-5AB0-4CA3-9BE4-7D45FB6D11F1)
+  Deleting: BS QA fs285 (C778691D-A807-464A-83EA-A99334AF4775)
+  Deleting: BS QA fs297 (62A068F9-58B5-4CEF-8BCF-4F8B3F70D886)
+  Deleting: BS QA fs354 (E24C5B86-DFE1-42D3-AA7A-8C44FF14A40F)
+  Deleting: BS QA gate-fs297-grill-83f61576 (B1E61DEE-FF49-4E15-BB6E-2CE602EE59EB)
+  Deleting: BS QA gate-fs356-2ccbbd9c (A0972B95-FC1A-47FA-8101-055560EBDD9E)
+  Deleting: BS QA gate-workflow-fast-lane-0aa41d2e (69EC7E52-3851-4137-BA05-8165F591491A)
+  Deleting: BS QA recent-search-history (7EF45D3B-27B4-434C-9C00-D6D79F3B3F27)
+  Deleting: BS QA ui-lane (CFBDF55F-813D-424D-8099-066372D3DEAB)
+  Deleting: BS QA fs297-tests (B9643973-1BB2-4D5C-9A40-32064A942DCA)
+  Deleting: BS QA fs356 (AE615D73-C9DC-4806-817C-8E26533945E5)
+Running: xcrun simctl delete unavailable
+Clearing DerivedData: 65.8 GB
+Stale Claude job directories:
+  Deleting job: cd1b3441
