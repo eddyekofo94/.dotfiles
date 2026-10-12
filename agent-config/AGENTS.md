@@ -91,6 +91,7 @@ invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
 
 ## Lessons
 
+- When a tool behaviour Eddy relied on "was working before", diff that logic across the installed versions (e.g. `~/.local/share/claude/versions/*`) and reproduce it live (tmux `send-keys`/`capture-pane`) before proposing anything; never offer substitute keybinds he did not ask for (2.1.295 clamped effort cycling, "stop being dumb and just do what was previously working", Eddy, 2026-10-12).
 - When a plan needs generated art, ask which tool made Eddy's references and plan the generation on his own Claude subscription (its weekly limits), never a paid API he did not ask for ("why would it cost me? … It was generated with Claude", Eddy, 2026-10-04).
 - When specifying, designing or building anything in any iOS app, give every tap, action and interaction its motion (appear, disappear, slide, fade, spring, friction and inertia) and its haptic where one fits, named in the spec's decisions rather than left to the build, with a tuning panel for multi-phase transitions; a tap or visible change with no motion is a review finding, not a style choice (Eddy, 2026-10-03; restated 2026-10-04: "every tap, action, interation of any sort should have a motion").
 - When a bug reproduces red and a settled decision already names its fix, flip it to Ready To Act in that session, citing the decision, and hand it to the build chain; never hand Eddy a `/spec` prompt for it ("we need to be landing. I lose track of things", Eddy, 2026-10-04, BUG-390).
