@@ -248,6 +248,17 @@
       }
     },
     {
+      "context": "EffortSlider",
+      "bindings": {
+        "left": "effortSlider:decreaseEffort",
+        "right": "effortSlider:increaseEffort",
+        "h": "effortSlider:decreaseEffort",
+        "l": "effortSlider:increaseEffort",
+        "tab": "effortSlider:toggleUltracode",
+        "s": "effortSlider:thisSessionOnly"
+      }
+    },
+    {
       "context": "Select",
       "bindings": {
         "up": "select:previous",
