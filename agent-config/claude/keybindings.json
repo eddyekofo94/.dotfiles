@@ -244,8 +244,6 @@
         "right": "modelPicker:increaseEffort",
         "h": "modelPicker:decreaseEffort",
         "l": "modelPicker:increaseEffort",
-        "meta+h": "modelPicker:decreaseEffort",
-        "meta+l": "modelPicker:increaseEffort",
         "s": "modelPicker:thisSessionOnly"
       }
     },
@@ -256,8 +254,6 @@
         "right": "effortSlider:increaseEffort",
         "h": "effortSlider:decreaseEffort",
         "l": "effortSlider:increaseEffort",
-        "meta+h": "effortSlider:decreaseEffort",
-        "meta+l": "effortSlider:increaseEffort",
         "tab": "effortSlider:toggleUltracode",
         "s": "effortSlider:thisSessionOnly"
       }
