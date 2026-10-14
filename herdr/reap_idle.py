@@ -385,12 +385,32 @@ def lanes(repo: Path) -> dict | None:
     manager = repo / "tools/session_worktree.py"
     if not manager.exists():
         return None
-    out = subprocess.run([sys.executable, str(manager), "lanes", "--json"],
-                         cwd=repo, capture_output=True, text=True, timeout=60)
+    try:
+        out = subprocess.run([sys.executable, str(manager), "lanes", "--json"],
+                             cwd=repo, capture_output=True, text=True, timeout=60)
+    except subprocess.TimeoutExpired:
+        # A busy machine (a gate, simulators) can stall the count; skip this
+        # pass and try again in two minutes rather than die with a traceback.
+        log(f"fill: {repo.name} — lane count took over 60 s; skipped this pass")
+        return None
     try:
         return json.loads(out.stdout)
     except json.JSONDecodeError:
         return None
+
+
+def orphaned(repo: Path) -> bool:
+    """A build whose tab died still holds its lane, so a full count alone would
+    leave it unbuilt for good; goal-done's fill resumes it first (FS-262 D9)."""
+    index = repo / "tools/features_index.py"
+    if not index.exists():
+        return False
+    try:
+        out = subprocess.run([sys.executable, str(index), "--focus", "--json"],
+                             cwd=repo, capture_output=True, text=True, timeout=60)
+        return bool(json.loads(out.stdout).get("resume"))
+    except (subprocess.TimeoutExpired, json.JSONDecodeError):
+        return False
 
 
 def window_for(repo: Path, tabs: list[Tab]) -> str | None:
@@ -413,7 +433,7 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     free = held["build_cap"] - held["build"]
     seat = held["verdict_seats"] - held["verdict"]
     summary = f"build {held['build']}/{held['build_cap']} · verdict {held['verdict']}/{held['verdict_seats']}"
-    if free <= 0 and seat <= 0:
+    if free <= 0 and seat <= 0 and not orphaned(repo):
         if dry_run:
             print(f"fill: {repo.name} {summary} — lanes full, nothing to open")
         return
