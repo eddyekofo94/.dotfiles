@@ -264,7 +264,7 @@ description = "insert newest ready-to-paste handoff"
 key = "prefix+shift+b"
 type = "shell"
 command = "exec \"$HERDR_PROTOTYPE_DIR/ready_prompt.sh\" --clear"
-description = "clear Codex context and insert newest handoff"
+description = "/clear the agent (Claude or Codex) and insert newest handoff: a fresh session in this tab"
 
 [[keys.command]]
 key = "alt+ctrl+t"

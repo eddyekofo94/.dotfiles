@@ -81,6 +81,10 @@ End every response, with no exemptions, with **Status:**, then
 last thing on screen. `prefix+b` / `prefix+B` paste that block, so a missing
 one breaks the workflow.
 
+- Mark for scanning (Eddy, 2026-10-23): the Status word takes its emoji
+  after it (DONE ✅, PARTIAL 🟡, BLOCKED ⛔, AWAITING USER APPROVAL 👉,
+  WAITING ⏳), and a body line starts with one where it helps: ✅ done,
+  ⚠️ a risk or warning, ⛔ blocked, 👉 needs Eddy. One per line, never decoration.
 - Claude: the Stop hook (`agent-config/claude/closeout_length.py`) injects the
   exact skeleton each turn and rejects a turn that breaks it or runs away.
 - Field meanings, routing, no handoffs inside an authorized goal, and the

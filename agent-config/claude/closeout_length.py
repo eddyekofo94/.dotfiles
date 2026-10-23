@@ -37,7 +37,7 @@ needs. A Stop hook rejects a turn when:
 Write the closeout from this skeleton: Picked / gave up / why in 2-3 lines,
 every other label one line, no sub-bullets:
 
-**Status:** DONE | PARTIAL | BLOCKED | AWAITING USER APPROVAL
+**Status:** DONE ✅ | PARTIAL 🟡 | BLOCKED ⛔ | AWAITING USER APPROVAL 👉
 Picked / gave up / why: 2-3 lines
 Not run: each check that did not run, or "nothing"
 **Next move:** one action
@@ -51,7 +51,7 @@ A turn that ends while its own background job (a Bash `run_in_background`
 command or a background agent) still runs is not a handoff: the job's exit
 re-invokes the session. It ends with one line and no prompt block:
 
-**Status:** WAITING — <the job>; resumes when it exits, nothing to paste
+**Status:** WAITING ⏳ — <the job>; resumes when it exits, nothing to paste
 
 The hook rejects WAITING when this session has no background job pending, and
 rejects a prompt block under it.
@@ -419,7 +419,7 @@ def main():
     if waiting is not None:
         json.dump({"decision": "block", "reason": (
             "Response rejected: " + "; ".join(problems) + ". Re-send with "
-            "`**Status:** WAITING — <the job>; resumes when it exits, nothing to "
+            "`**Status:** WAITING ⏳ — <the job>; resumes when it exits, nothing to "
             "paste` and no prompt block if a job of yours is still running; "
             "otherwise end with the normal closeout skeleton. Do not add a note "
             "about the rejection."
