@@ -288,7 +288,8 @@
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": false,
-    "mattpocock-skills@claude-plugins-official": false
+    "mattpocock-skills@claude-plugins-official": false,
+    "stripe@claude-plugins-official": true
   },
   "effortLevel": "high",
   "modelSettings": {
