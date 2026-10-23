@@ -40,6 +40,7 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 ## 3. Split work across subagents
 
 - Explorer reads, worker edits, reviewer only reports and never edits.
+- Research, drafting and review briefs go to the `researcher` agent (Sonnet), never a bare `general-purpose` (Opus).
 - Each gets one job, a done condition and a 5-line report.
 - Parallel is fine. Two agents on the same file is not.
 - Check the key claim in a report before you build on it.
