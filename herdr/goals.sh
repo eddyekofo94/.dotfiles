@@ -43,6 +43,15 @@
 # Set HERDR_GOALS_YOLO=0 to launch with prompts instead.
 set -euo pipefail
 
+# A ticket ID's tab/worktree name (copy of goal_done.sh's id_slug, FS-515):
+# `IOS-FEAT-515` -> `ios-feat-515`; an old `FS-515` -> `fs515` (FS-490 R1).
+id_slug() {
+  local id
+  id=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
+  if printf '%s' "$id" | grep -Eq '^[a-z]+-(feat|bug|task)-[0-9]+$'; then printf '%s\n' "$id"
+  else printf '%s\n' "$id" | tr -d '-'; fi
+}
+
 if [ "${HERDR_GOALS_YOLO:-1}" = "0" ]; then BUILD_MODE_FLAG=""; else BUILD_MODE_FLAG="--permission-mode auto"; fi
 
 # The repo is discovered, never hardcoded: a new Canon Fidei repo has to work
@@ -107,13 +116,13 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   # before any new record takes a lane; it already holds its lane.
   while IFS=$'\t' read -r id slug; do
     [ -n "$id" ] && [ -n "$slug" ] || continue
-    label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
+    label=$(id_slug "$id")
     SPECS+=("${label}:opus::${slug}")
     BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
   done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue
-    label=$(printf '%s' "$id" | tr 'A-Z' 'a-z' | tr -d '-')
+    label=$(id_slug "$id")
     SPECS+=("${label}:opus")
     BOOTS+=("${RUN} ${id}")
   done < <(jq -r '.next[]? | [.id, .title] | @tsv' <<<"$focus_json")

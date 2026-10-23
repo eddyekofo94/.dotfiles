@@ -73,7 +73,7 @@ IDLE_STATES = {"idle", "done"}         # `done`: Herdr's finished-and-unseen
 MAX_CONTINUES = 8                      # per tab per day
 FIVE_HOUR_STOP, SEVEN_DAY_STOP = 90, 95
 PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
-RECORD = re.compile(r"\b(fs|bug)-?(\d{3,})\b", re.I)
+RECORD = re.compile(r"\b([a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))
@@ -136,7 +136,9 @@ def build_record(tab: Tab) -> str:
     for text in (name, Path(tab.cwd).name if tab.cwd else ""):
         match = RECORD.search(text)
         if match:
-            return f"{match.group(1).upper()}-{match.group(2)}"
+            found = match.group(1).upper()
+            old = re.fullmatch(r"(FS|BUG)-?(\d+)", found)
+            return f"{old.group(1)}-{old.group(2)}" if old else found
     return ""
 
 
