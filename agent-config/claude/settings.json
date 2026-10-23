@@ -4,7 +4,8 @@
   "env": {
     "VISUAL": "/Users/eddyekofo/.config/nvim/tools/agent_prompt_editor.sh",
     "AGENT_PROMPT_DEBUG": "/tmp/agent-prompt-debug.log",
-    "BASH_MAX_OUTPUT_LENGTH": "30000"
+    "BASH_MAX_OUTPUT_LENGTH": "30000",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet"
   },
   "permissions": {
     "allow": [],
@@ -42,7 +43,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "opus",
+  "model": "sonnet",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "animate": "user-invocable-only",
