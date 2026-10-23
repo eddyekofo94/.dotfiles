@@ -95,7 +95,7 @@ one breaks the workflow.
 
 Projects under `~/Programming/Projects/CanonFidei/` publish to the
 `canonfidei` GitHub organization as private repositories. After creating one,
-invite `OluwadaraDaily` as a collaborator with write (`push`) permission.
+invite `emmanuelrichard01` as a collaborator with write (`push`) permission.
 
 ## Lessons
 
