@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/eddyekofo/Programming/Projects/CanonFidei/BibleStandard/tools/doctor.py", line 59, in <module>
+    import workflow_status  # noqa: E402
+  File "/Users/eddyekofo/Programming/Projects/CanonFidei/BibleStandard/tools/workflow_status.py", line 23, in <module>
+    def retro_line(reports: Path | None = None) -> str:
+TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'
