@@ -18,7 +18,7 @@
 # grilling reads the whole repo and writes records, not code. `verdict` opens
 # the one `verdict-drain` checkout.
 #
-#   goal-x:opus                     fresh   -> worktree ../BibleStandard-sessions/goal-x
+#   goal-x:opus                     fresh   -> worktree ../ios-sessions/goal-x
 #   goal-x:opus:pick                resumed -> shared checkout
 #   goal-x:opus:pick:fs110-ledge    resumed -> that worktree
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
@@ -61,7 +61,7 @@ if [ "${HERDR_GOALS_YOLO:-1}" = "0" ]; then BUILD_MODE_FLAG=""; else BUILD_MODE_
 # `--show-toplevel` so a call from a linked worktree resolves to the main
 # checkout, where tools/ actually lives.
 CANONFIDEI_ROOT="${CANONFIDEI_ROOT:-$HOME/Programming/Projects/CanonFidei}"
-HERDR_DEFAULT_REPO="${HERDR_DEFAULT_REPO:-${CANONFIDEI_ROOT}/BibleStandard}"
+HERDR_DEFAULT_REPO="${HERDR_DEFAULT_REPO:-${CANONFIDEI_ROOT}/biblestandard/ios}"
 if [ -n "${HERDR_GOALS_REPO:-}" ]; then
   REPO="$HERDR_GOALS_REPO"
 elif common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then

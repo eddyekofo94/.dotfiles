@@ -130,7 +130,7 @@ trust_level = "trusted"
 [projects."/Users/eddyekofo"]
 trust_level = "trusted"
 
-[projects."/Users/eddyekofo/Programming/Projects/CanonFidei/BibleStandard"]
+[projects."/Users/eddyekofo/Programming/Projects/CanonFidei/biblestandard/ios"]
 trust_level = "trusted"
 
 [desktop]

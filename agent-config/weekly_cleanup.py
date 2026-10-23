@@ -12,7 +12,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-DOCTOR = Path.home() / "Programming/Projects/CanonFidei/BibleStandard/tools/doctor.py"
+DOCTOR = Path.home() / "Programming/Projects/CanonFidei/biblestandard/ios/tools/doctor.py"
 
 
 def main() -> int:

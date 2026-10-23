@@ -33,7 +33,7 @@ CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
 
 # Repo roots to check. Add one path per project you want covered.
 PROJECTS = [
-    Path.home() / "Programming/Projects/CanonFidei/BibleStandard",
+    Path.home() / "Programming/Projects/CanonFidei/biblestandard/ios",
     Path.home() / ".dotfiles",
 ]
 
