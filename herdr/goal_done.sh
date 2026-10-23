@@ -35,7 +35,24 @@
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
 #   herdr-goal-done --tab <id>      # retire another tab (herdr-reap), not this one
 #   herdr-goal-done --fill <repo>   # retire nothing: only fill <repo>'s free lanes
+#   herdr-goal-done --name <ID>     # print the tab/worktree name for a ticket ID
 set -uo pipefail
+
+# Ticket IDs come in two forms (FS-490 D2, FS-515): the new `<REPO>-<KIND>-<N>`
+# (`IOS-FEAT-515`, slug `ios-feat-515`) and the old `FS-515` / `BUG-402` /
+# `API-14` / `FW-123` (slug `fs515`, dashes dropped, FS-490 R1).
+NEW_ID='[a-z]+-(feat|bug|task)-[0-9]+'
+OLD_ID='(fs|bug)[0-9]+'
+id_slug() {
+  local id
+  id=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
+  if printf '%s' "$id" | grep -Eq "^${NEW_ID}\$"; then printf '%s\n' "$id"
+  else printf '%s\n' "$id" | tr -d '-'; fi
+}
+# The goal ID a worktree slug starts with (`ios-feat-515-x` -> `ios-feat-515`).
+slug_goal_id() {
+  printf '%s' "$1" | sed -E "s/^(${NEW_ID}|${OLD_ID}).*/\\1/"
+}
 
 FORCE=0
 PARK=0
@@ -54,6 +71,7 @@ while [ $# -gt 0 ]; do
     --keep-tab) KEEP_TAB=1 ;;
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
+    --name)     id_slug "${2:?--name needs a ticket ID}"; exit 0 ;;
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
     --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
     --fill)     FILL_REPO="${2:?--fill needs a repository root}"; shift ;;
@@ -202,8 +220,9 @@ fi
 # names each one `BS QA <goal slug>`; nothing retired them, so six sat booted.
 # Shut down, not deleted: the pool reuses a device, and a shutdown one costs
 # no memory. Other goals' simulators are untouched — theirs close when they do.
+[ "$DRY" = 1 ] && [ -n "$slug" ] && echo "goal-done: goal $(slug_goal_id "$slug")"
 if [ -n "$slug" ] && command -v xcrun >/dev/null; then
-  goal_id=$(printf '%s' "$slug" | sed -E 's/^((fs|bug)[0-9]+).*/\1/')
+  goal_id=$(slug_goal_id "$slug")
   while IFS= read -r udid; do
     [ -n "$udid" ] || continue
     run xcrun simctl shutdown "$udid" >/dev/null 2>&1 ||
@@ -290,7 +309,7 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
     # for a bare id (FS-099), and the tab is labelled from the path it got. A
     # resume names its checkout outright.
     label=$(printf '%s\n' "$record" | jq -r '.slug // empty')
-    [ -n "$label" ] || label=$(printf '%s' "$next_id" | tr 'A-Z' 'a-z' | tr -d '-')
+    [ -n "$label" ] || label=$(id_slug "$next_id")
     worktree_args=(open "$label" --goal "$next_id" ${place_flag[@]+"${place_flag[@]}"})
     if [ -n "$next_paths" ]; then
       if grep -Eq -- '(^|[[:space:]])--path([[:space:]=]|$)' <<<"$manager_help"; then

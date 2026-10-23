@@ -33,7 +33,7 @@
 # until the build cap refuses (exit 3); a record whose seams overlap a live
 # build (exit 4) is skipped. Then the verdict lane, when unjudged agent rows
 # wait and its seat is free (D3). Never a plan, grill or todo tab: grilling is
-# Eddy's, at his pace (D4). A landed Ready To Act flip runs this too (D8).
+# Eddy's, at his pace (D4). A landed Ready To Act (or Ready To Build) flip runs this too (D8).
 #
 # Every tab starts in auto mode (--permission-mode auto): these are Eddy's
 # own goal sessions on his own repo, and a permission prompt in an unfocused tab

@@ -109,7 +109,7 @@ Use for crashes, regressions, broken UI, bad data, and failing tests.
 Use for new behavior or meaningful UI/product changes.
 
 1. Intake and investigate the idea without production edits.
-2. Select one bounded goal and grill until it is `Ready To Act`; include a QA'd
+2. Select one bounded goal and grill until it is `Ready To Act` (or `Ready To Build`); include a QA'd
    prototype inside visual/interaction grills.
 3. Silently refresh the brief and optional agent-owned tickets.
 4. Implement and validate impacted surfaces.
@@ -160,7 +160,7 @@ Use before declaring risky work complete.
 - Do not mark visual, device, or user-experience fixes confirmed until the user confirms them.
 - When a failure repeats, encode the prevention in instructions, tests, scripts, or checklists.
 - Do not insert ticket, dependency, phase, ordinary-fix, or repeated-prototype
-  approval gates inside an authorized `Ready To Act` goal.
+  approval gates inside an authorized `Ready To Act` (or `Ready To Build`) goal.
 - Project-level `AGENTS.md` rules override global defaults when they are more specific.
 
 ## Project Bootstrap Standard
