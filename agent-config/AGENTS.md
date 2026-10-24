@@ -29,7 +29,10 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 ## 2. Smallest change that works
 
 - Stay inside this task. Don't break anything that already works.
-- Tradeoff? Weigh UX (users), DX (the next dev) and AX (the next agent).
+- Tradeoff? Make the best decision that elevates all three: UX (users), DX (the next dev) and AX
+  (the next agent), always, without breaking anything.
+- UI copy: cut taglines, helper text and secondary labels. If a screen needs them to make sense,
+  fix the layout.
 - No new dependencies, renames or refactors nobody asked for.
 - Back up before deleting or overwriting anything.
 - Every Ready implementation goal uses its repository-local compatible worktree
@@ -101,6 +104,9 @@ Bible Standard Group repo (iOS, API, web, data and the clients to come), and
 
 ## Lessons
 
+- When Eddy asks in passing about a legal or rights check ("is there a trademark for …?"), answer it and stop; never file it as a task, his errand or a gate on the release unless he asks for one ("I don't care about a trademark lawyer, if I need it I will tell you. Just build Bible Stndrd is what we are going for.", Eddy, 2026-10-24: BS-IOS-FEAT-198's D12 made an attorney's search his errand and held the release on it).
+- When a `/spec` covers a launch page, a splash or a mark's new place, search every record that settled the mark for its motion ("wave", "flag", "splash", "motion") and carry each settled motion into the decisions with its call, reusing the motion Eddy already passed; never drop one silently, and never swap a passed motion for a new look that must be prototyped first ("What happened to the flag waving?", Eddy, 2026-10-24, BS-IOS-FEAT-198: the launch calls left out the lamb's wave that FS-090 had settled since 2026-09-21).
+- When a guard or the workflow blocks what is left of a task (a cleanup, a commit, a stuck hold), settle its fix as a record queued first and let the chain build it; never end on steps or a prompt for Eddy to run ("just add things to the que and make sure they run, I don't want to sit here and babysit the workflow that's meant to be automatic", Eddy, 2026-10-24, BS-IOS-BUG-581).
 - When Eddy questions a tab's effort or model ("I shouldn't be running Max here?"), take it as the correction: say what the level costs, how he lowers it and what set it, and fix that setting in the same session; never explain why the level is fine (2026-10-24: `herdr-goals` opened every `/spec` tab at `max`, and FS-478's guard, passed 2026-10-23, was never built: "I don't want to use Max effort, I thought I put a reinforcement to stop this? it's token eating", Eddy).
 - When Eddy asks whether something follows a form or rule (an ID shape, a name), search the decision files and records for it before answering, and answer from what they say; never answer from one record's older call ("I did make a mention of the new naming convention BS- … I mentioned it earlier", Eddy, 2026-10-24: the agent said IDs had no `BS-` front while FS-490 decisions.md lines 136-137 and `id-rename-plan.md` already set `BS-<REPO>-<KIND>-<N>`).
 - When a pull request is opened for Emmanuel to continue (its body tags `@emmanuelrichard01` with "for you to continue" or "what is left for you"), it stays open: never merge it, and never write a prompt that merges it, including a "merge #A and #B" prompt that lists it among others; merge only PRs Eddy names as his own to land, and check each one's body for that tag before `gh pr merge`. Web #36 and API #67 were opened that way on 2026-10-24; #36 was merged by a pasted prompt this agent wrote ("Merge API PR #64 and web PR #36") and GitHub cannot reopen a merged PR, so Emmanuel's item became issue #37 ("I have made an absolute mess, today I created 2 PRs for emmanuel they're both merged by mistake", Eddy, 2026-10-24).
