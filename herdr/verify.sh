@@ -43,6 +43,7 @@ done
 (cd "$root" && python3 -m unittest -v tools.tests.session_worktree_test tools.tests.goal_done_test tools.tests.reap_idle_test)
 /usr/bin/python3 "$herdr_dir/tests/test_project_catalog.py" -v
 /usr/bin/python3 "$herdr_dir/tests/test_worktree_sweep.py" -v
+python3 "$herdr_dir/tests/test_reap_simulators.py" -v
 # The switch above only isolates the gate if install.sh actually honours it.
 rg -q 'HERDR_INSTALL_TAB_STATUS:-1' "$herdr_dir/install.sh"
 rg -q 'install_tab_status\.sh' "$herdr_dir/install.sh"
