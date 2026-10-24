@@ -23,7 +23,8 @@ Calls still allowed so the agent can park:
   mkdir, cat, ls, grep, sed -n, python3 tools/features_index.py, herdr-goal-done
   (joined by && ; |, with no redirects, `$(` or backticks); and so the split can land,
   `git [-C dir] add` / `commit` (-m/-F, no -a) of records, plan.md and AGENTS.md only,
-  and `git push` / `git push origin main`.
+  and `git push` / `git push origin main`; `python3 tools/land.py` when the branch
+  differs from main only in those files.
 
 Escape hatch: env BUILD_BUDGET_EXTEND=1, or a file `.working/<goal>/budget-extend`
 (goal = the /build argument lowercased, e.g. FS-487 -> fs487) under the session cwd.
@@ -37,6 +38,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -131,6 +133,8 @@ def allowed_git(words: list[str]) -> bool:
                 skip = False
             elif word in ("-m", "-F"):
                 skip = True
+            elif word in ("-q", "--quiet"):
+                continue
             elif word.startswith("-") and word != "--":
                 return False  # no -a / --all: only what add already limited
             elif word != "--":
@@ -141,7 +145,15 @@ def allowed_git(words: list[str]) -> bool:
     return False
 
 
-def allowed_bash(command: str) -> bool:
+def records_only_branch(cwd: Path) -> bool:
+    """The checkout's branch differs from main only in records, plan.md or AGENTS.md."""
+    changed = subprocess.run(["git", "-C", str(cwd), "diff", "--name-only", "main...HEAD"],
+                             capture_output=True, text=True, timeout=3)
+    names = changed.stdout.split()
+    return changed.returncode == 0 and bool(names) and all(record_path(n) for n in names)
+
+
+def allowed_bash(command: str, cwd: Path) -> bool:
     if "`" in command or "$(" in command:
         return False
     try:
@@ -161,12 +173,14 @@ def allowed_bash(command: str) -> bool:
             return False
         if part[0] == "git" and allowed_git(part[1:]):
             continue
+        if part[:2] == ["python3", "tools/land.py"] and records_only_branch(cwd):
+            continue
         if not any(re.match(ok, " ".join(part)) for ok in BASH_OK):
             return False
     return True
 
 
-def allowed_call(tool: str, tool_input: dict) -> bool:
+def allowed_call(tool: str, tool_input: dict, cwd: Path) -> bool:
     if tool in OKAY_TOOLS:
         return True
     if tool in EDIT_TOOLS:
@@ -174,7 +188,7 @@ def allowed_call(tool: str, tool_input: dict) -> bool:
         return (os.path.basename(path) in ("plan.md", "AGENTS.md")
                 or "/project/specs/" in path or "/project/bugs/" in path)
     if tool == "Bash":
-        return allowed_bash(tool_input.get("command", ""))
+        return allowed_bash(tool_input.get("command", ""), cwd)
     return False
 
 
@@ -206,7 +220,7 @@ def main() -> int:
             why = "build past 2 h"
         elif plan and os.path.exists(plan) and (step := missed_step(plan)):
             why = f"a step missed its proof twice ({step})"
-        if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}):
+        if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}, cwd):
             return 0
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
