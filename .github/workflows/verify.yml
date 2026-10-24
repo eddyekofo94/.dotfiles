@@ -15,4 +15,5 @@ jobs:
       - run: sh tools/tests/macos_default_apps_test.sh
       - run: sh tools/tests/transport_security_test.sh
       - run: python3 herdr/tests/test_project_catalog.py -v
+      - run: python3 herdr/tests/test_worktree_sweep.py -v
       - run: sh herdr/source-build/verify.sh   # skips the binary identity check with no local build

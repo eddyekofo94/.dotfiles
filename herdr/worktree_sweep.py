@@ -30,6 +30,8 @@ Usage:
   worktree_sweep.py --apply    # remove what qualifies
   worktree_sweep.py --auto     # --apply only when ~/.config/herdr/worktree-sweep reads "on"
 """
+from __future__ import annotations
+
 import argparse
 import os
 import subprocess
