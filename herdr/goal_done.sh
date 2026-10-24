@@ -291,6 +291,12 @@ waiting=""
 verdict_opened=0
 if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
   focus_json=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) ) || focus_json="{}"
+  # Eddy, 2026-10-24 ("these other tabs have to wait till we split these files"):
+  # a focus track marked `- Exclusive: yes` in FOCUS.md opens only its own records.
+  exclusive=$(awk '/^### /{name=substr($0,5); f=0} /^- State: focus/{f=1} f && /^- Exclusive: yes/{print name; exit}' "$shared/project/workflow/FOCUS.md" 2>/dev/null)
+  if [ -n "$exclusive" ]; then
+    focus_json=$(jq -c --arg ex "$exclusive" '.next |= map(select(.track == $ex)) | .resume |= map(select(.track == $ex))' <<<"$focus_json" 2>/dev/null) || focus_json="{}"
+  fi
   # FS-262 D9: orphaned builds first, each in its own checkout (`slug`); they
   # already hold their lanes. Then the new records.
   fill=$(jq -c '(.resume[]? | . + {resume: true}), .next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
