@@ -1,6 +1,6 @@
 #!/bin/bash
 # herdr-goals: open one Herdr tab per live goal using the caller's agent family.
-# Claude callers keep Opus max/medium routing. Codex and Pi callers stay in their
+# Claude callers keep Opus high/medium routing. Codex and Pi callers stay in their
 # own agent family and inherit that agent's configured model and permissions.
 #
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
@@ -23,14 +23,14 @@
 #   goal-x:opus:pick:fs110-ledge    resumed -> that worktree
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
 #   notes:opus::shared              fresh   -> shared checkout anyway
-#   grill:opus                      Eddy asked for one: shared, Opus max, /spec
+#   grill:opus                      Eddy asked for one: shared, Opus high, /spec
 #   verdict:opus                    the verdict lane: verdict-drain, /verdict auto
 #
 # With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
 # `/build <ID>` tab in each orphaned build's own checkout (`resume`, D9),
 # then the work graph's fill order from `features_index.py --focus --json` — one record per
 # track first, then more from a busy track — one `/build <ID>` build tab each
-# until the build cap refuses (exit 3); a record whose seams overlap a live
+# until the build cap refuses an app record (exit 3; a record that takes no lane still opens); a record whose seams overlap a live
 # build (exit 4) is skipped. Then the verdict lane, when unjudged agent rows
 # wait and its seat is free (D3). Never a plan, grill or todo tab: grilling is
 # Eddy's, at his pace (D4). A landed Ready To Act (or Ready To Build) flip runs this too (D8).
@@ -173,8 +173,9 @@ cap_full=0
 for spec in ${SPECS[@]+"${SPECS[@]}"}; do
   index=$((index + 1))
   IFS=: read -r label model resume home paths <<<"$spec"
-  # FS-262 D5: a full build cap ends the builds, not the verdict lane after them.
-  if [ "$cap_full" = 1 ] && [ "$label" != verdict ] && [ "$label" != grill ]; then continue; fi
+  # Eddy, 2026-10-24: the cap counts app work only. A full cap no longer ends the
+  # builds after it: the manager grants a record that takes no lane (tools, hooks,
+  # playbooks, records, docs) and refuses an app record with exit 3, one by one.
   # Resolve the tab's working directory before creating the tab: a worktree that
   # cannot be made must not leave a half-opened window behind.
   if [ -z "${home:-}" ]; then
@@ -222,7 +223,7 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
         continue
       fi
       case "$rc" in
-        3) echo "build lanes full — ${label} and the builds after it wait (FS-243 D1)" >&2; cap_full=1; continue ;;
+        3) echo "build lanes full — ${label} (app work) waits (FS-243 D1)" >&2; cap_full=1; continue ;;
         4) echo "skipped ${label}: its seams overlap a live build — the manager's line above names it (FS-262 D5)" >&2; continue ;;
         5) echo "skipped ${label}: a live session owns ${home}, or a fill just placed a tab there (BUG-316, FS-262 D9)" >&2; continue ;;
         *) echo "skipped ${label}: could not open worktree ${home}" >&2; continue ;;
@@ -258,9 +259,10 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
       pick)   resume_args=" --resume" ;;
       *)      resume_args=" --resume ${resume}" ;;
     esac
-    # FS-100 (Eddy, 2026-09-25): a grill decides at max effort; builds and the
-    # verdict lane build at medium (its judge runs at max on its own, FS-262 D2).
-    if [ "$label" = "grill" ]; then effort=max; else effort=medium; fi
+    # FS-100 (Eddy, 2026-09-25), amended 2026-10-24: a grill decides at high, never
+    # max unless Eddy asks ("I don't want to use Max effort ... it's token eating");
+    # builds and the verdict lane build at medium.
+    if [ "$label" = "grill" ]; then effort=high; else effort=medium; fi
     launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in

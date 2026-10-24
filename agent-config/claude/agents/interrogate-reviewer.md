@@ -1,8 +1,8 @@
 ---
 name: interrogate-reviewer
-description: Adversarial code reviewer for the interrogate lens, on Opus at max effort in fresh context. Spawn it from `code-review`'s "Adversarial lens" section or the `interrogate` skill with the filled reviewer prompt (intent, diff, rubric, code-quality lens). It returns findings; it never edits.
+description: Adversarial code reviewer for the interrogate lens, on Opus at high effort in fresh context (max only when Eddy asks). Spawn it from `code-review`'s "Adversarial lens" section or the `interrogate` skill with the filled reviewer prompt (intent, diff, rubric, code-quality lens). It returns findings; it never edits.
 model: opus
-effort: max
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 
