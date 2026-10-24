@@ -231,6 +231,12 @@ fi
 [ "$DRY" = 1 ] && [ -n "$slug" ] && echo "goal-done: goal $(slug_goal_id "$slug")"
 if [ -n "$slug" ] && command -v xcrun >/dev/null; then
   goal_id=$(slug_goal_id "$slug")
+  # Its bookings go too, so the device reads free at once rather than busy for
+  # 6 hours (BibleStandard IOS-TASK-563); release shuts each one down.
+  if [ -f "$shared/tools/sim_input.py" ]; then
+    (cd "$shared" && run python3 tools/sim_input.py release-goal "$slug" "$goal_id") >&2 ||
+      echo "goal-done: could not release the goal's simulator leases" >&2
+  fi
   while IFS= read -r udid; do
     [ -n "$udid" ] || continue
     run xcrun simctl shutdown "$udid" >/dev/null 2>&1 ||
@@ -238,6 +244,9 @@ if [ -n "$slug" ] && command -v xcrun >/dev/null; then
   done < <(xcrun simctl list devices booted 2>/dev/null |
              grep -E "BS QA (${slug}|${goal_id})( |-)[^(]*\(|BS QA (${slug}|${goal_id}) \(" |
              sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+  # Simulator.app stays open with no device booted; it quits only when none is.
+  [ -f "$shared/tools/sim_input.py" ] &&
+    (cd "$shared" && run python3 tools/sim_input.py quit-idle) >/dev/null 2>&1
 fi
 
 # FS-130 D3, as filled by BibleStandard FS-262 D5: the finished tab starts the

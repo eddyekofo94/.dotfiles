@@ -531,6 +531,27 @@ def sweep_worktrees(tabs: list[Tab], dry_run: bool) -> None:
             log(f"sweep {line}")
 
 
+def reap_simulators(repo: Path, dry_run: bool) -> None:
+    """The repo's own doctor closes QA simulators whose owner is gone
+    (BibleStandard IOS-TASK-563; Eddy, 2026-10-24: "All the simulators should
+    close and the right cleanups should happen"). A repo without
+    `tools/doctor.py` is skipped."""
+    doctor = repo / "tools/doctor.py"
+    if not doctor.is_file():
+        return
+    try:
+        done = subprocess.run([sys.executable, str(doctor), "--simulators"] + ([] if dry_run else ["--fix"]),
+                              cwd=repo, capture_output=True, text=True, timeout=90)
+    except subprocess.TimeoutExpired:
+        log(f"simulators: {repo.name} — doctor took over 90 s; skipped this pass")
+        return
+    for line in (done.stdout + done.stderr).splitlines():
+        if dry_run:
+            print(f"simulators: {repo.name} {line}")
+        elif line.startswith("doctor: ran") or "failed (exit" in line:
+            log(f"simulators: {repo.name} {line}")
+
+
 def log(message: str) -> None:
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {message}", flush=True)
 
@@ -583,6 +604,7 @@ def main() -> int:
         if args.only:
             return 0
         for repo in always_build():
+            reap_simulators(repo, args.dry_run)
             fill(repo, tabs, args.dry_run)
         if args.dry_run:
             awake = any(AGENT_MARK in t.label and t.status == "working" for t in tabs)
