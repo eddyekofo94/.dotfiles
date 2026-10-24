@@ -49,7 +49,7 @@ set -euo pipefail
 id_slug() {
   local id
   id=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
-  if printf '%s' "$id" | grep -Eq '^[a-z]+(-[a-z]+)?-(feat|bug|task)-[0-9]+$'; then printf '%s\n' "$id"
+  if printf '%s' "$id" | grep -Eq '^(bs-)?[a-z]+-(feat|bug|task)-[0-9]+$'; then printf '%s\n' "$id"
   else printf '%s\n' "$id" | tr -d '-'; fi
 }
 

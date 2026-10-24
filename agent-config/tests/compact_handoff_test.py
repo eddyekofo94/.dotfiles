@@ -76,6 +76,17 @@ class CompactHandoffTest(unittest.TestCase):
         text = json.loads(run("resume", {"cwd": str(bare), "source": "compact"}))
         self.assertIn("continues", text["hookSpecificOutput"]["additionalContext"])
 
+    def test_record_from_reads_every_id_form_whole(self):
+        """BibleStandard IOS-FEAT-537: a new id whole, never its `bug-537` tail."""
+        import importlib.util
+        path = Path(__file__).resolve().parent.parent / "claude" / "compact_handoff.py"
+        spec = importlib.util.spec_from_file_location("compact_handoff", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for name, want in (("fs515-x", "FS-515"), ("bug-402", "BUG-402"), ("ios-feat-515-x", "IOS-FEAT-515"),
+                           ("bs-ios-bug-537-x", "BS-IOS-BUG-537"), ("qa-ios-feat-9", "IOS-FEAT-9"), ("main", "")):
+            self.assertEqual(module.record_from(name), want, name)
+
     def test_bad_input_exits_zero(self):
         out = subprocess.run([sys.executable, "-I", str(HOOK), "resume"], input="not json",
                              capture_output=True, text=True)

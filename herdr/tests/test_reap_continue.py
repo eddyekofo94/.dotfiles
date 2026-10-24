@@ -84,7 +84,8 @@ class BuildRecordTest(unittest.TestCase):
     def test_each_id_form_reads_whole(self):
         """BibleStandard IOS-FEAT-537: `bs-ios-feat-9` is BS-IOS-FEAT-9, never IOS-FEAT-9."""
         cases = {"2 ▸ fs200": "FS-200", "2 ▸ ios-feat-515-x": "IOS-FEAT-515",
-                 "2 ▸ bs-ios-feat-9-ids": "BS-IOS-FEAT-9", "2 ▸ bs-ios-bug-10": "BS-IOS-BUG-10"}
+                 "2 ▸ bs-ios-feat-9-ids": "BS-IOS-FEAT-9", "2 ▸ bs-ios-bug-10": "BS-IOS-BUG-10",
+                 "2 ▸ qa-ios-feat-515-x": "IOS-FEAT-515", "2 ▸ review-bs-ios-bug-9": "BS-IOS-BUG-9"}
         for label, want in cases.items():
             self.assertEqual(reap.build_record(tab(label=label, cwd="")), want, label)
 

@@ -31,7 +31,9 @@ from pathlib import Path
 
 TAIL_BYTES = 4_000_000
 RESUME_NAMES = ("plan.md", "decisions.md", "handoff.md")
-RECORD = re.compile(r"\b(fs|bug)-?(\d{3,})\b", re.IGNORECASE)
+#: An old `fs515` / `bug-402`, or a new id whole: `ios-feat-515`, `bs-ios-bug-537`
+#: (BibleStandard IOS-FEAT-537), never its `bug-537` tail.
+RECORD = re.compile(r"\b(?:((?:bs-)?[a-z]+-(?:feat|task|bug)-\d+)|(fs|bug)-?(\d{3,}))\b", re.IGNORECASE)
 UNCHECKED = re.compile(r"^\s*[-*] \[ \] (.+)$")
 
 
@@ -73,7 +75,7 @@ def record_from(*names: str) -> str:
     for name in names:
         match = RECORD.search(name or "")
         if match:
-            return f"{match.group(1).upper()}-{match.group(2)}"
+            return match.group(1).upper() if match.group(1) else f"{match.group(2).upper()}-{match.group(3)}"
     return ""
 
 

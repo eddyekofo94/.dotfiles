@@ -42,7 +42,7 @@ set -uo pipefail
 # (`IOS-FEAT-515`, slug `ios-feat-515`; `BS-IOS-FEAT-537`, slug `bs-ios-feat-537`,
 # BibleStandard IOS-FEAT-537) and the old `FS-515` / `BUG-402` /
 # `API-14` / `FW-123` (slug `fs515`, dashes dropped, FS-490 R1).
-NEW_ID='[a-z]+(-[a-z]+)?-(feat|bug|task)-[0-9]+'
+NEW_ID='(bs-)?[a-z]+-(feat|bug|task)-[0-9]+'
 OLD_ID='[a-z]+[0-9]+'
 id_slug() {
   local id
