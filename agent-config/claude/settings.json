@@ -111,6 +111,18 @@
   },
   "disableBundledSkills": true,
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/build_budget_guard.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "permission_prompt",
