@@ -21,7 +21,9 @@ Calls still allowed so the agent can park:
   Read, Glob, Grep; Edit/Write/MultiEdit on `plan.md`, `AGENTS.md`, or files under
   `project/specs/` or `project/bugs/`; Bash made only of: git diff, git status, cp,
   mkdir, cat, ls, grep, sed -n, python3 tools/features_index.py, herdr-goal-done
-  (joined by && ; |, with no redirects, `$(` or backticks).
+  (joined by && ; |, with no redirects, `$(` or backticks); and so the split can land,
+  `git [-C dir] add` / `commit` (-m/-F, no -a) of records, plan.md and AGENTS.md only,
+  and `git push` / `git push origin main`.
 
 Escape hatch: env BUILD_BUDGET_EXTEND=1, or a file `.working/<goal>/budget-extend`
 (goal = the /build argument lowercased, e.g. FS-487 -> fs487) under the session cwd.
@@ -34,6 +36,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -105,11 +108,62 @@ def missed_step(plan: str) -> str | None:
     return None
 
 
-def allowed_bash(command: str) -> bool:
-    if "`" in command or "$(" in command or ">" in command:
+def record_path(path: str) -> bool:
+    """A file a parked build may land: a record, a plan.md or an AGENTS.md."""
+    return (bool(re.search(r"(^|/)project/(specs|bugs)/", path))
+            or os.path.basename(path) in ("plan.md", "AGENTS.md"))
+
+
+def allowed_git(words: list[str]) -> bool:
+    """git [-C dir] add|commit|push, limited so the split can land and nothing else."""
+    if words[:1] == ["-C"]:
+        words = words[2:]
+    if not words:
         return False
-    parts = [p.strip() for p in re.split(r"&&|;|\|", command) if p.strip()]
-    return bool(parts) and all(any(re.match(ok, p) for ok in BASH_OK) for p in parts)
+    verb, rest = words[0], words[1:]
+    if verb == "add":
+        paths = [w for w in rest if w != "--"]
+        return bool(paths) and all(record_path(p) for p in paths)
+    if verb == "commit":
+        paths, skip = [], False
+        for word in rest:
+            if skip:
+                skip = False
+            elif word in ("-m", "-F"):
+                skip = True
+            elif word.startswith("-") and word != "--":
+                return False  # no -a / --all: only what add already limited
+            elif word != "--":
+                paths.append(word)
+        return all(record_path(p) for p in paths)
+    if verb == "push":
+        return rest in ([], ["origin", "main"])
+    return False
+
+
+def allowed_bash(command: str) -> bool:
+    if "`" in command or "$(" in command:
+        return False
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        return False
+    parts, current = [], []
+    for word in words:
+        if word in ("&&", ";", "|"):
+            parts.append(current)
+            current = []
+        else:
+            current.append(word)
+    parts.append(current)
+    for part in parts:
+        if not part or any(w.startswith(">") or w.startswith("<") for w in part):
+            return False
+        if part[0] == "git" and allowed_git(part[1:]):
+            continue
+        if not any(re.match(ok, " ".join(part)) for ok in BASH_OK):
+            return False
+    return True
 
 
 def allowed_call(tool: str, tool_input: dict) -> bool:
@@ -124,11 +178,12 @@ def allowed_call(tool: str, tool_input: dict) -> bool:
     return False
 
 
-def reason(why: str) -> str:
+def reason(why: str, extend: Path) -> str:
     return (f"Build budget guard: {why} (build.md §2): park now. Back up the diff to /tmp, write "
-            "the numbers into plan.md, split the record into child records, end the turn. "
-            "Only plan.md, AGENTS.md, project/specs and project/bugs edits and read-only git/ls/cat "
-            "calls are allowed. Eddy extends with .working/<goal>/budget-extend.")
+            "the numbers into plan.md, split the record into child records, commit and push them, "
+            "end the turn. Allowed: plan.md, AGENTS.md, project/specs and project/bugs edits; "
+            "read-only git/ls/cat; git add/commit of those files; git push origin main. "
+            f"Eddy extends with: ! touch {extend}")
 
 
 def main() -> int:
@@ -143,7 +198,8 @@ def main() -> int:
         if start is None:
             return 0
         cwd = Path(data.get("cwd") or os.getcwd())
-        if goal and (cwd / ".working" / goal / "budget-extend").exists():
+        extend = cwd / ".working" / (goal or "<goal>") / "budget-extend"
+        if goal and extend.exists():
             return 0
         why = None
         if datetime.now(timezone.utc).timestamp() - start > LIMIT_SECONDS:
@@ -154,7 +210,7 @@ def main() -> int:
             return 0
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
-            "permissionDecisionReason": reason(why)}}))
+            "permissionDecisionReason": reason(why, extend)}}))
         return 0
     except Exception as error:  # fail open: never brick a session
         print(f"build_budget_guard: {error!r}", file=sys.stderr)
