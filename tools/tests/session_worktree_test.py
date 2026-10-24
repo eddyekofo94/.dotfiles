@@ -360,10 +360,10 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(tabs, [])
         self.assertIn("/spec when you have the attention", result.stderr)
 
-    def test_an_explicit_grill_opens_in_the_shared_checkout_at_max(self):
+    def test_an_explicit_grill_opens_in_the_shared_checkout_at_high(self):
         result, tabs = self.run_lanes([101], unjudged=3, args=("grill:opus",))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort max '
+        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort high '
                                            '--permission-mode auto "/spec"')])
 
     def test_an_explicit_verdict_is_refused_while_the_seat_is_held(self):
