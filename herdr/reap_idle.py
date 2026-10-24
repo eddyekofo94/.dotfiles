@@ -74,7 +74,8 @@ IDLE_STATES = {"idle", "done"}         # `done`: Herdr's finished-and-unseen
 MAX_CONTINUES = 8                      # per tab per day
 FIVE_HOUR_STOP, SEVEN_DAY_STOP = 90, 95
 PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
-RECORD = re.compile(r"\b([a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
+#: `bs-ios-feat-537` whole (BibleStandard IOS-FEAT-537), never its `ios-feat-537` tail.
+RECORD = re.compile(r"\b([a-z]+(?:-[a-z]+)?-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))

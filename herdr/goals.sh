@@ -44,11 +44,12 @@
 set -euo pipefail
 
 # A ticket ID's tab/worktree name (copy of goal_done.sh's id_slug, FS-515):
-# `IOS-FEAT-515` -> `ios-feat-515`; an old `FS-515` -> `fs515` (FS-490 R1).
+# `IOS-FEAT-515` -> `ios-feat-515`, `BS-IOS-FEAT-537` -> `bs-ios-feat-537`;
+# an old `FS-515` -> `fs515` (FS-490 R1, BibleStandard IOS-FEAT-537).
 id_slug() {
   local id
   id=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
-  if printf '%s' "$id" | grep -Eq '^[a-z]+-(feat|bug|task)-[0-9]+$'; then printf '%s\n' "$id"
+  if printf '%s' "$id" | grep -Eq '^[a-z]+(-[a-z]+)?-(feat|bug|task)-[0-9]+$'; then printf '%s\n' "$id"
   else printf '%s\n' "$id" | tr -d '-'; fi
 }
 
