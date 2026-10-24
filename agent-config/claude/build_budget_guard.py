@@ -128,21 +128,15 @@ def missed_step(plan: str) -> str | None:
     return None
 
 
-def record_path(path: str) -> bool:
-    """A file a parked build may land: a record, a plan.md or an AGENTS.md."""
-    return (bool(re.search(r"(^|/)project/(specs|bugs)/", path))
-            or os.path.basename(path) in ("plan.md", "AGENTS.md"))
-
-
 def git(cwd: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True,
                           timeout=3)
 
 
 def landed(cwd: Path, rev: str = "HEAD") -> bool:
-    """`rev` in this checkout is already in `origin/main` or `main`."""
-    return any(git(cwd, "merge-base", "--is-ancestor", rev, base).returncode == 0
-               for base in ("origin/main", "main"))
+    """`rev` in this checkout is already in `origin/main` (D1); local `main` does not
+    count, since a held build can move it."""
+    return git(cwd, "merge-base", "--is-ancestor", rev, "origin/main").returncode == 0
 
 
 def record_status(cwd: Path, goal_id: str) -> str | None:
@@ -166,7 +160,12 @@ def hold_ended(cwd: Path, goal_id: str | None, start: float) -> bool:
         if not any(word in status for word in ACTIVE):
             return True
     stamp = git(cwd, "log", "-1", "--format=%ct").stdout.strip()
-    return stamp.isdigit() and int(stamp) > start and landed(cwd)
+    if not (stamp.isdigit() and int(stamp) > start and landed(cwd)):
+        return False
+    # Landed with nothing left over: a fast-forward at the start, or one chunk of
+    # a chunked build landed, still leaves uncommitted work to hold.
+    dirt = git(cwd, "status", "--porcelain", "--untracked-files=no")
+    return dirt.returncode == 0 and not dirt.stdout.strip()
 
 
 def record_path(path: str) -> bool:
@@ -208,8 +207,8 @@ def parts_of(command: str) -> list[list[str]] | None:
             if current and current[-1].isdigit():
                 current.pop()  # the `2` of `2>&1`
             index += 1
-        elif word in ("(", ")", "&", "<<", "<<<", "|&"):
-            return None
+        elif word and set(word) <= set("();<>|&"):
+            return None  # `>|`, `<>`, `<<`, a subshell, `&`: not judged, so refused
         else:
             current.append(word)
         index += 1
@@ -221,10 +220,26 @@ def git_verb(words: list[str], cwd: Path) -> tuple[list[str], Path]:
     """git's argv after its globals, and the checkout `-C` aimed it at (D2)."""
     while words and words[0].startswith("-"):
         head = words[0]
+        runs = head == "-c" and len(words) > 1 and RUNS_COMMAND.search(words[1].split("=")[0])
+        if runs or head in ("-p", "--paginate") or head.startswith("--exec-path"):
+            raise ValueError("a git global that runs a command")
         if head == "-C" and len(words) > 1:
             cwd = (cwd / words[1]).resolve()
         words = words[2:] if head in GIT_VALUE_GLOBALS else words[1:]
     return words, cwd
+
+
+#: Flags that make a read write a file or run a command (`--output`, `sed -i`,
+#: `rg --pre`, `find -exec`).
+WRITING_FLAGS = re.compile(r"^(--output\b|--pre\b|-i|--in-place\b|--ext-diff\b|-exec\b|-delete\b)")
+
+
+#: `-c` keys whose value git runs as a command (a pager, an alias, a hook).
+RUNS_COMMAND = re.compile(r"(?i)pager|alias|editor|command|external|hook|fsmonitor|textconv|filter")
+
+
+def writes(words: list[str]) -> bool:
+    return any(WRITING_FLAGS.match(w) for w in words)
 
 
 def plain(words: list[str]) -> list[str]:
@@ -233,10 +248,15 @@ def plain(words: list[str]) -> list[str]:
 
 def allowed_git(words: list[str], cwd: Path) -> bool:
     """A git call a held build may run: a read, its post-land cleanup, or landing the split."""
-    words, cwd = git_verb(words, cwd)
-    if not words:
+    try:
+        words, cwd = git_verb(words, cwd)
+    except ValueError:
+        return False
+    if not words or writes(words):
         return False
     verb, rest = words[0], words[1:]
+    if verb == "fetch" and any(":" in w or w in ("-u", "--update-head-ok") for w in rest):
+        return False  # a refspec moves a local branch (`fetch . HEAD:main`)
     if verb in GIT_READ:
         return True
     if verb == "worktree":
@@ -287,8 +307,13 @@ def allowed_bash(command: str, cwd: Path) -> bool:
         return False
     for part in parts:
         name = os.path.basename(part[0])
+        if name == "cd":
+            cwd = (cwd / os.path.expanduser(part[1])).resolve() if len(part) > 1 else Path.home()
+            continue
         if name == "git" and allowed_git(part[1:], cwd):
             continue
+        if writes(part[1:]) or (name == "sed" and any("w" in w for w in part[2:-1])):
+            return False
         if name in READ_ONLY or part[:2] == ["sed", "-n"]:
             continue
         if part[:2] == ["python3", "tools/features_index.py"]:
@@ -333,8 +358,9 @@ def main() -> int:
         if start is None:
             return 0
         cwd = Path(data.get("cwd") or os.getcwd())
+        top = git(cwd, "rev-parse", "--show-toplevel").stdout.strip() if cwd.is_dir() else ""
         slug = goal.lower().replace("-", "") if goal else None
-        extend = cwd / ".working" / (slug or "<goal>") / "budget-extend"
+        extend = Path(top or cwd) / ".working" / (slug or "<goal>") / "budget-extend"
         if slug and extend.exists():
             return 0
         why = None

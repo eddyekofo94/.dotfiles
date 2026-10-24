@@ -102,7 +102,7 @@ class Held(Fixture):
 
     def test_git_globals_and_flags_are_parsed(self):  # D2, sighting 3
         self.assertEqual(self.hook(f"{G} -C {self.repo} push -q origin main"), "allow")
-        self.assertEqual(self.hook(f"{G} -c core.pager=cat --no-pager log -1"), "allow")
+        self.assertEqual(self.hook(f"{G} -c color.ui=never --no-pager log -1"), "allow")
         self.assertEqual(self.hook(f"{G} -C {self.repo} reset --hard"), "deny")
 
     def test_chains_pass_when_every_part_does(self):  # D2, sighting 3
@@ -132,12 +132,41 @@ class Held(Fixture):
         self.assertEqual(self.hook(f"{G} branch -D side"), "deny")
 
 
+class Bypasses(Fixture):
+    """The review's probes (BS-IOS-BUG-581 lens): a held build cannot write or land
+    through a command the parser reads as allowed."""
+
+    def test_writes_through_reads_are_refused(self):
+        for command in (f"{G} fetch -u . HEAD:main", f"{G} fetch . HEAD:main",
+                        "cat a >| b", "echo x 1>|f", "cat <> f", f"{G} diff --output=f",
+                        "sed -n -i 1p f", "sed -n 'w f' a", f"{G} -c core.pager=sh -p log",
+                        "rg --pre sh x", "cat a > b"):
+            self.assertEqual(self.hook(command), "deny", command)
+
+    def test_landing_onto_local_main_does_not_end_the_hold(self):
+        git(self.repo, "branch", "-f", "main", "HEAD")
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+
+    def test_cd_carries_into_the_cleanup_check(self):
+        tree = Path(self.tmp.name) / "wt"
+        git(self.repo, "worktree", "add", "-q", "-b", "side", str(tree))
+        (tree / "f").write_text("y")
+        git(tree, "add", "f")
+        git(tree, "commit", "-qm", "unlanded")
+        self.assertEqual(self.hook(f"cd {self.tmp.name} && {G} worktree remove wt"), "deny")
+
+
 class Ended(Fixture):
     """D1: once the build lands or its record moves on, nothing is held."""
 
     def test_landed_branch_lifts_the_hold(self):  # sighting 1, 3
         self.land()
         self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+    def test_landed_with_dirt_left_still_holds(self):  # a chunk landed, work goes on
+        self.land()
+        (self.repo / "tool.py").write_text("x = 2\n")
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
 
     def test_record_moved_on_lifts_the_hold(self):
         self.write_record("DONE — Awaiting Verdict")
