@@ -65,6 +65,7 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
 GOAL_DONE = HERE / "goal_done.sh"
 AGENT_MARK = "▸ "
 CLOSING_STATUSES = {"DONE", "BLOCKED"}
@@ -510,6 +511,24 @@ def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
         CONTINUES.write_text(json.dumps(records, indent=1))
 
 
+def sweep_worktrees(tabs: list[Tab], dry_run: bool) -> None:
+    """Every repo's finished worktrees (herdr/worktree_sweep.py). Removes only
+    when ~/.config/herdr/worktree-sweep reads "on"; otherwise it only reports."""
+    import worktree_sweep
+    on = worktree_sweep.SWITCH.exists() and worktree_sweep.SWITCH.read_text().strip() == "on"
+    try:
+        lines = worktree_sweep.sweep(worktree_sweep.PROJECTS, [t.cwd for t in tabs if t.cwd],
+                                     on and not dry_run)
+    except (OSError, subprocess.SubprocessError) as err:
+        log(f"worktree sweep failed: {err}")
+        return
+    for line in lines:
+        if dry_run:
+            print(f"sweep {line}")
+        elif on and ": removed" in line:
+            log(f"sweep {line}")
+
+
 def log(message: str) -> None:
     print(f"{datetime.now():%Y-%m-%d %H:%M:%S} {message}", flush=True)
 
@@ -557,6 +576,8 @@ def main() -> int:
             if done.returncode != 0:
                 log(f"  goal-done exit {done.returncode}: {tab.tab_id} left open")
         resume_partial(tabs, args)
+        if not args.only:
+            sweep_worktrees(tabs, args.dry_run)
         if args.only:
             return 0
         for repo in always_build():

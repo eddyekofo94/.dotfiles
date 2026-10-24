@@ -215,6 +215,13 @@ if [ -n "$slug" ] && [ -f "$shared/tools/session_worktree.py" ]; then
   fi
 fi
 
+# Every repo's finished worktrees, not just this goal's: merged, clean, tab gone
+# (Eddy, 2026-10-24). A dry run until ~/.config/herdr/worktree-sweep reads "on".
+if [ "$DRY" != 1 ]; then
+  python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/worktree_sweep.py" --auto >&2 ||
+    echo "goal-done: worktree sweep failed (the tab closes anyway)" >&2
+fi
+
 # The goal's QA simulators go with its worktree (Eddy, 2026-09-25: "can we have
 # a way that simulators close after the task is done?"). `sim_input.py acquire`
 # names each one `BS QA <goal slug>`; nothing retired them, so six sat booted.
