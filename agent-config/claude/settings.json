@@ -33,6 +33,8 @@
       "EnterWorktree",
       "ExitWorktree",
       "ListAgents",
+      "Agent",
+      "Task",
       "SendUserFile",
       "EndConversation",
       "ListMcpResourcesTool",
