@@ -219,7 +219,7 @@ fi
 # Every repo's finished worktrees, not just this goal's: merged, clean, tab gone
 # (Eddy, 2026-10-24). A dry run until ~/.config/herdr/worktree-sweep reads "on".
 if [ "$DRY" != 1 ]; then
-  python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/worktree_sweep.py" --auto >&2 ||
+  python3 "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/worktree_sweep.py" --auto >&2 ||
     echo "goal-done: worktree sweep failed (the tab closes anyway)" >&2
 fi
 
