@@ -111,7 +111,15 @@ if [ -n "$TARGET_TAB" ]; then
   HERDR_TAB_ID="$TARGET_TAB"
   HERDR_PANE_ID=$(jq -r '.pane_id' <<<"$target")
   HERDR_GOAL_DONE_AGENT=$(jq -r '.agent // empty' <<<"$target")
-  cd "$(jq -r '.cwd' <<<"$target")" || die "cannot enter tab $TARGET_TAB's checkout"
+  cwd=$(jq -r '.cwd' <<<"$target")
+  # A checkout already removed (swept after its land) leaves nothing on disk
+  # to lose, and its branch stays in git: close the tab rather than strand it
+  # (BS-IOS-BUG-679, 2026-10-26: TASK-626's landed tab stuck open).
+  if [ ! -d "$cwd" ]; then
+    herdr tab close "$TARGET_TAB" >/dev/null && echo "goal-done: tab $TARGET_TAB closed; its checkout $cwd was already gone" >&2
+    exit 0
+  fi
+  cd "$cwd" || die "cannot enter tab $TARGET_TAB's checkout"
 fi
 
 # `--fill`: step 4 alone, for a lane that freed with no tab retiring — a build
