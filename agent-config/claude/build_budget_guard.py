@@ -34,18 +34,22 @@ longer reads Ready To Build, Ready To Act or IN PROGRESS, or the checkout's HEAD
 `origin/main` (or `main`) and was committed after the build began, nothing is held.
 
 Calls still allowed so the agent can park:
-  Read, Glob, Grep; Edit/Write/MultiEdit on `plan.md`, `AGENTS.md`, or files under
-  `project/specs/` or `project/bugs/`; Bash parsed, not matched as text (D2): `&&`,
-  `||`, `;`, `|` and newlines split it, git's globals (`-C dir`, `-c k=v`, `--no-pager`)
-  and `-q` are skipped, and a line passes when every part does. A part may be read-only
-  (D3): git log/status/diff/show/fetch/rev-parse/merge-base/ls-files/worktree list/branch
-  listing; cd, cat, head, tail, grep, rg, ls, wc, echo, pwd, sed -n; cp, mkdir,
-  python3 tools/features_index.py, herdr-goal-done; post-land cleanup: `git worktree
-  remove` (no --force) of a worktree whose HEAD is in main, `git worktree prune`,
-  `git branch -d`; and so the split can land, `git add` / `commit` (-m/-F, no -a) of
-  records, plan.md and AGENTS.md only, `git push [origin main]`, and `python3
-  tools/land.py` when the branch differs from main only in those files. Redirects pass
-  only to /dev/null or between streams (`2>&1`); `$(` and backticks never pass.
+  Read, Glob, Grep; Edit/Write/MultiEdit on a plan file (`plan.md`, or `plan-<id>.md`
+  beside a `decisions.md`, BS-IOS-BUG-845), `AGENTS.md`, files under `project/specs/`
+  or `project/bugs/`, or anything under /tmp (BS-IOS-BUG-660 D2); Bash parsed, not
+  matched as text (D2): `&&`, `||`, `;`, `|` and newlines split it, git's globals
+  (`-C dir`, `-c k=v`, `--no-pager`) and `-q` are skipped, and a line passes when every
+  part does. A part may be read-only (D3): git log/status/diff/show/fetch/rev-parse/
+  merge-base/ls-files/ls-tree/worktree list/branch listing; cd, cat, head, tail, grep,
+  rg, ls, wc, echo, pwd, sort, sed -n; cp, mkdir, python3 tools/features_index.py,
+  herdr-goal-done; clearing the build's dirt once a byte-identical copy of each file sits
+  under /tmp (BS-IOS-BUG-660 D2): `git checkout -- <file>…` and `rm [-f] <file>…`;
+  post-land cleanup: `git worktree remove` (no --force) of a worktree whose HEAD is in
+  main, `git worktree prune`, `git branch -d`; and so the split can land, `git add` /
+  `commit` (-m/-F, no -a) of records, plan files and AGENTS.md only, `git push [origin
+  main]`, and `python3 tools/land.py` when the branch differs from main only in those
+  files. Redirects and `--output=` pass only to /dev/null, between streams (`2>&1`) or
+  to an absolute path under /tmp; `$(` and backticks never pass.
 
 Escape hatch for scripts: env BUILD_BUDGET_EXTEND=1.
 
@@ -72,10 +76,14 @@ OKAY_TOOLS = {"Read", "Glob", "Grep"}
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit"}
 #: Commands that only read, or that a parked build needs (D3); judged by argv[0].
 READ_ONLY = {"cd", "cat", "head", "tail", "grep", "rg", "ls", "wc", "echo", "pwd", "true",
-             "cp", "mkdir", "herdr-goal-done"}
+             "sort", "cp", "mkdir", "herdr-goal-done"}
 #: git verbs that only read (D3).
 GIT_READ = {"log", "status", "diff", "show", "fetch", "rev-parse", "merge-base", "ls-files",
-            "rev-list", "shortlog", "blame", "describe"}
+            "ls-tree", "rev-list", "shortlog", "blame", "describe"}
+#: Where a parked build backs up its work (BS-IOS-BUG-660 D2); `/tmp` is a link on macOS.
+TMP = os.path.realpath("/tmp")
+#: A plan file: `plan.md`, or `plan-<id>.md` when builds share a decision folder (BUG-845).
+PLAN = re.compile(r"^plan(-[\w.-]+)?\.md$")
 #: git globals whose value is the next word; `-C`'s names the checkout (D2).
 GIT_VALUE_GLOBALS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace"}
 SEPARATORS = {"&&", "||", ";", "|", "\n"}
@@ -198,7 +206,7 @@ def scan(transcript: str) -> Window:
                 if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
                 path = (block.get("input") or {}).get("file_path", "")
-                if block.get("name") in EDIT_TOOLS and os.path.basename(path) == "plan.md":
+                if block.get("name") in EDIT_TOOLS and PLAN.match(os.path.basename(path)):
                     window.plan = path
     return window
 
@@ -263,10 +271,45 @@ def hold_ended(cwd: Path, goal_id: str | None, start: float) -> bool:
     return dirt.returncode == 0 and not dirt.stdout.strip()
 
 
-def record_path(path: str) -> bool:
-    """A file a parked build may land: a record, a plan.md or an AGENTS.md."""
+def plan_file(path: str, cwd: Path) -> bool:
+    """`plan.md`, or a `plan-<id>.md` beside a decision file (BS-IOS-BUG-845)."""
+    name = os.path.basename(path)
+    if name == "plan.md":
+        return True
+    return bool(PLAN.match(name)) and (cwd / os.path.dirname(path) / "decisions.md").is_file()
+
+
+def record_path(path: str, cwd: Path) -> bool:
+    """A file a parked build may land: a record, a plan file or an AGENTS.md."""
     return (bool(re.search(r"(^|/)project/(specs|bugs)/", path))
-            or os.path.basename(path) in ("plan.md", "AGENTS.md"))
+            or os.path.basename(path) == "AGENTS.md" or plan_file(path, cwd))
+
+
+def in_tmp(path: str) -> bool:
+    """An absolute path that resolves under /tmp (D2): where a parked build backs up.
+    A relative one never counts, since a `cd` earlier in the line moves it."""
+    path = os.path.expanduser(path)
+    return os.path.isabs(path) and os.path.realpath(path).startswith(TMP + os.sep)
+
+
+def backed_up(path: Path) -> bool:
+    """A byte-identical copy of the file `path`, under its own name, sits under /tmp
+    (D2), so clearing it from the checkout loses nothing."""
+    if not path.is_file() or in_tmp(str(path)):
+        return False
+    body = path.read_bytes()
+    for root, dirs, files in os.walk(TMP):
+        dirs[:] = [] if root[len(TMP):].count(os.sep) >= 5 else [d for d in dirs if d != ".git"]
+        copy = Path(root) / path.name
+        if path.name in files and copy.is_file() and copy.stat().st_size == len(body) \
+                and copy.read_bytes() == body:
+            return True
+    return False
+
+
+def plain_paths(words: list[str]) -> bool:
+    """Literal file names only: no glob, no pathspec magic, nothing for the shell to grow."""
+    return bool(words) and not any(re.search(r"[*?\[{$]", w) or w.startswith(":") for w in words)
 
 
 def tokens(command: str) -> list[str] | None:
@@ -297,7 +340,8 @@ def parts_of(command: str) -> list[list[str]] | None:
         elif word in (">", ">>", "<", ">&", "&>", "<&"):
             target = words[index + 1] if index + 1 < len(words) else ""
             stream = word in (">&", "<&") and target.isdigit()
-            if not (stream or target == "/dev/null"):
+            backup = word in (">", ">>", "&>") and in_tmp(target)  # D2
+            if not (stream or backup or target == "/dev/null"):
                 return None
             if current and current[-1].isdigit():
                 current.pop()  # the `2` of `2>&1`
@@ -334,7 +378,15 @@ RUNS_COMMAND = re.compile(r"(?i)pager|alias|editor|command|external|hook|fsmonit
 
 
 def writes(words: list[str]) -> bool:
-    return any(WRITING_FLAGS.match(w) for w in words)
+    """A flag that writes or runs something; `--output` into /tmp is a backup (D2)."""
+    for index, word in enumerate(words):
+        if word == "--output" or word.startswith("--output="):
+            target = word[len("--output="):] if "=" in word else (words[index + 1:] or [""])[0]
+            if in_tmp(target):
+                continue
+        if WRITING_FLAGS.match(word):
+            return True
+    return False
 
 
 def plain(words: list[str]) -> list[str]:
@@ -368,9 +420,15 @@ def allowed_git(words: list[str], cwd: Path) -> bool:
             return False
         names = [w for w in rest if not w.startswith("-")]
         return "-d" in rest or "--delete" in rest or not names or "--list" in rest
+    if verb == "checkout":  # D2: restore a file only once its copy sits under /tmp
+        if "--" not in rest or any(w not in ("-q", "--quiet") for w in rest[:rest.index("--")]):
+            return False
+        paths = rest[rest.index("--") + 1:]
+        return plain_paths(paths) and all(
+            backed_up(cwd / p) or not (cwd / p).exists() for p in paths)
     if verb == "add":
         paths = plain(rest)
-        return bool(paths) and all(record_path(p) for p in paths)
+        return bool(paths) and all(record_path(p, cwd) for p in paths)
     if verb == "commit":
         paths, skip = [], False
         for word in plain(rest):
@@ -382,7 +440,7 @@ def allowed_git(words: list[str], cwd: Path) -> bool:
                 return False  # no -a / --all: only what add already limited
             else:
                 paths.append(word)
-        return all(record_path(p) for p in paths)
+        return all(record_path(p, cwd) for p in paths)
     if verb == "push":
         return plain(rest) in ([], ["origin", "main"])
     return False
@@ -392,7 +450,8 @@ def records_only_branch(cwd: Path) -> bool:
     """The checkout's branch differs from main only in records, plan.md or AGENTS.md."""
     changed = git(cwd, "diff", "--name-only", "main...HEAD")
     names = changed.stdout.split()
-    return changed.returncode == 0 and bool(names) and all(record_path(n) for n in names)
+    top = Path(git(cwd, "rev-parse", "--show-toplevel").stdout.strip() or cwd)
+    return changed.returncode == 0 and bool(names) and all(record_path(n, top) for n in names)
 
 
 def allowed_bash(command: str, cwd: Path) -> bool:
@@ -409,6 +468,14 @@ def allowed_bash(command: str, cwd: Path) -> bool:
             continue
         if writes(part[1:]) or (name == "sed" and any("w" in w for w in part[2:-1])):
             return False
+        if name == "sort" and any(re.match(r"-[^-]*o|--compress", w) for w in part[1:]):
+            return False  # `-o` writes, `--compress-program` runs a command
+        if name == "rm":  # D2: clear a file only once its copy sits under /tmp
+            paths = [w for w in part[1:] if w not in ("-f", "--")]
+            if (plain_paths(paths) and not any(p.startswith("-") for p in paths)
+                    and all(backed_up(cwd / os.path.expanduser(p)) for p in paths)):
+                continue
+            return False
         if name in READ_ONLY or part[:2] == ["sed", "-n"]:
             continue
         if part[:2] == ["python3", "tools/features_index.py"]:
@@ -424,20 +491,21 @@ def allowed_call(tool: str, tool_input: dict, cwd: Path) -> bool:
         return True
     if tool in EDIT_TOOLS:
         path = tool_input.get("file_path", "")
-        return (os.path.basename(path) in ("plan.md", "AGENTS.md")
-                or "/project/specs/" in path or "/project/bugs/" in path)
+        return record_path(path, cwd) or in_tmp(path)
     if tool == "Bash":
         return allowed_bash(tool_input.get("command", ""), cwd)
     return False
 
 
 def reason(why: str) -> str:
-    return (f"Build budget guard: {why} (build.md §2): park now. Back up the diff to /tmp, write "
-            "the numbers into plan.md, split the record into child records, commit and push them, "
-            "end the turn. Allowed: plan.md, AGENTS.md, project/specs and project/bugs edits; "
-            "read-only commands (git log/status/diff/worktree list, cat, tail, grep, ls); "
-            "cleanup of landed worktrees and merged branches; git add/commit of those files; "
-            "git push origin main; tools/land.py of a records-only branch. "
+    return (f"Build budget guard: {why} (build.md §2): park now. 1. Back up: `cp <file> /tmp/<id>/` "
+            "(each file under its own name), `git diff > /tmp/<id>/build.diff` or "
+            "`git diff --output=/tmp/<id>/build.diff`. 2. Write the numbers into the build's plan "
+            "file. 3. Clear the dirt the copies hold: `git checkout -- <file>`, `rm <file>`. "
+            "4. Split the record into child records, `git add`/`commit` them (a land message "
+            "goes to /tmp with Write), `python3 tools/land.py <branch> -F /tmp/<id>/msg` or "
+            "`git push origin main`. 5. End the turn. Also allowed: reads (git log/status/diff/"
+            "ls-tree, cat, tail, grep, sort, ls), cleanup of landed worktrees and merged branches. "
             "Eddy's next message in this tab lifts the hold and gives the build 2 more hours: "
             "say so in one closeout line, \"reply to give it 2 more hours\", and never ask him "
             "to run a command.")

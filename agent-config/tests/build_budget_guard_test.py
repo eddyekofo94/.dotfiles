@@ -184,6 +184,12 @@ class WorkingTime(Fixture):
                    *work(5 * 3600, 3 * 3600 + 1200, tag="x")])  # 1 h + idle + 1 h 40
         self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
 
+    def test_an_eleven_hour_gap_passes_and_two_hours_five_is_held(self):  # BS-IOS-BUG-660 D1
+        self.rows([build_row(12 * 3600), *work(12 * 3600, 11 * 3600), typed(0)])  # 1 h, 11 h idle
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.rows([build_row(7500), *work(7500, 0)])  # 2 h 5 min of calls, 5 min apart
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+
     def test_a_waiting_that_never_woke_holds_nothing(self):  # BS-IOS-TASK-614's night
         self.rows([build_row(40 * 3600), *work(40 * 3600, 39 * 3600)])
         self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
@@ -355,6 +361,104 @@ class Bypasses(Fixture):
         git(tree, "add", "f")
         git(tree, "commit", "-qm", "unlanded")
         self.assertEqual(self.hook(f"cd {self.tmp.name} && {G} worktree remove wt"), "deny")
+
+
+class Park(Fixture):
+    """BS-IOS-BUG-660 D2, BS-IOS-BUG-845: a held build can do every park step its refusal names."""
+
+    def setUp(self):
+        super().setUp()
+        backup = tempfile.TemporaryDirectory(dir="/tmp")
+        self.addCleanup(backup.cleanup)
+        self.backup = Path(backup.name)  # the repo sits in $TMPDIR, never under /tmp
+
+    def edit(self, path, tool="Write"):
+        payload = {"transcript_path": str(self.transcript), "cwd": str(self.repo),
+                   "tool_name": tool, "tool_input": {"file_path": str(path), "content": "x"}}
+        out = subprocess.run([sys.executable, "-I", str(HOOK)], input=json.dumps(payload),
+                             capture_output=True, text=True).stdout
+        return "deny" if '"deny"' in out else "allow"
+
+    def test_backups_into_tmp_pass(self):  # the 638 park's refusals
+        for command in (f"{G} diff > {self.backup}/build.diff",
+                        f"{G} diff --cached >> {self.backup}/build.diff 2>/dev/null",
+                        f"{G} diff --output={self.backup}/build.diff",
+                        f"{G} diff --output {self.backup}/build.diff",
+                        f"cp tool.py {self.backup}/", f"{G} ls-tree -r --name-only HEAD",
+                        "sort a.txt | head -3", "python3 tools/features_index.py --help"):
+            self.assertEqual(self.hook(command), "allow", command)
+
+    def test_writes_outside_tmp_are_refused(self):
+        for command in (f"{G} diff > build.diff", f"{G} diff > {self.repo}/build.diff",
+                        f"{G} diff --output=build.diff", f"{G} diff > /tmp/../{self.repo}/x",
+                        f"cd {self.backup} && {G} diff > x.diff", "sort -o a.txt a.txt",
+                        "sort --compress-program=sh a.txt", "sort -ro a.txt a.txt"):
+            self.assertEqual(self.hook(command), "deny", command)
+
+    def test_a_link_out_of_tmp_is_refused(self):
+        (self.backup / "out").symlink_to(self.repo / "tool.py")
+        self.assertEqual(self.hook(f"echo x > {self.backup}/out"), "deny")
+
+    def test_write_into_tmp_passes_and_code_is_refused(self):
+        self.assertEqual(self.edit(self.backup / "land-message.txt"), "allow")
+        self.assertEqual(self.edit(self.repo / "Sources" / "App" / "View.swift", "Edit"), "deny")
+        self.assertEqual(self.edit(self.repo / "Tests" / "ViewTests.swift"), "deny")
+        self.assertEqual(self.edit(self.repo / "tool.py", "Edit"), "deny")
+
+    def test_checkout_and_rm_pass_once_the_copy_is_in_tmp(self):
+        (self.repo / "tool.py").write_text("x = 2\n")  # tracked dirt
+        (self.repo / "Split.swift").write_text("struct Split {}\n")  # an untracked split file
+        self.assertEqual(self.hook(f"{G} checkout -- tool.py"), "deny")
+        self.assertEqual(self.hook("rm Split.swift"), "deny")
+        (self.backup / "tool.py").write_text("x = 1\n")  # not the same bytes
+        self.assertEqual(self.hook(f"{G} checkout -- tool.py"), "deny")
+        nested = self.backup / "park" / "src"
+        nested.mkdir(parents=True)
+        (nested / "tool.py").write_text("x = 2\n")
+        (nested / "Split.swift").write_text("struct Split {}\n")
+        self.assertEqual(self.hook(f"{G} checkout -- tool.py"), "allow")
+        self.assertEqual(self.hook(f"{G} -C {self.repo} checkout -q -- tool.py"), "allow")
+        self.assertEqual(self.hook("rm Split.swift"), "allow")
+        self.assertEqual(self.hook(f"rm -f -- {self.repo}/Split.swift"), "allow")
+        self.assertEqual(self.hook(f"{G} checkout -- tool.py && rm Split.swift"), "allow")
+
+    def test_clearing_beyond_the_copies_is_refused(self):
+        (self.repo / "Split.swift").write_text("struct Split {}\n")
+        (self.backup / "Split.swift").write_text("struct Split {}\n")
+        (self.repo / "Other.swift").write_text("struct Other {}\n")
+        for command in ("rm Split.swift Other.swift", "rm -rf Split.swift", "rm *.swift",
+                        "rm -r .", f"{G} checkout -- .", f"{G} checkout main -- Split.swift",
+                        f"{G} checkout -f -- Split.swift", f"{G} checkout -- ':(glob)*.swift'",
+                        f"rm {self.backup}/Split.swift", "rm $HOME/Split.swift"):
+            self.assertEqual(self.hook(command), "deny", command)
+
+    def test_a_shared_folder_plan_file_passes(self):  # BS-IOS-BUG-845
+        folder = self.repo / ".working" / "interviews" / "track"
+        folder.mkdir(parents=True)
+        self.assertEqual(self.edit(folder / "plan-808.md", "Edit"), "deny")  # no decisions.md
+        (folder / "decisions.md").write_text("# decisions\n")
+        self.assertEqual(self.edit(folder / "plan-808.md", "Edit"), "allow")
+        (folder / "plan-808.md").write_text("- [ ] 1. a step\n")
+        self.assertEqual(self.hook(f"{G} add .working/interviews/track/plan-808.md"), "allow")
+        self.assertEqual(self.edit(self.repo / "plan-808.md"), "deny")
+
+    def test_a_shared_folder_plan_file_counts_its_tries(self):  # BS-IOS-BUG-845
+        folder = self.repo / ".working" / "track"
+        folder.mkdir(parents=True)
+        plan = folder / "plan-808.md"
+        plan.write_text("- [ ] 2. the step\n  missed its proof\n  missed its proof\n")
+        self.rows([build_row(600), *work(600, 0),
+                   {"type": "assistant", "timestamp": stamp(0), "message": {"id": "p", "content": [
+                       {"type": "tool_use", "name": "Edit", "input": {"file_path": str(plan)}}]}}])
+        self.assertIn("missed its proof twice", self.run_hook("python3 tools/verify_app.py"))
+
+    def test_reason_names_the_park_steps(self):  # D3
+        reason = json.loads(self.run_hook("python3 tools/verify_app.py"))[
+            "hookSpecificOutput"]["permissionDecisionReason"]
+        for step in ("/tmp", "--output=", f"{G} checkout -- <file>", "rm <file>", "plan file",
+                     "tools/land.py", "reply to give it 2 more hours"):
+            self.assertIn(step, reason)
+        self.assertNotIn("budget-extend", reason)
 
 
 class Ended(Fixture):
