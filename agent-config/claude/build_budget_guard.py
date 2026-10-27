@@ -10,8 +10,16 @@ Active only in a build session: the transcript holds a user message that starts
 `/build` (or `$build`, or the slash-command wrapper `<command-name>/build`). Build
 start = that first message's timestamp (the transcript file survives compaction).
 
+Every rule counts inside a window that opens at the build start (BS-IOS-BUG-670 D2).
+Eddy's own message typed in this tab after one of this guard's denials opens a new one:
+a real user turn (`origin.kind` human), never hook text, a task notification or a tool
+result. The new window counts time, compactions and turns from that message, and the
+step a denial named no longer counts as missed. Nothing else lifts a hold but the
+build ending; there is no file to make.
+
 Rules, each denying the tool call with a "park and split" reason:
-  time   now - build start > 2 h
+  time   working time in the window > 2 h (D1): the gaps between transcript rows, and
+         from the last row to now, each capped at 10 min, so an idle night adds 10 min
   compactions  the transcript holds 2 or more `compact_boundary` rows after the build
          start (retro 2026-10-27: every top /build compacted 4-8 times; split at the second)
   turns  400 or more distinct main-thread assistant `message.id`s after the build start
@@ -39,10 +47,7 @@ Calls still allowed so the agent can park:
   tools/land.py` when the branch differs from main only in those files. Redirects pass
   only to /dev/null or between streams (`2>&1`); `$(` and backticks never pass.
 
-Escape hatch: env BUILD_BUDGET_EXTEND=1, or a file `.working/<goal>/budget-extend`
-(goal = the /build argument lowercased, e.g. FS-487 -> fs487) under the session cwd.
-The guard makes `.working/<goal>/` when it first holds the build, so the file can
-always be made (D5). Eddy's okay lives in that file; the agent never creates it.
+Escape hatch for scripts: env BUILD_BUDGET_EXTEND=1.
 
 Fail open: any error allows the call and prints to stderr.
 """
@@ -58,6 +63,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 LIMIT_SECONDS = 2 * 3600
+GAP_CAP_SECONDS = 600  # D1: one gap between rows counts at most 10 min of work
 COMPACTION_LIMIT = 2
 TURN_LIMIT = 400
 MISS = ("missed its proof", "failed, not ticked", "**failed")
@@ -77,57 +83,128 @@ ACTIVE = ("ready to build", "ready to act", "in progress")
 BUILD_START = re.compile(r"^\s*(?:<command-message>build</command-message>\s*)?"
                          r"(?:<command-name>)?[/$]build\b")
 STEP = re.compile(r"^- \[[ xX]\]")
+#: This guard's own denial as Claude writes it into the tool result (D2).
+DENIAL = re.compile(r"^(?:PreToolUse:\S+ hook error: )?Build budget guard: (.*)", re.S)
+MISSED = re.compile(r"a step missed its proof twice \((.*)\) \(build\.md")
+#: Text Claude injects as a user row that Eddy did not type (no `origin` on older rows).
+NOT_TYPED = ("<task-notification>", "<system-reminder>", "<local-command", "Caveat:",
+             "[Request interrupted")
 
 
 def when(stamp: str) -> float:
     return datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
 
 
-def scan(transcript: str):
-    """Return (build start epoch, goal ID as typed, last plan.md path, compactions and turns
-    since start)."""
-    start = goal = plan = None
-    compactions = 0
-    turns: set[str] = set()
+def text_of(content) -> str:
+    if isinstance(content, str):
+        return content
+    return " ".join(b.get("text", "") for b in content or [] if isinstance(b, dict)
+                    and b.get("type") == "text")
+
+
+def typed(row: dict) -> bool:
+    """A message Eddy typed in this tab (D2): never hook text, a notification or a result."""
+    if row.get("isMeta") or row.get("isCompactSummary"):
+        return False
+    origin = row.get("origin")
+    if isinstance(origin, dict):
+        return origin.get("kind") == "human"
+    content = (row.get("message") or {}).get("content")
+    if not isinstance(content, str) and any(isinstance(b, dict) and b.get("type") == "tool_result"
+                                            for b in content or []):
+        return False
+    text = text_of(content).lstrip()
+    return bool(text) and not text.startswith(NOT_TYPED)
+
+
+def denial(row: dict) -> str | None:
+    """The reason of this guard's denial in a tool result row, else None."""
+    for block in (row.get("message") or {}).get("content") or []:
+        if isinstance(block, dict) and block.get("type") == "tool_result":
+            body = block.get("content")
+            found = DENIAL.match(text_of(body).lstrip() if not isinstance(body, str) else body)
+            if found:
+                return found.group(1)
+    return None
+
+
+class Window:
+    """What the transcript says about the build (D1, D2): its start, goal and plan, and the
+    open window's working time, compactions and turns, with the steps Eddy waved on."""
+
+    def __init__(self):
+        self.started = self.goal = self.plan = self.last = None
+        self.working = 0.0
+        self.compactions = 0
+        self.turns: set[str] = set()
+        self.denials: list[str] = []
+        self.excused: set[str] = set()
+
+    def tick(self, stamp: str | None) -> None:
+        if not stamp:
+            return
+        now = when(stamp)
+        if self.last is not None and now > self.last:
+            self.working += min(now - self.last, GAP_CAP_SECONDS)
+        self.last = max(now, self.last or now)
+
+    def reopen(self, stamp: str) -> None:
+        """Eddy replied after a denial: a fresh window from his message (D2)."""
+        self.last = when(stamp)
+        self.working, self.compactions, self.turns = 0.0, 0, set()
+        self.excused |= {m.group(1) for d in self.denials if (m := MISSED.search(d))}
+        self.denials = []
+
+    def working_until(self, now: float) -> float:
+        tail = min(max(now - self.last, 0), GAP_CAP_SECONDS) if self.last is not None else 0
+        return self.working + tail
+
+
+def scan(transcript: str) -> Window:
+    """Read the transcript once into a Window (the file survives compaction)."""
+    window = Window()
     with open(transcript, encoding="utf-8", errors="replace") as handle:
         for raw in handle:
-            if start is None and '"user"' in raw:
-                try:
-                    row = json.loads(raw)
-                except ValueError:
+            started = window.started is not None
+            if not started and '"user"' not in raw and not ('"tool_use"' in raw and "plan.md" in raw):
+                continue
+            try:
+                row = json.loads(raw)
+            except ValueError:
+                continue
+            if row.get("isSidechain"):
+                continue
+            message = row.get("message") or {}
+            kind = row.get("type")
+            if not started:
+                if kind == "user" and BUILD_START.match(text_of(message.get("content"))):
+                    text = text_of(message.get("content"))
+                    window.started = window.last = when(row["timestamp"])
+                    args = re.search(r"<command-args>\s*([^\s<]+)", text) or re.search(
+                        r"[/$]build\s+(\S+)", text)
+                    window.goal = args.group(1) if args else None
+            else:
+                if kind == "user" and window.denials and typed(row) and row.get("timestamp"):
+                    window.reopen(row["timestamp"])
+                else:
+                    window.tick(row.get("timestamp"))
+                if kind == "user" and (reason := denial(row)):
+                    window.denials.append(reason)
+                elif kind == "system" and row.get("subtype") == "compact_boundary":
+                    window.compactions += 1
+                elif kind == "assistant" and message.get("id"):
+                    window.turns.add(message["id"])  # one turn streams as several rows, one id
+            for block in message.get("content") or []:
+                if not isinstance(block, dict) or block.get("type") != "tool_use":
                     continue
-                content = (row.get("message") or {}).get("content")
-                if row.get("type") == "user" and not row.get("isSidechain"):
-                    text = content if isinstance(content, str) else " ".join(
-                        b.get("text", "") for b in content or [] if isinstance(b, dict))
-                    if BUILD_START.match(text):
-                        start = when(row["timestamp"])
-                        args = re.search(r"<command-args>\s*([^\s<]+)", text) or re.search(
-                            r"[/$]build\s+(\S+)", text)
-                        goal = args.group(1) if args else None
-            elif (('"tool_use"' in raw and "plan.md" in raw) or (start is not None and (
-                    '"compact_boundary"' in raw or '"assistant"' in raw))):
-                try:
-                    row = json.loads(raw)
-                except ValueError:
-                    continue
-                message = row.get("message") or {}
-                if start is not None and not row.get("isSidechain"):
-                    if row.get("type") == "system" and row.get("subtype") == "compact_boundary":
-                        compactions += 1
-                    elif row.get("type") == "assistant" and message.get("id"):
-                        turns.add(message["id"])  # one turn streams as several rows, one id
-                for block in message.get("content") or []:
-                    if not isinstance(block, dict) or block.get("type") != "tool_use":
-                        continue
-                    path = (block.get("input") or {}).get("file_path", "")
-                    if block.get("name") in EDIT_TOOLS and os.path.basename(path) == "plan.md":
-                        plan = path
-    return start, goal, plan, compactions, len(turns)
+                path = (block.get("input") or {}).get("file_path", "")
+                if block.get("name") in EDIT_TOOLS and os.path.basename(path) == "plan.md":
+                    window.plan = path
+    return window
 
 
-def missed_step(plan: str) -> str | None:
-    """First step with two or more miss markers that is not parked, else None."""
+def missed_step(plan: str, excused: set[str] = frozenset()) -> str | None:
+    """First step with two or more miss markers that is not parked or waved on, else None."""
     steps, current = [], []
     for line in Path(plan).read_text(errors="replace").splitlines():
         if STEP.match(line) and not line.startswith((" ", "\t")):
@@ -139,8 +216,10 @@ def missed_step(plan: str) -> str | None:
             current = []
     for lines in steps:
         text = "\n".join(lines).lower()
-        if sum(text.count(m) for m in MISS) >= 2 and not any(p in text for p in PARKED):
-            return lines[0].strip()[:80]
+        name = lines[0].strip()[:80]
+        if (sum(text.count(m) for m in MISS) >= 2 and not any(p in text for p in PARKED)
+                and name not in excused):
+            return name
     return None
 
 
@@ -352,14 +431,16 @@ def allowed_call(tool: str, tool_input: dict, cwd: Path) -> bool:
     return False
 
 
-def reason(why: str, extend: Path) -> str:
+def reason(why: str) -> str:
     return (f"Build budget guard: {why} (build.md §2): park now. Back up the diff to /tmp, write "
             "the numbers into plan.md, split the record into child records, commit and push them, "
             "end the turn. Allowed: plan.md, AGENTS.md, project/specs and project/bugs edits; "
             "read-only commands (git log/status/diff/worktree list, cat, tail, grep, ls); "
             "cleanup of landed worktrees and merged branches; git add/commit of those files; "
-            "git push origin main. "
-            f"Eddy extends with: ! touch {extend}")
+            "git push origin main; tools/land.py of a records-only branch. "
+            "Eddy's next message in this tab lifts the hold and gives the build 2 more hours: "
+            "say so in one closeout line, \"reply to give it 2 more hours\", and never ask him "
+            "to run a command.")
 
 
 def main() -> int:
@@ -370,33 +451,27 @@ def main() -> int:
             return 0
         if os.environ.get("BUILD_BUDGET_EXTEND"):
             return 0
-        start, goal, plan, compactions, turns = scan(transcript)
-        if start is None:
+        window = scan(transcript)
+        if window.started is None:
             return 0
         cwd = Path(data.get("cwd") or os.getcwd())
-        top = git(cwd, "rev-parse", "--show-toplevel").stdout.strip() if cwd.is_dir() else ""
-        slug = goal.lower().replace("-", "") if goal else None
-        extend = Path(top or cwd) / ".working" / (slug or "<goal>") / "budget-extend"
-        if slug and extend.exists():
-            return 0
+        plan, now = window.plan, datetime.now(timezone.utc).timestamp()
         why = None
-        if datetime.now(timezone.utc).timestamp() - start > LIMIT_SECONDS:
-            why = "build past 2 h"
-        elif compactions >= COMPACTION_LIMIT:
+        if window.working_until(now) > LIMIT_SECONDS:
+            why = "build past 2 h of working time"
+        elif window.compactions >= COMPACTION_LIMIT:
             why = f"build past {COMPACTION_LIMIT} compactions"
-        elif turns >= TURN_LIMIT:
+        elif len(window.turns) >= TURN_LIMIT:
             why = f"build past {TURN_LIMIT} turns"
-        elif plan and os.path.exists(plan) and (step := missed_step(plan)):
+        elif plan and os.path.exists(plan) and (step := missed_step(plan, window.excused)):
             why = f"a step missed its proof twice ({step})"
         if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}, cwd):
             return 0
-        if hold_ended(cwd, goal, start):
+        if hold_ended(cwd, window.goal, window.started):
             return 0
-        if slug:
-            extend.parent.mkdir(parents=True, exist_ok=True)  # D5: the unlock can always be made
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
-            "permissionDecisionReason": reason(why, extend)}}))
+            "permissionDecisionReason": reason(why)}}))
         return 0
     except Exception as error:  # fail open: never brick a session
         print(f"build_budget_guard: {error!r}", file=sys.stderr)

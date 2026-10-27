@@ -57,6 +57,8 @@ python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"
 python3 "$config_dir/tests/context_budget_check_test.py"
 python3 "$config_dir/tests/xcode_settings_test.py"
+python3 "$config_dir/tests/build_budget_guard_test.py"
+python3 "$config_dir/tests/no_shell_step_for_eddy_test.py"
 sh "$config_dir/tests/statusline_test.sh"
 
 # settings.json is what actually wires the closeout hooks up, so a restore that
