@@ -132,6 +132,45 @@ class Held(Fixture):
         self.assertEqual(self.hook(f"{G} branch -D side"), "deny")
 
 
+class Compactions(Fixture):
+    """A build inside its 2 h that has compacted twice is held (retro 2026-10-27)."""
+
+    def begin(self, boundaries, sidechain=False, before=0):
+        rows = [{"type": "system", "subtype": "compact_boundary"}] * before
+        started = datetime.fromtimestamp(time.time() - 600, timezone.utc)
+        rows.append({"type": "user", "timestamp": started.isoformat().replace("+00:00", "Z"),
+                     "message": {"content": f"<command-name>/build</command-name>\n"
+                                            f"<command-args>{GOAL}</command-args>"}})
+        rows += [{"type": "system", "subtype": "compact_boundary",
+                  **({"isSidechain": True} if sidechain else {})}] * boundaries
+        self.transcript.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def test_one_compaction_passes_two_are_held(self):
+        self.begin(1)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.begin(2)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+
+    def test_parking_calls_pass_at_two(self):
+        self.begin(2)
+        self.assertEqual(self.hook(f"{G} status --short"), "allow")
+        self.assertEqual(self.hook("x", tool="Read"), "allow")
+
+    def test_not_counted_sidechain_or_before_the_build(self):
+        self.begin(2, sidechain=True, before=3)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+    def test_extend_file_and_landing_lift_it(self):
+        self.begin(3)
+        (self.repo / ".working" / SLUG).mkdir(parents=True)
+        (self.repo / ".working" / SLUG / "budget-extend").touch()
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        (self.repo / ".working" / SLUG / "budget-extend").unlink()
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.write_record("DONE")
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+
 class Bypasses(Fixture):
     """The review's probes (BS-IOS-BUG-581 lens): a held build cannot write or land
     through a command the parser reads as allowed."""

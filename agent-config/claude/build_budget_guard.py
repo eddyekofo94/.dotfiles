@@ -12,6 +12,8 @@ start = that first message's timestamp (the transcript file survives compaction)
 
 Rules, each denying the tool call with a "park and split" reason:
   time   now - build start > 2 h
+  compactions  the transcript holds 2 or more `compact_boundary` rows after the build
+         start (retro 2026-10-27: every top /build compacted 4-8 times; split at the second)
   tries  in the build's plan.md (the last plan.md the transcript Edit/Write'd), one
          step (a top-level `- [ ]` / `- [x]` bullet plus its indented lines) holds two
          or more markers ("missed its proof", "failed, not ticked", "**failed") and is
@@ -54,6 +56,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 LIMIT_SECONDS = 2 * 3600
+COMPACTION_LIMIT = 2
 MISS = ("missed its proof", "failed, not ticked", "**failed")
 PARKED = ("parked", "skip:")
 OKAY_TOOLS = {"Read", "Glob", "Grep"}
@@ -78,8 +81,9 @@ def when(stamp: str) -> float:
 
 
 def scan(transcript: str):
-    """Return (build start epoch, goal ID as typed, last plan.md path) from the transcript."""
+    """Return (build start epoch, goal ID as typed, last plan.md path, compactions since start)."""
     start = goal = plan = None
+    compactions = 0
     with open(transcript, encoding="utf-8", errors="replace") as handle:
         for raw in handle:
             if start is None and '"user"' in raw:
@@ -96,6 +100,14 @@ def scan(transcript: str):
                         args = re.search(r"<command-args>\s*([^\s<]+)", text) or re.search(
                             r"[/$]build\s+(\S+)", text)
                         goal = args.group(1) if args else None
+            elif start is not None and '"compact_boundary"' in raw:
+                try:
+                    row = json.loads(raw)
+                except ValueError:
+                    continue
+                if (row.get("type") == "system" and row.get("subtype") == "compact_boundary"
+                        and not row.get("isSidechain")):
+                    compactions += 1
             elif '"tool_use"' in raw and "plan.md" in raw:
                 try:
                     row = json.loads(raw)
@@ -107,7 +119,7 @@ def scan(transcript: str):
                     path = (block.get("input") or {}).get("file_path", "")
                     if block.get("name") in EDIT_TOOLS and os.path.basename(path) == "plan.md":
                         plan = path
-    return start, goal, plan
+    return start, goal, plan, compactions
 
 
 def missed_step(plan: str) -> str | None:
@@ -354,7 +366,7 @@ def main() -> int:
             return 0
         if os.environ.get("BUILD_BUDGET_EXTEND"):
             return 0
-        start, goal, plan = scan(transcript)
+        start, goal, plan, compactions = scan(transcript)
         if start is None:
             return 0
         cwd = Path(data.get("cwd") or os.getcwd())
@@ -366,6 +378,8 @@ def main() -> int:
         why = None
         if datetime.now(timezone.utc).timestamp() - start > LIMIT_SECONDS:
             why = "build past 2 h"
+        elif compactions >= COMPACTION_LIMIT:
+            why = f"build past {COMPACTION_LIMIT} compactions"
         elif plan and os.path.exists(plan) and (step := missed_step(plan)):
             why = f"a step missed its proof twice ({step})"
         if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}, cwd):
