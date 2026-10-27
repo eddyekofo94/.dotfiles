@@ -171,6 +171,57 @@ class Compactions(Fixture):
         self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
 
 
+class Turns(Fixture):
+    """A build inside its 2 h that has run 400 main-thread turns is held (BS-IOS-TASK-671 D2)."""
+
+    def begin(self, turns, sidechain=0, before=0, repeats=0):
+        def turn(n, **extra):
+            return {"type": "assistant", "message": {"id": f"msg_{n}", "content": []}, **extra}
+        rows = [turn(f"old{n}") for n in range(before)]
+        started = datetime.fromtimestamp(time.time() - 600, timezone.utc)
+        rows.append({"type": "user", "timestamp": started.isoformat().replace("+00:00", "Z"),
+                     "message": {"content": f"<command-name>/build</command-name>\n"
+                                            f"<command-args>{GOAL}</command-args>"}})
+        rows += [turn(n) for n in range(turns)]
+        rows += [turn(0) for _ in range(repeats)]  # one turn streamed as several rows
+        rows += [turn(f"side{n}", isSidechain=True) for n in range(sidechain)]
+        self.transcript.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+    def test_399_passes_400_is_held(self):
+        self.begin(399)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.begin(400)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+
+    def test_reason_names_the_turns(self):
+        self.begin(400)
+        payload = {"transcript_path": str(self.transcript), "cwd": str(self.repo),
+                   "tool_name": "Bash", "tool_input": {"command": "python3 tools/verify_app.py"}}
+        out = subprocess.run([sys.executable, "-I", str(HOOK)], input=json.dumps(payload),
+                             capture_output=True, text=True,
+                             env={k: v for k, v in os.environ.items() if k != "BUILD_BUDGET_EXTEND"})
+        self.assertIn("build past 400 turns", out.stdout)
+
+    def test_parking_calls_pass_at_400(self):
+        self.begin(400)
+        self.assertEqual(self.hook(f"{G} status --short"), "allow")
+        self.assertEqual(self.hook("x", tool="Read"), "allow")
+
+    def test_not_counted_sidechain_repeats_or_before_the_build(self):
+        self.begin(399, sidechain=50, before=50, repeats=50)
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+    def test_extend_file_and_landing_lift_it(self):
+        self.begin(400)
+        (self.repo / ".working" / SLUG).mkdir(parents=True)
+        (self.repo / ".working" / SLUG / "budget-extend").touch()
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        (self.repo / ".working" / SLUG / "budget-extend").unlink()
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.land()
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+
 class Bypasses(Fixture):
     """The review's probes (BS-IOS-BUG-581 lens): a held build cannot write or land
     through a command the parser reads as allowed."""
