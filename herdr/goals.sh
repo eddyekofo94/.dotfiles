@@ -24,7 +24,7 @@
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
 #   notes:opus::shared              fresh   -> shared checkout anyway
 #   grill:opus                      Eddy asked for one: shared, Opus high, /spec
-#   verdict:opus                    the verdict lane: verdict-drain, /verdict auto
+#   verdict:sonnet                  the verdict lane: verdict-drain, /verdict auto
 #
 # With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
 # `/build <ID>` tab in each orphaned build's own checkout (`resume`, D9),
@@ -137,7 +137,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   # its one seat is free; an empty queue opens none.
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
-    SPECS+=("verdict:opus")
+    SPECS+=("verdict:sonnet")
     BOOTS+=("/verdict auto")
   fi
   [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
