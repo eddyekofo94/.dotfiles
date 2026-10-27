@@ -148,5 +148,24 @@ install_link claude-statusline \
 install_link claude-statusline-tokens \
   "$agent_home/.claude/statusline-tokens.py" "$config_dir/claude/statusline-tokens.py"
 
+# Xcode 27.1's Claude reads this folder as its home (CLAUDE_CONFIG_DIR), never
+# ~/.claude: it gets the same rules and skills by link, and the shared settings
+# without the terminal-tab hooks (xcode_settings.py names each one).
+xcode_home="$agent_home/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"
+if [ -d "$xcode_home" ]; then
+  install_link xcode-claude-instructions \
+    "$xcode_home/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
+  install_link xcode-claude-skills \
+    "$xcode_home/skills" "$agent_home/.claude/skills"
+  xcode_settings="$xcode_home/settings.json"
+  python3 -I "$config_dir/claude/xcode_settings.py" \
+    "$config_dir/claude/settings.json" >"$xcode_settings.new"
+  if [ -e "$xcode_settings" ] && ! cmp -s "$xcode_settings" "$xcode_settings.new"; then
+    mkdir -p "$backup_dir"
+    cp "$xcode_settings" "$backup_dir/xcode-claude-settings.$(date +%Y%m%d%H%M%S)"
+  fi
+  mv "$xcode_settings.new" "$xcode_settings"
+fi
+
 AGENT_CONFIG_HOME="$agent_home" "$config_dir/verify.sh"
 echo 'agent config installation: PASS'

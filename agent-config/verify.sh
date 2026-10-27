@@ -56,6 +56,7 @@ python3.14 "$repo_dir/tools/verify_agent_catalog.py"
 python3 "$config_dir/tests/closeout_length_test.py"
 python3 "$config_dir/tests/closeout_capture_test.py"
 python3 "$config_dir/tests/context_budget_check_test.py"
+python3 "$config_dir/tests/xcode_settings_test.py"
 sh "$config_dir/tests/statusline_test.sh"
 
 # settings.json is what actually wires the closeout hooks up, so a restore that
@@ -73,6 +74,22 @@ jq -e '
   echo "agent-config: settings.json does not register the closeout hooks" >&2
   exit 1
 }
+
+xcode_home="$agent_home/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"
+if [ -d "$xcode_home" ]; then
+  verify_link "$xcode_home/CLAUDE.md" "$config_dir/claude/CLAUDE.md"
+  verify_link "$xcode_home/skills" "$agent_home/.claude/skills"
+  python3 -I "$config_dir/claude/xcode_settings.py" "$config_dir/claude/settings.json" |
+    cmp -s - "$xcode_home/settings.json" || {
+    echo "agent-config: Xcode's Claude settings are stale; run agent-config/install.sh" >&2
+    exit 1
+  }
+  ! grep -Eq 'closeout\.sh|agent_status\.py|herdr-agent-state\.sh|retro_due\.py|statusLine' \
+    "$xcode_home/settings.json" || {
+    echo "agent-config: Xcode's Claude settings carry a terminal-tab hook" >&2
+    exit 1
+  }
+fi
 
 hook_json=$(printf '' | "$config_dir/claude/closeout.sh" context)
 jq -e '
