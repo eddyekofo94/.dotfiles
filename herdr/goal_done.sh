@@ -187,7 +187,14 @@ else
     # Merged means "main already contains this HEAD" — true after a --no-ff merge
     # and equally true for a branch that never diverged. Either way nothing is
     # lost by sweeping it.
-    if ! (cd "$shared" && git merge-base --is-ancestor "$branch" main) 2>/dev/null; then
+    # BS-IOS-BUG-857: a records-only branch lands on main as a fresh commit, so
+    # ancestry fails though main holds every byte. Landed also means each path
+    # the branch changed since the merge-base is identical on main.
+    if ! (cd "$shared" && {
+        git merge-base --is-ancestor "$branch" main ||
+        git diff -z --name-only "$(git merge-base main "$branch")" "$branch" |
+          xargs -0 git diff --quiet main "$branch" --
+      }) 2>/dev/null; then
       [ "$FORCE" = 1 ] || die "main does not contain $branch yet; merge it first, --park a stuck build, or --force"
       echo "goal-done: --force with $branch unmerged — keeping the branch"
     fi

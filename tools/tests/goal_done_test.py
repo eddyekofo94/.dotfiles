@@ -254,6 +254,47 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(self.opened(), [], "nothing left: no verdict lane reopens")
         self.assertIn("7 wait on Eddy: /verdict", result.stdout)
 
+    def recommit_on_main(self, path, name, text="landed"):
+        """What main holds after a records-only branch lands as a fresh commit."""
+        (self.repo / name).write_text(text)
+        self.command("git", "add", name)
+        self.command("git", "commit", "-m", f"main: {name}")
+
+    def test_a_branch_main_holds_byte_for_byte_closes_though_not_an_ancestor(self):
+        drain = self.worktree("verdict-drain", merged=False)
+        (drain / "work").write_text("record")
+        subprocess.run(["git", "commit", "-qam", "amend"], cwd=drain, check=True)
+        self.recommit_on_main(drain, "work", "record")
+        result = self.invoke(cwd=drain, ranked=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(["remove", "verdict-drain", "--delete-branch"],
+                      self.calls(self.worktree_calls))
+
+    def test_a_branch_with_one_file_that_differs_on_main_still_refuses(self):
+        drain = self.worktree("verdict-drain", merged=False)
+        self.recommit_on_main(drain, "work", "someone else's")
+        result = self.invoke(cwd=drain, ranked=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("main does not contain", result.stderr)
+        self.assertFalse(self.worktree_calls.exists())
+
+    def test_a_branch_with_an_unmerged_new_file_still_refuses(self):
+        drain = self.worktree("verdict-drain", merged=False)
+        (drain / "second").write_text("only here")
+        subprocess.run(["git", "add", "second"], cwd=drain, check=True)
+        subprocess.run(["git", "commit", "-qm", "second"], cwd=drain, check=True)
+        self.recommit_on_main(drain, "work", "half-built")
+        result = self.invoke(cwd=drain, ranked=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("main does not contain", result.stderr)
+
+    def test_force_still_keeps_an_unmerged_branch(self):
+        drain = self.worktree("verdict-drain", merged=False)
+        self.recommit_on_main(drain, "work", "someone else's")
+        result = self.invoke(cwd=drain, ranked=False, extra=("--force",))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--force with feature/verdict-drain unmerged", result.stdout)
+
     def test_park_takes_a_stuck_unmerged_build_instead_of_refusing(self):
         stuck = self.worktree("df9-stuck", merged=False)
         (stuck / "work").write_text("dirty too")
