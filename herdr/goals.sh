@@ -4,6 +4,8 @@
 # own agent family and inherit that agent's configured model and permissions.
 #
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
+#        herdr-goals --track NAME [--track NAME] [--dry-run]   one track tab each
+#        herdr-goals --build ID [--track NAME] [--dry-run]     one /build tab
 #   model is an alias (`opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   resume-target is a session id (resumes it directly), the literal `pick`
@@ -92,13 +94,69 @@ fi
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
 # Refuse anything flag-shaped before a single tab exists.
-case "${1:-}" in
-  -h|--help) sed -n '2,36p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-  -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
-esac
+# BibleStandard BS-IOS-TASK-849: `--track` opens one long-lived `track-<slug>`
+# tab in the shared checkout, booted `/build track <name>`; `--build` opens the
+# one `/build <ID>` tab a track tab opens for each record in its order.
+TRACKS=(); BUILD_ID=""; DRY_RUN=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --track|--build)
+      [ -n "${2:-}" ] || { echo "herdr-goals: $1 needs a value" >&2; exit 2; }
+      if [ "$1" = --track ]; then TRACKS+=("$2"); else BUILD_ID="$2"; fi
+      shift 2 ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
+    *)         break ;;
+  esac
+done
 
 SPECS=("$@")
 BOOTS=()
+FOCUS_MD="${REPO}/project/workflow/FOCUS.md"
+track_slug() { tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g'; }
+if [ -n "$BUILD_ID" ]; then
+  SPECS+=("$(id_slug "$BUILD_ID"):opus")
+  BOOTS+=("/build ${BUILD_ID}${TRACKS[0]:+ — track ${TRACKS[0]}}")
+elif [ ${#TRACKS[@]} -gt 0 ]; then
+  # B2: two track tabs run at once only when neither track is exclusive, or
+  # Eddy names both in one call.
+  exclusive=$(awk '/^### /{name=substr($0,5)} /^- Exclusive: yes/{print name}' "$FOCUS_MD" 2>/dev/null || true)
+  open_tracks=$(herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | sed -n 's/.*▸ track-//p' || true)
+  named=""
+  for name in "${TRACKS[@]}"; do
+    canon=$(awk -v want="$name" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
+    [ -n "$canon" ] || { echo "herdr-goals: no track \"$name\" in FOCUS.md" >&2; exit 2; }
+    slug=$(track_slug "$canon"); named="$named $slug"
+    if grep -qx "$slug" <<<"$open_tracks"; then echo "herdr-goals: track-${slug} is already open" >&2; continue; fi
+    SPECS+=("track-${slug}:opus::shared"); BOOTS+=("/build track ${canon}")
+  done
+  others=$(grep -vx "${named# }" <<<"$open_tracks" | grep . || true)
+  if [ ${#TRACKS[@]} -eq 1 ] && [ ${#SPECS[@]} -gt 0 ] && [ -n "$others" ]; then
+    while read -r ex; do
+      [ -n "$ex" ] && grep -qx "$(track_slug "$ex")" <<<"${named# }"$'\n'"$others" || continue
+      echo "herdr-goals: another track tab is open and ${ex} is exclusive — name both to run them together (BS-IOS-TASK-849 B2)" >&2
+      exit 3
+    done <<<"$exclusive"
+  fi
+  # Every named track already has its tab: open nothing, never the lane fill.
+  [ ${#SPECS[@]} -gt 0 ] || exit 0
+fi
+if [ "$DRY_RUN" = 1 ]; then
+  [ ${#SPECS[@]} -gt 0 ] || { echo "herdr-goals --dry-run: name --track or --build" >&2; exit 2; }
+  for i in "${!SPECS[@]}"; do
+    echo "would open ${SPECS[$i]%%:*} (boot ${BOOTS[$i]:-none}) in ${REPO}"
+    case "${BOOTS[$i]:-}" in "/build track "*)
+      waiting=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null | jq -r '.waiting[]?.id' 2>/dev/null || true)
+      python3 "${REPO}/tools/features_index.py" --list --track "${BOOTS[$i]#/build track }" --status "Ready To Build" 2>/dev/null |
+        while read -r id rest; do
+          grep -qx "$id" <<<"$waiting" && continue
+          echo "  first record it can open: ${id} — $(sed -E 's/^Ready To Build +//' <<<"$rest")"; break
+        done || true ;;
+    esac
+  done
+  exit 0
+fi
 # Eddy, 2026-10-02: while this file exists the chain opens no tab by itself;
 # a named SPEC still opens. `rm` it to let the lanes fill again.
 CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
