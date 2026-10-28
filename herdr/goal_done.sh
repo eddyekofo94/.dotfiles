@@ -395,10 +395,10 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     if [ "$DRY" = 1 ]; then
       echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-}"
-      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" opus "--permission-mode auto"
+      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" sonnet "--permission-mode auto"
       verdict_opened=1
     elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"}); then
-      open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" opus "--permission-mode auto"
+      open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" sonnet "--permission-mode auto"
       verdict_opened=1
     else
       rc=$?
