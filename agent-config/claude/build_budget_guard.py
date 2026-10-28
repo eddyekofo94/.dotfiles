@@ -498,7 +498,8 @@ def allowed_call(tool: str, tool_input: dict, cwd: Path) -> bool:
 
 
 def reason(why: str) -> str:
-    return (f"Build budget guard: {why} (build.md §2): park now. 1. Back up: `cp <file> /tmp/<id>/` "
+    return (f"Build budget guard: {why} (build.md §2): park now, never a third try or a re-plan (\"something is broken this is going on for over 2 hours, I thought we have enforcements in "
+            "place to prevent such?\", Eddy, 2026-10-24, FS-487). 1. Back up: `cp <file> /tmp/<id>/` "
             "(each file under its own name), `git diff > /tmp/<id>/build.diff` or "
             "`git diff --output=/tmp/<id>/build.diff`. 2. Write the numbers into the build's plan "
             "file. 3. Clear the dirt the copies hold: `git checkout -- <file>`, `rm <file>`. "
