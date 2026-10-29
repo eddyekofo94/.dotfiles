@@ -304,6 +304,8 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
   if [ "$home" = "shared" ]; then tab_label="$label"; else tab_label=$(basename "$cwd"); fi
 
   mode_flag="$BUILD_MODE_FLAG"
+  # The verdict drain runs in yolo (Eddy, 2026-10-29: "verdict drain should run on yolo mode").
+  if [ "$label" = "verdict" ] && [ -n "$mode_flag" ]; then mode_flag="--permission-mode bypassPermissions"; fi
 
   # An explicit `grill` opens already working the decision backlog, and
   # `verdict` already draining (FS-262 D4/D2). A positional prompt seeds the

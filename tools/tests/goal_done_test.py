@@ -209,7 +209,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(self.opened(), [
             ("▸ df1", 'claude --model opus --effort medium --permission-mode auto "/build DF-1"'),
             ("▸ verdict-drain",
-             'claude --model sonnet --effort medium --permission-mode auto "/verdict auto"'),
+             'claude --model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"'),
         ])
         self.assertEqual(self.calls(self.worktree_calls)[-1], ["open", "verdict-drain", "--place"])
 
