@@ -110,6 +110,26 @@ class ContextGuardHoldTest(unittest.TestCase):
                       self.hook("PostToolUse", "Bash", {"command": "ls"})["hookSpecificOutput"]["additionalContext"])
         self.assertTrue(self.refused("Bash", {"command": "git status"}))
 
+    def test_a_python_script_that_writes_the_plan_is_a_save(self):
+        """BS-IOS-TASK-1021 and 1031 (2026-10-29) were refused `python3 - <<EOF` rewriting plan.md."""
+        for command in ["python3 - <<'EOF'\np='.working/x/plan-bs-ios-task-1021.md'\ns=open(p).read()\nopen(p,'w').write(s)\nEOF",
+                        "python3 - <<'EOF'\nfrom pathlib import Path\np = Path(\".working/x/plan.md\"); s = p.read_text()\np.write_text(s)\nEOF",
+                        "sed -i '' 's/State: none/State: step 2/' .working/x/plan.md"]:
+            with self.subTest(command=command):
+                self.tearDown()
+                self.setUp()
+                self.near()
+                self.assertFalse(self.refused("Bash", {"command": command}))
+                self.hook("PostToolUse", "Bash", {"command": command})
+                self.assertFalse(self.refused("Bash", {"command": "git status"}))
+
+    def test_a_script_that_only_reads_the_plan_or_writes_elsewhere_is_no_save(self):
+        self.near()
+        for command in ["python3 -c \"print(open('.working/x/plan.md').read())\"",
+                        "python3 -c \"open('/tmp/out.txt','w').write('x')\""]:
+            self.hook("PostToolUse", "Bash", {"command": command})
+        self.assertTrue(self.refused("Bash", {"command": "git status"}))
+
     def test_a_named_plan_file_is_a_save(self):
         """BS-IOS-TASK-1022 was refused an Edit of its own plan-bs-ios-task-1022.md."""
         self.near()

@@ -47,6 +47,10 @@ COMPACTED = "compacted"  # + the stale reading the transcript still ends on
 RESUME_NAME = re.compile(r"^(plan[\w.-]*|decisions)\.md$|^[\w.-]*handoff[\w.-]*\.md$")
 RESUME_IN_SHELL = re.compile(
     r"(>>?|\btee\b(\s+-a)?)\s*['\"]?[^\s'\";|&]*(?<![\w-])(plan[\w.-]*|decisions|[\w.-]*handoff[\w.-]*)\.md\b")
+# A script that names a resume file and writes with Python or sed -i saves it too
+# (2026-10-29: BS-IOS-TASK-1021 and 1031 were refused `python3 - <<EOF ... open(p, 'w')`)
+RESUME_MENTION = re.compile(r"(?<![\w-])(plan[\w.-]*|decisions|[\w.-]*handoff[\w.-]*)\.md\b")
+SCRIPT_WRITE = re.compile(r"\.write_text\(|\.write\(|\bopen\([^)]*,\s*['\"][wa]|\bsed\s+-i\b")
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit"}
 LOOK_TOOLS = {"Glob"}
 
@@ -107,7 +111,9 @@ def saves(tool: str, tool_input: dict) -> bool:
     if tool in WRITE_TOOLS:
         return is_resume(tool_input.get("file_path", ""))
     if tool == "Bash":
-        return bool(RESUME_IN_SHELL.search(tool_input.get("command", "")))
+        command = tool_input.get("command", "")
+        return bool(RESUME_IN_SHELL.search(command)
+                    or (RESUME_MENTION.search(command) and SCRIPT_WRITE.search(command)))
     return False
 
 
