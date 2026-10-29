@@ -37,8 +37,11 @@ class XcodeSettings(unittest.TestCase):
                      "bash_output_trim.py"):
             self.assertTrue(any(name in command for command in kept), name)
         self.assertNotIn("statusLine", xcode)
-        for key in set(shared) - {"statusLine", "hooks"}:
+        for key in set(shared) - {"statusLine", "hooks", "env"}:
             self.assertEqual(xcode[key], shared[key], key)
+        # The shared env is kept; only PATH is Xcode's, Homebrew's python3 first.
+        self.assertEqual({k: v for k, v in xcode["env"].items() if k != "PATH"}, shared.get("env", {}))
+        self.assertTrue(xcode["env"]["PATH"].startswith("/opt/homebrew/bin:"))
 
     def test_event_with_only_terminal_hooks_is_dropped(self):
         shared = {"model": "opus", "hooks": {

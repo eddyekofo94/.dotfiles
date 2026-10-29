@@ -12,6 +12,8 @@ Left out, each one assuming a terminal tab:
   closeout.sh           the closeout skeleton, capture and length check
   retro_due.py          the retro reminder that opens a tab
   statusLine            Xcode's chat has no status line
+Added: env PATH with Homebrew first. Xcode puts its own Developer/usr/bin
+first, whose python3 is 3.9 and cannot run the project tools (PEP 604 types).
 Kept: build_budget_guard.py, context_guard.py, compact_handoff.py and
 bash_output_trim.py, which read only the hook payload and the transcript.
 
@@ -19,10 +21,16 @@ Usage: xcode_settings.py <shared settings.json>   (prints the Xcode settings)
 """
 
 import json
+import os
 import sys
 
 TERMINAL_HOOKS = ("agent_status.py", "herdr-agent-state.sh", "closeout.sh", "retro_due.py")
 TERMINAL_KEYS = ("statusLine",)
+HOME = os.path.expanduser("~")
+XCODE_PATH = ":".join((
+    "/opt/homebrew/bin", "/opt/homebrew/sbin", f"{HOME}/.local/bin", f"{HOME}/bin",
+    "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin",
+))
 
 
 def xcode_settings(shared: dict) -> dict:
@@ -38,6 +46,7 @@ def xcode_settings(shared: dict) -> dict:
         if kept_matchers:
             hooks[event] = kept_matchers
     settings["hooks"] = hooks
+    settings["env"] = {**shared.get("env", {}), "PATH": XCODE_PATH}
     return settings
 
 
