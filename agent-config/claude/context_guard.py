@@ -24,7 +24,8 @@ never asks Eddy to /compact or open a tab.
 
 A compaction (SessionStart, source compact) or a context under 50% re-arms
 the bands and lifts any hold: a session that compacted lands near 60% of its
-window (2026-10-29: 53k of 85k), so the 50% line alone kept a stale hold. Any error exits 0 silently: a broken guard never blocks a session.
+window (2026-10-29: 53k of 85k), so the 50% line alone kept a stale hold. The
+guard stays quiet until the first reading after the compaction lands. Any error exits 0 silently: a broken guard never blocks a session.
 """
 from __future__ import annotations
 
@@ -41,9 +42,11 @@ FALLBACK_WINDOW = 87_000
 MIN_PEAK = 60_000  # a drop from below this is not a compaction
 HELD = "near"  # the marker while the near note waits for its save
 SAVED = "near-saved"
-RESUME_NAME = re.compile(r"^(plan|decisions)\.md$|^[\w.-]*handoff[\w.-]*\.md$")
+COMPACTED = "compacted"  # + the stale reading the transcript still ends on
+# plan-bs-ios-task-1022.md is a plan too (2026-10-29: refused as one)
+RESUME_NAME = re.compile(r"^(plan[\w.-]*|decisions)\.md$|^[\w.-]*handoff[\w.-]*\.md$")
 RESUME_IN_SHELL = re.compile(
-    r"(>>?|\btee\b(\s+-a)?)\s*['\"]?[^\s'\";|&]*(?<![\w-])(plan|decisions|[\w.-]*handoff[\w.-]*)\.md\b")
+    r"(>>?|\btee\b(\s+-a)?)\s*['\"]?[^\s'\";|&]*(?<![\w-])(plan[\w.-]*|decisions|[\w.-]*handoff[\w.-]*)\.md\b")
 WRITE_TOOLS = {"Write", "Edit", "MultiEdit"}
 LOOK_TOOLS = {"Glob"}
 
@@ -133,7 +136,12 @@ def main() -> int:
         session, transcript = data.get("session_id"), data.get("transcript_path")
         event = data.get("hook_event_name", "PostToolUse")
         if session and event == "SessionStart":  # wired for source=compact: the bands re-arm
-            (STATE / session).unlink(missing_ok=True)
+            # The transcript still ends on the pre-compaction reading for a call or two
+            # (BS-IOS-TASK-1022, 2026-10-29: a stale 86k fired a second near note), so
+            # remember it and stay quiet until a fresh reading lands.
+            stale = context_tokens(transcript) if transcript and os.path.exists(transcript) else 0
+            STATE.mkdir(parents=True, exist_ok=True)
+            (STATE / session).write_text(f"{COMPACTED} {stale}")
             return 0
         if not session or not transcript or not os.path.exists(transcript):
             return 0
@@ -156,6 +164,11 @@ def main() -> int:
             marker.write_text(SAVED)
             return 0
         used, limit = measure(transcript)
+        if said.startswith(COMPACTED):
+            if said == f"{COMPACTED} {used}":
+                return 0
+            marker.unlink()
+            said = ""
         if used < 0.5 * limit:
             if said:
                 marker.unlink()

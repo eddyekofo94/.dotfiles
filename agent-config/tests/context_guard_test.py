@@ -96,6 +96,28 @@ class ContextGuardHoldTest(unittest.TestCase):
         self.hook("SessionStart", source="compact")
         self.assertFalse(self.refused("Bash", {"command": "git status"}))
 
+    def test_stale_reading_after_compaction_is_not_a_new_note(self):
+        """BS-IOS-TASK-1022, 2026-10-29: the log still ended on 86k when the next call ran."""
+        self.near()
+        self.hook("PostToolUse", "Write", {"file_path": "/r/plan.md"})
+        self.hook("SessionStart", source="compact")
+        self.assertEqual(self.hook("PostToolUse", "ToolSearch", {}), {})
+        self.assertFalse(self.refused("Bash", {"command": "git status"}))
+        self.at(37_000)
+        self.assertEqual(self.hook("PostToolUse", "Bash", {"command": "ls"}), {})
+        self.at(76_000)  # 95% of the 80k this session compacted at: the bands re-armed
+        self.assertIn("compaction is near",
+                      self.hook("PostToolUse", "Bash", {"command": "ls"})["hookSpecificOutput"]["additionalContext"])
+        self.assertTrue(self.refused("Bash", {"command": "git status"}))
+
+    def test_a_named_plan_file_is_a_save(self):
+        """BS-IOS-TASK-1022 was refused an Edit of its own plan-bs-ios-task-1022.md."""
+        self.near()
+        call = ("Edit", {"file_path": "/r/.working/interviews/risk-scan/plan-bs-ios-task-1022.md"})
+        self.assertFalse(self.refused(*call))
+        self.hook("PostToolUse", *call)
+        self.assertFalse(self.refused("Bash", {"command": "git status"}))
+
     def test_no_hold_before_the_near_note(self):
         self.at(65_000)  # 75%: the early note only
         note = self.hook("PostToolUse", "Bash", {"command": "ls"})
