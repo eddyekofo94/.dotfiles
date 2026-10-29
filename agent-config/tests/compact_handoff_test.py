@@ -103,5 +103,31 @@ class ContextGuardMessageTest(unittest.TestCase):
             self.assertNotIn("open a fresh tab", text)
 
 
+class ContextGuardWindowTest(unittest.TestCase):
+    def setUp(self):
+        sys.path.insert(0, str(HOOK.parent))
+        import context_guard
+        self.g = context_guard
+
+    def test_window_is_the_peak_before_the_last_compaction(self):
+        self.assertEqual(self.g.window([20_000, 60_000, 86_000, 40_000, 70_000, 84_000, 35_000, 50_000]),
+                         84_000)
+
+    def test_no_compaction_falls_back(self):
+        self.assertEqual(self.g.window([20_000, 50_000, 80_000]), self.g.FALLBACK_WINDOW)
+        self.assertEqual(self.g.window([]), self.g.FALLBACK_WINDOW)
+
+    def test_small_dip_is_not_a_compaction(self):
+        self.assertEqual(self.g.window([30_000, 50_000, 20_000]), self.g.FALLBACK_WINDOW)
+
+    def test_contexts_reads_usage_lines(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "t.jsonl"
+            rows = [{"message": {"usage": {"input_tokens": 1, "cache_read_input_tokens": 2,
+                                           "cache_creation_input_tokens": 3}}}, {"type": "user"}]
+            f.write_text("\n".join(json.dumps(r) for r in rows))
+            self.assertEqual(self.g.contexts(str(f)), [6])
+
+
 if __name__ == "__main__":
     unittest.main()
