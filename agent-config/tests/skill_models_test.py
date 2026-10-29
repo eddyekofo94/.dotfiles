@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Skill model pins: /build stays on Opus; /report and /retro run on Sonnet (retro 2026-10-29)."""
+"""Skill model pins: /build and /spec stay on Opus; /report and /retro run on Sonnet (retro 2026-10-29)."""
 import re
 import unittest
 from pathlib import Path
 
 SKILLS = Path.home() / ".agent-skills"
-PINS = {"build": "opus", "report": "sonnet", "retro": "sonnet"}
+PINS = {"build": "opus", "spec": "opus", "report": "sonnet", "retro": "sonnet"}
 
 
 def model_of(name: str) -> str:
