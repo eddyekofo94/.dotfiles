@@ -150,6 +150,21 @@ class ContextGuardHoldTest(unittest.TestCase):
         self.at(84_000)
         self.assertEqual(self.hook("PostToolUse", "Bash", {"command": "ls"}), {})
 
+    def test_big_whole_file_read_is_refused_once_then_allowed(self):
+        big, small = self.dir / "Big.swift", self.dir / "Small.swift"
+        big.write_text("x" * 40_000)
+        small.write_text("x" * 1_000)
+        self.assertTrue(self.refused("Read", {"file_path": str(big)}))
+        self.assertFalse(self.refused("Read", {"file_path": str(big)}))
+        self.assertFalse(self.refused("Read", {"file_path": str(small)}))
+
+    def test_ranged_read_and_resume_file_are_never_refused(self):
+        big, plan = self.dir / "Big.swift", self.dir / "plan.md"
+        big.write_text("x" * 40_000)
+        plan.write_text("x" * 40_000)
+        self.assertFalse(self.refused("Read", {"file_path": str(big), "limit": 80}))
+        self.assertFalse(self.refused("Read", {"file_path": str(plan)}))
+
     def test_subagent_is_never_held(self):
         self.near()
         self.assertFalse(self.refused("Bash", {"command": "git status"}, agent_id="a1"))

@@ -123,6 +123,32 @@ def allowed_while_held(tool: str, tool_input: dict) -> bool:
     return tool == "Read" and is_resume(tool_input.get("file_path", ""))
 
 
+BIG_READ = 30_000  # bytes; retro 2026-10-29: whole 35-39k-char Swift reads rode 100+ turns each
+BIG_READ_SKIP = re.compile(r"(^|/)(plan|decisions)[\w.-]*\.md$|handoff")
+
+
+def big_read_refusal(session: str, tool_input: dict) -> str:
+    """Refuse the first whole-file Read of a big file; the same file's retry goes through."""
+    path = tool_input.get("file_path", "")
+    if tool_input.get("offset") or tool_input.get("limit") or BIG_READ_SKIP.search(path):
+        return ""
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        return ""
+    if size < BIG_READ:
+        return ""
+    seen = STATE / f"{session}.bigreads"
+    done = seen.read_text().splitlines() if seen.exists() else []
+    if path in done:
+        return ""
+    with seen.open("a") as handle:
+        handle.write(path + "\n")
+    return (f"Context guard: {os.path.basename(path)} is {size // 1000}k bytes (~{size // 3500}k tokens) "
+            f"and would ride every later turn. grep -n for the symbol, then Read with offset and limit. "
+            f"Need all of it? Repeat the same Read and it goes through.")
+
+
 def deny(reason: str) -> None:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse", "permissionDecision": "deny",
@@ -153,6 +179,11 @@ def main() -> int:
             return 0
         tool, tool_input = data.get("tool_name", ""), data.get("tool_input") or {}
         STATE.mkdir(parents=True, exist_ok=True)
+        if event == "PreToolUse" and tool == "Read":
+            refusal = big_read_refusal(session, tool_input)
+            if refusal:
+                deny(refusal)
+                return 0
         marker = STATE / session
         said = marker.read_text().strip() if marker.exists() else ""
         if event == "PreToolUse":
