@@ -121,6 +121,11 @@
             "type": "command",
             "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/build_budget_guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/context_guard.py\"",
+            "timeout": 5
           }
         ]
       }
@@ -208,6 +213,11 @@
             "type": "command",
             "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/compact_handoff.py\" resume",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/context_guard.py\"",
+            "timeout": 5
           }
         ]
       }
