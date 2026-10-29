@@ -123,3 +123,4 @@ Bible Standard Group repo (iOS, API, web, data and the clients to come), and
 - When a push or merge lands, read the GitHub Actions run for that commit before calling it done; a local verify script may not run every CI step.
 - When a dotfiles push lands, there is no CI to read or report: its `verify` workflow is off because CI runs are limited and dotfiles is excluded; its local tests are the proof (Eddy, 2026-10-28: "I don't want the dotfiles CI to run").
 - When another tab looks idle, read its session log for a background job before saying it stalled or telling Eddy to prompt it.
+- When a change would reach Codex or Pi (a wrapper, a hook, a harness route), leave them out and build it for Claude only; a record that exists only for them is parked `Deferred — later`, off its track (Eddy, 2026-10-29: "Forget Pi and Codex for now . I am Claude Maxxing!"; BS-IOS-TASK-967).
