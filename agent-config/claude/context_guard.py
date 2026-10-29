@@ -27,7 +27,6 @@ import sys
 from pathlib import Path
 
 STATE = Path(os.environ.get("TMPDIR", "/tmp")) / "claude-context-guard"
-SETTINGS = Path.home() / ".claude" / "settings.json"
 TAIL_BYTES = 4_000_000
 BANDS = [(0.90, "near"), (0.70, "early")]
 FALLBACK_WINDOW = 87_000
