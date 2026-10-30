@@ -107,6 +107,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When Eddy names an order mid-task ("X runs first, before anything else"), stop the current work that turn: park it as a WIP commit with a resume note and start X; never finish the current record first, and never call his ask a separate job that waits (Eddy, 2026-10-30, during BS-IOS-TASK-697: "the line reducing tasks should run first before we do anything else? why aren't you listening?").
+
 - When a repo is named, name it for its product (`biblestandard-qa`, `biblestandard-design`), never `canonfidei-*`: CanonFidei is the org; and invite only `emmanuelrichard01` on Bible Standard repos (Eddy, 2026-10-30: "canonfidei-qa-evidence … this is bible standard"; the other collaborator's name was removed from the rules).
 
 - When partner mail is sent, use the threaded `reply` with Eddy's Zoho signature; before any partner call write the partner's report and selling strategy (`canonfidei.md`; Eddy, 2026-10-30).
