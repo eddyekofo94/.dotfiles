@@ -51,10 +51,13 @@ Calls still allowed so the agent can park:
   herdr-goal-done; clearing the build's dirt once a byte-identical copy of each file sits
   under /tmp (BS-IOS-BUG-660 D2): `git checkout -- <file>…` and `rm [-f] <file>…`;
   post-land cleanup: `git worktree remove` (no --force) of a worktree whose HEAD is in
-  main, `git worktree prune`, `git branch -d`; and so the split can land, `git add` /
-  `commit` (-m/-F, no -a) of records, plan files and AGENTS.md only, `git push [origin
-  main]`, and `python3 tools/land.py` when the branch differs from main only in those
-  files. Redirects and `--output=` pass only to /dev/null, between streams (`2>&1`) or
+  main, `git worktree prune`, `git branch -d`; and so a build at its landable point, or
+  the split, lands (BS-IOS-BUG-1073 D1): `python3 tools/verify_app.py` (bare, or behind
+  `timeout N` and `python3 tools/run_until_red.py --log <file under /tmp> --`), `git add
+  <paths>` and `commit` (-m/-F, no -a) of any path, `git push [origin main]`, and
+  `python3 tools/land.py`. Edits outside records, plan files and /tmp stay refused, so a
+  red gate parks. The park keeps a worktree's dirt under `ios-sessions/` in place and
+  clears it only in the shared checkout (D2). Redirects and `--output=` pass only to /dev/null, between streams (`2>&1`) or
   to an absolute path under /tmp; `$(` and backticks never pass.
 
 Escape hatch for scripts: env BUILD_BUDGET_EXTEND=1.
@@ -290,7 +293,7 @@ def plan_file(path: str, cwd: Path) -> bool:
 
 
 def record_path(path: str, cwd: Path) -> bool:
-    """A file a parked build may land: a record, a plan file or an AGENTS.md."""
+    """A file a parked build may edit: a record, a plan file or an AGENTS.md."""
     return (bool(re.search(r"(^|/)project/(specs|bugs)/", path))
             or os.path.basename(path) == "AGENTS.md" or plan_file(path, cwd))
 
@@ -436,11 +439,11 @@ def allowed_git(words: list[str], cwd: Path) -> bool:
         paths = rest[rest.index("--") + 1:]
         return plain_paths(paths) and all(
             backed_up(cwd / p) or not (cwd / p).exists() for p in paths)
-    if verb == "add":
+    if verb == "add":  # BS-IOS-BUG-1073 D1: the finished build's own paths, never -A
         paths = plain(rest)
-        return bool(paths) and all(record_path(p, cwd) for p in paths)
+        return bool(paths) and not any(p.startswith("-") for p in paths)
     if verb == "commit":
-        paths, skip = [], False
+        skip = False
         for word in plain(rest):
             if skip:
                 skip = False
@@ -448,20 +451,25 @@ def allowed_git(words: list[str], cwd: Path) -> bool:
                 skip = True
             elif word.startswith("-"):
                 return False  # no -a / --all: only what add already limited
-            else:
-                paths.append(word)
-        return all(record_path(p, cwd) for p in paths)
+        return True
     if verb == "push":
         return plain(rest) in ([], ["origin", "main"])
     return False
 
 
-def records_only_branch(cwd: Path) -> bool:
-    """The checkout's branch differs from main only in records, plan.md or AGENTS.md."""
-    changed = git(cwd, "diff", "--name-only", "main...HEAD")
-    names = changed.stdout.split()
-    top = Path(git(cwd, "rev-parse", "--show-toplevel").stdout.strip() or cwd)
-    return changed.returncode == 0 and bool(names) and all(record_path(n, top) for n in names)
+def finishing(part: list[str]) -> bool:
+    """The gate or the land (BS-IOS-BUG-1073 D1), bare or behind `timeout N` and
+    `python3 tools/run_until_red.py --log <file under /tmp> --`: a held build at its
+    landable point lands; a red gate is not fixed, so it parks."""
+    if part[:1] == ["timeout"]:
+        if len(part) < 3 or not re.fullmatch(r"\d+[smhd]?", part[1]):
+            return False
+        part = part[2:]
+    if part[:2] == ["python3", "tools/run_until_red.py"]:
+        if len(part) < 6 or part[2] != "--log" or not in_tmp(part[3]) or part[4] != "--":
+            return False
+        part = part[5:]
+    return part[:2] in (["python3", "tools/verify_app.py"], ["python3", "tools/land.py"])
 
 
 def allowed_bash(command: str, cwd: Path) -> bool:
@@ -490,7 +498,7 @@ def allowed_bash(command: str, cwd: Path) -> bool:
             continue
         if part[:2] == ["python3", "tools/features_index.py"]:
             continue
-        if part[:2] == ["python3", "tools/land.py"] and records_only_branch(cwd):
+        if finishing(part):
             continue
         return False
     return True
@@ -507,12 +515,23 @@ def allowed_call(tool: str, tool_input: dict, cwd: Path) -> bool:
     return False
 
 
-def reason(why: str) -> str:
-    return (f"Build budget guard: {why} (build.md §2): park now, never a third try or a re-plan (\"something is broken this is going on for over 2 hours, I thought we have enforcements in "
+#: BS-IOS-BUG-1073 D3: the park refusal leads with the finish, so a build one gate short lands.
+FINISH = ("if only the gate and the land are left, run them now: `python3 tools/verify_app.py` "
+          "(bare, or behind `timeout N` and `python3 tools/run_until_red.py --log /tmp/<id>/gate.log "
+          "--`), `git add <paths>`, `git commit -m|-F` (never -a), `python3 tools/land.py <branch> "
+          "-F /tmp/<id>/msg`; a red gate is not fixed here, it parks. Otherwise: ")
+
+
+def reason(why: str, cwd: Path) -> str:
+    # D2: a worktree under ios-sessions/ is the build's own, so its dirt stays for the resume.
+    own = "ios-sessions" in cwd.resolve().parts
+    clear = ("3. This worktree is the build's own: leave the dirt in place for the resume. "
+             if own else "3. Clear the dirt the copies hold: `git checkout -- <file>`, `rm <file>`. ")
+    return (f"Build budget guard: {why} (build.md §2): {FINISH}park now, never a third try or a re-plan (\"something is broken this is going on for over 2 hours, I thought we have enforcements in "
             "place to prevent such?\", Eddy, 2026-10-24, FS-487). 1. Back up: `cp <file> /tmp/<id>/` "
             "(each file under its own name), `git diff > /tmp/<id>/build.diff` or "
             "`git diff --output=/tmp/<id>/build.diff`. 2. Write the numbers into the build's plan "
-            "file. 3. Clear the dirt the copies hold: `git checkout -- <file>`, `rm <file>`. "
+            f"file. {clear}"
             "4. Split the record into child records, `git add`/`commit` them (a land message "
             "goes to /tmp with Write), `python3 tools/land.py <branch> -F /tmp/<id>/msg` or "
             "`git push origin main`. 5. End the turn. Also allowed: reads (git log/status/diff/"
@@ -564,7 +583,7 @@ def main() -> int:
         if cap and window.handed_off:
             why += " a second time in a row (a hand-off already opened this tab)"
         text = (handoff(why, window.goal) if cap and window.goal and not window.handed_off
-                else reason(why))
+                else reason(why, cwd))
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
             "permissionDecisionReason": text}}))

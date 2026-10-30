@@ -21,6 +21,7 @@ from pathlib import Path
 HOOK = Path(__file__).resolve().parents[1] / "claude" / "build_budget_guard.py"
 GOAL = "BS-IOS-BUG-9001"
 SLUG = "bsiosbug9001"
+WORK = "python3 tools/write_code.py"  # work a held build may not start
 
 
 def stamp(seconds_ago):
@@ -86,7 +87,7 @@ class Fixture(unittest.TestCase):
         with open(self.transcript, "a" if append else "w") as handle:
             handle.writelines(json.dumps(r) + "\n" for r in rows)
 
-    def denied(self, command="python3 tools/verify_app.py"):
+    def denied(self, command=WORK):
         """Run the hook and write its denial into the transcript, as Claude does."""
         out = self.run_hook(command)
         reason = json.loads(out)["hookSpecificOutput"]["permissionDecisionReason"]
@@ -100,15 +101,15 @@ class Fixture(unittest.TestCase):
         bugs.mkdir(parents=True, exist_ok=True)
         (bugs / f"{GOAL}-a-bug.md").write_text(f"### A bug\n\n- ID: {GOAL}\n- Status: {status}\n")
 
-    def run_hook(self, command, tool="Bash"):
-        payload = {"transcript_path": str(self.transcript), "cwd": str(self.repo),
+    def run_hook(self, command, tool="Bash", cwd=None):
+        payload = {"transcript_path": str(self.transcript), "cwd": str(cwd or self.repo),
                    "tool_name": tool, "tool_input": {"command": command}}
         env = {k: v for k, v in os.environ.items() if k != "BUILD_BUDGET_EXTEND"}
         return subprocess.run([sys.executable, "-I", str(HOOK)], input=json.dumps(payload),
                               capture_output=True, text=True, env=env).stdout
 
-    def hook(self, command, tool="Bash"):
-        return "deny" if '"deny"' in self.run_hook(command, tool) else "allow"
+    def hook(self, command, tool="Bash", cwd=None):
+        return "deny" if '"deny"' in self.run_hook(command, tool, cwd) else "allow"
 
     def land(self):
         git(self.repo, "switch", "-q", "main")
@@ -125,7 +126,7 @@ class Held(Fixture):
     """Past 2 h and unlanded: work is refused, reads and the split pass."""
 
     def test_work_is_refused(self):
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
         self.assertEqual(self.hook(f"echo x > tool.py"), "deny")
         self.assertEqual(self.hook(f"{G} log $(echo -1)"), "deny")
 
@@ -149,15 +150,15 @@ class Held(Fixture):
         self.assertEqual(self.hook(f"{G} status\nrm tool.py"), "deny")
 
     def test_no_unlock_file_is_made_or_read(self):  # BS-IOS-BUG-670 D2
-        self.hook("python3 tools/verify_app.py")
+        self.hook(WORK)
         self.assertFalse((self.repo / ".working").exists())
         (self.repo / ".working" / SLUG).mkdir(parents=True)
         (self.repo / ".working" / SLUG / "budget-extend").touch()
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_reason_asks_for_a_reply_never_a_command(self):  # BS-IOS-BUG-670 D2, D4
         self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
-        reason = json.loads(self.run_hook("python3 tools/verify_app.py"))[
+        reason = json.loads(self.run_hook(WORK))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         self.assertIn("reply to give it 2 more hours", reason)
         self.assertNotIn("! ", reason)
@@ -179,22 +180,22 @@ class WorkingTime(Fixture):
     def test_an_idle_night_adds_ten_minutes(self):
         # 1 h 40 of work, a 20 h silence, then the next call: 1 h 50 counted.
         self.rows([build_row(22 * 3600), *work(22 * 3600, 22 * 3600 - 6000), typed(0)])
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_two_hours_of_work_across_a_night_is_held(self):
         self.rows([build_row(30 * 3600), *work(30 * 3600, 29 * 3600),
                    *work(5 * 3600, 3 * 3600 + 1200, tag="x")])  # 1 h + idle + 1 h 40
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_an_eleven_hour_gap_passes_and_two_hours_five_is_held(self):  # BS-IOS-BUG-660 D1
         self.rows([build_row(12 * 3600), *work(12 * 3600, 11 * 3600), typed(0)])  # 1 h, 11 h idle
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         self.rows([build_row(7500), *work(7500, 0)])  # 2 h 5 min of calls, 5 min apart
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_a_waiting_that_never_woke_holds_nothing(self):  # BS-IOS-TASK-614's night
         self.rows([build_row(40 * 3600), *work(40 * 3600, 39 * 3600)])
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
 
 class Reply(Fixture):
@@ -203,11 +204,11 @@ class Reply(Fixture):
     def test_a_reply_after_the_denial_lifts_the_hold(self):
         self.denied()
         self.rows([typed(0, "keep going")], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_a_message_before_any_denial_lifts_nothing(self):
         self.rows([typed(0, "what are you waiting for?")], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_text_eddy_did_not_type_lifts_nothing(self):
         self.denied()
@@ -220,7 +221,7 @@ class Reply(Fixture):
                 {"type": "tool_result", "content": "ok"}]}},
             {"type": "user", "timestamp": stamp(0),
              "message": {"content": "<system-reminder>x</system-reminder>"}}], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_the_new_window_runs_out_too(self):
         denial = {"type": "user", "timestamp": stamp(3 * 3600), "message": {"content": [
@@ -228,12 +229,12 @@ class Reply(Fixture):
                                                "build past 2 h of working time (build.md §2)"}]}}
         self.rows([build_row(6 * 3600), *work(6 * 3600, 3 * 3600), denial,
                    typed(3 * 3600 - 60), *work(3 * 3600 - 60, 0, tag="y")])
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
         self.rows([typed(0)], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")  # no denial since
+        self.assertEqual(self.hook(WORK), "deny")  # no denial since
         self.denied()
         self.rows([typed(0)], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_a_reply_waves_on_the_missed_step(self):
         self.rows([build_row(600), *work(600, 0)])
@@ -245,9 +246,9 @@ class Reply(Fixture):
             append=True)
         self.assertIn("step one", self.denied())
         self.rows([typed(0, "try it once more")], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         plan.write_text(plan.read_text() + "  missed its proof\n  missed its proof\n")
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")  # step two now
+        self.assertEqual(self.hook(WORK), "deny")  # step two now
 
 
 class Compactions(Fixture):
@@ -265,9 +266,9 @@ class Compactions(Fixture):
 
     def test_one_compaction_passes_two_are_held(self):
         self.begin(1)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         self.begin(2)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_parking_calls_pass_at_two(self):
         self.begin(2)
@@ -276,17 +277,17 @@ class Compactions(Fixture):
 
     def test_not_counted_sidechain_or_before_the_build(self):
         self.begin(2, sidechain=True, before=3)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_a_reply_and_the_record_moving_on_lift_it(self):
         self.begin(3)
         self.denied()
         self.rows([typed(0)], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         self.rows([{"type": "system", "subtype": "compact_boundary"}] * 2, append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
         self.write_record("DONE")
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
 
 class Turns(Fixture):
@@ -307,14 +308,14 @@ class Turns(Fixture):
 
     def test_399_passes_400_is_held(self):
         self.begin(399)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         self.begin(400)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_reason_names_the_turns(self):
         self.begin(400)
         payload = {"transcript_path": str(self.transcript), "cwd": str(self.repo),
-                   "tool_name": "Bash", "tool_input": {"command": "python3 tools/verify_app.py"}}
+                   "tool_name": "Bash", "tool_input": {"command": WORK}}
         out = subprocess.run([sys.executable, "-I", str(HOOK)], input=json.dumps(payload),
                              capture_output=True, text=True,
                              env={k: v for k, v in os.environ.items() if k != "BUILD_BUDGET_EXTEND"})
@@ -327,18 +328,18 @@ class Turns(Fixture):
 
     def test_not_counted_sidechain_repeats_or_before_the_build(self):
         self.begin(399, sidechain=50, before=50, repeats=50)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_a_reply_and_landing_lift_it(self):
         self.begin(400)
         self.denied()
         self.rows([typed(0)], append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
         self.rows([{"type": "assistant", "message": {"id": f"n{n}"}} for n in range(400)],
                   append=True)
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
         self.land()
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
 
 class Bypasses(Fixture):
@@ -354,7 +355,7 @@ class Bypasses(Fixture):
 
     def test_landing_onto_local_main_does_not_end_the_hold(self):
         git(self.repo, "branch", "-f", "main", "HEAD")
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_cd_carries_into_the_cleanup_check(self):
         tree = Path(self.tmp.name) / "wt"
@@ -452,11 +453,11 @@ class Park(Fixture):
         self.rows([build_row(600), *work(600, 0),
                    {"type": "assistant", "timestamp": stamp(0), "message": {"id": "p", "content": [
                        {"type": "tool_use", "name": "Edit", "input": {"file_path": str(plan)}}]}}])
-        self.assertIn("missed its proof twice", self.run_hook("python3 tools/verify_app.py"))
+        self.assertIn("missed its proof twice", self.run_hook(WORK))
 
     def test_reason_names_the_park_steps(self):  # D3
         self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
-        reason = json.loads(self.run_hook("python3 tools/verify_app.py"))[
+        reason = json.loads(self.run_hook(WORK))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         for step in ("/tmp", "--output=", f"{G} checkout -- <file>", "rm <file>", "plan file",
                      "tools/land.py", "reply to give it 2 more hours"):
@@ -469,7 +470,7 @@ class Handoff(Fixture):
     same checkout; two missed tries, and a second hand-off in a row, still park and split."""
 
     def reason(self):
-        return json.loads(self.run_hook("python3 tools/verify_app.py"))[
+        return json.loads(self.run_hook(WORK))[
             "hookSpecificOutput"]["permissionDecisionReason"]
 
     def test_time_hands_off(self):
@@ -501,7 +502,7 @@ class Handoff(Fixture):
 
     def test_a_handed_off_tab_inside_its_budget_works(self):
         self.rows([build_row(600, handed_off=True), *work(600, 0)])
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_missed_tries_still_park(self):
         plan = self.repo / "plan.md"
@@ -534,21 +535,83 @@ class Handoff(Fixture):
         self.assertIn("not the shared checkout", out.stderr)
 
 
+class Finish(Fixture):
+    """BS-IOS-BUG-1073: a held build at its landable point runs the gate and lands;
+    source edits stay refused, and a worktree's park leaves its dirt in place."""
+
+    def edit(self, path):
+        payload = {"transcript_path": str(self.transcript), "cwd": str(self.repo),
+                   "tool_name": "Edit", "tool_input": {"file_path": str(path)}}
+        out = subprocess.run([sys.executable, "-I", str(HOOK)], input=json.dumps(payload),
+                             capture_output=True, text=True).stdout
+        return "deny" if '"deny"' in out else "allow"
+
+    def reason(self, cwd=None):
+        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
+        return json.loads(self.run_hook(WORK, cwd=cwd))[
+            "hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_the_gate_runs(self):  # D1
+        for command in ("python3 tools/verify_app.py", "python3 tools/verify_app.py --fast",
+                        "timeout 3600 python3 tools/verify_app.py --fast",
+                        "python3 tools/run_until_red.py --log /tmp/gate.log -- "
+                        "python3 tools/verify_app.py --fast",
+                        "timeout 3600 python3 tools/run_until_red.py --log /tmp/g.log -- "
+                        "python3 tools/verify_app.py --fast 2>&1 | tail -40"):
+            self.assertEqual(self.hook(command), "allow", command)
+
+    def test_the_wrappers_run_nothing_else(self):  # D1
+        for command in ("timeout 60 " + WORK,
+                        "python3 tools/run_until_red.py --log /tmp/g.log -- " + WORK,
+                        "python3 tools/run_until_red.py --log log.txt -- "
+                        "python3 tools/verify_app.py",
+                        "timeout python3 tools/verify_app.py"):
+            self.assertEqual(self.hook(command), "deny", command)
+
+    def test_a_code_branch_lands(self):  # D1
+        self.assertEqual(self.hook("python3 tools/land.py feature/bug-9001 -F /tmp/m"), "allow")
+
+    def test_source_is_added_and_committed(self):  # D1
+        self.assertEqual(self.hook(f"{G} add Sources/x.swift tool.py"), "allow")
+        self.assertEqual(self.hook(f"{G} commit -m done -- Sources/x.swift"), "allow")
+        self.assertEqual(self.hook(f"{G} commit -F /tmp/m"), "allow")
+
+    def test_source_edits_and_commit_all_stay_refused(self):  # D1
+        self.assertEqual(self.edit(self.repo / "Sources" / "x.swift"), "deny")
+        self.assertEqual(self.hook(f"{G} commit -a -m done"), "deny")
+        self.assertEqual(self.hook(f"{G} commit --all -m done"), "deny")
+
+    def test_reason_leads_with_the_gate_and_the_land(self):  # D3
+        reason = self.reason()
+        self.assertIn("if only the gate and the land are left, run them now", reason)
+        self.assertLess(reason.index("run them now"), reason.index("1. Back up"))
+        self.assertIn("reply to give it 2 more hours", reason)
+
+    def test_a_worktree_park_keeps_its_dirt(self):  # D2
+        tree = Path(self.tmp.name) / "ios-sessions" / "bs-ios-bug-9001"
+        tree.parent.mkdir()
+        git(self.repo, "worktree", "add", "-q", "-b", "side", str(tree), "main")
+        reason = self.reason(cwd=tree)
+        self.assertIn("leave the dirt in place", reason)
+        self.assertNotIn(f"{G} checkout -- <file>", reason)
+        self.assertIn(f"{G} checkout -- <file>", self.reason())  # the shared checkout clears
+
+
 class Ended(Fixture):
     """D1: once the build lands or its record moves on, nothing is held."""
 
     def test_landed_branch_lifts_the_hold(self):  # sighting 1, 3
         self.land()
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_landed_with_dirt_left_still_holds(self):  # a chunk landed, work goes on
         self.land()
         (self.repo / "tool.py").write_text("x = 2\n")
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
+        self.assertEqual(self.hook(WORK), "deny")
 
     def test_record_moved_on_lifts_the_hold(self):
         self.write_record("DONE — Awaiting Verdict")
-        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_cleanup_after_landing_passes_without_extend(self):  # Done when
         tree = Path(self.tmp.name) / "wt"
