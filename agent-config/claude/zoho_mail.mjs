@@ -40,12 +40,12 @@ const folderId = async (t, name) => {
 };
 // Eddy's saved Zoho signature "Bible Standard" (read token). Its logo lives behind his login, so the
 // relative <img> is dropped; a hosted copy goes in LOGO_URL once one exists.
-const LOGO_URL = '';
+const LOGO_URL = 'https://canonfidei.com/assets/email/bible-standard-footer.png';
 const signature = async () => {
   const r = await (await fetch('https://mail.zoho.eu/api/accounts/signature', { headers: { Authorization: `Zoho-oauthtoken ${await token()}` } })).json();
   const html = (r.data || []).find((x) => x.name === 'Bible Standard')?.content;
   if (!html) throw new Error('No Zoho signature named "Bible Standard"');
-  return html.replace(/<img[^>]*><\/img>/gi, LOGO_URL ? `<img src="${LOGO_URL}" width="400" height="121" alt="Canon Fidei Software Studio">` : '').replace(/<div style="width:400px; height:121px">/, '<div>');
+  return html.replace(/<img[^>]*><\/img>/gi, LOGO_URL ? `<img src="${LOGO_URL}" width="308" height="115" alt="Canon Fidei Software Studio">` : '').replace(/<div style="width:400px; height:121px">/, '<div>');
 };
 
 const [cmd, ...a] = process.argv.slice(2);
