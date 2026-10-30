@@ -17,6 +17,8 @@ Read before work in any repo under `~/Programming/Projects/CanonFidei/`. Moved v
 - When a turn in an agent-opened (`▸`) tab ends DONE or BLOCKED with nothing unlanded, do not offer the close: `herdr-reap` (launchd, every 2 min) closes it after 10 idle minutes via `herdr-goal-done --tab` and refills the free lanes; in Eddy's own tabs (no `▸`) keep the one line before **Status** naming `herdr-goal-done`, and run it when he says close (Eddy, 2026-10-04: "I don't want to clog space with idle sessions").
 - When people joined a mailing list by the early way (a mailto, a plain email), they consented; never mark them as unconsented because today's form has a tick box, and never list it as an open question ("They signed up to the mailing list, it was the primitive way we had it, we cannot judge it with the one we just set up!", Eddy, 2026-10-16).
 
+- When Eddy asks to read, save from or send partner mail (Zoho: `contact@` and `bible.standard@canonfidei.com`), use `~/.dotfiles/agent-config/claude/zoho_mail.mjs` (`folders`, `list`, `read`, `attachments`, `send`); its tokens are Keychain items `cf-zoho-client-secret`, `cf-zoho-refresh-token` (read) and `cf-zoho-send-token` (send), so never say you have no mail access and never ask Eddy for credentials; partner replies sit in the `Bible Standard` folder and some land in `Spam`. Save received source files into the data repo (`biblestandard/data/data/library/bibles/<group>/<code>/raw/`), never `~/Downloads` (Eddy, 2026-10-30: "you do have access to my zoho mail? what are you talking about?"; "why not inside … biblestandard/data?").
+
 ## Global Lessons, full text
 
 The full wording of the Lessons that stay in the global `AGENTS.md` as one-line rules.
