@@ -8,6 +8,8 @@
      zoho_mail.mjs attachments <folder name> <messageId> <new-empty-dir>
      zoho_mail.mjs send <to> <subject> <body.txt>          from bible.standard@canonfidei.com;
                                                            blank line = new paragraph
+     zoho_mail.mjs reply <folder> <messageId> <body.txt>   threaded reply to a message in the newest 200
+                                                           (both append the Zoho "Bible Standard" signature)
 
    Keychain items (service names): cf-zoho-client-secret, cf-zoho-refresh-token
    (read-only), cf-zoho-send-token (ZohoMail.messages.CREATE). Same ids as
@@ -36,6 +38,15 @@ const folderId = async (t, name) => {
   if (!f) throw new Error(`No folder "${name}"`);
   return f.folderId;
 };
+// Eddy's saved Zoho signature "Bible Standard" (read token). Its logo lives behind his login, so the
+// relative <img> is dropped; a hosted copy goes in LOGO_URL once one exists.
+const LOGO_URL = '';
+const signature = async () => {
+  const r = await (await fetch('https://mail.zoho.eu/api/accounts/signature', { headers: { Authorization: `Zoho-oauthtoken ${await token()}` } })).json();
+  const html = (r.data || []).find((x) => x.name === 'Bible Standard')?.content;
+  if (!html) throw new Error('No Zoho signature named "Bible Standard"');
+  return html.replace(/<img[^>]*><\/img>/gi, LOGO_URL ? `<img src="${LOGO_URL}" width="400" height="121" alt="Canon Fidei Software Studio">` : '').replace(/<div style="width:400px; height:121px">/, '<div>');
+};
 
 const [cmd, ...a] = process.argv.slice(2);
 if (cmd === 'folders') {
@@ -56,12 +67,23 @@ if (cmd === 'folders') {
     writeFileSync(`${dir}/${at.attachmentName.replace(/[\/\\]/g, '_')}`, buf);
     console.log('saved', at.attachmentName, buf.length);
   }
-} else if (cmd === 'send') {
-  const [to, subject, bodyFile] = a;
+} else if (cmd === 'send' || cmd === 'reply') {
+  // reply <folder> <messageId> <body.txt>: threads under the message (Zoho sets In-Reply-To/References).
+  // Both append Eddy's saved "Bible Standard" Zoho signature; end the body at "Eddy", not a signature block.
+  const reply = cmd === 'reply', [to, subject, bodyFile] = reply ? [null, null, a[2]] : a;
   const html = readFileSync(bodyFile, 'utf8').trim().split(/\n\s*\n/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`).join('');
-  const res = await call(await token(true), '/messages', { method: 'POST', body: JSON.stringify({ fromAddress: FROM, toAddress: to, subject, content: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6">${html}</div>`, mailFormat: 'html', askReceipt: 'no' }) });
-  console.log(res.status, (await res.json()).status?.description);
+  const sig = await signature();
+  let path = '/messages', msg = { fromAddress: FROM, content: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6">${html}<br>${sig}</div>`, mailFormat: 'html', askReceipt: 'no' };
+  if (reply) {
+    const t = await token(), f = await folderId(t, a[0]);
+    const orig = (await data(t, `/messages/view?folderId=${f}&start=1&limit=200`) || []).find((x) => x.messageId === a[1]);
+    if (!orig) throw new Error(`Message ${a[1]} not in the newest 200 of ${a[0]}`);
+    path = `/messages/${a[1]}`;
+    msg = { ...msg, action: 'reply', toAddress: orig.fromAddress, subject: /^re:/i.test(plain(orig.subject)) ? plain(orig.subject) : `Re: ${plain(orig.subject)}` };
+  } else Object.assign(msg, { toAddress: to, subject });
+  const res = await call(await token(true), path, { method: 'POST', body: JSON.stringify(msg) });
+  console.log(res.status, (await res.json()).status?.description, reply ? `reply to ${msg.toAddress}` : '');
 } else {
-  console.error('usage: folders | list <folder> [n] | read <folder> <id>... | attachments <folder> <id> <dir> | send <to> <subject> <body.txt>');
+  console.error('usage: folders | list <folder> [n] | read <folder> <id>... | attachments <folder> <id> <dir> | send <to> <subject> <body.txt> | reply <folder> <id> <body.txt>');
   process.exit(2);
 }

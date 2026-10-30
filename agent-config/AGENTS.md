@@ -107,6 +107,8 @@ Bible Standard Group repo (iOS, API, web, data and the clients to come), and
 
 ## Lessons
 
+- When partner mail is sent, use the threaded `reply` with Eddy's Zoho signature; before any partner call write the partner's report and selling strategy (`canonfidei.md`; Eddy, 2026-10-30).
+
 - When a tab cannot run what the next move needs (a guard refuses `/build` in a housekeeping, retro or architecture tab), open the Ready-to-paste prompt with "Close this tab and open a new one with:" and then the `/build <ID>` line; never leave the bare prompt for Eddy to work out where it goes (Eddy, 2026-10-30, after the architecture pass for BS-IOS-FEAT-1099).
 
 - Moved on 2026-10-27 (Eddy, BS-IOS-TASK-835 D7), text verbatim: in a CanonFidei repo read `~/.dotfiles/agent-config/canonfidei.md` first (partners, email, the Group, Bible Standard operations; the full wording of each rule below); iOS look and motion Lessons are in the iOS repo's `design/AGENTS.md`; `/spec` and build-boundary Lessons are in its `.claude/playbooks/spec.md`.
