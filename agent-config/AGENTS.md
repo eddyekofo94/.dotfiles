@@ -101,11 +101,13 @@ one breaks the workflow.
 
 Projects under `~/Programming/Projects/CanonFidei/` publish to the
 `canonfidei` GitHub organization as private repositories. After creating one,
-invite a collaborator with write (`push`) permission: `emmanuelrichard01` for a
-Bible Standard Group repo (iOS, API, web, data and the clients to come), and
-`OluwadaraDaily` for any other CanonFidei repo.
+invite `emmanuelrichard01` with write (`push`) permission on a Bible Standard
+Group repo (iOS, API, web, data, specs, design, QA and the clients to come). Any
+other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
+
+- When a repo is named, name it for its product (`biblestandard-qa`, `biblestandard-design`), never `canonfidei-*`: CanonFidei is the org; and invite only `emmanuelrichard01` on Bible Standard repos (Eddy, 2026-10-30: "canonfidei-qa-evidence … this is bible standard"; the other collaborator's name was removed from the rules).
 
 - When partner mail is sent, use the threaded `reply` with Eddy's Zoho signature; before any partner call write the partner's report and selling strategy (`canonfidei.md`; Eddy, 2026-10-30).
 
