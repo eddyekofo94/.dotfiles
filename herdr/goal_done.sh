@@ -36,6 +36,8 @@
 #   herdr-goal-done --tab <id>      # retire another tab (herdr-reap), not this one
 #   herdr-goal-done --fill <repo>   # retire nothing: only fill <repo>'s free lanes
 #   herdr-goal-done --name <ID>     # print the tab/worktree name for a ticket ID
+#   herdr-goal-done --handoff <ID>  # a build past its time budget: open a fresh
+#                                   # `/build <ID>` tab on this checkout, close this one
 set -uo pipefail
 
 # Ticket IDs come in two forms (FS-490 D2, FS-515): the new `<REPO>-<KIND>-<N>`
@@ -64,6 +66,10 @@ BOOT=""
 BOOT_SET=0
 TARGET_TAB=""
 FILL_REPO=""
+HANDOFF=""
+# The build budget guard reads this in the new tab's first message: a second hand-off
+# in a row on one record parks and splits it (build_budget_guard.py HANDED_OFF).
+HANDOFF_NOTE="handed off (build budget): read the plan file's Progress, then go on"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -76,7 +82,8 @@ while [ $# -gt 0 ]; do
     --boot)     BOOT="${2:?--boot needs a value}"; BOOT_SET=1; shift ;;
     --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
     --fill)     FILL_REPO="${2:?--fill needs a repository root}"; shift ;;
-    -h|--help)  sed -n '2,37p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --handoff)  HANDOFF="${2:?--handoff needs the record ID}"; shift ;;
+    -h|--help)  sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -100,6 +107,32 @@ run() {
 }
 
 command -v jq >/dev/null || die "jq required"
+
+# Open one agent tab and start its session. The `▸ ` marks a tab an agent
+# opened (FS-237 D8); repo_lock keeps it.
+open_tab() {  # cwd label boot model mode
+  local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
+  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium.
+  effort=medium
+  if [ "$session_agent" = "claude" ]; then
+    launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
+  elif [ "$session_agent" = "codex" ]; then
+    launch="codex \"${boot}\""
+  else
+    launch="pi \"${boot}\""
+  fi
+  if [ "$DRY" = 1 ]; then
+    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
+    echo "would run: herdr pane run <new> ${launch}"
+    return 0
+  fi
+  pane=$(herdr tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
+           jq -r '.result.root_pane.pane_id') || die "could not open the ${boot} tab"
+  [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
+  herdr pane run "$pane" "$launch" ||
+    die "opened the tab but could not start ${session_agent} in $pane"
+  echo "goal-done: opened ${boot} in ${pane} (${session_agent}) — ${tab_cwd}"
+}
 
 # `--tab`: retire that tab as if this ran inside it — its pane, its checkout,
 # its agent — so `herdr-reap` can close an idle tab from outside (Eddy,
@@ -166,6 +199,22 @@ common=$(cd "$root" && git rev-parse --git-common-dir)
 case "$common" in /*) ;; *) common="$root/$common" ;; esac
 shared=$(dirname "$common")
 slug=$(basename "$root")
+
+# `--handoff`: the build budget guard held a build on time, compactions or turns
+# (Eddy, 2026-10-30: "the limit is good but we should temporarily handoff where we
+# are and create a new tab with the context"). FS-262 D9's resume, on this checkout:
+# nothing is checked, swept or released; the branch, its dirt, its simulator and its
+# lane stay for the fresh tab, which reads the plan file this session left.
+if [ -n "$HANDOFF" ]; then
+  [ -z "$FILL_REPO" ] && [ "$PARK" = 0 ] || die "--handoff takes neither --fill nor --park"
+  [ "$root" != "$shared" ] || die "--handoff takes a goal's worktree, not the shared checkout"
+  open_tab "$root" "$slug" "/build ${HANDOFF} — ${HANDOFF_NOTE}" opus "--permission-mode auto"
+  if [ "$KEEP_TAB" = 0 ]; then
+    run herdr tab close "$HERDR_TAB_ID" ||
+      echo "goal-done: could not close $HERDR_TAB_ID; close it with prefix+X" >&2
+  fi
+  exit 0
+fi
 
 if [ -n "$FILL_REPO" ]; then
   # Nothing retires: no branch to check, no worktree to sweep.
@@ -271,32 +320,6 @@ fi
 # build cap (the builds stop), exit 4 is a record whose seams overlap a live
 # build (it waits; try the next). Then the verdict lane (D3), which a full
 # build cap never blocks. Never a grill: grilling is Eddy's (D4).
-
-# Open one agent tab and start its session. The `▸ ` marks a tab an agent
-# opened (FS-237 D8); repo_lock keeps it.
-open_tab() {  # cwd label boot model mode
-  local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
-  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium.
-  effort=medium
-  if [ "$session_agent" = "claude" ]; then
-    launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
-  elif [ "$session_agent" = "codex" ]; then
-    launch="codex \"${boot}\""
-  else
-    launch="pi \"${boot}\""
-  fi
-  if [ "$DRY" = 1 ]; then
-    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
-    echo "would run: herdr pane run <new> ${launch}"
-    return 0
-  fi
-  pane=$(herdr tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
-           jq -r '.result.root_pane.pane_id') || die "could not open the ${boot} tab"
-  [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
-  herdr pane run "$pane" "$launch" ||
-    die "opened the tab but could not start ${session_agent} in $pane"
-  echo "goal-done: opened ${boot} in ${pane} (${session_agent}) — ${tab_cwd}"
-}
 
 opened=0
 resumed=0

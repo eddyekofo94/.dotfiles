@@ -28,10 +28,11 @@ def stamp(seconds_ago):
         "+00:00", "Z")
 
 
-def build_row(seconds_ago):
+def build_row(seconds_ago, handed_off=False):
+    note = " — handed off (build budget): read the plan file's Progress, then go on" * handed_off
     return {"type": "user", "timestamp": stamp(seconds_ago), "origin": {"kind": "human"},
             "message": {"content": f"<command-name>/build</command-name>\n"
-                                   f"<command-args>{GOAL}</command-args>"}}
+                                   f"<command-args>{GOAL}{note}</command-args>"}}
 
 
 def work(start_ago, end_ago, every=300, tag="w"):
@@ -155,6 +156,7 @@ class Held(Fixture):
         self.assertEqual(self.hook("python3 tools/verify_app.py"), "deny")
 
     def test_reason_asks_for_a_reply_never_a_command(self):  # BS-IOS-BUG-670 D2, D4
+        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
         reason = json.loads(self.run_hook("python3 tools/verify_app.py"))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         self.assertIn("reply to give it 2 more hours", reason)
@@ -453,12 +455,83 @@ class Park(Fixture):
         self.assertIn("missed its proof twice", self.run_hook("python3 tools/verify_app.py"))
 
     def test_reason_names_the_park_steps(self):  # D3
+        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
         reason = json.loads(self.run_hook("python3 tools/verify_app.py"))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         for step in ("/tmp", "--output=", f"{G} checkout -- <file>", "rm <file>", "plan file",
                      "tools/land.py", "reply to give it 2 more hours"):
             self.assertIn(step, reason)
         self.assertNotIn("budget-extend", reason)
+
+
+class Handoff(Fixture):
+    """Eddy, 2026-10-30: time, compactions and turns hand the build to a fresh tab on the
+    same checkout; two missed tries, and a second hand-off in a row, still park and split."""
+
+    def reason(self):
+        return json.loads(self.run_hook("python3 tools/verify_app.py"))[
+            "hookSpecificOutput"]["permissionDecisionReason"]
+
+    def test_time_hands_off(self):
+        reason = self.reason()
+        for step in ("plan file", "## Progress", f"herdr-goal-done --handoff {GOAL}",
+                     f"/build {GOAL}", "never ask him"):
+            self.assertIn(step, reason)
+        self.assertNotIn("reply to give it 2 more hours", reason)
+        self.assertNotIn("tools/land.py", reason)
+
+    def test_compactions_and_turns_hand_off(self):
+        compacted = {"type": "system", "subtype": "compact_boundary"}
+        self.rows([build_row(600), compacted, compacted])
+        self.assertIn("compactions: hand off", self.reason())
+        self.rows([build_row(600), *work(600, 0, every=1)])
+        self.assertIn("turns: hand off", self.reason())
+
+    def test_the_handoff_runs_while_held(self):
+        self.assertEqual(self.hook(f"herdr-goal-done --handoff {GOAL}"), "allow")
+        self.assertEqual(self.hook(f"herdr-goal-done --handoff {GOAL}; {G} commit -am x"),
+                         "deny")
+
+    def test_a_second_handoff_in_a_row_parks(self):
+        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
+        reason = self.reason()
+        self.assertIn("a second time in a row", reason)
+        self.assertIn("reply to give it 2 more hours", reason)
+        self.assertNotIn("--handoff", reason)
+
+    def test_a_handed_off_tab_inside_its_budget_works(self):
+        self.rows([build_row(600, handed_off=True), *work(600, 0)])
+        self.assertEqual(self.hook("python3 tools/verify_app.py"), "allow")
+
+    def test_missed_tries_still_park(self):
+        plan = self.repo / "plan.md"
+        plan.write_text("- [ ] 2. the step\n  missed its proof\n  missed its proof\n")
+        self.rows([build_row(600), *work(600, 0),
+                   {"type": "assistant", "timestamp": stamp(0), "message": {"id": "p", "content": [
+                       {"type": "tool_use", "name": "Edit", "input": {"file_path": str(plan)}}]}}])
+        reason = self.reason()
+        self.assertIn("missed its proof twice", reason)
+        self.assertIn("reply to give it 2 more hours", reason)
+        self.assertNotIn("--handoff", reason)
+
+    def test_goal_done_opens_the_fresh_tab_and_closes_this_one(self):
+        script = HOOK.parents[2] / "herdr" / "goal_done.sh"
+        tree = Path(self.tmp.name) / "bs-ios-bug-9001"
+        git(self.repo, "worktree", "add", "-q", "-b", "side", str(tree), "main")
+        (tree / "dirt.txt").write_text("unfinished\n")  # the dirt stays for the fresh tab
+        env = {**os.environ, "HERDR_TAB_ID": "t1", "HERDR_GOAL_DONE_AGENT": "claude"}
+        out = subprocess.run(["bash", str(script), "--dry-run", "--handoff", GOAL], cwd=tree,
+                             capture_output=True, text=True, env=env)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        lines = out.stdout.splitlines()
+        self.assertIn(f"--cwd {tree.resolve()} --label", lines[0])
+        self.assertIn(f'"/build {GOAL} — handed off (build budget)', lines[1])
+        self.assertEqual(lines[-1], "would run: herdr tab close t1")
+        self.assertNotIn("session_worktree", out.stdout)
+        out = subprocess.run(["bash", str(script), "--dry-run", "--handoff", GOAL], cwd=self.repo,
+                             capture_output=True, text=True, env=env)
+        self.assertNotEqual(out.returncode, 0)
+        self.assertIn("not the shared checkout", out.stderr)
 
 
 class Ended(Fixture):
