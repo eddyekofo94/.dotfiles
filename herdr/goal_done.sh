@@ -110,10 +110,12 @@ command -v jq >/dev/null || die "jq required"
 
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
-open_tab() {  # cwd label boot model mode
+open_tab() {  # cwd label boot model mode [effort]
   local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
-  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium.
-  effort=medium
+  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium; a
+  # record the graph marks escalated opens once at high (BibleStandard
+  # BS-IOS-TASK-1140).
+  effort="${6:-medium}"
   if [ "$session_agent" = "claude" ]; then
     launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
   elif [ "$session_agent" = "codex" ]; then
@@ -363,6 +365,8 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
     next_track=$(printf '%s\n' "$record" | jq -r '.track // empty')
     next_paths=$(printf '%s\n' "$record" | jq -r '(.owned_paths // .paths // [])[]?')
     resuming=$(printf '%s\n' "$record" | jq -r '.resume // false')
+    next_effort=$(printf '%s\n' "$record" | jq -r '.effort // "medium"')
+    next_boot=$(printf '%s\n' "$record" | jq -r '.boot // empty')
     [ -n "$next_id" ] || continue
     tried=$((tried + 1))
     # The id is all this step knows, so the name it can build is `fs094` — while
@@ -387,7 +391,7 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
         continue
       fi
     fi
-    boot="/build ${next_id}"
+    boot="${next_boot:-/build ${next_id}}"
     # FS-262 D9: a resumed branch was cut before main's record; it merges first.
     [ "$resuming" = true ] && boot="${boot} — resumed (FS-262 D9): git merge main first"
     if [ "$BOOT_SET" = 1 ] && [ "$opened" = 0 ]; then boot="$BOOT"; fi
@@ -399,13 +403,13 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
       printf ' %q' "${worktree_args[@]}"
       printf '\n'
       echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-      open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto"
+      open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
       continue
     fi
     if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
-      open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto"
+      open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
     else
