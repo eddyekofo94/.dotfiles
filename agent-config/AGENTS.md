@@ -107,6 +107,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a build is refused or held by another tab's work (an overlap, a stale worktree owner, a parked build), move it yourself in that turn: ask the owning tab through `herdr pane run`, wait in a background job, and open the next `/build` tab with `herdr-goals --build`; never end on a prompt for Eddy to paste (Eddy, 2026-11-02, BS-IOS-TASK-1242 waiting on 1148: "I built a graph system but I have to be pasting prompts to get it going, why not do things yourself?").
+
 - When Eddy names an order mid-task ("X runs first, before anything else"), stop the current work that turn: park it as a WIP commit with a resume note and start X; never finish the current record first, and never call his ask a separate job that waits (Eddy, 2026-10-30, during BS-IOS-TASK-697: "the line reducing tasks should run first before we do anything else? why aren't you listening?").
 
 - When a repo is named, name it for its product (`biblestandard-qa`, `biblestandard-design`), never `canonfidei-*`: CanonFidei is the org; and invite only `emmanuelrichard01` on Bible Standard repos (Eddy, 2026-10-30: "canonfidei-qa-evidence … this is bible standard"; the other collaborator's name was removed from the rules).
