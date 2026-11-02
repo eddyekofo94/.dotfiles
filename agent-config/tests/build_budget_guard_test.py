@@ -613,6 +613,39 @@ class Ended(Fixture):
         self.write_record("DONE — Awaiting Verdict")
         self.assertEqual(self.hook(WORK), "allow")
 
+    def test_other_work_typed_after_the_build_ends_it(self):  # Eddy, 2026-11-02
+        self.assertEqual(self.hook(WORK), "deny")
+        for text in ("  /spec BS-IOS-TASK-1239\nSettle it.",
+                     "<command-message>verdict</command-message>\n<command-name>/verdict"
+                     "</command-name>"):
+            with self.subTest(text=text):
+                self.rows([build_row(3 * 3600), *work(3 * 3600, 60), typed(30, text)])
+                self.assertEqual(self.hook(WORK), "allow")
+
+    def test_a_build_after_other_work_counts_afresh(self):
+        self.rows([build_row(3 * 3600), *work(3 * 3600, 2 * 3600), typed(2 * 3600, "/spec X"),
+                   build_row(3600), *work(3600, 0)])
+        self.assertEqual(self.hook(WORK), "allow")  # one hour into the new build
+        self.rows([build_row(3 * 3600), *work(3 * 3600, 2 * 3600), typed(2 * 3600, "/spec X"),
+                   build_row(2 * 3600 + 600), *work(2 * 3600 + 600, 0)])
+        self.assertEqual(self.hook(WORK), "deny")
+
+    def test_a_question_mid_build_ends_nothing(self):
+        self.rows([build_row(3 * 3600), *work(3 * 3600, 60),
+                   typed(30, "<command-message>bro</command-message>\n<command-name>/bro"
+                             "</command-name>")])
+        self.assertEqual(self.hook(WORK), "deny")
+
+    def test_record_moved_on_in_the_build_s_own_repo_lifts_it(self):
+        other = Path(self.tmp.name) / "web"
+        git(Path(self.tmp.name), "init", "-q", "-b", "main", str(other))
+        row = build_row(3 * 3600)
+        row["cwd"] = str(self.repo)
+        self.rows([row, *work(3 * 3600, 0)])
+        self.assertEqual(self.hook(WORK, cwd=other), "deny")
+        self.write_record("Implemented — awaiting confirmation")
+        self.assertEqual(self.hook(WORK, cwd=other), "allow")
+
     def test_cleanup_after_landing_passes_without_extend(self):  # Done when
         tree = Path(self.tmp.name) / "wt"
         git(self.repo, "worktree", "add", "-q", "-b", "side", str(tree), "main")

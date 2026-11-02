@@ -38,6 +38,9 @@ as two missed tries always do.
 The hold ends with the build (BS-IOS-BUG-581 D1): once the record's `Status:` no
 longer reads Ready To Build, Ready To Act or IN PROGRESS, or the checkout's HEAD is in
 `origin/main` (or `main`) and was committed after the build began, nothing is held.
+The record is read in the checkout the call runs in, then in the one the /build began in.
+Eddy typing other work (`/spec`, `/verdict`, `/sweep`, `/report`, `/focus`, `/demo`)
+ends the build too; only a later `/build` opens a new one (Eddy, 2026-11-02).
 
 Calls still allowed so the agent can park:
   Read, Glob, Grep; Edit/Write/MultiEdit on a plan file (`plan.md`, or `plan-<id>.md`
@@ -99,6 +102,11 @@ SEPARATORS = {"&&", "||", ";", "|", "\n"}
 ACTIVE = ("ready to build", "ready to act", "in progress")
 BUILD_START = re.compile(r"^\s*(?:<command-message>build</command-message>\s*)?"
                          r"(?:<command-name>)?[/$]build\b")
+#: Eddy typing one of these verbs starts other work, so the build before it is over
+#: ("the workflow is too strict and clearly broken", Eddy, 2026-11-02: a /spec typed
+#: after a landed build was held). A later /build opens a new window.
+OTHER_WORK = re.compile(r"^\s*(?:<command-message>[\w:-]+</command-message>\s*)?"
+                        r"(?:<command-name>)?[/$](?:spec|verdict|sweep|report|focus|demo)\b")
 STEP = re.compile(r"^- \[[ xX]\]")
 #: This guard's own denial as Claude writes it into the tool result (D2).
 DENIAL = re.compile(r"^(?:PreToolUse:\S+ hook error: )?Build budget guard: (.*)", re.S)
@@ -152,7 +160,7 @@ class Window:
     open window's working time, compactions and turns, with the steps Eddy waved on."""
 
     def __init__(self):
-        self.started = self.goal = self.plan = self.last = None
+        self.started = self.goal = self.plan = self.last = self.root = None
         self.handed_off = False  # this tab is a hand-off's fresh /build
         self.working = 0.0
         self.compactions = 0
@@ -204,7 +212,12 @@ def scan(transcript: str) -> Window:
                         r"[/$]build\s+(\S+)", text)
                     window.goal = args.group(1) if args else None
                     window.handed_off = HANDED_OFF in text
+                    window.root = row.get("cwd")  # the record lives in the build's own repo
             else:
+                if kind == "user" and typed(row) and OTHER_WORK.match(
+                        text_of(message.get("content"))):
+                    window = Window()  # the build is over; only a later /build counts
+                    continue
                 if kind == "user" and window.denials and typed(row) and row.get("timestamp"):
                     window.reopen(row["timestamp"])
                 else:
@@ -269,12 +282,17 @@ def record_status(cwd: Path, goal_id: str) -> str | None:
     return None
 
 
-def hold_ended(cwd: Path, goal_id: str | None, start: float) -> bool:
+def hold_ended(cwd: Path, goal_id: str | None, start: float, root: str | None = None) -> bool:
     """The build is over (D1): its record left the active states, or this checkout's
-    HEAD landed in main after the build began."""
-    if goal_id and (status := record_status(cwd, goal_id)) is not None:
-        if not any(word in status for word in ACTIVE):
-            return True
+    HEAD landed in main after the build began. The record is read in this checkout,
+    then in the one the /build began in (a build that moved to another repo's worktree)."""
+    for place in (cwd, Path(root) if root else None):
+        if not (goal_id and place and place.is_dir()):
+            continue
+        if (status := record_status(place, goal_id)) is not None:
+            if not any(word in status for word in ACTIVE):
+                return True
+            break
     stamp = git(cwd, "log", "-1", "--format=%ct").stdout.strip()
     if not (stamp.isdigit() and int(stamp) > start and landed(cwd)):
         return False
@@ -578,7 +596,7 @@ def main() -> int:
             why, cap = f"a step missed its proof twice ({step})", False
         if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}, cwd):
             return 0
-        if hold_ended(cwd, window.goal, window.started):
+        if hold_ended(cwd, window.goal, window.started, window.root):
             return 0
         if cap and window.handed_off:
             why += " a second time in a row (a hand-off already opened this tab)"
