@@ -23,6 +23,8 @@ graph = {'unjudged': int(os.environ.get('UNJUDGED', '0')), 'eddy_waiting': 7,
          'verdict_seat': os.environ.get('SEAT', 'free')}
 if os.environ.get('EMPTY_RANKING') == '1':
     graph['next'] = []
+elif os.environ.get('NEXT_JSON'):
+    graph['next'] = json.loads(os.environ['NEXT_JSON'])
 else:
     graph['next'] = [{'id':'DF-1','owned_paths':['a','b']}]
 if os.environ.get('RESUME') == '1':
@@ -222,6 +224,19 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertFalse(log.exists())
         self.invoke(ranked=False, dry_run=True)
         self.assertFalse(log.exists())
+
+    def test_an_exclusive_track_still_opens_what_its_records_wait_on(self):
+        # 2026-11-03: the track's records waited on untracked bugs the filter
+        # dropped, so nothing could ever open.
+        focus = self.repo / "project/workflow/FOCUS.md"
+        focus.parent.mkdir(parents=True, exist_ok=True)
+        focus.write_text("### Quality\n- State: focus\n- Exclusive: yes\n")
+        ranked = [{'id': 'DF-8', 'track': ''}, {'id': 'DF-9', 'track': ''},
+                  {'id': 'DF-5', 'track': 'Quality'}]
+        result = self.invoke(env_extra={"NEXT_JSON": json.dumps(ranked)})
+        self.assertTrue(self.worktree_calls.exists(), result.stdout + result.stderr)
+        goals = [c[c.index("--goal") + 1] for c in self.calls(self.worktree_calls)]
+        self.assertEqual(goals, ["DF-9", "DF-5"])
 
     def test_the_refill_opens_builds_then_the_verdict_lane_never_a_grill(self):
         result = self.invoke(unjudged=2, place_manager=True)
