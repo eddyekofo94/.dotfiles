@@ -96,6 +96,14 @@ class Fixture(unittest.TestCase):
              "content": f"PreToolUse:Bash hook error: {reason}"}]}}], append=True)
         return reason
 
+    def missed_twice(self):
+        """Two missed tries on one step: the only cap that parks (Eddy, 2026-11-03)."""
+        plan = self.repo / "plan.md"
+        plan.write_text("- [ ] 2. the step\n  missed its proof\n  missed its proof\n")
+        self.rows([{"type": "assistant", "timestamp": stamp(0), "message": {"id": "p", "content": [
+            {"type": "tool_use", "name": "Edit", "input": {"file_path": str(plan)}}]}}],
+            append=True)
+
     def write_record(self, status):
         bugs = self.repo / "project" / "bugs"
         bugs.mkdir(parents=True, exist_ok=True)
@@ -157,7 +165,7 @@ class Held(Fixture):
         self.assertEqual(self.hook(WORK), "deny")
 
     def test_reason_asks_for_a_reply_never_a_command(self):  # BS-IOS-BUG-670 D2, D4
-        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
+        self.missed_twice()
         reason = json.loads(self.run_hook(WORK))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         self.assertIn("reply to give it 2 more hours", reason)
@@ -252,41 +260,12 @@ class Reply(Fixture):
 
 
 class Compactions(Fixture):
-    """A build inside its 2 h that has compacted twice is held (retro 2026-10-27)."""
+    """Compactions hold nothing: a build compacts as often as it needs (Eddy, 2026-11-03:
+    "it should be able to run as many compactions as it wants")."""
 
-    def begin(self, boundaries, sidechain=False, before=0):
-        rows = [{"type": "system", "subtype": "compact_boundary"}] * before
-        started = datetime.fromtimestamp(time.time() - 600, timezone.utc)
-        rows.append({"type": "user", "timestamp": started.isoformat().replace("+00:00", "Z"),
-                     "message": {"content": f"<command-name>/build</command-name>\n"
-                                            f"<command-args>{GOAL}</command-args>"}})
-        rows += [{"type": "system", "subtype": "compact_boundary",
-                  **({"isSidechain": True} if sidechain else {})}] * boundaries
-        self.transcript.write_text("".join(json.dumps(r) + "\n" for r in rows))
-
-    def test_one_compaction_passes_two_are_held(self):
-        self.begin(1)
-        self.assertEqual(self.hook(WORK), "allow")
-        self.begin(2)
-        self.assertEqual(self.hook(WORK), "deny")
-
-    def test_parking_calls_pass_at_two(self):
-        self.begin(2)
-        self.assertEqual(self.hook(f"{G} status --short"), "allow")
-        self.assertEqual(self.hook("x", tool="Read"), "allow")
-
-    def test_not_counted_sidechain_or_before_the_build(self):
-        self.begin(2, sidechain=True, before=3)
-        self.assertEqual(self.hook(WORK), "allow")
-
-    def test_a_reply_and_the_record_moving_on_lift_it(self):
-        self.begin(3)
-        self.denied()
-        self.rows([typed(0)], append=True)
-        self.assertEqual(self.hook(WORK), "allow")
-        self.rows([{"type": "system", "subtype": "compact_boundary"}] * 2, append=True)
-        self.assertEqual(self.hook(WORK), "deny")
-        self.write_record("DONE")
+    def test_any_number_of_compactions_passes(self):
+        compacted = {"type": "system", "subtype": "compact_boundary"}
+        self.rows([build_row(600), *work(600, 0), *[compacted] * 8])
         self.assertEqual(self.hook(WORK), "allow")
 
 
@@ -456,7 +435,7 @@ class Park(Fixture):
         self.assertIn("missed its proof twice", self.run_hook(WORK))
 
     def test_reason_names_the_park_steps(self):  # D3
-        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
+        self.missed_twice()
         reason = json.loads(self.run_hook(WORK))[
             "hookSpecificOutput"]["permissionDecisionReason"]
         for step in ("/tmp", "--output=", f"{G} checkout -- <file>", "rm <file>", "plan file",
@@ -466,8 +445,8 @@ class Park(Fixture):
 
 
 class Handoff(Fixture):
-    """Eddy, 2026-10-30: time, compactions and turns hand the build to a fresh tab on the
-    same checkout; two missed tries, and a second hand-off in a row, still park and split."""
+    """Eddy, 2026-10-30: time and turns hand the build to a fresh tab on the same checkout,
+    every time (2026-11-03); only two missed tries park and split."""
 
     def reason(self):
         return json.loads(self.run_hook(WORK))[
@@ -481,10 +460,7 @@ class Handoff(Fixture):
         self.assertNotIn("reply to give it 2 more hours", reason)
         self.assertNotIn("tools/land.py", reason)
 
-    def test_compactions_and_turns_hand_off(self):
-        compacted = {"type": "system", "subtype": "compact_boundary"}
-        self.rows([build_row(600), compacted, compacted])
-        self.assertIn("compactions: hand off", self.reason())
+    def test_turns_hand_off(self):
         self.rows([build_row(600), *work(600, 0, every=1)])
         self.assertIn("turns: hand off", self.reason())
 
@@ -493,12 +469,12 @@ class Handoff(Fixture):
         self.assertEqual(self.hook(f"herdr-goal-done --handoff {GOAL}; {G} commit -am x"),
                          "deny")
 
-    def test_a_second_handoff_in_a_row_parks(self):
+    def test_a_handed_off_tab_hands_off_again(self):  # Eddy, 2026-11-03
         self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
         reason = self.reason()
-        self.assertIn("a second time in a row", reason)
-        self.assertIn("reply to give it 2 more hours", reason)
-        self.assertNotIn("--handoff", reason)
+        self.assertIn(f"herdr-goal-done --handoff {GOAL}", reason)
+        self.assertNotIn("reply to give it 2 more hours", reason)
+        self.assertNotIn("second", reason)
 
     def test_a_handed_off_tab_inside_its_budget_works(self):
         self.rows([build_row(600, handed_off=True), *work(600, 0)])
@@ -547,7 +523,7 @@ class Finish(Fixture):
         return "deny" if '"deny"' in out else "allow"
 
     def reason(self, cwd=None):
-        self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
+        self.missed_twice()
         return json.loads(self.run_hook(WORK, cwd=cwd))[
             "hookSpecificOutput"]["permissionDecisionReason"]
 

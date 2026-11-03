@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build budget guard: stop a /build session past 2 hours, 400 turns or two missed tries (Eddy, 2026-10-24).
+"""Build budget guard: hand a /build to a fresh tab past 2 hours or 400 turns; park it at two missed tries (Eddy, 2026-10-24).
 
 PreToolUse hook (all tools; subagents carry `agent_id` and are skipped). It makes
 `.claude/playbooks/build.md` §2 mechanical: "A step that misses its proof twice is
@@ -13,15 +13,13 @@ start = that first message's timestamp (the transcript file survives compaction)
 Every rule counts inside a window that opens at the build start (BS-IOS-BUG-670 D2).
 Eddy's own message typed in this tab after one of this guard's denials opens a new one:
 a real user turn (`origin.kind` human), never hook text, a task notification or a tool
-result. The new window counts time, compactions and turns from that message, and the
+result. The new window counts time and turns from that message, and the
 step a denial named no longer counts as missed. Nothing else lifts a hold but the
 build ending; there is no file to make.
 
-Rules, each denying the tool call with a "park and split" reason:
+Rules, each denying the tool call:
   time   working time in the window > 2 h (D1): the gaps between transcript rows, and
          from the last row to now, each capped at 10 min, so an idle night adds 10 min
-  compactions  the transcript holds 2 or more `compact_boundary` rows after the build
-         start (retro 2026-10-27: every top /build compacted 4-8 times; split at the second)
   turns  400 or more distinct main-thread assistant `message.id`s after the build start
          (BS-IOS-TASK-671: a tight loop that finishes inside 2 h)
   tries  in the build's plan.md (the last plan.md the transcript Edit/Write'd), one
@@ -29,11 +27,12 @@ Rules, each denying the tool call with a "park and split" reason:
          or more markers ("missed its proof", "failed, not ticked", "**failed") and is
          not marked parked (`parked`, `skip:`)
 
-Time, compactions and turns hand off instead (Eddy, 2026-10-30): the denial says to write
-the plan file's Progress and run `herdr-goal-done --handoff <ID>`, which opens a fresh
-`/build <ID>` tab on the same checkout and closes this one. That tab's `/build` message
-carries HANDED_OFF; a cap that trips there (a second hand-off in a row) parks and splits,
-as two missed tries always do.
+Time and turns hand off (Eddy, 2026-10-30): the denial says to write the plan file's
+Progress and run `herdr-goal-done --handoff <ID>`, which opens a fresh `/build <ID>` tab on
+the same checkout and closes this one, as often as the build needs. Compactions count for
+nothing, and a hand-off tab that runs out hands off again; only two missed tries park and
+split (Eddy, 2026-11-03: "it should be able to run as many compactions as it wants or
+simply handoff and continue on another tab, this breaks the self running agent flow").
 
 The hold ends with the build (BS-IOS-BUG-581 D1): once the record's `Status:` no
 longer reads Ready To Build, Ready To Act or IN PROGRESS, or the checkout's HEAD is in
@@ -80,7 +79,6 @@ from pathlib import Path
 
 LIMIT_SECONDS = 2 * 3600
 GAP_CAP_SECONDS = 600  # D1: one gap between rows counts at most 10 min of work
-COMPACTION_LIMIT = 2
 TURN_LIMIT = 400
 MISS = ("missed its proof", "failed, not ticked", "**failed")
 PARKED = ("parked", "skip:")
@@ -114,8 +112,6 @@ MISSED = re.compile(r"a step missed its proof twice \((.*)\) \(build\.md")
 #: Text Claude injects as a user row that Eddy did not type (no `origin` on older rows).
 NOT_TYPED = ("<task-notification>", "<system-reminder>", "<local-command", "Caveat:",
              "[Request interrupted")
-#: `herdr-goal-done --handoff` writes this into the fresh tab's `/build` message.
-HANDED_OFF = "handed off (build budget)"
 
 
 def when(stamp: str) -> float:
@@ -157,13 +153,11 @@ def denial(row: dict) -> str | None:
 
 class Window:
     """What the transcript says about the build (D1, D2): its start, goal and plan, and the
-    open window's working time, compactions and turns, with the steps Eddy waved on."""
+    open window's working time and turns, with the steps Eddy waved on."""
 
     def __init__(self):
         self.started = self.goal = self.plan = self.last = self.root = None
-        self.handed_off = False  # this tab is a hand-off's fresh /build
         self.working = 0.0
-        self.compactions = 0
         self.turns: set[str] = set()
         self.denials: list[str] = []
         self.excused: set[str] = set()
@@ -179,7 +173,7 @@ class Window:
     def reopen(self, stamp: str) -> None:
         """Eddy replied after a denial: a fresh window from his message (D2)."""
         self.last = when(stamp)
-        self.working, self.compactions, self.turns = 0.0, 0, set()
+        self.working, self.turns = 0.0, set()
         self.excused |= {m.group(1) for d in self.denials if (m := MISSED.search(d))}
         self.denials = []
 
@@ -211,7 +205,6 @@ def scan(transcript: str) -> Window:
                     args = re.search(r"<command-args>\s*([^\s<]+)", text) or re.search(
                         r"[/$]build\s+(\S+)", text)
                     window.goal = args.group(1) if args else None
-                    window.handed_off = HANDED_OFF in text
                     window.root = row.get("cwd")  # the record lives in the build's own repo
             else:
                 if kind == "user" and typed(row) and OTHER_WORK.match(
@@ -224,8 +217,6 @@ def scan(transcript: str) -> Window:
                     window.tick(row.get("timestamp"))
                 if kind == "user" and (reason := denial(row)):
                     window.denials.append(reason)
-                elif kind == "system" and row.get("subtype") == "compact_boundary":
-                    window.compactions += 1
                 elif kind == "assistant" and message.get("id"):
                     window.turns.add(message["id"])  # one turn streams as several rows, one id
             for block in message.get("content") or []:
@@ -560,7 +551,7 @@ def reason(why: str, cwd: Path) -> str:
 
 
 def handoff(why: str, goal: str) -> str:
-    """Time, compactions and turns hand the build to a fresh tab, once in a row (Eddy,
+    """Time and turns hand the build to a fresh tab, every time they trip (Eddy,
     2026-10-30: "the limit is good but we should temporarily handoff where we are and
     create a new tab with the context")."""
     return (f"Build budget guard: {why}: hand off to a fresh tab, never a third try or a "
@@ -568,8 +559,7 @@ def handoff(why: str, goal: str) -> str:
             "Progress` say what is next, the proof still owed and any backup under /tmp. "
             "Commit nothing; the dirt stays in this checkout for the fresh tab. 2. Run "
             f"`herdr-goal-done --handoff {goal}`: it opens `/build {goal}` on this checkout "
-            "and closes this tab (Eddy's settled call; never ask him to run it). A second "
-            "hand-off in a row on this record parks and splits it.")
+            "and closes this tab (Eddy's settled call; never ask him to run it).")
 
 
 def main() -> int:
@@ -586,22 +576,18 @@ def main() -> int:
         cwd = Path(data.get("cwd") or os.getcwd())
         plan, now = window.plan, datetime.now(timezone.utc).timestamp()
         why, cap = None, True
-        if window.working_until(now) > LIMIT_SECONDS:
+        # A stuck step parks first: a hand-off would only carry it to the next tab.
+        if plan and os.path.exists(plan) and (step := missed_step(plan, window.excused)):
+            why, cap = f"a step missed its proof twice ({step})", False
+        elif window.working_until(now) > LIMIT_SECONDS:
             why = "build past 2 h of working time"
-        elif window.compactions >= COMPACTION_LIMIT:
-            why = f"build past {COMPACTION_LIMIT} compactions"
         elif len(window.turns) >= TURN_LIMIT:
             why = f"build past {TURN_LIMIT} turns"
-        elif plan and os.path.exists(plan) and (step := missed_step(plan, window.excused)):
-            why, cap = f"a step missed its proof twice ({step})", False
         if why is None or allowed_call(data.get("tool_name", ""), data.get("tool_input") or {}, cwd):
             return 0
         if hold_ended(cwd, window.goal, window.started, window.root):
             return 0
-        if cap and window.handed_off:
-            why += " a second time in a row (a hand-off already opened this tab)"
-        text = (handoff(why, window.goal) if cap and window.goal and not window.handed_off
-                else reason(why, cwd))
+        text = handoff(why, window.goal) if cap and window.goal else reason(why, cwd)
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PreToolUse", "permissionDecision": "deny",
             "permissionDecisionReason": text}}))
