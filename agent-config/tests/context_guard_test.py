@@ -10,6 +10,9 @@ from pathlib import Path
 
 HOOK = Path(__file__).resolve().parent.parent / "claude" / "context_guard.py"
 SESSION = "d29b02d1-test"
+# The sizes below were written against an 87k fallback; they scale with it.
+SCALE = next(int(l.split("=")[1].split("#")[0].strip().replace("_", ""))
+             for l in HOOK.read_text().splitlines() if l.startswith("FALLBACK_WINDOW =")) / 87_000
 
 
 class ContextGuardHoldTest(unittest.TestCase):
@@ -23,10 +26,10 @@ class ContextGuardHoldTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def at(self, *sizes: int) -> None:
-        """The transcript's usage lines; the window is the 87k fallback unless a size drops."""
+        """The transcript's usage lines; the window is the fallback unless a size drops."""
         with self.transcript.open("a") as handle:
             for size in sizes:
-                handle.write(json.dumps({"message": {"usage": {"input_tokens": size}}}) + "\n")
+                handle.write(json.dumps({"message": {"usage": {"input_tokens": int(size * SCALE)}}}) + "\n")
 
     def hook(self, event: str, tool: str = "", tool_input: dict | None = None, **extra) -> dict:
         payload = {"session_id": SESSION, "transcript_path": str(self.transcript),
