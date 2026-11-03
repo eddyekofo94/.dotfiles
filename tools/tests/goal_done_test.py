@@ -27,6 +27,9 @@ else:
     graph['next'] = [{'id':'DF-1','owned_paths':['a','b']}]
 if os.environ.get('RESUME') == '1':
     graph['resume'] = [{'id':'DF-7','slug':'df7-old'}]
+graph['focus'] = 'Quality'
+graph['waiting'] = [{'id':'DF-3','track':'Quality','waiting_on':['DF-9']},
+                    {'id':'DF-4','track':'Other','waiting_on':['DF-8']}]
 print(json.dumps(graph))
 """)
         (self.repo / "tools/session_worktree.py").write_text("""#!/usr/bin/env python3
@@ -109,6 +112,8 @@ if sys.argv[1:3] == ['pane', 'get']:
             UNJUDGED=str(unjudged),
             SEAT=seat,
             RESUME="1" if resume else "0",
+            HERDR_CHAIN_LOG=str(self.repo.parent / "chain.log"),
+            HERDR_CHAIN_NOTIFY="0",
         )
         env.update(env_extra or {})
         if identity_env:
@@ -202,6 +207,21 @@ if sys.argv[1:3] == ['pane', 'get']:
                               result.stdout)
                 self.assertNotIn("/todo", result.stdout)
                 self.assertEqual(self.opened(), [])
+
+    def test_a_stopped_chain_is_logged_with_what_the_focus_track_waits_on(self):
+        # Eddy, 2026-11-03: the stop printed into a closing tab and the chain
+        # sat silent all night. A full cap is not a stop: builds still run.
+        log = self.repo.parent / "chain.log"
+        result = self.invoke(ranked=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("wait on DF-9 — /spec them", result.stdout)
+        self.assertIn("nothing in Quality can start", log.read_text())
+        self.assertNotIn("DF-8", log.read_text())
+        log.unlink()
+        self.invoke(manager_exit=3)
+        self.assertFalse(log.exists())
+        self.invoke(ranked=False, dry_run=True)
+        self.assertFalse(log.exists())
 
     def test_the_refill_opens_builds_then_the_verdict_lane_never_a_grill(self):
         result = self.invoke(unjudged=2, place_manager=True)

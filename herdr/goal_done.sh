@@ -462,6 +462,23 @@ if [ "$OPEN_TODO" = 1 ]; then
     else
       echo "goal-done: nothing Ready — /spec when you have the attention (no tab opened)"
     fi
+    # Eddy, 2026-11-03 ("I went to sleep … nothing is running"): the lines above
+    # print into a tab that closes a moment later, so a stopped chain was silent
+    # all night. A stop with no build left running is written to a log and
+    # posted as a notification, naming what the focus track waits on.
+    if [ "$cap_full" = 0 ] && [ "$DRY" = 0 ]; then
+      focus=$(jq -r '.focus // empty' <<<"$focus_json" 2>/dev/null)
+      blockers=$(jq -r --arg t "$focus" '[.waiting[]? | select($t == "" or .track == $t) | .waiting_on[]?] | unique | join(", ")' <<<"$focus_json" 2>/dev/null)
+      stop_msg="The build chain stopped: nothing in ${focus:-the focus track} can start"
+      [ -n "$blockers" ] && stop_msg="${stop_msg}; its records wait on ${blockers} — /spec them"
+      chain_log="${HERDR_CHAIN_LOG:-$HOME/.local/state/herdr/chain.log}"
+      mkdir -p "$(dirname "$chain_log")" &&
+        printf '%s %s (after %s)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$stop_msg" "${goal_id:-${slug:-fill}}" >>"$chain_log"
+      echo "goal-done: ${stop_msg}"
+      if [ "${HERDR_CHAIN_NOTIFY:-1}" = 1 ] && command -v osascript >/dev/null; then
+        osascript -e "display notification \"${stop_msg//\"/}\" with title \"Build chain stopped\" sound name \"Basso\"" >/dev/null 2>&1 || true
+      fi
+    fi
   fi
 fi
 
