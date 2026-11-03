@@ -107,6 +107,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When pointing Eddy to a file or folder, give its full path from `/Users/eddyekofo/`, open it in Finder (`open <folder>`), and say when a dot folder (`.working`) is hidden there (Cmd+Shift+. shows it); never a path relative to a repo (Eddy, 2026-11-03: "You can't just give me a path which I can't search for anywhere").
+
 - When Eddy leaves the chain to run unattended (sleep, away), read what the fill opens next (`features_index.py --focus --json`: `next`, and `waiting` for the focus track) and name it; if the focus track's records wait on a record that is not Ready, settle or flag it before he goes, and never open a waiting record by hand around its `depends on` (Eddy, 2026-11-03: "I went to sleep and I came back nothing is running"; the Code quality track sat behind BS-IOS-TASK-772 at Spec Needed from 05:48).
 
 - When a build is refused or held by another tab's work (an overlap, the build cap, a parked build), free it yourself that turn and end only once the `/build` tab is open: read the owning tab's screen (`herdr pane read`) before calling it idle; for a lane your own paused build holds, commit it, copy its plan to `~/Archive/github-backup/parked-notes/<ID>/`, `git worktree unlock` and `remove` it from the shared checkout, then `herdr-goals --build <ID>`; a closeout that hands Eddy a prompt for this is the mistake, made twice on 2026-11-02 (BS-IOS-TASK-1242 behind 1148, then behind 1132: "I built a graph system but I have to be pasting prompts to get it going, why not do things yourself?").
