@@ -6,6 +6,7 @@
 # Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
 #        herdr-goals --track NAME [--track NAME] [--dry-run]   one track tab each
 #        herdr-goals --build ID [--track NAME] [--dry-run]     one /build tab
+#        herdr-goals --settle NAME [--dry-run]                 one /spec track tab
 #   model is an alias (`opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   resume-target is a session id (resumes it directly), the literal `pick`
@@ -97,13 +98,17 @@ fi
 # BibleStandard BS-IOS-TASK-849: `--track` opens one long-lived `track-<slug>`
 # tab in the shared checkout, booted `/build track <name>`; `--build` opens the
 # one `/build <ID>` tab a track tab opens for each record in its order.
-TRACKS=(); BUILD_ID=""; DRY_RUN=0
+# BibleStandard (Eddy, 2026-11-03: "when /focus is called we should run already
+# settled and seek to settle anything on that track that's not ready to build"):
+# `--settle` opens one `settle-<slug>` tab in the shared checkout on Opus high,
+# booted `/spec track <name>`, so `/focus` starts the settling, never a prompt.
+TRACKS=(); BUILD_ID=""; SETTLE=""; DRY_RUN=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help) sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    --track|--build)
+    -h|--help) sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --track|--build|--settle)
       [ -n "${2:-}" ] || { echo "herdr-goals: $1 needs a value" >&2; exit 2; }
-      if [ "$1" = --track ]; then TRACKS+=("$2"); else BUILD_ID="$2"; fi
+      case "$1" in --track) TRACKS+=("$2") ;; --build) BUILD_ID="$2" ;; *) SETTLE="$2" ;; esac
       shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
@@ -115,7 +120,15 @@ SPECS=("$@")
 BOOTS=()
 FOCUS_MD="${REPO}/project/workflow/FOCUS.md"
 track_slug() { tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g'; }
-if [ -n "$BUILD_ID" ]; then
+if [ -n "$SETTLE" ]; then
+  canon=$(awk -v want="$SETTLE" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
+  [ -n "$canon" ] || { echo "herdr-goals: no track \"$SETTLE\" in FOCUS.md" >&2; exit 2; }
+  slug=$(track_slug "$canon")
+  if herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -qx "▸ settle-${slug}"; then
+    echo "herdr-goals: settle-${slug} is already open" >&2; exit 0
+  fi
+  SPECS+=("settle-${slug}:opus::shared"); BOOTS+=("/spec track ${canon}")
+elif [ -n "$BUILD_ID" ]; then
   SPECS+=("$(id_slug "$BUILD_ID"):opus")
   BOOTS+=("/build ${BUILD_ID}${TRACKS[0]:+ — track ${TRACKS[0]}}")
 elif [ ${#TRACKS[@]} -gt 0 ]; then
@@ -143,7 +156,7 @@ elif [ ${#TRACKS[@]} -gt 0 ]; then
   [ ${#SPECS[@]} -gt 0 ] || exit 0
 fi
 if [ "$DRY_RUN" = 1 ]; then
-  [ ${#SPECS[@]} -gt 0 ] || { echo "herdr-goals --dry-run: name --track or --build" >&2; exit 2; }
+  [ ${#SPECS[@]} -gt 0 ] || { echo "herdr-goals --dry-run: name --track, --build or --settle" >&2; exit 2; }
   for i in "${!SPECS[@]}"; do
     echo "would open ${SPECS[$i]%%:*} (boot ${BOOTS[$i]:-none}) in ${REPO}"
     case "${BOOTS[$i]:-}" in "/build track "*)
@@ -329,7 +342,7 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
     # FS-100 (Eddy, 2026-09-25), amended 2026-10-24: a grill decides at high, never
     # max unless Eddy asks ("I don't want to use Max effort ... it's token eating");
     # builds and the verdict lane build at medium.
-    if [ "$label" = "grill" ]; then effort=high; else effort=medium; fi
+    case "$label" in grill|settle-*) effort=high ;; *) effort=medium ;; esac
     launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in
