@@ -115,6 +115,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a track is building and Eddy gives input or a verdict, that goes first: a fix record born of his fail or words is queued ahead of the track's unbuilt records, and his words are acted on in that turn, never left behind a queue (Eddy, 2026-11-04: "when we are building a track, immediate input and verdicts should take priority in the future"; Home's BUG-1396 and BUG-1401 sat behind the Offers until he asked).
+
 - When a Bible Standard repo needs a verb only iOS ships (`/verdict`, `/sweep`, `/focus`), run it there through the global router in `~/.agent-skills/<verb>/SKILL.md`, which opens the iOS playbook on that repo's own records; a verb missing from a repo is a router to add, never a reason to send Eddy to the iOS tab. To press a SwiftUI row in the simulator, use a held touch (`axe touch --down --up --delay 0.2`): a plain `axe tap` reports success but does not fire it (Eddy, 2026-11-04: "How come that skill is not loading here? All the skills for iOS should be applicable to all Bible standard?"; BS-DATA-BUG-57).
 
 - When a Bible Standard task is a data job (building, relinking or auditing packages, uploading them to the R2 bucket `bs-libraries`, writing the manifest), run the data repo's tool from whichever Bible Standard repo you are in (`~/Programming/Projects/CanonFidei/biblestandard/data`); never call it an iOS step or send Eddy to another repo for it. R2 belongs to data, not iOS (Eddy, 2026-11-04: "from any bible standard repo I should be able to perform any of these tasks … uploaded to R2 bucket is a data thing, not iOS?"; BS-DATA-TASK-97).
