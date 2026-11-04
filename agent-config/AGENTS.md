@@ -115,6 +115,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a prompt says "Close this tab and open a new one with:", do both yourself in that turn: open the new tab (`herdr tab create`, `herdr pane run`), check it took the prompt (`herdr pane read`), then close your own tab (`herdr tab close <your tab id>`, from `herdr pane current`) as the last call; never leave "close this tab" as Eddy's next move (Eddy, 2026-11-04: "didn't the message say "Close this tab"? why not you do it?").
+
 - When a step's Ready-to-paste prompt continues a skill that pins a model (`/spec` and `/build` on Opus), start the prompt with that slash command; a plain "yes" turn runs on the tab's default Sonnet (Eddy, 2026-11-04: "runs on Opus bro").
 
 - When pointing Eddy to a file or folder, give its full path from `/Users/eddyekofo/`, open it in Finder (`open <folder>`), and say when a dot folder (`.working`) is hidden there (Cmd+Shift+. shows it); never a path relative to a repo (Eddy, 2026-11-03: "You can't just give me a path which I can't search for anywhere").
