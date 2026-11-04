@@ -409,6 +409,8 @@ def orphaned(repo: Path) -> bool:
     leave it unbuilt for good; goal-done's fill resumes it first (FS-262 D9)."""
     index = repo / "tools/features_index.py"
     if not index.exists():
+        index = repo / "tools/records.py"  # BibleStandard BS-DATA-TASK-84: the data checkout
+    if not index.exists():
         return False
     try:
         out = subprocess.run([sys.executable, str(index), "--focus", "--json"],

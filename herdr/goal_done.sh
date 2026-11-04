@@ -329,8 +329,14 @@ tried=0
 cap_full=0
 waiting=""
 verdict_opened=0
-if [ "$OPEN_TODO" = 1 ] && [ -f "$shared/tools/features_index.py" ]; then
-  focus_json=$( (cd "$shared" && python3 tools/features_index.py --focus --json 2>/dev/null) ) || focus_json="{}"
+# The work graph that names the next record: iOS's features_index.py, else a repo's
+# records.py (BibleStandard BS-DATA-TASK-84: the data checkout, one build at a time).
+focus_tool=""
+if [ -f "$shared/tools/features_index.py" ]; then focus_tool=tools/features_index.py
+elif [ -f "$shared/tools/records.py" ] && [ -f "$shared/tools/session_worktree.py" ]; then focus_tool=tools/records.py
+fi
+if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
+  focus_json=$( (cd "$shared" && python3 "$focus_tool" --focus --json 2>/dev/null) ) || focus_json="{}"
   # Eddy, 2026-10-24 ("these other tabs have to wait till we split these files"):
   # a focus track marked `- Exclusive: yes` in FOCUS.md opens only its own records.
   exclusive=$(awk '/^### /{name=substr($0,5); f=0} /^- State: focus/{f=1} f && /^- Exclusive: yes/{print name; exit}' "$shared/project/workflow/FOCUS.md" 2>/dev/null)
