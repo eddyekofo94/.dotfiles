@@ -115,6 +115,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a Bible Standard repo needs a verb only iOS ships (`/verdict`, `/sweep`, `/focus`), run it there through the global router in `~/.agent-skills/<verb>/SKILL.md`, which opens the iOS playbook on that repo's own records; a verb missing from a repo is a router to add, never a reason to send Eddy to the iOS tab. To press a SwiftUI row in the simulator, use a held touch (`axe touch --down --up --delay 0.2`): a plain `axe tap` reports success but does not fire it (Eddy, 2026-11-04: "How come that skill is not loading here? All the skills for iOS should be applicable to all Bible standard?"; BS-DATA-BUG-57).
+
 - When a Bible Standard task is a data job (building, relinking or auditing packages, uploading them to the R2 bucket `bs-libraries`, writing the manifest), run the data repo's tool from whichever Bible Standard repo you are in (`~/Programming/Projects/CanonFidei/biblestandard/data`); never call it an iOS step or send Eddy to another repo for it. R2 belongs to data, not iOS (Eddy, 2026-11-04: "from any bible standard repo I should be able to perform any of these tasks … uploaded to R2 bucket is a data thing, not iOS?"; BS-DATA-TASK-97).
 
 - When a prompt says "Close this tab and open a new one with:", do both yourself in that turn: open the new tab (`herdr tab create`, `herdr pane run`), check it took the prompt (`herdr pane read`), then close your own tab (`herdr tab close <your tab id>`, from `herdr pane current`) as the last call; never leave "close this tab" as Eddy's next move (Eddy, 2026-11-04: "didn't the message say "Close this tab"? why not you do it?").
