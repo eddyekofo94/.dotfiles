@@ -449,6 +449,15 @@ def main():
         path = transcript(directory, "wait-talk", ["agentId: a999 was mentioned\n" + WAITING])
         expect(run(path) is not None, "an agent ID in assistant text counted as a job")
 
+        # A file Eddy is pointed to carries its full path (Lesson, 2026-11-03).
+        path = transcript(directory, "relative-path", [COMPLIANT.replace(
+            "**Next move:** stop", "**Next move:** read project/specs/BS-IOS-FEAT-1.md")])
+        expect(run(path) is not None, "a repo-relative file in Next move passed")
+        path = transcript(directory, "full-path", [COMPLIANT.replace(
+            "**Next move:** stop",
+            "**Next move:** read `/Users/eddyekofo/x/BS-1.md`, then run `python3 tools/a.py`, `/spec X`")])
+        expect(run(path) is None, "a full path or a command in Next move failed")
+
         expect("**Status:** WAITING" in HOOK_CONFIG["contract"](),
                "the injected contract does not teach WAITING")
 

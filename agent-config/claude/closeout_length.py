@@ -279,6 +279,14 @@ def waiting_problems(closeout, reason, path):
     return problems
 
 
+# A file or folder Eddy is pointed to, written relative to a repo (Lesson,
+# 2026-11-03: "You can't just give me a path which I can't search for anywhere").
+# Commands (`.py`, `.sh`) and slash commands are not pointers.
+RELATIVE_FILE = re.compile(
+    r"(?<![\w/~.])((?:[\w.-]+/)+[\w.-]+\.(?:md|html|png|jpg|jpeg|pdf|json|txt|csv))\b"
+)
+
+
 def shape_problems(closeout):
     """What the closeout is missing, in the order the skeleton lists it.
 
@@ -291,6 +299,10 @@ def shape_problems(closeout):
     joined = "\n".join(closeout)
     if "**Next move:**" not in joined:
         problems.append("no `**Next move:**` line")
+    for line in closeout:
+        if "**Next move:**" in line:
+            for token in RELATIVE_FILE.findall(line):
+                problems.append(f"`{token}` in Next move: give the full path from /Users/eddyekofo/")
     labels = [
         index
         for index, line in enumerate(closeout)
