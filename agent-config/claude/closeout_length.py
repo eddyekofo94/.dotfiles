@@ -47,6 +47,14 @@ Not run: each check that did not run, or "nothing"
 3-4 lines: the task, then the stop condition
 ```
 
+The prompt is only for work that is really left, and it does that work. When
+nothing is left, drop the prompt and end with an Offer of other work instead,
+one fenced prompt or one Offer, never both:
+
+**Offer:**
+- 2-4 lines, each a concrete choice: open a tab to `/spec` N records of a
+  named repo (data, web, api, ios), run `/verdict`, or close this tab
+
 A turn that ends while its own background job (a Bash `run_in_background`
 command or a background agent) still runs is not a handoff: the job's exit
 re-invokes the session. It ends with one line and no prompt block:
@@ -308,8 +316,17 @@ def shape_problems(closeout):
         for index, line in enumerate(closeout)
         if "Ready-to-paste prompt" in line
     ]
+    offers = [index for index, line in enumerate(closeout) if line.strip().startswith("**Offer:**")]
+    if offers:
+        # Nothing left to do: other work is offered, not a prompt to paste (Eddy, 2026-11-04).
+        items = [line for line in closeout[offers[-1] + 1 :] if line.strip().startswith(("-", "*"))]
+        if labels or any(line.lstrip().startswith("```") for line in closeout):
+            problems.append("an `**Offer:**` and a ready-to-paste prompt together; send one")
+        if not items:
+            problems.append("`**Offer:**` lists no item")
+        return problems
     if not labels:
-        return problems + ["no `**Ready-to-paste prompt:**` block"]
+        return problems + ["no `**Ready-to-paste prompt:**` block or `**Offer:**`"]
     rest = [line.strip() for line in closeout[labels[-1] + 1 :] if line.strip()]
     fences = [index for index, line in enumerate(rest) if line.startswith("```")]
     if len(fences) < 2 or fences[-1] != len(rest) - 1:

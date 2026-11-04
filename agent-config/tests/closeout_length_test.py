@@ -40,6 +40,13 @@ LONG_CLOSEOUT = "**Status:** DONE\n" + "".join(
 
 NO_CLOSEOUT = "An answer with no closeout at all.\n"
 
+# Nothing left to do: the closeout offers other work instead of a prompt to paste (Eddy, 2026-11-04).
+OFFER = COMPLIANT.split("**Ready-to-paste prompt:**")[0] + """**Offer:**
+- Open a tab and `/spec` the 20 oldest Spec Needed records in the data repo.
+- Run `/verdict` on what waits on you.
+- Close this tab.
+"""
+
 NO_PROMPT = COMPLIANT.split("**Ready-to-paste prompt:**")[0]
 
 # A long closeout is fine now; only its shape is checked.
@@ -457,6 +464,17 @@ def main():
             "**Next move:** stop",
             "**Next move:** read `/Users/eddyekofo/x/BS-1.md`, then run `python3 tools/a.py`, `/spec X`")])
         expect(run(path) is None, "a full path or a command in Next move failed")
+
+        # With nothing left to do, an Offer of other work replaces the prompt.
+        path = transcript(directory, "offer", [OFFER])
+        expect(run(path) is None, "an Offer closeout with no prompt was rejected")
+        path = transcript(directory, "offer-and-prompt", [OFFER + "\n" + COMPLIANT.split("**Next move:** stop")[1]])
+        expect(run(path) is not None, "an Offer plus a prompt block passed; it is one or the other")
+        path = transcript(directory, "offer-empty", [OFFER.split("**Offer:**")[0] + "**Offer:**\n"])
+        expect(run(path) is not None, "an Offer with no item passed")
+        path = transcript(directory, "offer-not-last", [OFFER + "Trailing prose.\n"])
+        expect(run(path) is None, "prose after an Offer was rejected; only a fence must close")
+        expect("**Offer:**" in HOOK_CONFIG["contract"](), "the injected contract does not teach the Offer")
 
         expect("**Status:** WAITING" in HOOK_CONFIG["contract"](),
                "the injected contract does not teach WAITING")
