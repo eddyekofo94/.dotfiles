@@ -329,13 +329,28 @@ tried=0
 cap_full=0
 waiting=""
 verdict_opened=0
+# BibleStandard BS-IOS-TASK-1428: why each ranked record did not open goes to
+# the chain log as it happens, so a tab killed mid-fill (1356's, exit 137) still
+# leaves the reason on disk; the stop line names the last one.
+chain_log="${HERDR_CHAIN_LOG:-$HOME/.local/state/herdr/chain.log}"
+last_refusal=""
+chain_note() {
+  [ "$DRY" = 1 ] && return 0
+  mkdir -p "$(dirname "$chain_log")" &&
+    printf '%s %s (after %s)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" "${goal_id:-${slug:-fill}}" >>"$chain_log"
+}
+refused() {  # id why
+  last_refusal="$1 — $2"
+  chain_note "skipped $1 — $2"
+}
 # The work graph that names the next record: iOS's features_index.py, else a repo's
 # records.py (BibleStandard BS-DATA-TASK-84: the data checkout, one build at a time).
 focus_tool=""
 if [ -f "$shared/tools/features_index.py" ]; then focus_tool=tools/features_index.py
 elif [ -f "$shared/tools/records.py" ] && [ -f "$shared/tools/session_worktree.py" ]; then focus_tool=tools/records.py
 fi
-if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
+# Rank the graph's fill order into $focus_json and $fill.
+rank_fill() {
   focus_json=$( (cd "$shared" && python3 "$focus_tool" --focus --json 2>/dev/null) ) || focus_json="{}"
   # Eddy, 2026-10-24 ("these other tabs have to wait till we split these files"):
   # a focus track marked `- Exclusive: yes` in FOCUS.md opens only its own records.
@@ -349,6 +364,9 @@ if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
   # FS-262 D9: orphaned builds first, each in its own checkout (`slug`); they
   # already hold their lanes. Then the new records.
   fill=$(jq -c '(.resume[]? | . + {resume: true}), .next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
+}
+if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
+  rank_fill
   manager_help=$(cd "$shared" && python3 tools/session_worktree.py open --help 2>&1)
   place_flag=()
   # This open runs in the finishing tab, for the next goal's tab: a manager
@@ -368,6 +386,8 @@ import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s.get("kind", "worktree") == "worktree" and s["name"] != os.environ.get("GOAL_DONE_SLUG")]
 print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
   fi
+  # One walk of $fill: open a build tab per free lane, log each refusal.
+  walk_fill() {
   while IFS= read -r record; do
     [ -n "$record" ] || continue
     next_id=$(printf '%s\n' "$record" | jq -r '.id // empty')
@@ -397,6 +417,7 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
         done <<<"$next_paths"
       else
         echo "goal-done: worktree manager has no owned-path interface; skipping ${next_id}" >&2
+        refused "$next_id" "the worktree manager has no owned-path interface"
         continue
       fi
     fi
@@ -417,20 +438,45 @@ print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
       [ "$resuming" = true ] && resumed=$((resumed + 1))
       continue
     fi
-    if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}"); then
+    open_err=$(mktemp)
+    if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
+      cat "$open_err" >&2; rm -f "$open_err"
       open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
     else
       rc=$?
+      # The manager's own last line says why (for exit 4, the clashing build).
+      cat "$open_err" >&2
+      why=$(grep -v '^[[:space:]]*$' "$open_err" | tail -n 1)
+      rm -f "$open_err"
       case "$rc" in
-        3) cap_full=1; waiting="$next_id"; break ;;
-        4) echo "goal-done: ${next_id}'s seams overlap a live build — it waits; trying the next record (FS-262 D5)" >&2 ;;
-        5) echo "goal-done: ${label} is a live session's, or a fill just placed a tab there — skipped (BUG-316, FS-262 D9)" >&2 ;;
-        *) echo "goal-done: could not open a worktree for ${next_id} (exit ${rc}); trying the next record" >&2 ;;
+        3) refused "$next_id" "build lanes full${why:+: $why}"
+           cap_full=1; waiting="$next_id"; break ;;
+        4) echo "goal-done: ${next_id}'s seams overlap a live build — it waits; trying the next record (FS-262 D5)" >&2
+           refused "$next_id" "overlaps a live build${why:+: $why}" ;;
+        5) echo "goal-done: ${label} is a live session's, or a fill just placed a tab there — skipped (BUG-316, FS-262 D9)" >&2
+           refused "$next_id" "a live session holds it${why:+: $why}" ;;
+        *) echo "goal-done: could not open a worktree for ${next_id} (exit ${rc}); trying the next record" >&2
+           refused "$next_id" "exit ${rc}${why:+: $why}" ;;
       esac
     fi
   done <<<"$fill"
+  }
+  walk_fill
+  # BS-IOS-TASK-1428 (2026-11-04: BS-IOS-BUG-1396 did not open when 1356 closed,
+  # yet opened on a manual --fill a moment later): ranked records, a free lane
+  # and none opened — wait for a clash or a just-placed hold to clear, then
+  # rank and walk once more before the stop is written.
+  if [ "$DRY" = 0 ] && [ "$opened" = 0 ] && [ "$cap_full" = 0 ] && [ "$tried" -gt 0 ]; then
+    retry_secs="${HERDR_FILL_RETRY_SECS:-20}"
+    echo "goal-done: ${tried} ranked, none opened — retrying the fill in ${retry_secs}s" >&2
+    chain_note "${tried} ranked, none opened — retrying the fill in ${retry_secs}s"
+    sleep "$retry_secs"
+    tried=0
+    rank_fill
+    walk_fill
+  fi
 
   # FS-262 D3: the verdict lane, when unjudged agent rows wait and its one
   # seat is free. A full build cap never blocks it: it is not a build lane.
@@ -480,9 +526,8 @@ if [ "$OPEN_TODO" = 1 ]; then
       blockers=$(jq -r --arg t "$focus" '[.waiting[]? | select($t == "" or .track == $t) | .waiting_on[]?] | unique | join(", ")' <<<"$focus_json" 2>/dev/null)
       stop_msg="The build chain stopped: nothing in ${focus:-the focus track} can start"
       [ -n "$blockers" ] && stop_msg="${stop_msg}; its records wait on ${blockers} — /spec them"
-      chain_log="${HERDR_CHAIN_LOG:-$HOME/.local/state/herdr/chain.log}"
-      mkdir -p "$(dirname "$chain_log")" &&
-        printf '%s %s (after %s)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$stop_msg" "${goal_id:-${slug:-fill}}" >>"$chain_log"
+      [ -n "$last_refusal" ] && stop_msg="${stop_msg}; last refusal: ${last_refusal}"
+      chain_note "$stop_msg"
       echo "goal-done: ${stop_msg}"
       if [ "${HERDR_CHAIN_NOTIFY:-1}" = 1 ] && command -v osascript >/dev/null; then
         osascript -e "display notification \"${stop_msg//\"/}\" with title \"Build chain stopped\" sound name \"Basso\"" >/dev/null 2>&1 || true
