@@ -115,6 +115,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a step's Ready-to-paste prompt continues a skill that pins a model (`/spec` and `/build` on Opus), start the prompt with that slash command; a plain "yes" turn runs on the tab's default Sonnet (Eddy, 2026-11-04: "runs on Opus bro").
+
 - When pointing Eddy to a file or folder, give its full path from `/Users/eddyekofo/`, open it in Finder (`open <folder>`), and say when a dot folder (`.working`) is hidden there (Cmd+Shift+. shows it); never a path relative to a repo (Eddy, 2026-11-03: "You can't just give me a path which I can't search for anywhere").
 
 - When Eddy leaves the chain to run unattended (sleep, away), read what the fill opens next (`features_index.py --focus --json`: `next`, and `waiting` for the focus track) and name it; if the focus track's records wait on a record that is not Ready, settle or flag it before he goes, and never open a waiting record by hand around its `depends on` (Eddy, 2026-11-03: "I went to sleep and I came back nothing is running"; the Code quality track sat behind BS-IOS-TASK-772 at Spec Needed from 05:48).
