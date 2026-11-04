@@ -33,7 +33,10 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
   (the next agent), always, without breaking anything.
 - UI copy: cut taglines, helper text and secondary labels. If a screen needs them to make sense,
   fix the layout.
-- No new dependencies, renames or refactors nobody asked for.
+- No renames or refactors nobody asked for.
+- Reuse what is proven before hand-writing plumbing (storage, networking, downloads, crash reports,
+  images, purchases, parsing): the platform's own frameworks first, then a maintained, widely used
+  package. Name the package in the plan or record, so the yes covers it; never slip one in.
 - Back up before deleting or overwriting anything.
 - Every Ready implementation goal uses its repository-local compatible worktree
   manager, which owns naming, branches and path collisions. A goal edits only
@@ -115,6 +118,7 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When planning any feature in any repo, search first for a platform framework or a proven package that already does the plumbing, and write the pick (or what was searched) into the plan; never hand-build what millions of developers already test (Eddy, 2026-11-04: "we don't have to create everything by hand when we can reuse what's already out there … If we started with this it would've helped with lots of unnecessary codes"; iOS `CODING_STANDARDS.md` §Refactor-first, `project/research/THIRD_PARTY_SDK_RESEARCH_2026-11-04.md`).
 - When a track is building and Eddy gives input or a verdict, that goes first: a fix record born of his fail or words is queued ahead of the track's unbuilt records, and his words are acted on in that turn, never left behind a queue (Eddy, 2026-11-04: "when we are building a track, immediate input and verdicts should take priority in the future"; Home's BUG-1396 and BUG-1401 sat behind the Offers until he asked).
 
 - When a Bible Standard repo needs a verb only iOS ships (`/verdict`, `/sweep`, `/focus`), run it there through the global router in `~/.agent-skills/<verb>/SKILL.md`, which opens the iOS playbook on that repo's own records; a verb missing from a repo is a router to add, never a reason to send Eddy to the iOS tab. To press a SwiftUI row in the simulator, use a held touch (`axe touch --down --up --delay 0.2`): a plain `axe tap` reports success but does not fire it (Eddy, 2026-11-04: "How come that skill is not loading here? All the skills for iOS should be applicable to all Bible standard?"; BS-DATA-BUG-57).
