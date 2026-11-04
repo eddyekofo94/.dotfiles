@@ -8,7 +8,8 @@
      zoho_mail.mjs attachments <folder name> <messageId> <new-empty-dir>
      zoho_mail.mjs send <to> <subject> <body.txt>          from bible.standard@canonfidei.com;
                                                            blank line = new paragraph
-     zoho_mail.mjs reply <folder> <messageId> <body.txt>   threaded reply to a message in the newest 200
+     zoho_mail.mjs reply <folder> <messageId> <body.txt> [file...]   threaded reply to a message in the newest 200
+                                                           (send takes [file...] too: each file attached)
                                                            (both append the Zoho "Bible Standard" signature)
 
    Keychain items (service names): cf-zoho-client-secret, cf-zoho-refresh-token
@@ -70,7 +71,7 @@ if (cmd === 'folders') {
 } else if (cmd === 'send' || cmd === 'reply') {
   // reply <folder> <messageId> <body.txt>: threads under the message (Zoho sets In-Reply-To/References).
   // Both append Eddy's saved "Bible Standard" Zoho signature; end the body at "Eddy", not a signature block.
-  const reply = cmd === 'reply', [to, subject, bodyFile] = reply ? [null, null, a[2]] : a;
+  const reply = cmd === 'reply', [to, subject, bodyFile] = reply ? [null, null, a[2]] : a, files = a.slice(3);
   const html = readFileSync(bodyFile, 'utf8').trim().split(/\n\s*\n/).map((p) => `<p>${esc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')}</p>`).join('');
   const sig = await signature();
   let path = '/messages', msg = { fromAddress: FROM, content: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6">${html}<br>${sig}</div>`, mailFormat: 'html', askReceipt: 'no' };
@@ -81,9 +82,18 @@ if (cmd === 'folders') {
     path = `/messages/${a[1]}`;
     msg = { ...msg, action: 'reply', toAddress: orig.fromAddress, subject: /^re:/i.test(plain(orig.subject)) ? plain(orig.subject) : `Re: ${plain(orig.subject)}` };
   } else Object.assign(msg, { toAddress: to, subject });
-  const res = await call(await token(true), path, { method: 'POST', body: JSON.stringify(msg) });
+  const st = await token(true);
+  if (files.length) msg.attachments = await Promise.all(files.map(async (file) => {
+    const name = file.split('/').pop();
+    const up = await fetch(`https://mail.zoho.eu/api/accounts/${ACC}/messages/attachments?fileName=${encodeURIComponent(name)}`,
+      { method: 'POST', headers: { Authorization: `Zoho-oauthtoken ${st}`, 'Content-Type': 'application/octet-stream' }, body: readFileSync(file) });
+    const d = (await up.json()).data;
+    if (!d?.storeName) throw new Error(`Zoho refused the attachment ${name} (${up.status})`);
+    return { storeName: d.storeName, attachmentPath: d.attachmentPath, attachmentName: d.attachmentName };
+  }));
+  const res = await call(st, path, { method: 'POST', body: JSON.stringify(msg) });
   console.log(res.status, (await res.json()).status?.description, reply ? `reply to ${msg.toAddress}` : '');
 } else {
-  console.error('usage: folders | list <folder> [n] | read <folder> <id>... | attachments <folder> <id> <dir> | send <to> <subject> <body.txt> | reply <folder> <id> <body.txt>');
+  console.error('usage: folders | list <folder> [n] | read <folder> <id>... | attachments <folder> <id> <dir> | send <to> <subject> <body.txt> | reply <folder> <id> <body.txt> [file...]');
   process.exit(2);
 }
