@@ -115,6 +115,8 @@ other CanonFidei repo gets no invite unless Eddy names one.
 
 ## Lessons
 
+- When a Bible Standard task is a data job (building, relinking or auditing packages, uploading them to the R2 bucket `bs-libraries`, writing the manifest), run the data repo's tool from whichever Bible Standard repo you are in (`~/Programming/Projects/CanonFidei/biblestandard/data`); never call it an iOS step or send Eddy to another repo for it. R2 belongs to data, not iOS (Eddy, 2026-11-04: "from any bible standard repo I should be able to perform any of these tasks … uploaded to R2 bucket is a data thing, not iOS?"; BS-DATA-TASK-97).
+
 - When a prompt says "Close this tab and open a new one with:", do both yourself in that turn: open the new tab (`herdr tab create`, `herdr pane run`), check it took the prompt (`herdr pane read`), then close your own tab (`herdr tab close <your tab id>`, from `herdr pane current`) as the last call; never leave "close this tab" as Eddy's next move (Eddy, 2026-11-04: "didn't the message say "Close this tab"? why not you do it?").
 
 - When a step's Ready-to-paste prompt continues a skill that pins a model (`/spec` and `/build` on Opus), start the prompt with that slash command; a plain "yes" turn runs on the tab's default Sonnet (Eddy, 2026-11-04: "runs on Opus bro").
