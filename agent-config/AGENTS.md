@@ -83,17 +83,17 @@ Budget ideas, not words. Never cut the words that make what remains parse.
 
 End every response, with no exemptions, with **Status:**, then
 `Picked / gave up / why:` in 2-3 lines (§5's report), `Not run:`, one
-**Next move:**, then one of two endings:
+**Next move:**, then **Ready-to-paste prompt:** with one fenced prompt as the
+last thing on screen. `prefix+b` / `prefix+B` paste that block, so it stays on
+every reply and does real work, never "check the board again".
 
-- Work is left: **Ready-to-paste prompt:** with one fenced prompt as the last
-  thing on screen (`prefix+b` / `prefix+B` paste that block). It does real work;
-  never "check the board again", never a re-read of what you just reported.
-- Nothing is left: say so in plain words, then **Offer:** with 2-4 bullets of
-  other work Eddy has waiting, each concrete: a tab to `/spec` N records in a
-  named repo (data, web, api, ios), a `/verdict` batch, or close this tab. No
-  prompt block with an Offer (Eddy, 2026-11-04: "if nothing is done either say it
-  ... offer me ... batch /spec or verdict ... suggest me something else than
-  prompt me things that doesn't make sense").
+- Nothing left to do: say so plainly, add **Offer:** above the prompt with 2-4
+  concrete bullets of other work (a tab to `/spec` N records in a named repo,
+  a `/verdict` batch, close this tab), and make the prompt the first offer.
+  While the current repo has Spec Needed records, the first offer is always a
+  batch `/spec` of them (Eddy, 2026-11-04: "I still want my ready to be paste
+  prompt ... give me offer but as long as the current repo has specs to be
+  settled always offer me batch settle").
 
 - Mark for scanning (Eddy, 2026-10-23): the Status word takes its emoji
   after it (DONE ✅, PARTIAL 🟡, BLOCKED ⛔, AWAITING USER APPROVAL 👉,
