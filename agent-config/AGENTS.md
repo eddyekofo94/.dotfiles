@@ -43,16 +43,17 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
   its declared repository root; global rules never import another project's
   IDs, capacity, model routing or delivery behavior.
 
-## 3. No subagents
+## 3. Subagents
 
-- Never start a subagent (the Agent or Task tool, a fork included), in any project. The
-  session that has the job reads, edits, plans and reviews itself (Eddy, 2026-10-26:
-  "stop using subagents"). `permissions.deny: ["Agent"]` in `claude/settings.json` blocks it.
-- A skill, playbook or hook text that says to spawn an agent means: do that step yourself, here.
-- Review is a self-review in this session: read `git diff` against the rubric. A fresh
-  `/review <ID>` tab runs only when Eddy asks for one.
+- Subagents are allowed again (Eddy, 2026-11-05: "Anthropic updated how subagents work ... it is
+  efficient now"; this reverses "stop using subagents", 2026-10-26). Use one for bounded,
+  read-only legwork (exploration, research, a pre-flight check) whose result is a short report;
+  the session that owns the job still plans, edits and decides.
+- Never two agents or tabs on one file. A subagent never closes the tab, lands or asks Eddy.
+- Review stays a self-review of `git diff` against the rubric; a fresh `/review <ID>` tab runs
+  only when Eddy asks for one.
 - The model is the tab's: `/build` opens on Opus `medium`, everything else on Sonnet, set when
-  the tab opens; never switch mid-session.
+  the tab opens; never switch mid-session. A subagent for read-only work runs on Sonnet.
 
 ## 4. Own the bug
 
