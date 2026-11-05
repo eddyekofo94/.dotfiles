@@ -62,6 +62,10 @@ Calls still allowed so the agent can park:
   clears it only in the shared checkout (D2). Redirects and `--output=` pass only to /dev/null, between streams (`2>&1`) or
   to an absolute path under /tmp; `$(` and backticks never pass.
 
+A /spec tab (no build window open) is held at 600 main-thread turns since its last typed
+`/spec`: the denial says to open a fresh `/spec <ID>` tab; reads, record and plan edits pass.
+No compaction cap (Eddy, 2026-11-03).
+
 Escape hatch for scripts: env BUILD_BUDGET_EXTEND=1.
 
 Fail open: any error allows the call and prints to stderr.
@@ -80,6 +84,7 @@ from pathlib import Path
 LIMIT_SECONDS = 2 * 3600
 GAP_CAP_SECONDS = 600  # D1: one gap between rows counts at most 10 min of work
 TURN_LIMIT = 400
+SPEC_TURN_LIMIT = 600  # a /spec tab past this opens a fresh one (retro 2026-11-05: 1,419 turns, $77)
 MISS = ("missed its proof", "failed, not ticked", "**failed")
 PARKED = ("parked", "skip:")
 OKAY_TOOLS = {"Read", "Glob", "Grep"}
@@ -105,6 +110,8 @@ BUILD_START = re.compile(r"^\s*(?:<command-message>build</command-message>\s*)?"
 #: after a landed build was held). A later /build opens a new window.
 OTHER_WORK = re.compile(r"^\s*(?:<command-message>[\w:-]+</command-message>\s*)?"
                         r"(?:<command-name>)?[/$](?:spec|verdict|sweep|report|focus|demo)\b")
+SPEC_START = re.compile(r"^\s*(?:<command-message>[\w:-]+</command-message>\s*)?"
+                        r"(?:<command-name>)?[/$]spec\b")
 STEP = re.compile(r"^- \[[ xX]\]")
 #: This guard's own denial as Claude writes it into the tool result (D2).
 DENIAL = re.compile(r"^(?:PreToolUse:\S+ hook error: )?Build budget guard: (.*)", re.S)
@@ -226,6 +233,42 @@ def scan(transcript: str) -> Window:
                 if block.get("name") in EDIT_TOOLS and PLAN.match(os.path.basename(path)):
                     window.plan = path
     return window
+
+
+def spec_scan(transcript: str) -> tuple[set[str], str | None]:
+    """Main-thread assistant turns since the last typed `/spec`, and its record ID; a later
+    typed `/build` hands the tab to the build window, so it returns no turns."""
+    turns: set[str] = set()
+    goal = None
+    with open(transcript, errors="replace") as handle:
+        for raw in handle:
+            try:
+                row = json.loads(raw)
+            except ValueError:
+                continue
+            if row.get("isSidechain"):
+                continue
+            message = row.get("message") or {}
+            if row.get("type") == "user" and typed(row):
+                text = text_of(message.get("content"))
+                if SPEC_START.match(text):
+                    args = re.search(r"<command-args>\s*([^\s<]+)", text) or re.search(
+                        r"[/$]spec\s+(\S+)", text)
+                    turns, goal = set(), args.group(1) if args else None
+                    turns.add("")  # marks an open /spec window
+                elif BUILD_START.match(text) or OTHER_WORK.match(text):
+                    turns, goal = set(), None
+            elif row.get("type") == "assistant" and message.get("id") and "" in turns:
+                turns.add(message["id"])
+    return (turns - {""}, goal) if "" in turns else (set(), None)
+
+
+def spec_handoff(goal: str | None) -> str:
+    fresh = f"/spec {goal}" if goal else "/spec"
+    return (f"Build budget guard: this /spec tab is past {SPEC_TURN_LIMIT} turns: open a fresh "
+            f"`{fresh}` tab. 1. Write what is settled and what is still open into the record "
+            f"or its decisions file. 2. End the turn with the Ready-to-paste prompt `{fresh}`. "
+            "Reads and record edits still pass.")
 
 
 def missed_step(plan: str, excused: set[str] = frozenset()) -> str | None:
@@ -571,9 +614,15 @@ def main() -> int:
         if os.environ.get("BUILD_BUDGET_EXTEND"):
             return 0
         window = scan(transcript)
-        if window.started is None:
-            return 0
         cwd = Path(data.get("cwd") or os.getcwd())
+        if window.started is None:
+            spec_turns, spec_goal = spec_scan(transcript)
+            if (len(spec_turns) >= SPEC_TURN_LIMIT and not allowed_call(
+                    data.get("tool_name", ""), data.get("tool_input") or {}, cwd)):
+                print(json.dumps({"hookSpecificOutput": {
+                    "hookEventName": "PreToolUse", "permissionDecision": "deny",
+                    "permissionDecisionReason": spec_handoff(spec_goal)}}))
+            return 0
         plan, now = window.plan, datetime.now(timezone.utc).timestamp()
         why, cap = None, True
         # A stuck step parks first: a hand-off would only carry it to the next tab.

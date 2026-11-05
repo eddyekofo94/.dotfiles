@@ -631,5 +631,29 @@ class Ended(Fixture):
         self.assertEqual(self.hook("herdr-goal-done"), "allow")
 
 
+class SpecTab(Fixture):
+    """A /spec tab past 600 turns is told to open a fresh /spec tab (retro 2026-11-05)."""
+
+    def spec_tab(self, turns):
+        start = {"type": "user", "timestamp": stamp(7200), "origin": {"kind": "human"},
+                 "message": {"content": "<command-name>/spec</command-name>\n"
+                                        "<command-args>BS-IOS-FEAT-556</command-args>"}}
+        rows = [{"type": "assistant", "timestamp": stamp(7000 - i), "message": {"id": f"s{i}"}}
+                for i in range(turns)]
+        self.rows([start, *rows])
+
+    def test_600_turns_deny_work_and_name_a_fresh_spec_tab(self):
+        self.spec_tab(600)
+        out = self.run_hook(WORK)
+        self.assertIn('"deny"', out)
+        self.assertIn("/spec BS-IOS-FEAT-556", out)
+
+    def test_under_600_turns_pass_and_reads_pass(self):
+        self.spec_tab(599)
+        self.assertEqual(self.hook(WORK), "allow")
+        self.spec_tab(600)
+        self.assertEqual(self.hook("cat project/specs/x.md"), "allow")
+
+
 if __name__ == "__main__":
     unittest.main()
