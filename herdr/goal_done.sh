@@ -87,7 +87,7 @@ while [ $# -gt 0 ]; do
     --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
     --fill)     FILL_REPO="${2:?--fill needs a repository root}"; shift ;;
     --handoff)  HANDOFF="${2:?--handoff needs the record ID}"; shift ;;
-    -h|--help)  sed -n '2,43p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,42p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
