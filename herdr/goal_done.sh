@@ -30,6 +30,8 @@
 #   herdr-goal-done                 # from inside the finished goal's worktree
 #   herdr-goal-done --force         # skip the merged check (branch is kept)
 #   herdr-goal-done --park          # a stuck build: park its branch, free its lane
+#   herdr-goal-done --park --for <ID>  # Eddy's order: park a still-Ready build for
+#                                   # Queue: first <ID>, and open /build <ID> first
 #   herdr-goal-done --keep-tab      # open the next tab, leave this one open
 #   herdr-goal-done --no-todo       # just retire; do not advance or open anything
 #   herdr-goal-done --dry-run       # print the five steps, change nothing
@@ -59,6 +61,7 @@ slug_goal_id() {
 
 FORCE=0
 PARK=0
+PARK_FOR=""
 KEEP_TAB=0
 OPEN_TODO=1
 DRY=0
@@ -75,6 +78,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --force)    FORCE=1 ;;
     --park)     PARK=1 ;;
+    --for)      PARK_FOR="${2:?--for needs the record ID}"; shift ;;
     --keep-tab) KEEP_TAB=1 ;;
     --no-todo)  OPEN_TODO=0 ;;
     --dry-run)  DRY=1 ;;
@@ -83,13 +87,14 @@ while [ $# -gt 0 ]; do
     --tab)      TARGET_TAB="${2:?--tab needs a tab id}"; shift ;;
     --fill)     FILL_REPO="${2:?--fill needs a repository root}"; shift ;;
     --handoff)  HANDOFF="${2:?--handoff needs the record ID}"; shift ;;
-    -h|--help)  sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,43p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
 done
 
 die() { echo "goal-done: $*" >&2; exit 1; }
+[ -z "$PARK_FOR" ] || [ "$PARK" = 1 ] || die "--for takes --park"
 
 # Eddy, 2026-10-02: while this file exists a finished goal retires without
 # opening the next tab, as if `--no-todo`. `rm` it to resume the chain.
@@ -270,7 +275,7 @@ if [ -n "$slug" ] && [ -f "$shared/tools/session_worktree.py" ]; then
   # runs from a deleted inode.
   cd "$shared" || die "cannot enter $shared"
   if [ "$PARK" = 1 ]; then
-    run python3 tools/session_worktree.py park "$slug" ||
+    run python3 tools/session_worktree.py park "$slug" ${PARK_FOR:+--for "$PARK_FOR"} ||
       die "worktree $slug not parked — tab left open so the reason is readable"
   elif [ "$slug" = verdict-drain ]; then
     # FS-262 D3: the drain reopens on current `main`, never on its old branch.
@@ -364,6 +369,11 @@ rank_fill() {
   # FS-262 D9: orphaned builds first, each in its own checkout (`slug`); they
   # already hold their lanes. Then the new records.
   fill=$(jq -c '(.resume[]? | . + {resume: true}), .next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
+  # BibleStandard BS-IOS-TASK-1250: the record a `--park --for` freed the lane for opens
+  # first, whatever the ranking says, and only once.
+  if [ -n "$PARK_FOR" ]; then
+    fill=$(jq -nc --arg id "$PARK_FOR" '{id: $id}'; jq -c --arg id "$PARK_FOR" 'select(.id != $id)' <<<"$fill" 2>/dev/null)
+  fi
 }
 if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
   rank_fill
