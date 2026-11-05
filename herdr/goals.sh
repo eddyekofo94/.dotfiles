@@ -75,23 +75,6 @@ else
 fi
 [ -d "$REPO" ] || { echo "herdr-goals: no such repo: $REPO" >&2; exit 2; }
 
-# A repo without the loop tooling still opens tabs; it just cannot rank goals or
-# cut worktrees. Degrade to a no-op rather than dying on a missing script.
-if [ -f "${REPO}/tools/session_worktree.py" ]; then
-  WORKTREE="python3 ${REPO}/tools/session_worktree.py"
-else
-  WORKTREE="true"
-fi
-# Every `open` below runs in this tab's process, for a tab not yet made. A
-# manager that knows `--place` names nothing then; without it, the open names
-# the tab this ran from (BibleStandard BUG-313). Older managers lack the flag.
-PLACE=""
-if [ "$WORKTREE" != "true" ]; then
-  open_help=$($WORKTREE open --help 2>&1 || true)
-  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$open_help"; then
-    PLACE="--place"
-  fi
-fi
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
 # Refuse anything flag-shaped before a single tab exists.
@@ -116,6 +99,40 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# BibleStandard BS-IOS-FEAT-1365: a data record (`BS-DATA-*`, or an iOS ID that
+# `project/workflow/moved.tsv` moved there, in any of its id-map forms) builds in
+# the data checkout, booted by its data ID: `$BS_DATA_DIR`, else `data` beside
+# this repo. Every other ID opens here, as before.
+if [ -n "$BUILD_ID" ]; then
+  want=$(tr 'a-z' 'A-Z' <<<"$BUILD_ID")
+  for table in id_map moved; do
+    file="${REPO}/project/workflow/${table}.tsv"
+    [ -f "$file" ] && want=$(awk -F'\t' -v w="$want" '$1 == w {n = $2} END {print (n ? n : w)}' "$file")
+  done
+  case "$want" in BS-DATA-*)
+    data="${BS_DATA_DIR:-$(dirname "$REPO")/data}"
+    [ -d "$data" ] || { echo "herdr-goals: no data checkout at ${data} for ${want}; clone it there or set BS_DATA_DIR" >&2; exit 2; }
+    REPO="$data"; BUILD_ID="$want" ;;
+  esac
+fi
+
+# A repo without the loop tooling still opens tabs; it just cannot rank goals or
+# cut worktrees. Degrade to a no-op rather than dying on a missing script.
+if [ -f "${REPO}/tools/session_worktree.py" ]; then
+  WORKTREE="python3 ${REPO}/tools/session_worktree.py"
+else
+  WORKTREE="true"
+fi
+# Every `open` below runs in this tab's process, for a tab not yet made. A
+# manager that knows `--place` names nothing then; without it, the open names
+# the tab this ran from (BibleStandard BUG-313). Older managers lack the flag.
+PLACE=""
+if [ "$WORKTREE" != "true" ]; then
+  open_help=$($WORKTREE open --help 2>&1 || true)
+  if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$open_help"; then
+    PLACE="--place"
+  fi
+fi
 SPECS=("$@")
 BOOTS=()
 FOCUS_MD="${REPO}/project/workflow/FOCUS.md"
