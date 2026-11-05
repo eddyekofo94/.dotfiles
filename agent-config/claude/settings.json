@@ -342,7 +342,7 @@
       "effortLevel": "medium"
     }
   },
-  "autoCompactWindow": 185000,
+  "autoCompactWindow": 100000,
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "inputNeededNotifEnabled": true,
