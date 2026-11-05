@@ -89,7 +89,7 @@ esac
 # reset shows "now". S/W resets_at is an epoch integer; Fable's
 # (model_scoped) is always an ISO 8601 string.
 now=$(date +%s)
-case "$(render ",\"rate_limits\":{\"five_hour\":{\"used_percentage\":50,\"resets_at\":$((now + 7200))}}")" in
+case "$(render ",\"rate_limits\":{\"five_hour\":{\"used_percentage\":50,\"resets_at\":$((now + 7260))}}")" in
   *"S: 50% (2h)"*) ;;
   *)
     echo 'statusline: a two-hour-out epoch reset should show "(2h)"' >&2
@@ -110,21 +110,21 @@ case "$(render ",\"rate_limits\":{\"five_hour\":{\"used_percentage\":50,\"resets
     exit 1
     ;;
 esac
-case "$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":0,\"resets_at\":$((now + 167 * 3600))}}")" in
+case "$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":0,\"resets_at\":$((now + 167 * 3600 + 60))}}")" in
   *"W: 100% (6d 23h)"*) ;;
   *)
     echo 'statusline: a 167-hour-out epoch reset should show "(6d 23h)", not "(167h)"' >&2
     exit 1
     ;;
 esac
-case "$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":0,\"resets_at\":$((now + 168 * 3600))}}")" in
+case "$(render ",\"rate_limits\":{\"seven_day\":{\"used_percentage\":0,\"resets_at\":$((now + 168 * 3600 + 60))}}")" in
   *"W: 100% (7d)"*) ;;
   *)
     echo 'statusline: an exact-day-out epoch reset should show "(7d)" with no remainder hours' >&2
     exit 1
     ;;
 esac
-fable_iso=$(python3 -c "import datetime; print(datetime.datetime.fromtimestamp($now + 1800, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+fable_iso=$(python3 -c "import datetime; print(datetime.datetime.fromtimestamp($now + 1830, datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
 case "$(render ",\"rate_limits\":{\"model_scoped\":[{\"display_name\":\"Fable\",\"utilization\":50,\"resets_at\":\"$fable_iso\"}]}")" in
   *"F: 50% (30m)"*) ;;
   *)
