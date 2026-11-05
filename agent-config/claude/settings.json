@@ -340,7 +340,7 @@
     }
   },
   "autoCompactWindow": 150000,
-  "autoMemoryEnabled": false,
+  "autoMemoryEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
