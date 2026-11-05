@@ -282,6 +282,11 @@
             "type": "command",
             "command": "\"$HOME/.claude/hooks/closeout.sh\" context",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/close_on_land.py\"",
+            "timeout": 45
           }
         ]
       },
