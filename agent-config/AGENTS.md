@@ -50,10 +50,9 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
   read-only legwork (exploration, research, a pre-flight check) whose result is a short report;
   the session that owns the job still plans, edits and decides.
 - Never two agents or tabs on one file. A subagent never closes the tab, lands or asks Eddy.
-- Review stays a self-review of `git diff` against the rubric; a fresh `/review <ID>` tab runs
-  only when Eddy asks for one.
+- Review of a build diff is a fresh subagent (Opus `high`); a `/review <ID>` tab runs when Eddy asks.
 - The model is the tab's: `/build` opens on Opus `medium`, everything else on Sonnet, set when
-  the tab opens; never switch mid-session. A subagent for read-only work runs on Sonnet.
+  the tab opens; never switch mid-session. A subagent for architecture or review runs on Opus `high`; one for plain lookups, on Sonnet.
 
 ## 4. Own the bug
 
