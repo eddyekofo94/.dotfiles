@@ -296,6 +296,62 @@ RELATIVE_FILE = re.compile(
 )
 
 
+# A guard refused in this turn (F-146 with F-154, BibleStandard BS-IOS-TASK-1371): the prompt
+# then opens with ROUTE, so the paste lands in a tab that can run it.
+REFUSAL_RE = re.compile(r"\b(refus(?:ed|es|al)|denied|denies)\b", re.I)
+ROUTE = "Close this tab and open a new one with:"
+# api and web CI runs only on a production push (F-147): never ask Eddy to re-run it or fix billing.
+CI_ASK_RE = re.compile(
+    r"\b(re-?run|retry|re-?trigger)\b[^.\n]{0,40}\b(CI|checks?|workflows?|actions|jobs?)\b"
+    r"|\b(fix|update|sort out|top up|resolve)\b[^.\n]{0,30}\bbilling\b", re.I)
+API_WEB_PR_RE = re.compile(r"\b(api|web)\b[^\n]{0,20}(#\d+|\bPRs?\b)|biblestandard-(api|web)\b", re.I)
+NEGATED_RE = re.compile(r"\b(never|don't|do not|no need)\b", re.I)
+
+
+def turn_refused(path):
+    """True when a tool result since the last prompt reports a refusal or a denial."""
+    refused = False
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(entry, dict) or entry.get("type") != "user":
+                    continue
+                results = blocks_of(entry, "tool_result")
+                if not results:
+                    refused = False  # a new prompt starts a new turn
+                refused = refused or any(REFUSAL_RE.search(result_text(b)) for b in results)
+    except OSError:
+        return False
+    return refused
+
+
+def prompt_lines(closeout):
+    """The fenced prompt's lines, in order."""
+    labels = [i for i, line in enumerate(closeout) if "Ready-to-paste prompt" in line]
+    if not labels:
+        return []
+    fences = [i for i, line in enumerate(closeout) if i > labels[-1] and line.strip().startswith("```")]
+    return [line.strip() for line in closeout[fences[0] + 1:fences[1]]] if len(fences) >= 2 else []
+
+
+def content_problems(text, closeout, path):
+    """What the reply says that a Lesson forbids."""
+    problems = []
+    first = next((line for line in prompt_lines(closeout) if line), "")
+    if first.startswith("/build") and turn_refused(path):
+        problems.append(f"a guard refused this turn and the prompt is a bare `/build`: free the lane "
+                        f"yourself, or open the prompt with `{ROUTE}`")
+    for line in text.splitlines():
+        if CI_ASK_RE.search(line) and API_WEB_PR_RE.search(line) and not NEGATED_RE.search(line):
+            problems.append(f"`{line.strip()[:80]}`: api and web CI runs only on prod; never ask Eddy "
+                            "to re-run it or fix billing (read the cause, run the gate locally)")
+    return problems
+
+
 def shape_problems(closeout):
     """What the closeout is missing, in the order the skeleton lists it.
 
@@ -433,7 +489,7 @@ def main():
 
     waiting = waiting_status(closeout)
     if waiting is None:
-        problems = shape_problems(closeout)
+        problems = shape_problems(closeout) + content_problems(text, closeout, transcript)
     else:
         problems = waiting_problems(closeout, waiting, transcript)
     if body_lines > BODY_MAX:

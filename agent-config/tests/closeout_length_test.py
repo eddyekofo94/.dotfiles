@@ -82,7 +82,7 @@ def transcript(directory, name, messages):
     return path
 
 
-def tool_turn(directory, name, progress, reply):
+def tool_turn(directory, name, progress, reply, result="ok"):
     """Write a turn that narrates, calls a tool, and then (maybe) replies.
 
     Claude Code stores the text and the tool call as separate assistant
@@ -109,7 +109,7 @@ def tool_turn(directory, name, progress, reply):
             "uuid": f"{name}-result",
             "message": {
                 "content": [
-                    {"type": "tool_result", "tool_use_id": "call", "content": "ok"}
+                    {"type": "tool_result", "tool_use_id": "call", "content": result}
                 ]
             },
         },
@@ -475,6 +475,30 @@ def main():
         expect(run(path) is not None, "an Offer with no item passed")
         expect("**Offer:**" in HOOK_CONFIG["contract"](), "the injected contract does not teach the Offer")
 
+        # A guard refused this turn: the prompt opens with "Close this tab and open a new one with:"
+        # (F-146 with F-154, BibleStandard BS-IOS-TASK-1371).
+        refusal = "worktree: refused (exit 4): BS-IOS-TASK-1 overlaps the live build bs-ios-bug-2"
+        bare = COMPLIANT.replace("do the thing\nuntil it is done", "/build BS-IOS-TASK-1")
+        routed = COMPLIANT.replace("do the thing\nuntil it is done",
+                                   "Close this tab and open a new one with:\n/build BS-IOS-TASK-1")
+        decision = run(tool_turn(directory, "refused-bare", "Opening.", bare, refusal))
+        expect(decision is not None and "Close this tab" in decision["reason"],
+               "a bare /build prompt after a guard refusal passed")
+        expect(run(tool_turn(directory, "refused-routed", "Opening.", routed, refusal)) is None,
+               "a routed /build prompt after a refusal was rejected")
+        expect(run(tool_turn(directory, "unrefused-bare", "Opening.", bare)) is None,
+               "a bare /build prompt with no refusal was rejected")
+
+        # api and web CI runs only on prod: never tell Eddy to re-run it or fix billing (F-147).
+        for name, line in (("ci-rerun", "Re-run the CI on api#90 once it is green locally."),
+                           ("ci-billing", "Fix the GitHub billing so the web PR #45 checks go green.")):
+            decision = run(transcript(directory, name, [line + "\n\n" + COMPLIANT]))
+            expect(decision is not None and "only on prod" in decision["reason"],
+                   f"a line telling Eddy to re-run CI or fix billing passed: {line}")
+        expect(run(transcript(directory, "ci-explained", [
+            "The red check on api#90 is the billing block; CI runs only on prod, never re-run it.\n\n"
+            + COMPLIANT])) is None, "explaining the red api check was rejected")
+
         expect("**Status:** WAITING" in HOOK_CONFIG["contract"](),
                "the injected contract does not teach WAITING")
 
@@ -482,5 +506,17 @@ def main():
     return 0
 
 
+def fixture(path):
+    """The BibleStandard findings ledger's check: one transcript judged; exit 1 when the hook blocks it."""
+    with tempfile.TemporaryDirectory() as directory:
+        copy = Path(directory) / Path(path).name
+        copy.write_text(Path(path).read_text(encoding="utf-8"), encoding="utf-8")
+        decision = run(copy)
+    print(f"{'BLOCK: ' + decision['reason'] if decision else 'pass'}: {path}")
+    return 1 if decision else 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--fixture":
+        sys.exit(fixture(sys.argv[2]))
     sys.exit(main())
