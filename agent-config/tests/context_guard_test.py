@@ -168,6 +168,18 @@ class ContextGuardHoldTest(unittest.TestCase):
         self.assertFalse(self.refused("Read", {"file_path": str(big), "limit": 80}))
         self.assertFalse(self.refused("Read", {"file_path": str(plan)}))
 
+    def test_fifteenth_compaction_says_to_save_and_stop_once(self):
+        with self.transcript.open("a") as handle:
+            for _ in range(14):
+                handle.write(json.dumps({"type": "user", "isCompactSummary": True}) + "\n")
+        self.assertEqual(self.hook("PostToolUse", "Bash", {"command": "ls"}), {})
+        with self.transcript.open("a") as handle:
+            handle.write(json.dumps({"type": "user", "isCompactSummary": True}) + "\n")
+        note = self.hook("PostToolUse", "Bash", {"command": "ls"})["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("15 compactions", note)
+        self.assertIn("handoff", note)
+        self.assertEqual(self.hook("PostToolUse", "Bash", {"command": "ls"}), {})
+
     def test_subagent_is_never_held(self):
         self.near()
         self.assertFalse(self.refused("Bash", {"command": "git status"}, agent_id="a1"))

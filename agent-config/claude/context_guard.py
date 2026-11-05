@@ -149,6 +149,33 @@ def big_read_refusal(session: str, tool_input: dict) -> str:
             f"Need all of it? Repeat the same Read and it goes through.")
 
 
+MARATHON = 15  # compactions; retro 2026-11-05: tabs at 42 and 80 compactions cost $187 of $1,144
+COMPACT_MARK = b'"isCompactSummary":true'
+
+
+def compactions(transcript: str) -> int:
+    """How many times this session compacted: summary lines in the whole transcript."""
+    total, carry = 0, b""
+    with open(transcript, "rb") as handle:
+        while chunk := handle.read(1_000_000):
+            data = (carry + chunk).replace(b'"isCompactSummary": true', COMPACT_MARK)
+            total += data.count(COMPACT_MARK)
+            carry = data[-(len(COMPACT_MARK) - 1):]  # too short to hold a whole mark
+    return total
+
+
+def marathon_note(session: str, transcript: str) -> str:
+    """Once per session, at the MARATHON-th compaction, tell the tab to save and stop."""
+    seen = STATE / f"{session}.marathon"
+    if seen.exists() or compactions(transcript) < MARATHON:
+        return ""
+    seen.write_text("1")
+    return (f"Context guard: this session has reached {MARATHON} compactions; every one "
+            f"re-reads the project at full price. Write {RESUME} now (a handoff file), finish "
+            f"this step, then end the turn on a Ready-to-paste prompt that resumes from it in a "
+            f"fresh tab.")
+
+
 def deny(reason: str) -> None:
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PreToolUse", "permissionDecision": "deny",
@@ -179,6 +206,12 @@ def main() -> int:
             return 0
         tool, tool_input = data.get("tool_name", ""), data.get("tool_input") or {}
         STATE.mkdir(parents=True, exist_ok=True)
+        if event != "PreToolUse":
+            note = marathon_note(session, transcript)
+            if note:
+                print(json.dumps({"hookSpecificOutput": {
+                    "hookEventName": event, "additionalContext": note}}))
+                return 0
         if event == "PreToolUse" and tool == "Read":
             refusal = big_read_refusal(session, tool_input)
             if refusal:
