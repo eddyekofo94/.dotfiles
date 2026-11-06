@@ -38,7 +38,7 @@ from pathlib import Path
 STATE = Path(os.environ.get("TMPDIR", "/tmp")) / "claude-context-guard"
 TAIL_BYTES = 4_000_000
 BANDS = [(0.90, "near"), (0.70, "early")]
-FALLBACK_WINDOW = 152_000
+FALLBACK_WINDOW = 150_000
 MIN_PEAK = 60_000  # a drop from below this is not a compaction
 HELD = "near"  # the marker while the near note waits for its save
 SAVED = "near-saved"
