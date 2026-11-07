@@ -394,7 +394,7 @@ if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
     free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
 import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s.get("kind", "worktree") == "worktree" and s["name"] != os.environ.get("GOAL_DONE_SLUG")]
-print(max(repo_lock.SESSION_CAP - len(held), 0))' 2>/dev/null) || free=""
+print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/dev/null) || free=""
   fi
   # One walk of $fill: open a build tab per free lane, log each refusal.
   walk_fill() {
