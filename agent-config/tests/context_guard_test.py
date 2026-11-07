@@ -161,6 +161,13 @@ class ContextGuardHoldTest(unittest.TestCase):
         self.assertFalse(self.refused("Read", {"file_path": str(big)}))
         self.assertFalse(self.refused("Read", {"file_path": str(small)}))
 
+    def test_the_big_read_line_is_20k_bytes(self):  # retro 2026-11-07: 25-37k reads got through at 30k
+        mid, under = self.dir / "Mid.swift", self.dir / "Under.swift"
+        mid.write_text("x" * 25_000)
+        under.write_text("x" * 19_000)
+        self.assertTrue(self.refused("Read", {"file_path": str(mid)}))
+        self.assertFalse(self.refused("Read", {"file_path": str(under)}))
+
     def test_ranged_read_and_resume_file_are_never_refused(self):
         big, plan = self.dir / "Big.swift", self.dir / "plan.md"
         big.write_text("x" * 40_000)

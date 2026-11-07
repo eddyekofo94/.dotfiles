@@ -123,7 +123,7 @@ def allowed_while_held(tool: str, tool_input: dict) -> bool:
     return tool == "Read" and is_resume(tool_input.get("file_path", ""))
 
 
-BIG_READ = 30_000  # bytes; retro 2026-10-29: whole 35-39k-char Swift reads rode 100+ turns each
+BIG_READ = 20_000  # bytes; retro 2026-10-29: 35-39k Swift reads rode 100+ turns each; 2026-11-07: 30k let 25-37k reads through
 BIG_READ_SKIP = re.compile(r"(^|/)(plan|decisions)[\w.-]*\.md$|handoff")
 
 
