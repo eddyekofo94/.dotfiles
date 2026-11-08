@@ -124,6 +124,7 @@ def brew_kb() -> int:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true", help="delete (default: dry run)")
+    ap.add_argument("--skip", action="append", default=[], help="skip Tier 2 items whose label contains this text")
     ap.add_argument("--tier2", action="store_true", help="also delete the Tier 2 stale-copy list")
     args = ap.parse_args()
 
@@ -147,7 +148,7 @@ def main():
     rows.append(("simctl delete unavailable", 0, ("simctl",)))  # size not measurable up front
     tier2 = [(l, target_size_kb(p, m, x), ("path", p, m, x)) for l, p, m, x in TIER2_ITEMS]
     if args.tier2:
-        rows += tier2
+        rows += [r for r in tier2 if not any(k in r[0] for k in args.skip)]
 
     out(f"{'item':<66}{'MB':>9}")
     for label, kb, _ in rows:
@@ -169,8 +170,10 @@ def main():
         if action[0] == "path":
             _, path, mode, *rest = action
             if mode == "all":
+                was_dir = path.is_dir()
                 remove(path)
-                path.mkdir(parents=True, exist_ok=True)  # keep the dir so tools don't error
+                if was_dir:
+                    path.mkdir(parents=True, exist_ok=True)  # keep dirs so tools don't error
             else:
                 for c in aged_children(path, rest[0] if rest else ""):
                     remove(c)
@@ -188,7 +191,8 @@ def main():
     out(f"Free after:  {free_after / 1048576:.1f} GB")
     out(f"Freed:       {(free_after - free_before) / 1048576:.1f} GB  (expected {expected / 1048576:.1f} GB)")
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    (LOG_DIR / f"{datetime.date.today()}.txt").write_text("\n".join(lines) + "\n")
+    with open(LOG_DIR / f"{datetime.date.today()}.txt", "a") as f:  # append: several runs a day
+        f.write("\n".join(lines) + "\n\n")
     return 0
 
 
