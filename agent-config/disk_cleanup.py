@@ -45,6 +45,20 @@ PATH_ITEMS = [
     ("Xcode iOS DeviceSupport (>14d)", HOME / "Library/Developer/Xcode/iOS DeviceSupport", "aged"),
 ]
 
+# Tier 2: stale copies and backups. Listed in every dry run; deleted only with --tier2 --apply.
+# (label, path, mode, exclude-suffix). Verified 2026-11-08: Xcode-26.6.app is installed, the Rust
+# home ~/.local/share/rustup is unused (cargo uses ~/.rustup), Claude vm_bundles re-download on demand.
+TIER2_ITEMS = [
+    ("Backups/Xcode-26.6.zip (Xcode-26.6.app installed)", HOME / "Backups/Xcode-26.6.zip", "all", ""),
+    ("Backups task folders (>14d, not *-raw)", HOME / "Backups", "aged", "-raw"),
+    ("Downloads/Xcode_27.1.xip (installer)", HOME / "Downloads/Xcode_27.1.xip", "all", ""),
+    ("Claude desktop vm_bundles (re-downloads)", HOME / "Library/Application Support/Claude/vm_bundles", "all", ""),
+    ("unused 2nd Rust home ~/.local/share/rustup", HOME / ".local/share/rustup", "all", ""),
+    ("Backups/bible-standard-usfx-raw (re-downloadable? CHECK first)", HOME / "Backups/bible-standard-usfx-raw", "all", ""),
+    (".cache/huggingface (OCR models, re-download)", HOME / ".cache/huggingface", "all", ""),
+    (".cache/biblestandard-libs (content-addressed; CHECK what rebuilds it)", HOME / ".cache/biblestandard-libs", "all", ""),
+]
+
 
 def du_kb(path: Path) -> int:
     if not path.exists():
@@ -58,17 +72,21 @@ def free_kb() -> int:
     return int(out[1].split()[3])
 
 
-def aged_children(path: Path):
+def aged_children(path: Path, exclude: str = ""):
     cutoff = time.time() - KEEP_DAYS * 86400
     if not path.is_dir():
         return []
-    return [c for c in path.iterdir() if c.stat().st_mtime < cutoff]
+    return [
+        c for c in path.iterdir()
+        if c.stat().st_mtime < cutoff and not (exclude and c.name.endswith(exclude))
+        and not c.name.startswith(".")
+    ]
 
 
-def target_size_kb(path: Path, mode: str) -> int:
+def target_size_kb(path: Path, mode: str, exclude: str = "") -> int:
     if mode == "all":
         return du_kb(path)
-    return sum(du_kb(c) for c in aged_children(path))
+    return sum(du_kb(c) for c in aged_children(path, exclude))
 
 
 def remove(path: Path):
@@ -106,6 +124,7 @@ def brew_kb() -> int:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true", help="delete (default: dry run)")
+    ap.add_argument("--tier2", action="store_true", help="also delete the Tier 2 stale-copy list")
     args = ap.parse_args()
 
     lines = []
@@ -121,17 +140,25 @@ def main():
 
     rows = []  # (label, before_kb, action)
     for label, path, mode in PATH_ITEMS:
-        rows.append((label, target_size_kb(path, mode), ("path", path, mode)))
+        rows.append((label, target_size_kb(path, mode), ("path", path, mode, "")))
     for name in old_toolchains():
         rows.append((f"rustup toolchain {name}", toolchain_kb(name), ("rustup", name)))
     rows.append((f"brew cleanup --prune={KEEP_DAYS}", brew_kb(), ("brew",)))
     rows.append(("simctl delete unavailable", 0, ("simctl",)))  # size not measurable up front
+    tier2 = [(l, target_size_kb(p, m, x), ("path", p, m, x)) for l, p, m, x in TIER2_ITEMS]
+    if args.tier2:
+        rows += tier2
 
     out(f"{'item':<66}{'MB':>9}")
     for label, kb, _ in rows:
         out(f"{label:<66}{kb / 1024:>9.0f}")
     expected = sum(kb for _, kb, _ in rows)
     out(f"{'EXPECTED TOTAL (excl. simctl)':<66}{expected / 1024:>9.0f}")
+    if not args.tier2:
+        out(f"\nTier 2 (needs --tier2; review each first):")
+        for label, kb, _ in tier2:
+            out(f"{label:<66}{kb / 1024:>9.0f}")
+        out(f"{'TIER 2 TOTAL':<66}{sum(k for _, k, _ in tier2) / 1024:>9.0f}")
 
     if not args.apply:
         out("\nDry run only. Re-run with --apply to delete.")
@@ -140,12 +167,12 @@ def main():
     out("\nDeleting...")
     for label, kb, action in rows:
         if action[0] == "path":
-            _, path, mode = action
+            _, path, mode, *rest = action
             if mode == "all":
                 remove(path)
                 path.mkdir(parents=True, exist_ok=True)  # keep the dir so tools don't error
             else:
-                for c in aged_children(path):
+                for c in aged_children(path, rest[0] if rest else ""):
                     remove(c)
         elif action[0] == "rustup":
             run(["rustup", "toolchain", "uninstall", action[1]])
