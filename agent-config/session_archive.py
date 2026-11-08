@@ -113,14 +113,20 @@ def main():
         default=None,
         help="also permanently delete archived files older than N days (not run by default)",
     )
+    ap.add_argument(
+        "--prune-only",
+        action="store_true",
+        help="skip archiving; only run --prune-archive-days (used by `doctor --clean`)",
+    )
     args = ap.parse_args()
 
-    files = list(candidates(args.cutoff_days))
-    total_bytes = sum(f.stat().st_size for f in files)
-    verb = "Archiving" if args.apply else "Would archive (dry run, pass --apply to move)"
-    print(f"{verb}: {len(files)} files, {total_bytes / 1e6:.1f} MB, older than {args.cutoff_days}d")
-    for f in files:
-        archive(f, args.apply)
+    if not args.prune_only:
+        files = list(candidates(args.cutoff_days))
+        total_bytes = sum(f.stat().st_size for f in files)
+        verb = "Archiving" if args.apply else "Would archive (dry run, pass --apply to move)"
+        print(f"{verb}: {len(files)} files, {total_bytes / 1e6:.1f} MB, older than {args.cutoff_days}d")
+        for f in files:
+            archive(f, args.apply)
 
     if args.prune_archive_days is not None:
         count, freed = prune_archive(args.prune_archive_days, args.apply)
