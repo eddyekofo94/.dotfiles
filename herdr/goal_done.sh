@@ -470,7 +470,8 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/de
       printf ' %q' "${worktree_args[@]}"
       printf '\n'
       if [ "${#dry_flag[@]}" = 0 ]; then
-        echo "would advance to: ${next_id}${next_track:+ (${next_track})} — gate not asked"
+        echo "goal-done: ${next_id}: gate not asked — this manager has no open --dry-run"
+        echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
         open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto" "$next_effort"
         opened=$((opened + 1))
         [ "$resuming" = true ] && resumed=$((resumed + 1))

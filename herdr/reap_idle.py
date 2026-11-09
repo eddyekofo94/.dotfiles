@@ -526,7 +526,7 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     if dry_run:
         print(f"fill: {repo.name} {summary} — {max(free, 0)} build lane(s) free")
         for line in lines:
-            if any(word in line for word in ("would advance to", "nothing", "full", "refused")):
+            if any(word in line for word in ("would advance to", "nothing", "full", "refused", "gate not asked")):
                 print(f"  {line}")
         return
     if any("goal-done: opened" in line for line in lines):
