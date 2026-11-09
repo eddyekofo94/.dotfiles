@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/eddyekofo/Programming/Projects/CanonFidei/biblestandard/ios/tools/doctor.py", line 77, in <module>
+    import owner_live  # noqa: E402
+  File "/Users/eddyekofo/Programming/Projects/CanonFidei/biblestandard/ios/tools/owner_live.py", line 37, in <module>
+    def last_status(transcript: Path) -> tuple[str, str] | None:
+TypeError: unsupported operand type(s) for |: 'types.GenericAlias' and 'NoneType'

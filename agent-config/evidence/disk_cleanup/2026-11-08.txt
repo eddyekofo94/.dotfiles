@@ -1,0 +1,55 @@
+APPLY  2026-11-08 02:16
+Free on Data volume before: 258.3 GB
+
+item                                                                     MB
+herdr cargo incremental                                                   0
+Caches/Google                                                             0
+Caches/BraveSoftware                                                      2
+Caches/com.brave.Browser                                                  0
+Caches/pip                                                                0
+Caches/ms-playwright (browsers; npx playwright install restores)          0
+Caches/go-build                                                           0
+Caches/Discord ShipIt                                                     0
+.cache/yarn                                                               0
+.cache/zig                                                                0
+.cache/puppeteer (browsers; re-download on use)                           0
+.cache/nvim                                                               0
+Xcode device-install deltas (next install is a full push)                 0
+Xcode DerivedData (>14d)                                                  0
+Xcode iOS DeviceSupport (>14d)                                            0
+brew cleanup --prune=14                                                   0
+simctl delete unavailable                                                 0
+Backups/Xcode-26.6.zip (Xcode-26.6.app installed)                      3282
+Backups task folders (>14d, not *-raw)                                  593
+Downloads/Xcode_27.1.xip (installer)                                   1933
+Claude desktop vm_bundles (re-downloads)                              11574
+unused 2nd Rust home ~/.local/share/rustup                             2896
+EXPECTED TOTAL (excl. simctl)                                         20280
+
+Deleting...
+  done: herdr cargo incremental
+  done: Caches/Google
+  done: Caches/BraveSoftware
+  done: Caches/com.brave.Browser
+  done: Caches/pip
+  done: Caches/ms-playwright (browsers; npx playwright install restores)
+  done: Caches/go-build
+  done: Caches/Discord ShipIt
+  done: .cache/yarn
+  done: .cache/zig
+  done: .cache/puppeteer (browsers; re-download on use)
+  done: .cache/nvim
+  done: Xcode device-install deltas (next install is a full push)
+  done: Xcode DerivedData (>14d)
+  done: Xcode iOS DeviceSupport (>14d)
+  done: brew cleanup --prune=14
+  done: simctl delete unavailable
+  done: Backups/Xcode-26.6.zip (Xcode-26.6.app installed)
+  done: Backups task folders (>14d, not *-raw)
+  done: Downloads/Xcode_27.1.xip (installer)
+  done: Claude desktop vm_bundles (re-downloads)
+  done: unused 2nd Rust home ~/.local/share/rustup
+
+Free before: 258.3 GB
+Free after:  278.2 GB
+Freed:       19.9 GB  (expected 19.8 GB)

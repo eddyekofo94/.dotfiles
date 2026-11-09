@@ -42,7 +42,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "sonnet",
+  "model": "opus",
   "disableClaudeAiConnectors": true,
   "skillOverrides": {
     "animate": "user-invocable-only",
@@ -332,7 +332,8 @@
     "rust-analyzer-lsp@claude-plugins-official": false,
     "mattpocock-skills@claude-plugins-official": false,
     "stripe@claude-plugins-official": true,
-    "cloudflare@cloudflare": true
+    "cloudflare@cloudflare": true,
+    "xcode@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "cloudflare": {
@@ -345,15 +346,19 @@
   "effortLevel": "high",
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "high"
+      "effortLevel": "medium"
     },
     "claude-sonnet-5-5": {
       "effortLevel": "medium"
+    },
+    "claude-fable-5-2": {
+      "effortLevel": "high"
     }
   },
   "autoCompactWindow": 182000,
   "autoMemoryEnabled": true,
   "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true,
   "autoMode": {
