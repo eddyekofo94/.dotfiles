@@ -84,6 +84,7 @@ HERDR_HOME = Path(os.environ.get("HERDR_REAP_HOME", Path.home() / ".config/herdr
 ALWAYS_BUILD = Path(os.environ.get("HERDR_REAP_ALWAYS_BUILD", HERDR_HOME / "always-build"))
 TRANSCRIPTS = Path(os.environ.get("HERDR_REAP_TRANSCRIPTS", Path.home() / ".claude/projects"))
 CONTINUES = Path(os.environ.get("HERDR_REAP_CONTINUES", Path.home() / ".cache/herdr-reap/continues.json"))
+FILLS = Path(os.environ.get("HERDR_REAP_FILLS", Path.home() / ".cache/herdr-reap/fill.json"))
 ALLOWANCE = Path(os.environ.get("HERDR_REAP_ALLOWANCE", Path.home() / ".cache/claude-allowance.json"))
 
 
@@ -385,8 +386,11 @@ def always_build() -> list[Path]:
     return roots
 
 
-def lanes(repo: Path) -> dict | None:
-    """The repository's own lane count, or None when it has no manager that says."""
+LANE_KEYS = ("build", "build_cap", "verdict", "verdict_seats")
+
+
+def lanes(repo: Path) -> dict | str | None:
+    """The repository's lane count, None when it has no manager, or why the count failed."""
     manager = repo / "tools/session_worktree.py"
     if not manager.exists():
         return None
@@ -396,12 +400,14 @@ def lanes(repo: Path) -> dict | None:
     except subprocess.TimeoutExpired:
         # A busy machine (a gate, simulators) can stall the count; skip this
         # pass and try again in two minutes rather than die with a traceback.
-        log(f"fill: {repo.name} — lane count took over 60 s; skipped this pass")
-        return None
+        return "lane count did not answer in 60 s"
     try:
-        return json.loads(out.stdout)
+        held = json.loads(out.stdout)
     except json.JSONDecodeError:
-        return None
+        return "lane count unreadable"
+    if not isinstance(held, dict) or not all(isinstance(held.get(key), int) for key in LANE_KEYS):
+        return "lane count unreadable"
+    return held
 
 
 def orphaned(repo: Path) -> bool:
@@ -431,11 +437,63 @@ def window_for(repo: Path, tabs: list[Tab]) -> str | None:
     return max(counts, key=counts.get) if counts else None
 
 
+def say_once(repo: Path, state: str, line: str | None = None) -> None:
+    """Log `line` only when the repository's fill `state` changed (BS-IOS-BUG-410)."""
+    try:
+        memory = json.loads(FILLS.read_text())
+    except (OSError, ValueError):
+        memory = {}
+    if not isinstance(memory, dict):
+        memory = {}
+    if memory.get(str(repo)) == state:
+        return
+    memory[str(repo)] = state
+    try:
+        FILLS.parent.mkdir(parents=True, exist_ok=True)
+        FILLS.write_text(json.dumps(memory, indent=2))
+    except OSError:
+        pass  # No memory only repeats the line; a reaper pass must still finish.
+    if line:
+        log(line)
+
+
+def blocker(why: str) -> str:
+    """A refusal's reason without the prose and figures that change every pass."""
+    waits = re.search(r"waits on ([\w-]+)", why)
+    if waits:
+        return f"waits on {waits[1]}"
+    return "machine busy" if "machine busy" in why else why
+
+
+def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
+    """What left the lane empty; only the last walk's refusals still hold."""
+    walked = done.stderr.splitlines()
+    retries = [at for at, line in enumerate(walked) if "retrying the fill in" in line]
+    groups: dict[str, list[str]] = {}
+    for line in walked[retries[-1] + 1:] if retries else walked:
+        refusal = re.match(r"goal-done: refused: (\S+) — (.*)", line)
+        if refusal:
+            groups.setdefault(blocker(refusal[2]), []).append(refusal[1])
+    if groups:
+        return "; ".join(f"{', '.join(sorted(groups[why]))} {why}" for why in sorted(groups))
+    printed = done.stdout + done.stderr
+    for reason in ("chain paused", "nothing Ready", "nothing could start"):
+        if reason in printed:
+            return reason
+    return f"goal-done gave no reason (exit {done.returncode})"
+
+
 def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     held = lanes(repo)
     if held is None:
         if dry_run:
             print(f"fill: {repo.name} — no lane count (tools/session_worktree.py lanes --json)")
+        return
+    if isinstance(held, str):
+        if dry_run:
+            print(f"fill: {repo.name} — {held}")
+        else:
+            say_once(repo, held, f"fill: {repo.name} — {held}")
         return
     free = held["build_cap"] - held["build"]
     seat = held["verdict_seats"] - held["verdict"]
@@ -443,11 +501,17 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     if free <= 0 and seat <= 0 and not orphaned(repo):
         if dry_run:
             print(f"fill: {repo.name} {summary} — lanes full, nothing to open")
+        else:
+            say_once(repo, "full")
         return
     sock = window_for(repo, tabs)
     if sock is None:
         if dry_run:
             print(f"fill: {repo.name} {summary} — no Herdr window has it open")
+        elif free > 0:
+            say_once(repo, "no window", f"fill: {repo.name} {summary} — opened nothing: no Herdr window has it open")
+        else:
+            say_once(repo, "full")
         return
     args = ["bash", str(GOAL_DONE), "--fill", str(repo)] + (["--dry-run"] if dry_run else [])
     done = subprocess.run(args, capture_output=True, text=True,
@@ -456,14 +520,21 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     if dry_run:
         print(f"fill: {repo.name} {summary} — {max(free, 0)} build lane(s) free")
         for line in lines:
-            if "would advance to" in line or "nothing" in line or "full" in line:
+            if any(word in line for word in ("would advance to", "nothing", "full", "refused")):
                 print(f"  {line}")
         return
-    # Every pass with nothing Ready would say so; log only a pass that started one.
     if any("goal-done: opened" in line for line in lines):
         log(f"fill: {repo.name} {summary}")
         for line in lines:
             log(f"  {line}")
+    # A verdict or /spec tab leaves the build lane empty, so only a build open clears the reason.
+    if any("goal-done: opened /build" in line for line in lines):
+        say_once(repo, "opened")
+    elif free <= 0:
+        say_once(repo, "full")
+    else:
+        why = why_nothing_opened(done)
+        say_once(repo, why, f"fill: {repo.name} {summary} — opened nothing: {why}")
 
 
 def keep_awake(tabs: list[Tab]) -> bool:

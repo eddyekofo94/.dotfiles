@@ -359,7 +359,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(all("--dry-run" in call for call in self.dry_opens()), self.dry_opens())
         self.assertIn("would advance to: DF-1", result.stdout)
-        self.assertIn(str(self.repo.parent / "repo-sessions/df-1"), result.stdout)
+        self.assertIn(str(self.repo.parent / "repo-sessions/df1"), result.stdout)
         self.assertNotIn("<resolved by", result.stdout)
         self.assertNotIn("gate not asked", result.stdout)
 
