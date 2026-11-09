@@ -344,10 +344,10 @@ chain_note() {
   mkdir -p "$(dirname "$chain_log")" &&
     printf '%s %s (after %s)\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" "${goal_id:-${slug:-fill}}" >>"$chain_log"
 }
-refused() {  # id why [full]; a full cap is not a stop, so it stays out of the chain log
+refused() {  # id why
   last_refusal="$1 — $2"
   echo "goal-done: refused: $1 — $2" >&2
-  [ "${3:-}" = full ] || chain_note "skipped $1 — $2"
+  chain_note "skipped $1 — $2"
 }
 # Eddy, 2026-11-09 ("If spec is needed tell me ... it just stopped"): the log and
 # a passing notification went unseen, so a stop only a /spec can clear opens that
@@ -491,7 +491,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/de
       why=$(grep -v '^[[:space:]]*$' "$open_err" | tail -n 1)
       rm -f "$open_err"
       case "$rc" in
-        3) refused "$next_id" "build lanes full${why:+: $why}" full
+        3) refused "$next_id" "build lanes full${why:+: $why}"
            cap_full=1; waiting="$next_id"; break ;;
         4) echo "goal-done: ${next_id}'s seams overlap a live build — it waits; trying the next record (FS-262 D5)" >&2
            refused "$next_id" "overlaps a live build${why:+: $why}" ;;

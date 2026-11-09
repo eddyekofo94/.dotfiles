@@ -233,6 +233,38 @@ class RefusedFill(unittest.TestCase):
         self.assertFalse((self.root / "fill.json").exists())
 
 
+    def test_a_live_owners_long_refusal_groups_under_d3s_words(self):
+        said = "a live session holds it: Stop and ask Eddy. His exits are the ones to take here"
+        self.output = f"goal-done: refused: FS-297 — {said}\ngoal-done: refused: BUG-254 — {said}\n"
+        line = self.fill()[0]
+        self.assertIn("BUG-254, FS-297 are live sessions' checkouts", line)
+        self.assertNotIn("Stop and ask", line)
+
+    def test_a_cap_refusal_keeps_only_its_blocker(self):
+        self.output = "goal-done: refused: FS-1 — build lanes full: Eddy has room for a decision.\n"
+        line = self.fill()[0]
+        self.assertIn("FS-1 build lanes full", line)
+        self.assertNotIn("Eddy has room", line)
+
+    def test_a_verdict_tab_over_nothing_ranked_reads_as_nothing_ready(self):
+        self.output = "goal-done: opened /verdict auto in p (claude) — /x\n"
+        self.assertTrue(any("nothing Ready" in line for line in self.fill()))
+        self.output = "goal-done: nothing Ready — /spec when you have the attention (no tab opened)\n"
+        self.assertEqual(self.fill(), [])
+
+    def test_a_pass_that_opens_logs_no_refusal_lines_of_its_own(self):
+        self.output = self.refusal(("FS-1", "fs200")) + "goal-done: opened /build FS-9 in p (claude) — /x\n"
+        self.assertFalse(any("goal-done: refused" in line for line in self.fill()))
+
+    def test_an_unwritable_memory_says_so_and_the_pass_finishes(self):
+        (self.root / "file").write_text("")
+        self.output = self.refusal(("FS-1", "fs200"))
+        with mock.patch.object(reap_idle, "FILLS", self.root / "file/fill.json"):
+            lines = self.fill()
+        self.assertTrue(any("waits on fs200" in line for line in lines), lines)
+        self.assertTrue(any("cannot write" in line for line in lines), lines)
+
+
 class LaneCount(unittest.TestCase):
     def manager(self):
         tmp = tempfile.TemporaryDirectory()
@@ -250,6 +282,22 @@ class LaneCount(unittest.TestCase):
             raise subprocess.TimeoutExpired("x", 60)
         with mock.patch.object(reap_idle.subprocess, "run", slow):
             self.assertEqual(reap_idle.lanes(self.manager()), "lane count did not answer in 60 s")
+
+    def test_a_timed_out_count_logs_once_and_the_pass_still_keeps_awake(self):
+        repo = self.manager()
+        logged, awake = [], mock.Mock()
+        def slow(*_args, **_kwargs):
+            raise subprocess.TimeoutExpired("x", 60)
+        patches = dict(FILLS=repo / "fill.json", LOCK=repo / "lock", log=logged.append, keep_awake=awake,
+                       sockets=lambda: [], resume_partial=lambda *a: None, sweep_worktrees=lambda *a: None,
+                       always_build=lambda: [repo], reap_simulators=lambda *a: None)
+        with mock.patch.multiple(reap_idle, **patches), mock.patch.object(reap_idle.subprocess, "run", slow), \
+                mock.patch.object(sys, "argv", ["herdr-reap"]):
+            self.assertEqual(reap_idle.main(), 0)
+            self.assertEqual(reap_idle.main(), 0)
+        self.assertEqual([line for line in logged if "did not answer" in line],
+                         [f"fill: {repo.name} — lane count did not answer in 60 s"])
+        self.assertEqual(awake.call_count, 2)
 
     def test_unreadable_output_is_a_reason(self):
         for stdout in ("not json", "{}"):

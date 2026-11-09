@@ -451,18 +451,21 @@ def say_once(repo: Path, state: str, line: str | None = None) -> None:
     try:
         FILLS.parent.mkdir(parents=True, exist_ok=True)
         FILLS.write_text(json.dumps(memory, indent=2))
-    except OSError:
-        pass  # No memory only repeats the line; a reaper pass must still finish.
+    except OSError as error:
+        log(f"fill: {repo.name} — cannot write {FILLS}: {error}")
     if line:
         log(line)
 
 
 def blocker(why: str) -> str:
     """A refusal's reason without the prose and figures that change every pass."""
+    head = why.split(": ", 1)[0]
+    if head == "a live session holds it":
+        return "are live sessions' checkouts"
     waits = re.search(r"waits on ([\w-]+)", why)
     if waits:
         return f"waits on {waits[1]}"
-    return "machine busy" if "machine busy" in why else why
+    return "machine busy" if "machine busy" in why else head
 
 
 def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
@@ -480,6 +483,9 @@ def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
     for reason in ("chain paused", "nothing Ready", "nothing could start"):
         if reason in printed:
             return reason
+    # A verdict tab skips goal-done's nothing-Ready line; no refusal means none was ranked.
+    if "goal-done: opened" in printed:
+        return "nothing Ready"
     return f"goal-done gave no reason (exit {done.returncode})"
 
 
@@ -526,7 +532,8 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     if any("goal-done: opened" in line for line in lines):
         log(f"fill: {repo.name} {summary}")
         for line in lines:
-            log(f"  {line}")
+            if not line.startswith("goal-done: refused:"):
+                log(f"  {line}")
     # A verdict or /spec tab leaves the build lane empty, so only a build open clears the reason.
     if any("goal-done: opened /build" in line for line in lines):
         say_once(repo, "opened")

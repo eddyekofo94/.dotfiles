@@ -223,7 +223,8 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertNotIn("DF-8", log.read_text())
         log.unlink()
         self.invoke(manager_exit=3)
-        self.assertFalse(log.exists())
+        self.assertNotIn("build chain stopped", log.read_text())
+        log.unlink()
         self.invoke(ranked=False, dry_run=True)
         self.assertFalse(log.exists())
 
