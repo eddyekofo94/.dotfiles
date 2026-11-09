@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+import contextlib
+import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "herdr"))
@@ -110,6 +114,148 @@ class Transcript(unittest.TestCase):
              "message": {"content": [{"type": "tool_result", "content": "ok"}]}},
         )
         self.assertEqual(reap_idle.read_transcript(path)[1], "DONE")
+
+
+class RefusedFill(unittest.TestCase):
+    """BS-IOS-BUG-410: a pass that leaves a free build lane empty says why, once per change."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.repo = self.root / "App"
+        self.held = {"build": 1, "build_cap": 2, "verdict": 1, "verdict_seats": 1}
+        self.output = ""
+        self.logged = []
+        for name, value in (
+            ("FILLS", self.root / "fill.json"),
+            ("lanes", lambda repo: self.held),
+            ("orphaned", lambda repo: False),
+            ("window_for", lambda repo, tabs: "sock"),
+            ("log", self.logged.append),
+        ):
+            patcher = mock.patch.object(reap_idle, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        patcher = mock.patch.object(reap_idle.subprocess, "run", self.ran)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def ran(self, *_args, **_kwargs):
+        return subprocess.CompletedProcess([], 0, stdout="", stderr=self.output)
+
+    def fill(self, repo=None):
+        before = len(self.logged)
+        reap_idle.fill(repo or self.repo, [], False)
+        return self.logged[before:]
+
+    def refusal(self, *waits):
+        return "".join(f"goal-done: refused: {who} — overlaps a live build: {who} waits on {slug}: its seams overlap\n"
+                       for who, slug in waits)
+
+    def test_a_refused_pass_names_each_record_and_its_blocker_once(self):
+        self.output = self.refusal(("FS-1", "fs200"), ("FS-2", "fs200"))
+        first = self.fill()
+        self.assertEqual(len(first), 1, first)
+        self.assertIn("FS-1, FS-2", first[0])
+        self.assertIn("waits on fs200", first[0])
+        self.assertEqual(self.fill(), [])
+
+    def test_a_new_blocker_logs_again(self):
+        self.output = self.refusal(("FS-1", "fs200"))
+        self.fill()
+        self.output = self.refusal(("FS-1", "fs300"))
+        self.assertEqual(len(self.fill()), 1)
+
+    def test_figures_in_a_machine_busy_reason_are_not_a_change(self):
+        self.output = "goal-done: refused: FS-1 — build lanes full: machine busy: 2.0 GB memory available\n"
+        self.assertEqual(len(self.fill()), 1)
+        self.output = "goal-done: refused: FS-1 — build lanes full: machine busy: 2.7 GB memory available\n"
+        self.assertEqual(self.fill(), [])
+
+    def test_a_full_pass_lets_the_same_refusal_log_again(self):
+        self.output = self.refusal(("FS-1", "fs200"))
+        self.fill()
+        self.held = {**self.held, "build": 2}
+        self.assertEqual(self.fill(), [])
+        self.held = {**self.held, "build": 1}
+        self.assertEqual(len(self.fill()), 1)
+
+    def test_a_build_open_logs_as_before_and_clears_the_memory(self):
+        self.output = self.refusal(("FS-1", "fs200"))
+        self.fill()
+        self.output = "goal-done: opened /build FS-9 in p (claude) — /x\n"
+        self.assertTrue(self.fill()[0].startswith("fill: App"))
+        self.output = self.refusal(("FS-1", "fs200"))
+        self.assertEqual(len(self.fill()), 1)
+
+    def test_a_verdict_tab_alone_is_not_a_build_open(self):
+        self.output = self.refusal(("FS-1", "fs200")) + "goal-done: opened /verdict auto in p (claude) — /x\n"
+        self.assertTrue(any("waits on fs200" in line for line in self.fill()))
+
+    def test_only_the_retrys_walk_counts(self):
+        self.output = (self.refusal(("FS-1", "fs200"))
+                       + "goal-done: 1 ranked, none opened — retrying the fill in 20s\n"
+                       + self.refusal(("FS-2", "fs300")))
+        line = "".join(self.fill())
+        self.assertIn("FS-2", line)
+        self.assertNotIn("FS-1", line)
+
+    def test_a_paused_chain_and_nothing_ready_are_reasons(self):
+        self.output = "goal-done: chain paused (/p) — retiring without opening a tab\n"
+        self.assertIn("chain paused", self.fill()[0])
+        self.assertEqual(self.fill(), [])
+        self.output = "goal-done: nothing Ready — /spec when you have the attention (no tab opened)\n"
+        self.assertIn("nothing Ready", self.fill()[0])
+
+    def test_no_window_is_a_reason(self):
+        with mock.patch.object(reap_idle, "window_for", lambda repo, tabs: None):
+            self.assertIn("no Herdr window", self.fill()[0])
+
+    def test_two_repositories_keep_separate_memories(self):
+        self.output = self.refusal(("FS-1", "fs200"))
+        self.assertEqual(len(self.fill()), 1)
+        self.assertEqual(len(self.fill(self.root / "Other")), 1)
+        self.assertEqual(self.fill(), [])
+
+    def test_a_lane_count_failure_is_one_line_and_no_crash(self):
+        with mock.patch.object(reap_idle, "lanes", lambda repo: "lane count did not answer in 60 s"):
+            self.assertIn("did not answer", self.fill()[0])
+            self.assertEqual(self.fill(), [])
+
+    def test_a_dry_run_prints_refusals_and_writes_no_memory(self):
+        self.output = self.refusal(("FS-1", "fs200"))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            reap_idle.fill(self.repo, [], True)
+        self.assertIn("waits on fs200", out.getvalue())
+        self.assertEqual(self.logged, [])
+        self.assertFalse((self.root / "fill.json").exists())
+
+
+class LaneCount(unittest.TestCase):
+    def manager(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        repo = Path(tmp.name)
+        (repo / "tools").mkdir()
+        (repo / "tools/session_worktree.py").write_text("")
+        return repo
+
+    def test_no_manager_stays_silent(self):
+        self.assertIsNone(reap_idle.lanes(Path("/nonexistent")))
+
+    def test_a_timeout_is_a_reason(self):
+        def slow(*_args, **_kwargs):
+            raise subprocess.TimeoutExpired("x", 60)
+        with mock.patch.object(reap_idle.subprocess, "run", slow):
+            self.assertEqual(reap_idle.lanes(self.manager()), "lane count did not answer in 60 s")
+
+    def test_unreadable_output_is_a_reason(self):
+        for stdout in ("not json", "{}"):
+            done = subprocess.CompletedProcess([], 0, stdout=stdout, stderr="")
+            with mock.patch.object(reap_idle.subprocess, "run", lambda *a, **k: done):
+                self.assertEqual(reap_idle.lanes(self.manager()), "lane count unreadable")
 
 
 if __name__ == "__main__":
