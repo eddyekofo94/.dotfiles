@@ -479,6 +479,9 @@ def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
             groups.setdefault(blocker(refusal[2]), []).append(refusal[1])
     if groups:
         return "; ".join(f"{', '.join(sorted(groups[why]))} {why}" for why in sorted(groups))
+    if done.returncode:
+        said = [line for line in walked if line.strip()]
+        return f"goal-done failed: {said[-1] if said else f'exit {done.returncode}'}"
     printed = done.stdout + done.stderr
     for reason in ("chain paused", "nothing Ready", "nothing could start"):
         if reason in printed:
@@ -526,7 +529,7 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
     if dry_run:
         print(f"fill: {repo.name} {summary} — {max(free, 0)} build lane(s) free")
         for line in lines:
-            if any(word in line for word in ("would advance to", "nothing", "full", "refused", "gate not asked")):
+            if any(word in line for word in ("would advance to", "nothing", "full", "refused", "gate not asked", "verdict")):
                 print(f"  {line}")
         return
     if any("goal-done: opened" in line for line in lines):

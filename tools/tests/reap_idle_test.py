@@ -126,6 +126,7 @@ class RefusedFill(unittest.TestCase):
         self.repo = self.root / "App"
         self.held = {"build": 1, "build_cap": 2, "verdict": 1, "verdict_seats": 1}
         self.output = ""
+        self.exit = 0
         self.logged = []
         for name, value in (
             ("FILLS", self.root / "fill.json"),
@@ -142,7 +143,7 @@ class RefusedFill(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def ran(self, *_args, **_kwargs):
-        return subprocess.CompletedProcess([], 0, stdout="", stderr=self.output)
+        return subprocess.CompletedProcess([], self.exit, stdout="", stderr=self.output)
 
     def fill(self, repo=None):
         before = len(self.logged)
@@ -263,6 +264,27 @@ class RefusedFill(unittest.TestCase):
             lines = self.fill()
         self.assertTrue(any("waits on fs200" in line for line in lines), lines)
         self.assertTrue(any("cannot write" in line for line in lines), lines)
+
+    def test_a_failed_goal_done_says_what_failed(self):
+        self.exit = 1
+        self.output = "\ngoal-done: jq required\n\n"
+        self.assertIn("opened nothing: goal-done failed: goal-done: jq required", self.fill()[0])
+
+    def test_a_silent_failure_gives_its_exit_code(self):
+        self.exit = 3
+        self.assertIn("opened nothing: goal-done failed: exit 3", self.fill()[0])
+
+    def test_a_failed_pass_still_names_its_refusals(self):
+        self.exit = 1
+        self.output = self.refusal(("FS-1", "fs200")) + "goal-done: jq required\n"
+        self.assertIn("waits on fs200", self.fill()[0])
+
+    def test_a_dry_run_prints_a_verdict_lane_refusal(self):
+        self.output = "goal-done: could not open the verdict lane (exit 1)\n"
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            reap_idle.fill(self.repo, [], True)
+        self.assertIn("could not open the verdict lane", out.getvalue())
 
 
 class LaneCount(unittest.TestCase):
