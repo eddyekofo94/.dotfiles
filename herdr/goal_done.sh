@@ -346,6 +346,7 @@ chain_note() {
 }
 refused() {  # id why
   last_refusal="$1 — $2"
+  echo "goal-done: refused: $1 — $2" >&2
   chain_note "skipped $1 — $2"
 }
 # Eddy, 2026-11-09 ("If spec is needed tell me ... it just stopped"): the log and
@@ -405,8 +406,12 @@ if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
   if grep -Eq -- '(^|[[:space:]])--place([[:space:]=]|$)' <<<"$manager_help"; then
     place_flag=(--place)
   fi
-  # Dry-run cannot ask the gate without opening, so it asks how many build
-  # lanes are free and walks that many; a real run lets exit 3 say when to stop.
+  dry_flag=()
+  if [ "$DRY" = 1 ] && grep -Eq -- '(^|[[:space:]])--dry-run([[:space:]=]|$)' <<<"$manager_help"; then
+    dry_flag=(--dry-run)
+  fi
+  # A dry open holds no lane, so the walk counts its own would-opens against
+  # the free lanes; a real run lets exit 3 say when to stop (BibleStandard BUG-410).
   free=""
   if [ "$DRY" = 1 ]; then
     # The finishing checkout is still on disk in a dry run; a real run has
@@ -460,18 +465,23 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/de
       if [ "$resuming" != true ] && [ -n "$free" ] && [ "$((opened - resumed))" -ge "$free" ]; then
         cap_full=1; waiting="$next_id"; break
       fi
+      worktree_args+=(${dry_flag[@]+"${dry_flag[@]}"})
       printf 'would run: python3 tools/session_worktree.py'
       printf ' %q' "${worktree_args[@]}"
       printf '\n'
-      echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-      open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto" "$next_effort"
-      opened=$((opened + 1))
-      [ "$resuming" = true ] && resumed=$((resumed + 1))
-      continue
+      if [ "${#dry_flag[@]}" = 0 ]; then
+        echo "goal-done: ${next_id}: gate not asked — this manager has no open --dry-run"
+        echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
+        open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto" "$next_effort"
+        opened=$((opened + 1))
+        [ "$resuming" = true ] && resumed=$((resumed + 1))
+        continue
+      fi
     fi
     open_err=$(mktemp)
     if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
       cat "$open_err" >&2; rm -f "$open_err"
+      [ "$DRY" = 1 ] && echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
       open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
@@ -513,11 +523,11 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/de
   # seat is free. A full build cap never blocks it: it is not a build lane.
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json" 2>/dev/null)" -gt 0 ] 2>/dev/null &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
-    if [ "$DRY" = 1 ]; then
-      echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-}"
+    if [ "$DRY" = 1 ] && [ "${#dry_flag[@]}" = 0 ]; then
+      echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-} — gate not asked"
       open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" sonnet "--permission-mode bypassPermissions"
       verdict_opened=1
-    elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"}); then
+    elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"} ${dry_flag[@]+"${dry_flag[@]}"}); then
       open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" sonnet "--permission-mode bypassPermissions"
       verdict_opened=1
     else

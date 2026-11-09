@@ -44,6 +44,8 @@ opening.add_argument('--goal')
 opening.add_argument('--paths', nargs='*')
 if os.environ.get('MANAGER_PLACE') == '1':
     opening.add_argument('--place', action='store_true')
+if os.environ.get('MANAGER_DRY') == '1':
+    opening.add_argument('--dry-run', action='store_true')
 removing = sub.add_parser('remove')
 removing.add_argument('slug')
 removing.add_argument('--delete-branch', action='store_true')
@@ -221,7 +223,8 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertNotIn("DF-8", log.read_text())
         log.unlink()
         self.invoke(manager_exit=3)
-        self.assertFalse(log.exists())
+        self.assertNotIn("build chain stopped", log.read_text())
+        log.unlink()
         self.invoke(ranked=False, dry_run=True)
         self.assertFalse(log.exists())
 
@@ -345,7 +348,34 @@ if sys.argv[1:3] == ['pane', 'get']:
         result = self.invoke(dry_run=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("<resolved by repository worktree manager>", result.stdout)
+        self.assertIn("gate not asked", result.stdout)
         self.assertFalse(self.worktree_calls.exists())
+
+    def dry_opens(self):
+        calls = [json.loads(line) for line in self.worktree_calls.read_text().splitlines()]
+        return [call for call in calls if call[0] == "open"]
+
+    def test_a_dry_run_asks_the_managers_real_gates(self):
+        result = self.invoke(dry_run=True, env_extra={"MANAGER_DRY": "1"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(all("--dry-run" in call for call in self.dry_opens()), self.dry_opens())
+        self.assertIn("would advance to: DF-1", result.stdout)
+        self.assertIn(str(self.repo.parent / "repo-sessions/df1"), result.stdout)
+        self.assertNotIn("<resolved by", result.stdout)
+        self.assertNotIn("gate not asked", result.stdout)
+
+    def test_a_dry_run_reports_the_managers_refusal_and_no_advance(self):
+        result = self.invoke(manager_exit=4, dry_run=True, env_extra={"MANAGER_DRY": "1"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("seams overlap a live build", result.stderr)
+        self.assertIn("goal-done: refused: DF-1", result.stderr)
+        self.assertNotIn("would advance to: DF-1", result.stdout)
+
+    def test_a_dry_run_asks_the_verdict_lane_too(self):
+        self.invoke(dry_run=True, unjudged=2, env_extra={"MANAGER_DRY": "1"})
+        drains = [call for call in self.dry_opens() if call[1] == "verdict-drain"]
+        self.assertEqual(len(drains), 1)
+        self.assertIn("--dry-run", drains[0])
 
     def test_ranked_delivery_preserves_the_current_agent_family(self):
         for caller, expected in (
