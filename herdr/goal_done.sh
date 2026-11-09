@@ -348,6 +348,27 @@ refused() {  # id why
   last_refusal="$1 — $2"
   chain_note "skipped $1 — $2"
 }
+# Eddy, 2026-11-09 ("If spec is needed tell me ... it just stopped"): the log and
+# a passing notification went unseen, so a stop only a /spec can clear opens that
+# /spec as a tab: one blocker at a time, and not again for 12 h if it is closed.
+open_spec_blocker() {  # the Spec Needed blockers, one per line
+  local id marker state_dir
+  state_dir=$(dirname "$chain_log")
+  mkdir -p "$state_dir"
+  while read -r id; do
+    [ -n "$id" ] || return 0
+    [ -z "$(find "$state_dir/spec-opened-$id" -mmin -720 2>/dev/null)" ] || return 0
+  done <<<"$1"
+  id=$(head -n 1 <<<"$1")
+  marker="$state_dir/spec-opened-$id"
+  touch "$marker"
+  if ( open_tab "$shared" "spec-$(id_slug "$id")" "/spec $id" opus "--permission-mode auto" high ); then
+    chain_note "opened /spec $id: the chain waits on it"
+  else
+    rm -f "$marker"
+    chain_note "could not open /spec $id"
+  fi
+}
 # The work graph that names the next record: iOS's features_index.py, else a repo's
 # records.py (BibleStandard BS-DATA-TASK-84: the data checkout, one build at a time).
 focus_tool=""
@@ -542,6 +563,13 @@ if [ "$OPEN_TODO" = 1 ]; then
       if [ "${HERDR_CHAIN_NOTIFY:-1}" = 1 ] && command -v osascript >/dev/null; then
         osascript -e "display notification \"${stop_msg//\"/}\" with title \"Build chain stopped\" sound name \"Basso\"" >/dev/null 2>&1 || true
       fi
+      spec_blockers=$(jq -r --arg t "$focus" '[.waiting[]? | select($t == "" or .track == $t) | .waiting_on[]?] | unique | .[]' <<<"$focus_json" 2>/dev/null |
+        while read -r blocker; do
+          if grep -q '^- Status: Spec Needed' <<<"$(cd "$shared" && python3 "$focus_tool" --show "$blocker" 2>/dev/null)"; then
+            echo "$blocker"
+          fi
+        done)
+      [ -z "$spec_blockers" ] || open_spec_blocker "$spec_blockers"
     fi
   fi
 fi
