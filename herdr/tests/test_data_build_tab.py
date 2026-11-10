@@ -17,10 +17,34 @@ class DataBuildTab(unittest.TestCase):
         (self.ios / "project/workflow/id_map.tsv").write_text("BUG-1003\tBS-IOS-BUG-1003\n")
         (self.data / "tools").mkdir(parents=True)
 
-    def dry_run(self, ident, data=None):
-        env = {**os.environ, "HERDR_GOALS_REPO": str(self.ios), "BS_DATA_DIR": str(data or self.data)}
+    def dry_run(self, ident, data=None, extra=None, lane=False):
+        env = {**os.environ, "HERDR_GOALS_REPO": str(self.ios), "BS_DATA_DIR": str(data or self.data), **(extra or {})}
+        env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep)
+                                      if lane or not os.path.exists(os.path.join(p, "herdr-group-lane")))
         return subprocess.run(["bash", str(GOALS), "--build", ident, "--dry-run"],
                               cwd=self.ios, env=env, capture_output=True, text=True)
+
+    def fake_lane(self, code, out):
+        bin_dir = self.ios / "bin"; bin_dir.mkdir()
+        tool = bin_dir / "herdr-group-lane"
+        tool.write_text(f"#!/bin/sh\necho '{out}'\nexit {code}\n"); tool.chmod(0o755)
+        return {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+
+    def test_a_held_shared_lane_refuses_a_data_web_or_api_id(self):
+        extra = self.fake_lane(3, "BS-DATA-BUG-81 (pid 100)")
+        for ident in ("BS-DATA-BUG-72", "BS-WEB-FEAT-2", "BS-API-TASK-3"):
+            run = self.dry_run(ident, extra=extra, lane=True)
+            self.assertEqual(run.returncode, 3, ident)
+            self.assertIn("held by BS-DATA-BUG-81 (pid 100)", run.stderr)
+
+    def test_a_free_shared_lane_or_a_broken_tool_opens(self):
+        run = self.dry_run("BS-DATA-BUG-72", extra=self.fake_lane(1, "boom"), lane=True)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn("would open bs-data-bug-72", run.stdout)
+
+    def test_an_ios_id_never_asks_the_shared_lane(self):
+        run = self.dry_run("BS-IOS-TASK-5", extra=self.fake_lane(3, "x"), lane=True)
+        self.assertNotIn("held by", run.stderr)
 
     def test_a_data_id_opens_in_the_data_checkout(self):
         run = self.dry_run("BS-DATA-BUG-72")

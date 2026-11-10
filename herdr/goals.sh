@@ -114,6 +114,17 @@ if [ -n "$BUILD_ID" ]; then
     [ -d "$data" ] || { echo "herdr-goals: no data checkout at ${data} for ${want}; clone it there or set BS_DATA_DIR" >&2; exit 2; }
     REPO="$data"; BUILD_ID="$want" ;;
   esac
+  # BS-IOS-TASK-1619: data, web and API share one build lane; a chain opener is always gated.
+  case "$want" in BS-DATA-*|BS-WEB-*|BS-API-*)
+    if command -v herdr-group-lane >/dev/null 2>&1; then
+      lane_holder=$(herdr-group-lane check --opener "$want") || {
+        lane_exit=$?
+        if [ "$lane_exit" = 3 ]; then
+          echo "the data, web and API build lane is held by ${lane_holder} — ${want} waits" >&2; exit 3
+        fi
+      }
+    fi ;;
+  esac
 fi
 
 # A repo without the loop tooling still opens tabs; it just cannot rank goals or

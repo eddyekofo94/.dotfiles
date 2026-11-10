@@ -420,7 +420,7 @@ if [ "$OPEN_TODO" = 1 ] && [ -n "$focus_tool" ]; then
     free=$(cd "$shared" && GOAL_DONE_SLUG="$slug" python3 -c 'import os, sys; sys.path.insert(0, "tools")
 import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s.get("kind", "worktree") == "worktree" and s["name"] != os.environ.get("GOAL_DONE_SLUG")]
-print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/dev/null) || free=""
+print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_worktree, "seats_taken", len)(held), 0))' 2>/dev/null) || free=""
   fi
   # One walk of $fill: open a build tab per free lane, log each refusal.
   walk_fill() {
@@ -479,7 +479,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - len(held), 0))' 2>/de
       fi
     fi
     open_err=$(mktemp)
-    if cwd=$(cd "$shared" && python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
+    if cwd=$(cd "$shared" && HERDR_GROUP_LANE_OPENER=1 python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
       cat "$open_err" >&2; rm -f "$open_err"
       [ "$DRY" = 1 ] && echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
       open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto" "$next_effort"
