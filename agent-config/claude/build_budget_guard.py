@@ -605,9 +605,32 @@ def handoff(why: str, goal: str) -> str:
             "and closes this tab (Eddy's settled call; never ask him to run it).")
 
 
+def legwork_on_opus(data: dict) -> str | None:
+    """Refuse a legwork subagent that would inherit Opus (retro data-2026-11-11).
+
+    AGENTS.md section 3: read-only legwork runs on Sonnet; only a diff review is Opus.
+    19 subagents in 12 days: 515 of 552 turns ran on Opus, $27, mostly legwork.
+    """
+    tool = data.get("tool_input") or {}
+    if data.get("tool_name") != "Agent" or data.get("agent_id"):
+        return None
+    if str(tool.get("model") or "").lower() in {"sonnet", "haiku"}:
+        return None
+    if tool.get("subagent_type") == "fork" or re.search(
+            r"\breview", f"{tool.get('description', '')} {str(tool.get('prompt', ''))[:200]}", re.I):
+        return None
+    return ("Legwork subagents run on Sonnet (AGENTS.md section 3): repeat the call with "
+            "model: 'sonnet'. Only a diff review runs on Opus.")
+
+
 def main() -> int:
     try:
         data = json.load(sys.stdin)
+        if (note := legwork_on_opus(data)):
+            print(json.dumps({"hookSpecificOutput": {
+                "hookEventName": "PreToolUse", "permissionDecision": "deny",
+                "permissionDecisionReason": note}}))
+            return 0
         transcript = data.get("transcript_path")
         if data.get("agent_id") or not transcript or not os.path.exists(transcript):
             return 0
