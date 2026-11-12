@@ -21,7 +21,7 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 - Start only after I say yes. A project may name what counts as that yes.
 - Settle everything, then build: set out every open decision at once with your call made; ask
   the critical or unsure ones up front, and again if still unsure; prototype only what must be
-  seen. I can still adjust while you build ("this is the rule!", 2026-10-14).
+  seen. I can still adjust while you build.
 - Write the steps to `plan.md`, each with how you'll prove it works.
 - Two failed tries on one step: stop, note what failed, re-plan.
 - Pausing mid-task: leave `plan.md` so a new session can pick it up.
@@ -45,15 +45,12 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 
 ## 3. Subagents
 
-- Subagents are allowed again (Eddy, 2026-11-05: "Anthropic updated how subagents work ... it is
-  efficient now"; this reverses "stop using subagents", 2026-10-26). Use one for bounded,
-  read-only legwork (exploration, research, a pre-flight check) whose result is a short report;
-  the session that owns the job still plans, edits and decides.
+- Use a subagent for bounded, read-only legwork (exploration, research, a pre-flight check) whose
+  result is a short report; the session that owns the job still plans, edits and decides.
 - Never two agents or tabs on one file. A subagent never closes the tab, lands or asks Eddy.
-- Review of a build diff is a fresh subagent (Opus `high`); a `/review <ID>` tab runs when Eddy asks.
-- The model is the tab's: `/build` opens on Opus `medium`, `/spec` on Opus `high` (`max` only when
-  Eddy asks), everything else on Sonnet, set when
-  the tab opens; never switch mid-session. A review subagent runs on Opus `high`; the architecture pre-flight and plain lookups run on Sonnet (Eddy, 2026-11-09, retro `ios-2026-11-09`; supersedes the 2026-11-05 Opus call).
+- Review of a build diff is a fresh subagent; a `/review <ID>` tab runs when Eddy asks.
+- The model is the tab's, set when it opens, never switched: `/build` Opus `medium`, `/spec` Opus
+  `high` (`max` only when Eddy asks), review subagents Opus `high`, everything else Sonnet.
 
 ## 4. Own the bug
 
@@ -70,7 +67,7 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 
 ## 6. Write down every correction
 
-- When I correct you, add a line under Lessons: "When X, do Y".
+- When I correct you, save it to memory as "When X, do Y".
 - Same mistake twice: the lesson is unclear. Rewrite it.
 - Ask me before changing anything above Lessons.
 
@@ -79,7 +76,8 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
 Budget ideas, not words. Never cut the words that make what remains parse.
 
 - Short, complete sentences with normal grammar. Default to short bullets, one idea each.
-- No preamble, recap, reasoning narration, praise, apology, or self-commentary.
+- Before a long run of tool calls, say in one line what you're doing. No preamble, recap,
+  praise, apology, or self-commentary.
 - Name things concretely: exact paths, commands, identifiers, numbers.
 - Expand an acronym, ticket ID, or internal term the first time it appears.
 
@@ -95,11 +93,9 @@ every reply and does real work, never "check the board again".
   concrete bullets of other work (a tab to `/spec` N records in a named repo,
   a `/verdict` batch, close this tab), and make the prompt the first offer.
   While the current repo has Spec Needed records, the first offer is always a
-  batch `/spec` of them (Eddy, 2026-11-04: "I still want my ready to be paste
-  prompt ... give me offer but as long as the current repo has specs to be
-  settled always offer me batch settle").
+  batch `/spec` of them.
 
-- Mark for scanning (Eddy, 2026-10-23): the Status word takes its emoji
+- Mark for scanning: the Status word takes its emoji
   after it (DONE ✅, PARTIAL 🟡, BLOCKED ⛔, AWAITING USER APPROVAL 👉,
   WAITING ⏳), and a body line starts with one where it helps: ✅ done,
   ⚠️ a risk or warning, ⛔ blocked, 👉 needs Eddy. One per line, never decoration.
@@ -117,5 +113,7 @@ invite `emmanuelrichard01` with write (`push`) permission on a Bible Standard
 Group repo (iOS, API, web, data, specs, design, QA and the clients to come). Any
 other CanonFidei repo gets no invite unless Eddy names one.
 
+In a CanonFidei repo, read `~/.dotfiles/agent-config/canonfidei.md` first (partners, email, the
+Group, the repositories, Bible Standard operations and the tab chain).
+
 ## Lessons <!-- Archived 2026-11-05 to ~/.dotfiles/agent-config/archive/lessons-2026-11-05.md; auto-memory is on. Newest on top. -->
-- Moved on 2026-10-27 (Eddy, BS-IOS-TASK-835 D7), text verbatim: in a CanonFidei repo read `~/.dotfiles/agent-config/canonfidei.md` first (partners, email, the Group, the CanonFidei repositories, Bible Standard operations and the tab chain; moved there 2026-11-05 with their full wording); iOS look and motion Lessons are in the iOS repo's `design/AGENTS.md`; `/spec` and build-boundary Lessons are in its `.claude/playbooks/spec.md`.
