@@ -51,7 +51,8 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
   the session that owns the job still plans, edits and decides.
 - Never two agents or tabs on one file. A subagent never closes the tab, lands or asks Eddy.
 - Review of a build diff is a fresh subagent (Opus `high`); a `/review <ID>` tab runs when Eddy asks.
-- The model is the tab's: `/build` opens on Opus `medium`, everything else on Sonnet, set when
+- The model is the tab's: `/build` opens on Opus `medium`, `/spec` on Opus `high` (`max` only when
+  Eddy asks), everything else on Sonnet, set when
   the tab opens; never switch mid-session. A review subagent runs on Opus `high`; the architecture pre-flight and plain lookups run on Sonnet (Eddy, 2026-11-09, retro `ios-2026-11-09`; supersedes the 2026-11-05 Opus call).
 
 ## 4. Own the bug
