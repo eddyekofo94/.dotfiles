@@ -16,6 +16,11 @@ worker, so none of them has to parse a transcript or scrape a pane:
   name                             the session's `--name` (`AGENT_NAME`), which the
                                    master's `notify_when_idle` notice names
 
+Master plan B8: after writing, a named worker in herdr starts `herdr/wake_master.py
+NAME` detached, which types a `decide:` / `landed:` / `judge:` line into the master's
+pane once per turn (the master has no SendMessage). `AGENT_WAKE=0` turns it off;
+`AGENT_WAKE_BIN` points it elsewhere (tests).
+
 Fast and silent: one git call, a bounded transcript tail, and any error exits 0
 without writing, so a broken payload never holds a turn.
 """
@@ -128,6 +133,19 @@ def build(payload: dict, previous: dict) -> dict:
     return entry
 
 
+def wake_master(entry: dict) -> None:
+    """B8: hand the worker's wake to the master without holding this turn."""
+    name = entry.get("name") or ""
+    if (os.environ.get("AGENT_WAKE") == "0" or not name or name == "master"
+            or entry.get("role") == "master" or not entry.get("herdr", {}).get("pane")):
+        return
+    tool = os.environ.get("AGENT_WAKE_BIN") or str(Path(__file__).resolve().parents[2] / "herdr/wake_master.py")
+    log = state_dir() / "wake.log"
+    with open(log, "a") as out:
+        subprocess.Popen([sys.executable, tool, name], stdin=subprocess.DEVNULL, stdout=out, stderr=out,
+                         start_new_session=True)
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -148,6 +166,7 @@ def main() -> int:
         with os.fdopen(fd, "w") as handle:
             json.dump(entry, handle, indent=1)
         os.replace(tmp, target)
+        wake_master(entry)
     except Exception:  # noqa: BLE001 — a status file must never hold a turn
         return 0
     return 0

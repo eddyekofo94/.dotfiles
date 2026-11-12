@@ -5,8 +5,9 @@ A /build whose gate and review are green never lands on its own. It marks itself
 ready and ends its turn; the master (or Eddy) judges it against the record.
 
     ready mark ID [--name N]        the worker: gate + review green, waiting
-    ready judge NAME land           the judge: prints the line to send the tab
-    ready judge NAME back "<why>"   the judge: sent back, with why
+    ready judge NAME land           the judge: types `land` into the tab's pane (B8)
+    ready judge NAME back "<why>"   the judge: types `sent back: <why>` into it
+                                          (--no-send: only print the line)
     ready clear [--name N]          the worker, after it landed
     ready list [--json]             every tab waiting on a judge, with wait time
     ready show NAME                 one entry as JSON (exit 1: none)
@@ -17,7 +18,7 @@ why, at (when the state began), cwd.
 """
 from __future__ import annotations
 
-import argparse, json, os, sys, time
+import argparse, json, os, subprocess, sys, time
 from pathlib import Path
 
 STATE_DIR = Path(os.environ.get("AGENT_STATE_DIR", Path.home() / ".local/state/agents"))
@@ -57,6 +58,25 @@ def entries() -> list[dict]:
     return sorted(rows, key=lambda e: e.get("at", 0))
 
 
+def deliver(name: str, line: str) -> str:
+    """B8: type the verdict into the worker's pane, found by its newest status file."""
+    newest: dict = {}
+    for f in STATE_DIR.glob("*.json"):
+        try:
+            e = json.loads(f.read_text())
+        except (OSError, ValueError):
+            continue
+        if e.get("name") == name and e.get("updated", 0) >= newest.get("updated", 0):
+            newest = e
+    where = newest.get("herdr") or {}
+    if not where.get("pane"):
+        return f"not sent: no pane on record for {name}; type it in that tab"
+    env = {**os.environ, **({"HERDR_SOCKET_PATH": where["socket"]} if where.get("socket") else {})}
+    done = subprocess.run([os.environ.get("HERDR_BIN_PATH", "herdr"), "pane", "run", where["pane"], line],
+                          env=env, capture_output=True, text=True, timeout=15)
+    return f"sent to {where['pane']}" if done.returncode == 0 else f"not sent: {done.stderr.strip()}"
+
+
 def own_name(given: str | None) -> str:
     name = given or os.environ.get("AGENT_NAME", "")
     if not name:
@@ -70,6 +90,7 @@ def main() -> int:
     m = sub.add_parser("mark"); m.add_argument("record"); m.add_argument("--name")
     j = sub.add_parser("judge"); j.add_argument("name"); j.add_argument("verdict", choices=["land", "back"])
     j.add_argument("why", nargs="?", default="")
+    j.add_argument("--no-send", action="store_true")
     c = sub.add_parser("clear"); c.add_argument("--name")
     li = sub.add_parser("list"); li.add_argument("--json", action="store_true")
     sh = sub.add_parser("show"); sh.add_argument("name")
@@ -92,7 +113,10 @@ def main() -> int:
             return 2
         entry.update(state="landing" if a.verdict == "land" else "sent_back", why=a.why.strip(), at=time.time())
         save(entry)
-        print("land" if a.verdict == "land" else f"sent back: {entry['why']}")
+        line = "land" if a.verdict == "land" else f"sent back: {entry['why']}"
+        print(line)
+        if not a.no_send:
+            print(deliver(a.name, line), file=sys.stderr)
         return 0
     if a.cmd == "clear":
         path(own_name(a.name)).unlink(missing_ok=True)

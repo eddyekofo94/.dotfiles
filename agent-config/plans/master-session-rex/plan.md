@@ -417,3 +417,28 @@ key list as the proof.
   and judge wake.
 - Open: iOS `land.py` does not check the judge (its repo's record). Live proof needs Eddy's herdr
   restart and a reseated master: one /build reaching `ready`, a `judge:` wake, `land` from the master.
+
+## B8 (proposed 2026-11-12, awaiting Eddy's yes): wakes without SendMessage
+Tab 1 has no SendMessage tool, so `notify_when_idle` cannot wake it (master's report 2026-11-12).
+- [x] B8a. Push wake: `agent_state.py` (already every tab's Stop and Notification hook, so live tabs
+  pick it up without a settings edit) runs board's wake check for its own name after writing
+  status; a `decide:` / `landed:` / `judge:` line is typed into the master's pane with
+  `herdr pane run`, once per turn (STATE_DIR/wakes). The master's own tab and a missing master
+  send nothing. Proof: agent_state test with a fake herdr.
+- [x] B8b. Reply: `ready judge NAME land|back` also types its line into the worker's pane.
+  Proof: test_judge with a fake herdr.
+- [x] B8c. Master skill: a typed `decide:/landed:/judge:` line is the wake; no SendMessage.
+- [x] B8d. Verdict seat 1/1 with no verdict tab: find what holds it (iOS lanes).
+Open: orders.md line 14 names notify_when_idle; only Eddy edits orders.
+- B8 progress (Eddy's yes 2026-11-12): done, uncommitted: herdr/wake_master.py (linked `wake-master`),
+  master_socket.sh `--pane`, agent_state.py `wake_master()` spawn (AGENT_WAKE=0 / AGENT_WAKE_BIN),
+  agent_state_test 2 new tests (8 OK), ready.py `deliver()` + `--no-send` (test_judge OK).
+  Next: (1) herdr/tests/test_wake_master.py: fake herdr (tab list/pane list/pane run) + AF_UNIX socket
+  in a sessions dir (pattern: test_fill_session.py); judge line typed once; second run not; own pane
+  not; no master not. Plus a test_judge case: a status file with herdr.pane → `pane run` logged.
+  (2) ~/.agent-skills/master/SKILL.md: Wake-ups = typed `decide:/landed:/judge:` lines; drop
+  SendMessage/notify_when_idle; `ready judge` delivers itself. (3) herdr + tools + agent_state suites;
+  commit path-limited (herdr/wake_master.py, master_socket.sh, ready.py, tests, agent_state.py,
+  agent_state_test.py, plan.md). B8d finding: ios-sessions/verdict-drain (no tab) holds the iOS
+  verdict seat with 9 unmerged commits from 2026-11-08: Eddy's call (resume /verdict there to land).
+  orders.md line 14 still names notify_when_idle (Eddy edits).

@@ -46,7 +46,7 @@ class AgentStateTest(unittest.TestCase):
 
     def run_hook(self, payload, **env):
         full = {**os.environ, "AGENT_STATE_DIR": str(self.state), "HERDR_PANE_ID": "w1:p3",
-                "HERDR_TAB_ID": "w1:t3", **env}
+                "HERDR_TAB_ID": "w1:t3", "AGENT_WAKE_BIN": str(self.wake_stub()), **env}
         if "AGENT_ROLE" not in env:
             full.pop("AGENT_ROLE", None)
         started = time.monotonic()
@@ -54,6 +54,31 @@ class AgentStateTest(unittest.TestCase):
                        check=True)
         self.assertLess(time.monotonic() - started, 2.0)
         return json.loads((self.state / f"{payload['session_id']}.json").read_text())
+
+    def wake_stub(self) -> Path:
+        """B8: never the real wake-master; a stub that records the name it was given."""
+        stub = Path(self.tmp.name) / "wake_stub.py"
+        if not stub.exists():
+            stub.write_text("import sys, pathlib\n"
+                            f"pathlib.Path({str(Path(self.tmp.name) / 'woke')!r}).write_text(sys.argv[1])\n")
+        return stub
+
+    def woke(self, wait=3.0):
+        flag = Path(self.tmp.name) / "woke"
+        end = time.monotonic() + wait
+        while time.monotonic() < end and not flag.exists():
+            time.sleep(0.05)
+        return flag.read_text() if flag.exists() else None
+
+    def test_a_named_worker_hands_its_wake_to_the_master(self):  # master plan B8
+        self.run_hook(self.stop(), AGENT_NAME="bs-ios-feat-12")
+        self.assertEqual(self.woke(), "bs-ios-feat-12")
+
+    def test_no_wake_from_the_master_an_unnamed_tab_or_when_off(self):
+        self.run_hook(self.stop(), AGENT_NAME="master", AGENT_ROLE="master")
+        self.run_hook(self.stop(session="abc-2"), AGENT_NAME="")
+        self.run_hook(self.stop(session="abc-3"), AGENT_NAME="bs-ios-feat-12", AGENT_WAKE="0")
+        self.assertIsNone(self.woke(wait=0.5))
 
     def stop(self, message=CLOSEOUT, session="abc-1"):
         return {"hook_event_name": "Stop", "session_id": session, "cwd": str(self.tree),
