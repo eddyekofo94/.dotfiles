@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""herdr-reap's continue: which PARTIAL tab gets its own prompt back, and how."""
+"""reap's continue: which PARTIAL tab gets its own prompt back, and how."""
 import importlib.machinery
 import importlib.util
 import json

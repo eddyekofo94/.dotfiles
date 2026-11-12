@@ -2,7 +2,7 @@
 """Stop and Notification hook: one status file per agent session (master plan 1a).
 
 `~/.local/state/agents/<session>.json` (override: `AGENT_STATE_DIR`) holds what
-the master, `herdr-board` and, later, the reaper and Rex's badges read about a
+the master, `board` and, later, the reaper and Rex's badges read about a
 worker, so none of them has to parse a transcript or scrape a pane:
 
   session, event, state, updated   who, which hook, and when

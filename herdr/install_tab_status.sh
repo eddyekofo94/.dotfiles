@@ -7,7 +7,7 @@
 # from a clean checkout with no network. install.sh calls it last.
 #
 # Overrides, for tests and for machines that want a different layout:
-#   HERDR_TAB_STATUS_BIN        symlink path (default ~/.local/bin/herdr-tab-status)
+#   HERDR_TAB_STATUS_BIN        symlink path (default ~/.local/bin/tab-status)
 #   HERDR_LAUNCH_AGENT_DIR      plist directory (default ~/Library/LaunchAgents)
 #   HERDR_TAB_STATUS_LOG        log path (default ~/Library/Logs/<label>.log)
 #   HERDR_TAB_STATUS_INTERVAL   watch interval in seconds (default 3)
@@ -19,7 +19,7 @@ label=com.eddyekofo.herdr-tab-status
 script="$root/herdr/tab_status.sh"
 template="$root/herdr/launchd/$label.plist.in"
 
-link=${HERDR_TAB_STATUS_BIN:-"$HOME/.local/bin/herdr-tab-status"}
+link=${HERDR_TAB_STATUS_BIN:-"$HOME/.local/bin/tab-status"}
 agent_dir=${HERDR_LAUNCH_AGENT_DIR:-"$HOME/Library/LaunchAgents"}
 log=${HERDR_TAB_STATUS_LOG:-"$HOME/Library/Logs/$label.log"}
 interval=${HERDR_TAB_STATUS_INTERVAL:-3}

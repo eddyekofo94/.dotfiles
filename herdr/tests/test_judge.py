@@ -1,5 +1,5 @@
 """Master plan B7: a green /build never lands itself. It marks itself ready
-(`herdr-ready mark ID`), the master wakes with `judge: NAME RECORD` (exit 3), and answers
+(`ready mark ID`), the master wakes with `judge: NAME RECORD` (exit 3), and answers
 `land` or `sent back: <why>`; the board shows Working / Ready / Sent back / Done with wait time."""
 import contextlib, io, json, os, pathlib, subprocess, sys, tempfile, time, unittest
 

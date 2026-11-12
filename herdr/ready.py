@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""herdr-ready: the judge step between a green /build and its landing (master plan B7).
+"""ready: the judge step between a green /build and its landing (master plan B7).
 
 A /build whose gate and review are green never lands on its own. It marks itself
 ready and ends its turn; the master (or Eddy) judges it against the record.
 
-    herdr-ready mark ID [--name N]        the worker: gate + review green, waiting
-    herdr-ready judge NAME land           the judge: prints the line to send the tab
-    herdr-ready judge NAME back "<why>"   the judge: sent back, with why
-    herdr-ready clear [--name N]          the worker, after it landed
-    herdr-ready list [--json]             every tab waiting on a judge, with wait time
-    herdr-ready show NAME                 one entry as JSON (exit 1: none)
+    ready mark ID [--name N]        the worker: gate + review green, waiting
+    ready judge NAME land           the judge: prints the line to send the tab
+    ready judge NAME back "<why>"   the judge: sent back, with why
+    ready clear [--name N]          the worker, after it landed
+    ready list [--json]             every tab waiting on a judge, with wait time
+    ready show NAME                 one entry as JSON (exit 1: none)
 
 NAME is the tab's `claude --name` (AGENT_NAME in the worker). State lives in
 AGENT_STATE_DIR/ready/NAME.json: name, record, state (ready | landing | sent_back),
@@ -60,7 +60,7 @@ def entries() -> list[dict]:
 def own_name(given: str | None) -> str:
     name = given or os.environ.get("AGENT_NAME", "")
     if not name:
-        sys.exit("herdr-ready: no --name and no AGENT_NAME in this tab")
+        sys.exit("ready: no --name and no AGENT_NAME in this tab")
     return name
 
 
@@ -84,11 +84,11 @@ def main() -> int:
     if a.cmd == "judge":
         entry = load(a.name)
         if not entry or entry.get("state") != "ready":
-            print(f"herdr-ready: {a.name} is not waiting on a judge"
+            print(f"ready: {a.name} is not waiting on a judge"
                   f" ({entry.get('state') if entry else 'no entry'})", file=sys.stderr)
             return 1
         if a.verdict == "back" and not a.why.strip():
-            print("herdr-ready: sent back needs a why", file=sys.stderr)
+            print("ready: sent back needs a why", file=sys.stderr)
             return 2
         entry.update(state="landing" if a.verdict == "land" else "sent_back", why=a.why.strip(), at=time.time())
         save(entry)

@@ -84,15 +84,15 @@ its own yes before it runs.
 ## 3. Review of the current workflow
 
 What already matches the docs and should be kept:
-- One goal per tab, each in its own worktree (`herdr-goals`).
-- A finished tab retires itself (`close_on_land.py` → `herdr-goal-done`).
-- Idle tabs are reaped and free lanes refilled (`herdr-reap`, run by launchd
+- One goal per tab, each in its own worktree (`tasks`).
+- A finished tab retires itself (`close_on_land.py` → `goal-done`).
+- Idle tabs are reaped and free lanes refilled (`reap`, run by launchd
   every 2 minutes).
 - Model routing comes from a table (`model_route.sh`).
 - Long sessions are bounded by `build_budget_guard`, `context_guard` and
   `compact_handoff`.
 
-**Finding A: the master's engine already exists.** `herdr-reap` already
+**Finding A: the master's engine already exists.** `reap` already
 closes, fills and continues tabs. It is a deterministic loop, which is what the
 loop standard prefers. What is missing is a **front door**: one session where
 Eddy sees the board and gives orders, instead of opening and closing tabs by
@@ -103,7 +103,7 @@ Ranked recommendations:
 
 1. **Give workers one structured status record.**
    - Today the state is read three ways:
-     - `herdr-reap` parses closeouts out of transcripts;
+     - `reap` parses closeouts out of transcripts;
      - herdr reads the screen with the regexes in `agent-detection/claude.toml`;
      - `closeout_capture.py` keeps its own file.
    - Instead, the Stop and Notification hooks write one JSON file per session
@@ -161,7 +161,7 @@ Source: the best-practices page, section "What you can stop doing", fetched
 | `compact_handoff.py` (goal-aware summary; after a compaction, points at `plan.md` and says the goal's authorization stands) | Same row | Keep through Stage 2. Workers on a 10–20 record batch will still compact, and an unattended worker must not stop to ask for a yes afterwards. Fix: it cuts a wrapped `- [ ]` step at its first line. Retire only if a batch compacts with it off and resumes on its own. |
 | `autoCompactWindow: 182000` | Same row | Keep. It caps cost, not space: each turn resends the whole context (costs.md). |
 | `close_on_land` cap at 20 compactions or 600 turns; `build_budget_guard` cap at 2 compactions | Same row. `/clear` between tasks "costs nothing" | Drop the compaction caps. Each batch `/clear`s between records instead. |
-| `herdr-reap` "Continue": resends the PARTIAL prompt and `/clear`s at 120k | "Tell Claude to keep going … gone. For runs nobody's watching, `/goal` or a `Stop` hook enforces it" | Replace with `/goal` on each record. The reaper keeps closing and filling tabs. |
+| `reap` "Continue": resends the PARTIAL prompt and `/clear`s at 120k | "Tell Claude to keep going … gone. For runs nobody's watching, `/goal` or a `Stop` hook enforces it" | Replace with `/goal` on each record. The reaper keeps closing and filling tabs. |
 | Closeout skeleton injected on every prompt | "If the line is getting lost in a long file, the file needs to be shorter"; "keep the enforced set small" | Keep the Stop-hook check. Inject the skeleton only after a rejected turn. |
 | tmux status hooks running in herdr | "Every hook … someone has to maintain" | Gate them on `$TMUX`. |
 | Our own worktree cutting and sweep | `claude -w`, `.worktreeinclude`, automatic cleanup | Keep ours for now, because the lane and naming rules live there. Revisit once the adapter exists. |
@@ -174,16 +174,16 @@ and the verdict and spec flow.
 
 - **M1 Seat.** The master is tab 1: `1 master`, running Fable (`--model fable`,
   confirmed in `claude --help`).
-  - It is never closed. It carries no `▸` mark, and `herdr-reap`,
-    `herdr-goal-done` and `close_on_land` all skip a tab labelled `master`.
+  - It is never closed. It carries no `▸` mark, and `reap`,
+    `goal-done` and `close_on_land` all skip a tab labelled `master`.
   - Herdr has no command to move a tab (`herdr tab --help`: list, create, get,
     focus, rename, close). So `window_session.sh` creates the master first,
     whenever a herdr session starts. Today's session gets it at its next restart.
   - Every other tab numbers 2 and up, as `tab_status.sh` does today.
 - **M2 Something is always building.** The heartbeat stays deterministic:
-  launchd's `herdr-reap` already fills free lanes every 2 minutes for the repos
+  launchd's `reap` already fills free lanes every 2 minutes for the repos
   in `always-build`. The master handles the cases where nothing can fill:
-  - no record is Ready: it opens a batch `/spec` tab (`herdr-goals --settle
+  - no record is Ready: it opens a batch `/spec` tab (`tasks --settle
     <track>`);
   - unjudged rows are waiting: it opens `/verdict auto`.
 - **M3 Batches by default, single records when that fits** (batches settled in
@@ -197,7 +197,7 @@ and the verdict and spec flow.
   - It picks from `workflow_status.py next` and `features_index.py --batch`. In
     the grouping, the first 6 batches cover 68 Ready records.
   - One lane seat holds one batch.
-  - It also closes TASK-1709's open question: `herdr-goals` and the reaper's
+  - It also closes TASK-1709's open question: `tasks` and the reaper's
     fill read `batch.verb` instead of opening `/build <next[0]>`.
 - **M4 Machine-aware.** Before opening anything, the master reads
   `memory_pressure`, the load average and the count of running simulators. It
@@ -209,7 +209,7 @@ and the verdict and spec flow.
     BLOCKED, AWAITING, the queue running dry, or the budget passing 90%.
   - It runs no `/loop`, and it `/clear`s itself daily, with the board rebuilt
     from files.
-- **M6 Authority.** It closes tabs only through `herdr-goal-done`, under the
+- **M6 Authority.** It closes tabs only through `goal-done`, under the
   reaper's guards. Workers keep their own permission modes.
 
 - **M7 Icon.** The master's tab reads `1 ✻ master`, using the Claude spark glyph.
@@ -251,7 +251,7 @@ and the verdict and spec flow.
 - [x] 1a. Status writer: the Stop and Notification hooks write
   `~/.local/state/agents/<session>.json`. Proof: fixture tests, and a live turn
   updates the file within 2 s.
-- [x] 1b. `herdr-board`, read-only, with `--json`. It shows tabs, records, states,
+- [x] 1b. `board`, read-only, with `--json`. It shows tabs, records, states,
   lanes and machine load (M4). Proof: its output matches `herdr tab list` across
   3 live tabs.
 - [ ] 1c. The `/master` skill (`~/.agent-skills/master/`) with the verbs board,
@@ -259,12 +259,12 @@ and the verdict and spec flow.
   `window_session.sh` opens `1 master` first, and the reaper, goal-done and
   close-on-land skip it (M1). Proof: restart herdr, see `1 master`, and get
   through open, board and close on a throwaway record.
-- [ ] 1d. Dispatch (M3): `herdr-goals` and the reaper's fill open
+- [ ] 1d. Dispatch (M3): `tasks` and the reaper's fill open
   `/build batch <lane>` or `/spec batch <lane>` from `batch.verb`, and
   `/build <ID>` for a record with no batch. Proof: with fixture records,
   `--dry-run` prints the batch verb for a batch and `/build <ID>` for a lone
   record, and an iOS dry run names B1 (Home).
-- [x] 1f. Cross-repo sequencing (M9): `herdr-board --deps` lists each held record,
+- [x] 1f. Cross-repo sequencing (M9): `board --deps` lists each held record,
   what it waits on, and that upstream's merge commit and CI state. The master
   opens the dependent only when the upstream is landed and its `production` run
   is green. Proof: a fixture iOS record that depends on an API record. A dry run
@@ -272,7 +272,7 @@ and the verdict and spec flow.
   it; a stubbed red run keeps it held.
 - [x] 1e. Wake-ups (M5), per orders 2026-11-12: `notify_when_idle`, never a timer or
   `/loop`. The master subscribes (SendMessage `notify_when_idle`) to each tab it opens
-  or messages, by the tab's `--name`. On a notice it runs `herdr-board --wake <name>`:
+  or messages, by the tab's `--name`. On a notice it runs `board --wake <name>`:
   `decide` (exit 0) for BLOCKED, AWAITING USER APPROVAL, PARTIAL or a blocked prompt,
   once per turn; `quiet` (exit 1) for DONE, a closed tab, WAITING, or a turn already
   escalated. It never re-subscribes to an idle tab (the notice would fire at once).
@@ -308,8 +308,8 @@ and the verdict and spec flow.
   master's session; with no master it opens in its own.
 - [x] B6. One dispatcher (Eddy's yes 2026-11-12): with a master live, `goal_done.sh`
   open_tab queues the tab in `$AGENT_STATE_DIR/next.tsv` (from, cwd, label, boot,
-  launch) and opens nothing; `herdr-board --wake` answers `landed: NAME; next …`
-  (exit 2) for DONE with a queue; the master runs `herdr-open-next` (`herdr/open_next.sh`,
+  launch) and opens nothing; `board --wake` answers `landed: NAME; next …`
+  (exit 2) for DONE with a queue; the master runs `open-next` (`herdr/open_next.sh`,
   linked in ~/.local/bin), which opens each queued label once in its own session and
   prints the names to subscribe. No master live: the fill opens as before.
   Proof: `test_fill_session.py` (queues, opens nothing; open_next opens a doubled queue
@@ -317,15 +317,15 @@ and the verdict and spec flow.
   that runs a fill points `HERDR_SESSIONS_DIR` at an empty folder, so a live master
   never turns a test into a queue write.
 - [x] B7. The master judges, no self-land (Eddy's yes 2026-11-12). A `/build` whose gate
-  and review are green runs `herdr-ready mark <ID>` (`herdr/ready.py`: STATE_DIR/ready/
+  and review are green runs `ready mark <ID>` (`herdr/ready.py`: STATE_DIR/ready/
   NAME.json, state `ready`, at) and ends its turn without landing. Its idle notice wakes
-  the master: `herdr-board --wake NAME` answers `judge: NAME RECORD (waited Nm)` (exit 3).
-  The master reads the diff and closeout against the record, then runs `herdr-ready judge
-  NAME land` or `herdr-ready judge NAME back "<why>"` and messages the tab the line it
+  the master: `board --wake NAME` answers `judge: NAME RECORD (waited Nm)` (exit 3).
+  The master reads the diff and closeout against the record, then runs `ready judge
+  NAME land` or `ready judge NAME back "<why>"` and messages the tab the line it
   prints. `land` runs the repo's own land step (iOS `land.py` merges latest main and
-  re-gates); after landing the tab runs `herdr-ready clear`. Eddy may type the same words.
-  On seat, the master runs `herdr-ready list` and judges every waiting tab, then
-  `herdr-open-next`. `herdr-board` shows Working / Ready / Sent back / Done with wait
+  re-gates); after landing the tab runs `ready clear`. Eddy may type the same words.
+  On seat, the master runs `ready list` and judges every waiting tab, then
+  `open-next`. `board` shows Working / Ready / Sent back / Done with wait
   time. B6's no-master fallback is dropped: the fill always queues.
   Proof: `test_judge.py` (mark → wake judge → judge back → mark again → land → clear;
   list wait time; board column); the fill tests read the queue, never a direct open.
@@ -365,11 +365,11 @@ key list as the proof.
   Wired on Stop + Notification in `claude/settings.json` (backup
   `~/.local/state/agents-settings.json.bak-2026-11-12`; Eddy's effort hunk untouched).
   Live: a `claude -p` haiku turn wrote its file 0.74 s before exit.
-- ✅ 1b: `herdr/board.py`, linked `~/.local/bin/herdr-board` (`--json`, `--gate`, `--deps`).
+- ✅ 1b: `herdr/board.py`, linked `~/.local/bin/board` (`--json`, `--gate`, `--deps`).
   Live run listed the same 5 tabs and labels as `herdr tab list`; ~7 s (lanes count).
 - 1d code done: `herdr/batch_boot.jq`, used by `goals.sh` (fill + `--dry-run` alone now
   prints the fill) and `goal_done.sh` rank_fill/walk_fill (`/spec batch` opens shared,
-  no lane). `herdr/tests/test_batch_dispatch.py` 6 pass. Live iOS `herdr-goals --dry-run`:
+  no lane). `herdr/tests/test_batch_dispatch.py` 6 pass. Live iOS `tasks --dry-run`:
   "nothing Ready and no verdict waiting".
   Live iOS fill is empty now (next=0, 162 waiting; FEAT-372 batches alone), so B1 Home
   cannot be named live — report that, don't fake it.
@@ -401,7 +401,7 @@ key list as the proof.
 
 ## Resume (build tab B1–B5, 2026-11-12)
 - Done, tests pass: B1 batch_boot.jq head first; B2 `--name`/AGENT_NAME (goals.sh,
-  goal_done.sh, agent_state.py); B3 `herdr-board --wake` + test_master_wake.py; B4
+  goal_done.sh, agent_state.py); B3 `board --wake` + test_master_wake.py; B4
   ensure_master.sh any session + `--here`, skill updated (~/.agent-skills/master, untracked
   there, not committed). tools/tests normalized with strip_name().
 - ✅ B5 built: master_socket.sh; `hm` in goals.sh and goal_done.sh; test_fill_session.py 3 pass.
@@ -409,7 +409,7 @@ key list as the proof.
   FOCUS.md exits 2 at herdr/goals.sh:~248 (no `|| true`).
 
 ## Resume (B7 done, 2026-11-12)
-- Done: `herdr/ready.py` (linked as `herdr-ready`), board judge wake (exit 3) and status column,
+- Done: `herdr/ready.py` (linked as `ready`), board judge wake (exit 3) and status column,
   goal_done.sh always queues (dry-run: `would queue` + `  cwd:` + `  launch:`), `test_judge.py`,
   fill tests and `tools/tests/goal_done_test.py` read a per-test queue. Herdr suite 124 OK; goal_done,
   session_worktree and agent_state tests 53 OK.

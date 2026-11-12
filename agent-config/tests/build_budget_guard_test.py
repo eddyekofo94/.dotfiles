@@ -454,7 +454,7 @@ class Handoff(Fixture):
 
     def test_time_hands_off(self):
         reason = self.reason()
-        for step in ("plan file", "## Progress", f"herdr-goal-done --handoff {GOAL}",
+        for step in ("plan file", "## Progress", f"goal-done --handoff {GOAL}",
                      f"/build {GOAL}", "never ask him"):
             self.assertIn(step, reason)
         self.assertNotIn("reply to give it 2 more hours", reason)
@@ -465,14 +465,14 @@ class Handoff(Fixture):
         self.assertIn("turns: hand off", self.reason())
 
     def test_the_handoff_runs_while_held(self):
-        self.assertEqual(self.hook(f"herdr-goal-done --handoff {GOAL}"), "allow")
-        self.assertEqual(self.hook(f"herdr-goal-done --handoff {GOAL}; {G} commit -am x"),
+        self.assertEqual(self.hook(f"goal-done --handoff {GOAL}"), "allow")
+        self.assertEqual(self.hook(f"goal-done --handoff {GOAL}; {G} commit -am x"),
                          "deny")
 
     def test_a_handed_off_tab_hands_off_again(self):  # Eddy, 2026-11-03
         self.rows([build_row(3 * 3600, handed_off=True), *work(3 * 3600, 0)])
         reason = self.reason()
-        self.assertIn(f"herdr-goal-done --handoff {GOAL}", reason)
+        self.assertIn(f"goal-done --handoff {GOAL}", reason)
         self.assertNotIn("reply to give it 2 more hours", reason)
         self.assertNotIn("second", reason)
 
@@ -491,7 +491,7 @@ class Handoff(Fixture):
         self.assertIn("reply to give it 2 more hours", reason)
         self.assertNotIn("--handoff", reason)
 
-    def test_goal_done_opens_the_fresh_tab_and_closes_this_one(self):
+    def test_goal_done_queues_the_fresh_tab_and_closes_this_one(self):  # master plan B7: queued
         script = HOOK.parents[2] / "herdr" / "goal_done.sh"
         tree = Path(self.tmp.name) / "bs-ios-bug-9001"
         git(self.repo, "worktree", "add", "-q", "-b", "side", str(tree), "main")
@@ -501,8 +501,9 @@ class Handoff(Fixture):
                              capture_output=True, text=True, env=env)
         self.assertEqual(out.returncode, 0, out.stderr)
         lines = out.stdout.splitlines()
-        self.assertIn(f"--cwd {tree.resolve()} --label", lines[0])
-        self.assertIn(f'"/build {GOAL} — handed off (build budget)', lines[1])
+        self.assertTrue(lines[0].startswith("would queue: ▸ bs-ios-bug-9001"), lines)
+        self.assertEqual(lines[1], f"  cwd: {tree.resolve()}")
+        self.assertIn(f'"/build {GOAL} — handed off (build budget)', lines[2])
         self.assertEqual(lines[-1], "would run: herdr tab close t1")
         self.assertNotIn("session_worktree", out.stdout)
         out = subprocess.run(["bash", str(script), "--dry-run", "--handoff", GOAL], cwd=self.repo,
@@ -628,7 +629,7 @@ class Ended(Fixture):
         # Even with the build still held, a landed clean worktree may go.
         self.assertEqual(self.hook(f"{G} worktree remove {tree}"), "allow")
         self.assertEqual(self.hook(f"{G} -C {self.repo} branch -d side"), "allow")
-        self.assertEqual(self.hook("herdr-goal-done"), "allow")
+        self.assertEqual(self.hook("goal-done"), "allow")
 
 
 class SpecTab(Fixture):

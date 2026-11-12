@@ -1,12 +1,12 @@
 #!/bin/bash
-# herdr-open-next: the master opens the tabs a fill queued for it (master plan B6).
+# open-next: the master opens the tabs a fill queued for it (master plan B6).
 # goal_done.sh (B7: always, master live or not) writes each tab it would open to NEXT_QUEUE
 # (from-name, cwd, label, boot, launch) instead of opening it; the master runs this
 # on a `landed` wake, in its own session, then subscribes `notify_when_idle` to each
 # name printed. A label already open, or queued twice, opens once.
 #
-#   herdr-open-next            open every queued tab; prints `opened NAME — BOOT`
-#   herdr-open-next --dry-run  list them, open nothing, keep the queue
+#   open-next            open every queued tab; prints `opened NAME — BOOT`
+#   open-next --dry-run  list them, open nothing, keep the queue
 set -euo pipefail
 queue="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
 dry=0; [ "${1:-}" = "--dry-run" ] && dry=1

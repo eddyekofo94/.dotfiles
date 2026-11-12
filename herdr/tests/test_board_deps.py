@@ -50,7 +50,7 @@ class Deps(unittest.TestCase):
         row, text = self.deps([])
         self.assertEqual(row["verdict"], "hold")
         self.assertEqual(row["upstream"][0]["state"], "not landed")
-        self.assertIn(f"open first: cd {self.api} && herdr-goals --build BS-API-FEAT-12", text)
+        self.assertIn(f"open first: cd {self.api} && tasks --build BS-API-FEAT-12", text)
 
     def test_a_green_production_run_releases_the_dependent(self):
         self.land()

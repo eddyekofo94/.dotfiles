@@ -1,5 +1,5 @@
 #!/bin/bash
-# herdr-tab-status: stamp each tab's label with its position.
+# tab-status: stamp each tab's label with its position.
 #
 # Herdr numbers a tab only while it carries its default label, so a named goal
 # tab loses the key that selects it. Two label shapes, position always first —
@@ -7,7 +7,7 @@
 # truncation:
 #
 #   "<position> <name>"    a deliberate goal name (assigned with
-#                          `herdr tab create --label` by herdr-goals)
+#                          `herdr tab create --label` by tasks)
 #   "<position> <repo>"    every other tab: the basename of its own directory,
 #                          which for a goal worktree at ../<repo>-sessions/
 #                          <slug> is the ticket the tab is working
@@ -22,7 +22,7 @@
 # cannot be read back off the label — it is remembered in $CACHE_DIR instead:
 # each pass records what it wrote plus the deliberate name it honored. A label
 # that no longer matches what we last wrote was set by a human or by
-# herdr-goals, so its name is deliberate and gets frozen; a label still
+# tasks, so its name is deliberate and gets frozen; a label still
 # matching ours is ours, and a derived title is re-derived every pass so it
 # keeps tracking.
 #
@@ -56,7 +56,7 @@ TITLE_MAX=22
 # Generic app titles a CLI shows before it has set a real topic — not a name.
 GENERIC_TITLES="claude code|codex|opencode|antigravity|gemini"
 
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/herdr-tab-status"
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/tab-status"
 SESSION_DIR="$HOME/.config/herdr/sessions"
 mkdir -p "$CACHE_DIR"
 
@@ -154,7 +154,7 @@ stamp_session() {
       elif [ -n "$repo" ]; then
         # The tab's own directory outranks its agent's title: a goal tab lives
         # in ../<repo>-sessions/<slug>, so the basename is the ticket, and a
-        # tab opened by hand rather than through herdr-goals still says which
+        # tab opened by hand rather than through tasks still says which
         # ticket it is on. The title is not lost — the sidebar renders
         # terminal_title_stripped on its own row.
         # cwd can lag by one pass right after tab creation; don't stamp a

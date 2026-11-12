@@ -1,4 +1,4 @@
-"""`herdr-goal-done --park --for <ID>`: Eddy's order displaces a still-Ready build; the
+"""`goal-done --park --for <ID>`: Eddy's order displaces a still-Ready build; the
 park carries the order and the freed lane opens `/build <ID>` before the fill's pick
 (BibleStandard BS-IOS-TASK-1250)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master

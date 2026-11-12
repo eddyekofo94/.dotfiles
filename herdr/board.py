@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""herdr-board: the master's read-only view of the whole workflow (master plan 1b, 1f).
+"""board: the master's read-only view of the whole workflow (master plan 1b, 1f).
 
-    herdr-board                 tabs, their records and states, lanes, machine load
-    herdr-board --json          the same, as one JSON object
-    herdr-board --gate          exit 0 when the machine may take a new tab, 3 (with why) when not
-    herdr-board --deps [--json] each held record, what it waits on, and whether it may open
-    herdr-board --wake NAME     on a `notify_when_idle` notice: `decide` (exit 0), `quiet` (exit 1)
-                                or `landed` (exit 2: run herdr-open-next)
+    board                 tabs, their records and states, lanes, machine load
+    board --json          the same, as one JSON object
+    board --gate          exit 0 when the machine may take a new tab, 3 (with why) when not
+    board --deps [--json] each held record, what it waits on, and whether it may open
+    board --wake NAME     on a `notify_when_idle` notice: `decide` (exit 0), `quiet` (exit 1)
+                                or `landed` (exit 2: run open-next)
 
 Tabs come from every herdr server (`herdr tab list` / `pane list`), joined by agent
 session to the status files `agent_state.py` writes under `~/.local/state/agents/`.
@@ -32,8 +32,8 @@ name. On the notice, the newest status file for NAME says whether there is a dec
   decide   BLOCKED, AWAITING USER APPROVAL, PARTIAL, or a blocked prompt: once per turn
            (`STATE_DIR/wakes/NAME` remembers the turn already escalated)
   judge    (exit 3, B7) gate and review green, waiting on the judge: read its diff
-           and closeout against the record, then `herdr-ready judge NAME land|back`
-  landed   DONE with tabs the fill queued for the master (B6): run herdr-open-next,
+           and closeout against the record, then `ready judge NAME land|back`
+  landed   DONE with tabs the fill queued for the master (B6): run open-next,
            then subscribe to each name it prints
   quiet    DONE with nothing queued, WAITING (its own job re-invokes it),
            a turn already escalated, or no status file. Never re-subscribe to it now:
@@ -214,12 +214,12 @@ def upstream(ident: str) -> dict:
     sha = merge_commit(repo, ident)
     if not sha:
         return {"id": ident, "repo": repo.name, "sha": "", "ci": "", "state": "not landed",
-                "open": f"cd {repo} && herdr-goals --build {ident}"}
+                "open": f"cd {repo} && tasks --build {ident}"}
     ci = ci_state(repo, sha)
     state = {"none": "live", "green": "live", "red": "red", "pending": "deploying", "absent": "not on production"}[ci]
     entry = {"id": ident, "repo": repo.name, "sha": sha[:12], "ci": ci, "state": state}
     if ci == "red":
-        entry["open"] = f"cd {repo} && herdr-goals --build {ident}"
+        entry["open"] = f"cd {repo} && tasks --build {ident}"
     return entry
 
 
@@ -328,7 +328,7 @@ def wake(name: str) -> tuple[bool, str]:
         # Master plan B6: a live master opens what the fill queued, then subscribes.
         queued = queued_next()
         if queued:
-            return True, f"landed: {name}; next {', '.join(queued)} (run herdr-open-next)"
+            return True, f"landed: {name}; next {', '.join(queued)} (run open-next)"
         return False, f"quiet: {name} landed (DONE); nothing queued"
     if status == "WAITING":
         return False, f"quiet: {name} is waiting on its own job"

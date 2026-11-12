@@ -28,7 +28,7 @@ Rules, each denying the tool call:
          not marked parked (`parked`, `skip:`)
 
 Time and turns hand off (Eddy, 2026-10-30): the denial says to write the plan file's
-Progress and run `herdr-goal-done --handoff <ID>`, which opens a fresh `/build <ID>` tab on
+Progress and run `goal-done --handoff <ID>`, which opens a fresh `/build <ID>` tab on
 the same checkout and closes this one, as often as the build needs. Compactions count for
 nothing, and a hand-off tab that runs out hands off again; only two missed tries park and
 split (Eddy, 2026-11-03: "it should be able to run as many compactions as it wants or
@@ -50,7 +50,7 @@ Calls still allowed so the agent can park:
   part does. A part may be read-only (D3): git log/status/diff/show/fetch/rev-parse/
   merge-base/ls-files/ls-tree/worktree list/branch listing; cd, cat, head, tail, grep,
   rg, ls, wc, echo, pwd, sort, sed -n; cp, mkdir, python3 tools/features_index.py,
-  herdr-goal-done; clearing the build's dirt once a byte-identical copy of each file sits
+  goal-done; clearing the build's dirt once a byte-identical copy of each file sits
   under /tmp (BS-IOS-BUG-660 D2): `git checkout -- <file>…` and `rm [-f] <file>…`;
   post-land cleanup: `git worktree remove` (no --force) of a worktree whose HEAD is in
   main, `git worktree prune`, `git branch -d`; and so a build at its landable point, or
@@ -91,7 +91,7 @@ OKAY_TOOLS = {"Read", "Glob", "Grep"}
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit"}
 #: Commands that only read, or that a parked build needs (D3); judged by argv[0].
 READ_ONLY = {"cd", "cat", "head", "tail", "grep", "rg", "ls", "wc", "echo", "pwd", "true",
-             "sort", "cp", "mkdir", "herdr-goal-done"}
+             "sort", "cp", "mkdir", "goal-done"}
 #: git verbs that only read (D3).
 GIT_READ = {"log", "status", "diff", "show", "fetch", "rev-parse", "merge-base", "ls-files",
             "ls-tree", "rev-list", "shortlog", "blame", "describe"}
@@ -600,7 +600,7 @@ def handoff(why: str, goal: str) -> str:
             "re-plan. 1. Write the build's plan file: tick what is done, and under `## "
             "Progress` say what is next, the proof still owed and any backup under /tmp. "
             "Commit nothing; the dirt stays in this checkout for the fresh tab. 2. Run "
-            f"`herdr-goal-done --handoff {goal}`: it opens `/build {goal}` on this checkout "
+            f"`goal-done --handoff {goal}`: it opens `/build {goal}` on this checkout "
             "and closes this tab (Eddy's settled call; never ask him to run it).")
 
 

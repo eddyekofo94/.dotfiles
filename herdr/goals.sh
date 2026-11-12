@@ -1,13 +1,13 @@
 #!/bin/bash
-# herdr-goals: open one Herdr tab per live goal using the caller's agent family.
+# tasks: open one Herdr tab per live goal using the caller's agent family.
 # Claude callers open at the routing table's model and effort (BibleStandard
 # BS-IOS-FEAT-597, `model_route.sh`). Codex and Pi callers stay in their
 # own agent family and inherit that agent's configured model and permissions.
 #
-# Usage: herdr-goals [SPEC ...]     SPEC = label[:model[:resume-target[:home[:paths]]]]
-#        herdr-goals --track NAME [--track NAME] [--dry-run]   one track tab each
-#        herdr-goals --build ID [--track NAME] [--dry-run]     one /build tab
-#        herdr-goals --settle NAME [--dry-run]                 one /spec track tab
+# Usage: tasks [SPEC ...]     SPEC = label[:model[:resume-target[:home[:paths]]]]
+#        tasks --track NAME [--track NAME] [--dry-run]   one track tab each
+#        tasks --build ID [--track NAME] [--dry-run]     one /build tab
+#        tasks --settle NAME [--dry-run]                 one /spec track tab
 #   model is an alias (`opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
 #   Empty, the routing table picks it; the effort is always the table's.
@@ -82,7 +82,7 @@ elif common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 else
   REPO="$HERDR_DEFAULT_REPO"
 fi
-[ -d "$REPO" ] || { echo "herdr-goals: no such repo: $REPO" >&2; exit 2; }
+[ -d "$REPO" ] || { echo "tasks: no such repo: $REPO" >&2; exit 2; }
 
 # A SPEC is a label, so a flag reaching the loop below is taken for one: `--help`
 # opened a tab called `--help` in a directory that was argparse's usage text.
@@ -99,11 +99,11 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help) sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     --track|--build|--settle)
-      [ -n "${2:-}" ] || { echo "herdr-goals: $1 needs a value" >&2; exit 2; }
+      [ -n "${2:-}" ] || { echo "tasks: $1 needs a value" >&2; exit 2; }
       case "$1" in --track) TRACKS+=("$2") ;; --build) BUILD_ID="$2" ;; *) SETTLE="$2" ;; esac
       shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
-    -*)        echo "herdr-goals: not a goal label: $1 (see --help)" >&2; exit 2 ;;
+    -*)        echo "tasks: not a goal label: $1 (see --help)" >&2; exit 2 ;;
     *)         break ;;
   esac
 done
@@ -120,13 +120,13 @@ if [ -n "$BUILD_ID" ]; then
   done
   case "$want" in BS-DATA-*)
     data="${BS_DATA_DIR:-$(dirname "$REPO")/data}"
-    [ -d "$data" ] || { echo "herdr-goals: no data checkout at ${data} for ${want}; clone it there or set BS_DATA_DIR" >&2; exit 2; }
+    [ -d "$data" ] || { echo "tasks: no data checkout at ${data} for ${want}; clone it there or set BS_DATA_DIR" >&2; exit 2; }
     REPO="$data"; BUILD_ID="$want" ;;
   esac
   # BS-IOS-TASK-1619: data, web and API share one build lane; a chain opener is always gated.
   case "$want" in BS-DATA-*|BS-WEB-*|BS-API-*)
-    if command -v herdr-group-lane >/dev/null 2>&1; then
-      lane_holder=$(herdr-group-lane check --opener "$want") || {
+    if command -v group-lane >/dev/null 2>&1; then
+      lane_holder=$(group-lane check --opener "$want") || {
         lane_exit=$?
         if [ "$lane_exit" = 3 ]; then
           echo "the data, web and API build lane is held by ${lane_holder} — ${want} waits" >&2; exit 3
@@ -164,10 +164,10 @@ hm() { if [ -n "$MASTER_SOCK" ]; then HERDR_SOCKET_PATH="$MASTER_SOCK" herdr "$@
 track_slug() { tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g'; }
 if [ -n "$SETTLE" ]; then
   canon=$(awk -v want="$SETTLE" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
-  [ -n "$canon" ] || { echo "herdr-goals: no track \"$SETTLE\" in FOCUS.md" >&2; exit 2; }
+  [ -n "$canon" ] || { echo "tasks: no track \"$SETTLE\" in FOCUS.md" >&2; exit 2; }
   slug=$(track_slug "$canon")
   if hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -qx "▸ settle-${slug}"; then
-    echo "herdr-goals: settle-${slug} is already open" >&2; exit 0
+    echo "tasks: settle-${slug} is already open" >&2; exit 0
   fi
   SPECS+=("settle-${slug}:::shared"); BOOTS+=("/spec track ${canon}")
 elif [ -n "$BUILD_ID" ]; then
@@ -181,16 +181,16 @@ elif [ ${#TRACKS[@]} -gt 0 ]; then
   named=""
   for name in "${TRACKS[@]}"; do
     canon=$(awk -v want="$name" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
-    [ -n "$canon" ] || { echo "herdr-goals: no track \"$name\" in FOCUS.md" >&2; exit 2; }
+    [ -n "$canon" ] || { echo "tasks: no track \"$name\" in FOCUS.md" >&2; exit 2; }
     slug=$(track_slug "$canon"); named="$named $slug"
-    if grep -qx "$slug" <<<"$open_tracks"; then echo "herdr-goals: track-${slug} is already open" >&2; continue; fi
+    if grep -qx "$slug" <<<"$open_tracks"; then echo "tasks: track-${slug} is already open" >&2; continue; fi
     SPECS+=("track-${slug}:::shared"); BOOTS+=("/build track ${canon}")
   done
   others=$(grep -vx "${named# }" <<<"$open_tracks" | grep . || true)
   if [ ${#TRACKS[@]} -eq 1 ] && [ ${#SPECS[@]} -gt 0 ] && [ -n "$others" ]; then
     while read -r ex; do
       [ -n "$ex" ] && grep -qx "$(track_slug "$ex")" <<<"${named# }"$'\n'"$others" || continue
-      echo "herdr-goals: another track tab is open and ${ex} is exclusive — name both to run them together (BS-IOS-TASK-849 B2)" >&2
+      echo "tasks: another track tab is open and ${ex} is exclusive — name both to run them together (BS-IOS-TASK-849 B2)" >&2
       exit 3
     done <<<"$exclusive"
   fi
@@ -243,7 +243,7 @@ if [ "$DRY_RUN" = 1 ] && [ ${#SPECS[@]} -gt 0 ]; then dry_print; exit 0; fi
 # a named SPEC still opens. `rm` it to let the lanes fill again.
 CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
 if [ ${#SPECS[@]} -eq 0 ] && [ -e "$CHAIN_PAUSE" ]; then
-  echo "herdr-goals: chain paused ($CHAIN_PAUSE) — no tab opened; name one: herdr-goals <label>::<worktree>" >&2
+  echo "tasks: chain paused ($CHAIN_PAUSE) — no tab opened; name one: tasks <label>::<worktree>" >&2
   exit 0
 fi
 if [ ${#SPECS[@]} -eq 0 ]; then
@@ -277,7 +277,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
       "/spec batch "*)
         label="spec-batch-$(track_slug "${boot#/spec batch }")"
         if hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -q "▸ ${label}$"; then
-          echo "herdr-goals: ${label} is already open" >&2; continue
+          echo "tasks: ${label} is already open" >&2; continue
         fi
         SPECS+=("${label}:::shared"); BOOTS+=("$boot") ;;
       *) SPECS+=("$(id_slug "$id")"); BOOTS+=("${boot:-${RUN} ${id}}") ;;
@@ -291,7 +291,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
     SPECS+=("verdict")
     BOOTS+=("/verdict auto")
   fi
-  [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
+  [ ${#SPECS[@]} -gt 0 ] || echo "tasks: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
   if [ "$DRY_RUN" = 1 ]; then [ ${#SPECS[@]} -eq 0 ] || dry_print; exit 0; fi
 fi
 
@@ -321,7 +321,7 @@ case "$caller_agent" in
   claude) session_agent=claude ;;
   codex|openai) session_agent=codex ;;
   pi) session_agent=pi ;;
-  *) echo "herdr-goals: unsupported caller agent: $caller_agent" >&2; exit 2 ;;
+  *) echo "tasks: unsupported caller agent: $caller_agent" >&2; exit 2 ;;
 esac
 
 # D4: say it once, before any tab exists, while it is still cheap to fix.

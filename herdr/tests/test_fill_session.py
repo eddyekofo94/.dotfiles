@@ -1,7 +1,7 @@
 """Master plan B5/B6: with a master live, a fill opens no tab; it queues it for the master
 (2026-11-12: BS-IOS-FEAT-387 landed in detached window-113 and its fill opened
-BS-IOS-FEAT-342 there), and `herdr-open-next` opens it in the master's own session.
-`herdr-goals` (the master's opener) opens in the master's session. B7: with no master
+BS-IOS-FEAT-342 there), and `open-next` opens it in the master's own session.
+`tasks` (the master's opener) opens in the master's session. B7: with no master
 live the fill still queues; nothing opens itself (the master opens it on seat)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
 _os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")

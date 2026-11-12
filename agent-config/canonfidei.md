@@ -88,15 +88,15 @@ behind each rule are in `archive/canonfidei-before-audit-2026-11-12.md`.
   yourself that turn and end only once the `/build` tab is open. Read the owning tab's screen
   (`herdr pane read`) before calling it idle. For a lane your own paused build holds: commit it, copy its
   plan to `~/Archive/github-backup/parked-notes/<ID>/`, `git worktree unlock` and `remove` it, then
-  `herdr-goals --build <ID>`.
+  `tasks --build <ID>`.
 - "Close this tab and open a new one with:": do both yourself that turn. `herdr tab create`, `herdr pane run`,
   check it took the prompt (`herdr pane read`), then `herdr tab close` your own tab (from
   `herdr pane current`) as the last call.
 - A tab that cannot run the next move (a guard refuses `/build` in a housekeeping or retro tab): open the
   prompt with "Close this tab and open a new one with:" and the `/build <ID>` line.
 - A turn in an agent-opened (`▸`) tab that ends DONE or BLOCKED with nothing unlanded offers no close:
-  `herdr-reap` closes it after 10 idle minutes and refills the lanes. In Eddy's own tabs (no `▸`), keep the
-  line naming `herdr-goal-done` and run it when he says close.
+  `reap` closes it after 10 idle minutes and refills the lanes. In Eddy's own tabs (no `▸`), keep the
+  line naming `goal-done` and run it when he says close.
 - A prompt that continues a skill pinning a model (`/spec`, `/build` on Opus) starts with that slash
   command; a plain "yes" runs on the tab's default model.
 - Models follow global `AGENTS.md` §3. When Eddy questions a tab's effort or model, take it as the

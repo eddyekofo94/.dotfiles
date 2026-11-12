@@ -1,10 +1,10 @@
 #!/bin/sh
-# Install herdr-reap: a symlink onto PATH plus the launchd agent that runs one
+# Install reap: a symlink onto PATH plus the launchd agent that runs one
 # pass every two minutes (Eddy, 2026-10-04: "I don't want to clog space with
 # idle sessions"). Shaped like install_tab_status.sh, which it mirrors.
 #
 # Overrides, for tests and for machines that want a different layout:
-#   HERDR_REAP_BIN         symlink path (default ~/.local/bin/herdr-reap)
+#   HERDR_REAP_BIN         symlink path (default ~/.local/bin/reap)
 #   HERDR_LAUNCH_AGENT_DIR plist directory (default ~/Library/LaunchAgents)
 #   HERDR_REAP_LOG         log path (default ~/Library/Logs/<label>.log)
 #   HERDR_REAP_INTERVAL    seconds between passes (default 120)
@@ -16,7 +16,7 @@ label=com.eddyekofo.herdr-reap
 script="$root/herdr/reap_idle.py"
 template="$root/herdr/launchd/$label.plist.in"
 
-link=${HERDR_REAP_BIN:-"$HOME/.local/bin/herdr-reap"}
+link=${HERDR_REAP_BIN:-"$HOME/.local/bin/reap"}
 agent_dir=${HERDR_LAUNCH_AGENT_DIR:-"$HOME/Library/LaunchAgents"}
 log=${HERDR_REAP_LOG:-"$HOME/Library/Logs/$label.log"}
 interval=${HERDR_REAP_INTERVAL:-120}
@@ -64,7 +64,7 @@ if command -v plutil >/dev/null 2>&1; then
 fi
 mv "$staged_plist" "$plist"
 
-printf 'herdr-reap: %s -> %s\n' "$link" "$script"
+printf 'reap: %s -> %s\n' "$link" "$script"
 printf 'launch agent: %s\n' "$plist"
 
 if [ "$bootstrap" != 1 ] || ! command -v launchctl >/dev/null 2>&1; then

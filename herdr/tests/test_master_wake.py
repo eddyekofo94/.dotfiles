@@ -1,5 +1,5 @@
 """Master plan 1e (orders 2026-11-12): a `notify_when_idle` notice wakes the master for
-a decision only. `herdr-board --wake NAME` says `decide` once per turn for BLOCKED,
+a decision only. `board --wake NAME` says `decide` once per turn for BLOCKED,
 AWAITING or PARTIAL, `landed` (exit 2) for a DONE tab whose fill queued tabs for the
 master (B6), and `quiet` for a DONE tab with nothing queued or one already escalated."""
 import json, os, pathlib, subprocess, sys, tempfile, unittest
@@ -45,7 +45,7 @@ class Wake(unittest.TestCase):
         (self.state / "next.tsv").write_text(
             "bs-ios-feat-387\t/w/342\t▸ bs-ios-feat-342\t/build BS-IOS-FEAT-342\tenv AGENT_NAME=x claude --name x\n")
         self.assertEqual(self.wake("bs-ios-feat-387"),
-                         (2, "landed: bs-ios-feat-387; next /build BS-IOS-FEAT-342 (run herdr-open-next)"))
+                         (2, "landed: bs-ios-feat-387; next /build BS-IOS-FEAT-342 (run open-next)"))
 
     def test_waiting_unknown_and_the_newest_file_rule(self):
         self.write("s5", "spec-batch-home", "WAITING")

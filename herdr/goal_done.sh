@@ -1,5 +1,5 @@
 #!/bin/bash
-# herdr-goal-done: retire a finished goal tab and start the next goal in a new one.
+# goal-done: retire a finished goal tab and start the next goal in a new one.
 #
 # The end of a ticket is the one moment the workflow had no gesture for. The
 # work merges, and the tab stays open on a worktree that is now a duplicate of
@@ -27,18 +27,18 @@
 # permissions.
 #
 # Usage:
-#   herdr-goal-done                 # from inside the finished goal's worktree
-#   herdr-goal-done --force         # skip the merged check (branch is kept)
-#   herdr-goal-done --park          # a stuck build: park its branch, free its lane
-#   herdr-goal-done --park --for <ID>  # Eddy's order: park a still-Ready build for
+#   goal-done                 # from inside the finished goal's worktree
+#   goal-done --force         # skip the merged check (branch is kept)
+#   goal-done --park          # a stuck build: park its branch, free its lane
+#   goal-done --park --for <ID>  # Eddy's order: park a still-Ready build for
 #                                   # Queue: first <ID>, and open /build <ID> first
-#   herdr-goal-done --keep-tab      # open the next tab, leave this one open
-#   herdr-goal-done --no-todo       # just retire; do not advance or open anything
-#   herdr-goal-done --dry-run       # print the five steps, change nothing
-#   herdr-goal-done --tab <id>      # retire another tab (herdr-reap), not this one
-#   herdr-goal-done --fill <repo>   # retire nothing: only fill <repo>'s free lanes
-#   herdr-goal-done --name <ID>     # print the tab/worktree name for a ticket ID
-#   herdr-goal-done --handoff <ID>  # a build past its time budget: open a fresh
+#   goal-done --keep-tab      # open the next tab, leave this one open
+#   goal-done --no-todo       # just retire; do not advance or open anything
+#   goal-done --dry-run       # print the five steps, change nothing
+#   goal-done --tab <id>      # retire another tab (reap), not this one
+#   goal-done --fill <repo>   # retire nothing: only fill <repo>'s free lanes
+#   goal-done --name <ID>     # print the tab/worktree name for a ticket ID
+#   goal-done --handoff <ID>  # a build past its time budget: open a fresh
 #                                   # `/build <ID>` tab on this checkout, close this one
 set -uo pipefail
 
@@ -155,7 +155,7 @@ open_tab() {  # cwd label boot model mode [effort]
     launch="pi \"${boot}\""
   fi
   # Master plan B6/B7: the master is the one dispatcher, live or not. The fill queues
-  # the tab in NEXT_QUEUE; the master opens it with `herdr-open-next` on its `landed`
+  # the tab in NEXT_QUEUE; the master opens it with `open-next` on its `landed`
   # wake, or on its seat sweep when it was down.
   if [ "$DRY" = 1 ]; then
     echo "would queue: ▸ $tab_label — ${boot}"
@@ -165,12 +165,12 @@ open_tab() {  # cwd label boot model mode [effort]
   fi
   mkdir -p "$(dirname "$NEXT_QUEUE")"
   printf '%s\t%s\t%s\t%s\t%s\n' "${AGENT_NAME:-$(basename "$PWD")}" "$tab_cwd" "▸ $tab_label" "$boot" "$launch" >> "$NEXT_QUEUE"
-  echo "goal-done: queued ${boot} for the master (herdr-open-next) — ${tab_cwd}"
+  echo "goal-done: queued ${boot} for the master (open-next) — ${tab_cwd}"
   return 0
 }
 
 # `--tab`: retire that tab as if this ran inside it — its pane, its checkout,
-# its agent — so `herdr-reap` can close an idle tab from outside (Eddy,
+# its agent — so `reap` can close an idle tab from outside (Eddy,
 # 2026-10-04: "I don't want to clog space with idle sessions").
 if [ -n "$TARGET_TAB" ]; then
   target=$(herdr pane list 2>/dev/null |
@@ -193,7 +193,7 @@ fi
 # `--fill`: step 4 alone, for a lane that freed with no tab retiring — a build
 # parked, a claim lapsed, a record turned Ready while a lane sat free. Eddy,
 # 2026-10-04: "when there's a free lane, if I am not there the harness should
-# go on". `herdr-reap` runs it every pass; the manager's gate still says no to
+# go on". `reap` runs it every pass; the manager's gate still says no to
 # a full cap or a busy machine (BUG-349), so it never piles builds up.
 if [ -n "$FILL_REPO" ]; then
   [ "$OPEN_TODO" = 1 ] || exit 0

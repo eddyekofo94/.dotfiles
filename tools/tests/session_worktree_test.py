@@ -281,7 +281,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(self.claims(), {"one": ["a"]})
 
     def run_lanes(self, ranked, unjudged, seat="free", cap=4, args=(), resume=()):
-        """BibleStandard FS-262: `herdr-goals` against a fake manager and a
+        """BibleStandard FS-262: `tasks` against a fake manager and a
         fake work graph. Returns (result, [(label, launch)] per opened tab)."""
         repo = self.root.parent / "lanes-repo"
         (repo / "tools").mkdir(parents=True, exist_ok=True)

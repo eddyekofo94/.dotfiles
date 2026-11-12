@@ -314,7 +314,7 @@ class LaneCount(unittest.TestCase):
                        sockets=lambda: [], resume_partial=lambda *a: None, sweep_worktrees=lambda *a: None,
                        always_build=lambda: [repo], reap_simulators=lambda *a: None)
         with mock.patch.multiple(reap_idle, **patches), mock.patch.object(reap_idle.subprocess, "run", slow), \
-                mock.patch.object(sys, "argv", ["herdr-reap"]):
+                mock.patch.object(sys, "argv", ["reap"]):
             self.assertEqual(reap_idle.main(), 0)
             self.assertEqual(reap_idle.main(), 0)
         self.assertEqual([line for line in logged if "did not answer" in line],

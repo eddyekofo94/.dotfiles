@@ -266,7 +266,7 @@ test "$(git -C "$root" ls-files -s herdr/tab_status.sh | awk '{print $1}')" = 10
 # still fails the gate, and reject any placeholder the sed script forgot.
 tab_status_label=com.eddyekofo.herdr-tab-status
 mkdir -p "$tmp/tab-status/bin" "$tmp/tab-status/agents"
-HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/herdr-tab-status" \
+HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/tab-status" \
 HERDR_LAUNCH_AGENT_DIR="$tmp/tab-status/agents" \
 HERDR_TAB_STATUS_LOG="$tmp/tab-status/$tab_status_label.log" \
 HERDR_TAB_STATUS_INTERVAL=3 \
@@ -282,12 +282,12 @@ if rg -q '@(LABEL|SCRIPT|INTERVAL|BIN_DIR|LOG)@' "$rendered_plist"; then
 fi
 rg -Fq "<string>$herdr_dir/tab_status.sh</string>" "$rendered_plist"
 rg -Fq "<string>$tmp/tab-status/bin:" "$rendered_plist"
-test "$(readlink "$tmp/tab-status/bin/herdr-tab-status")" = "$herdr_dir/tab_status.sh"
+test "$(readlink "$tmp/tab-status/bin/tab-status")" = "$herdr_dir/tab_status.sh"
 
 # The installer adopts only its own link, so a wrong one must be refused rather
 # than silently repointed.
-ln -sf /usr/bin/false "$tmp/tab-status/bin/herdr-tab-status"
-if HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/herdr-tab-status" \
+ln -sf /usr/bin/false "$tmp/tab-status/bin/tab-status"
+if HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/tab-status" \
     HERDR_LAUNCH_AGENT_DIR="$tmp/tab-status/agents" \
     HERDR_TAB_STATUS_LOG="$tmp/tab-status/$tab_status_label.log" \
     HERDR_TAB_STATUS_BOOTSTRAP=0 \
@@ -295,11 +295,11 @@ if HERDR_TAB_STATUS_BIN="$tmp/tab-status/bin/herdr-tab-status" \
   echo "tab-status installer unexpectedly replaced an unrelated link" >&2
   exit 1
 fi
-test "$(readlink "$tmp/tab-status/bin/herdr-tab-status")" = /usr/bin/false
+test "$(readlink "$tmp/tab-status/bin/tab-status")" = /usr/bin/false
 
 # And the live link on PATH: the plist bakes ~/.local/bin in, so `herdr` and the
 # stamper both have to resolve from there.
-live_tab_status=${HERDR_TAB_STATUS_BIN:-"$HOME/.local/bin/herdr-tab-status"}
+live_tab_status=${HERDR_TAB_STATUS_BIN:-"$HOME/.local/bin/tab-status"}
 if [ "$(readlink "$live_tab_status" 2>/dev/null)" != "$herdr_dir/tab_status.sh" ]; then
   echo "$live_tab_status must be a symlink to $herdr_dir/tab_status.sh" >&2
   echo "run herdr/install_tab_status.sh" >&2

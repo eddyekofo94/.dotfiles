@@ -1,4 +1,4 @@
-"""`herdr-goals --build` opens a data record's tab in the data checkout (BibleStandard
+"""`tasks --build` opens a data record's tab in the data checkout (BibleStandard
 BS-IOS-FEAT-1365; Eddy, 2026-11-04: "we can always spin a tab with that userstory from the
 data repo, land it and then update here")."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
@@ -23,13 +23,13 @@ class DataBuildTab(unittest.TestCase):
     def dry_run(self, ident, data=None, extra=None, lane=False):
         env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "HERDR_GOALS_REPO": str(self.ios), "BS_DATA_DIR": str(data or self.data), **(extra or {})}
         env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep)
-                                      if lane or not os.path.exists(os.path.join(p, "herdr-group-lane")))
+                                      if lane or not os.path.exists(os.path.join(p, "group-lane")))
         return subprocess.run(["bash", str(GOALS), "--build", ident, "--dry-run"],
                               cwd=self.ios, env=env, capture_output=True, text=True)
 
     def fake_lane(self, code, out):
         bin_dir = self.ios / "bin"; bin_dir.mkdir()
-        tool = bin_dir / "herdr-group-lane"
+        tool = bin_dir / "group-lane"
         tool.write_text(f"#!/bin/sh\necho '{out}'\nexit {code}\n"); tool.chmod(0o755)
         return {"PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
 

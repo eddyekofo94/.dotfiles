@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""herdr-reap: close agent tabs that sit idle on landed work, and refill the slot.
+"""reap: close agent tabs that sit idle on landed work, and refill the slot.
 
 Eddy, 2026-10-04: "I want a way to automatically close idle sessions that
 their work is landed and open a new goal straightway if there's a free slot,
 I don't want to clog space with idle sessions."
 
-A tab finishes its goal and stops; unless its session ran `herdr-goal-done`,
+A tab finishes its goal and stops; unless its session ran `goal-done`,
 it holds a build lane and a screen slot until Eddy closes it by hand. launchd
 runs this every two minutes. A tab closes only when every one of these holds:
 
@@ -17,18 +17,18 @@ runs this every two minutes. A tab closes only when every one of these holds:
   * nothing is unlanded: a worktree is clean and `origin/main` holds its HEAD;
     a shared checkout holds no claim for the session and `main` is pushed
 
-The close is `herdr-goal-done --tab <id>`, so the worktree sweep, the QA
+The close is `goal-done --tab <id>`, so the worktree sweep, the QA
 simulators and the advance into free lanes are that script's, not a copy.
 
 Usage:
-  herdr-reap                 # close what qualifies, then advance
-  herdr-reap --dry-run       # one line per tab: close or keep, and why
-  herdr-reap --only <tab>    # consider just this tab
-  herdr-reap --grace 600     # idle seconds before a tab may close
+  reap                 # close what qualifies, then advance
+  reap --dry-run       # one line per tab: close or keep, and why
+  reap --only <tab>    # consider just this tab
+  reap --grace 600     # idle seconds before a tab may close
 
 After the closes, every pass also fills: for each repository listed in
 `~/.config/herdr/always-build` whose build lanes are not all held, it runs
-`herdr-goal-done --fill <repo>`, so a lane that frees with no tab retiring
+`goal-done --fill <repo>`, so a lane that frees with no tab retiring
 (a parked build, a record turned Ready) starts the next build within two
 minutes. The repository's own gate still refuses a full cap or a busy machine.
 
@@ -79,12 +79,12 @@ PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
 RECORD = re.compile(r"\b((?:bs-)?[a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
-LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/herdr-reap.lock"))
+LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/reap.lock"))
 HERDR_HOME = Path(os.environ.get("HERDR_REAP_HOME", Path.home() / ".config/herdr"))
 ALWAYS_BUILD = Path(os.environ.get("HERDR_REAP_ALWAYS_BUILD", HERDR_HOME / "always-build"))
 TRANSCRIPTS = Path(os.environ.get("HERDR_REAP_TRANSCRIPTS", Path.home() / ".claude/projects"))
-CONTINUES = Path(os.environ.get("HERDR_REAP_CONTINUES", Path.home() / ".cache/herdr-reap/continues.json"))
-FILLS = Path(os.environ.get("HERDR_REAP_FILLS", Path.home() / ".cache/herdr-reap/fill.json"))
+CONTINUES = Path(os.environ.get("HERDR_REAP_CONTINUES", Path.home() / ".cache/reap/continues.json"))
+FILLS = Path(os.environ.get("HERDR_REAP_FILLS", Path.home() / ".cache/reap/fill.json"))
 ALLOWANCE = Path(os.environ.get("HERDR_REAP_ALLOWANCE", Path.home() / ".cache/claude-allowance.json"))
 
 
@@ -654,7 +654,7 @@ def main() -> int:
         try:
             fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            log("another herdr-reap is running; skipping this pass")
+            log("another reap is running; skipping this pass")
             return 0
         tabs = []
         for sock in sockets():

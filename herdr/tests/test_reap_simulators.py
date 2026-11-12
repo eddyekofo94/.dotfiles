@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""herdr-reap's simulator pass: each repo's own doctor closes owner-less QA simulators."""
+"""reap's simulator pass: each repo's own doctor closes owner-less QA simulators."""
 import contextlib
 import importlib.machinery
 import importlib.util

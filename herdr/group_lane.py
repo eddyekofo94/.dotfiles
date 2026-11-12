@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The one build lane data, web and API share (BibleStandard BS-IOS-TASK-1619).
 
-    herdr-group-lane check <ID> [--opener]
+    group-lane check <ID> [--opener]
 
 Exit 0 when the lane is free for <ID>; exit 3, printing the holder, when it is held. A holder is a
 live `claude` booted `/build BS-(DATA|WEB|API)-<kind>-<n>` for another ID, or a data checkout the
