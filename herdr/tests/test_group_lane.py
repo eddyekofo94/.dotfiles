@@ -1,6 +1,6 @@
 """The lane data, web and API share (BibleStandard BS-IOS-TASK-1619 D4, D5)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import importlib.util, json, pathlib, sys, tempfile, unittest
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "group_lane.py"

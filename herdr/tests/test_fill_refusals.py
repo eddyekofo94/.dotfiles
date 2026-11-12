@@ -2,7 +2,7 @@
 none opened on a free lane it tries once more (BibleStandard BS-IOS-TASK-1428:
 BS-IOS-BUG-1396 did not open when BS-IOS-TASK-1356 closed, and nothing said why)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
@@ -72,7 +72,7 @@ class FillRefusals(unittest.TestCase):
     def test_a_clash_that_clears_opens_on_the_retry(self):
         out, log = fill([{"id": "BS-IOS-BUG-7"}],
                         {"BS-IOS-BUG-7": [[4, "overlaps bs-ios-task-8"], [0, ""]]})
-        self.assertIn("opened /build BS-IOS-BUG-7", out)
+        self.assertIn("queued /build BS-IOS-BUG-7", out)
         self.assertIn("skipped BS-IOS-BUG-7", log)
         self.assertIn("retrying the fill", log)
         self.assertNotIn("build chain stopped", log)

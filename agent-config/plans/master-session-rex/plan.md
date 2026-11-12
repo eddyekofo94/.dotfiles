@@ -316,6 +316,21 @@ and the verdict and spec flow.
   once in the master's session), `test_master_wake.py` (landed vs quiet). Every test
   that runs a fill points `HERDR_SESSIONS_DIR` at an empty folder, so a live master
   never turns a test into a queue write.
+- [x] B7. The master judges, no self-land (Eddy's yes 2026-11-12). A `/build` whose gate
+  and review are green runs `herdr-ready mark <ID>` (`herdr/ready.py`: STATE_DIR/ready/
+  NAME.json, state `ready`, at) and ends its turn without landing. Its idle notice wakes
+  the master: `herdr-board --wake NAME` answers `judge: NAME RECORD (waited Nm)` (exit 3).
+  The master reads the diff and closeout against the record, then runs `herdr-ready judge
+  NAME land` or `herdr-ready judge NAME back "<why>"` and messages the tab the line it
+  prints. `land` runs the repo's own land step (iOS `land.py` merges latest main and
+  re-gates); after landing the tab runs `herdr-ready clear`. Eddy may type the same words.
+  On seat, the master runs `herdr-ready list` and judges every waiting tab, then
+  `herdr-open-next`. `herdr-board` shows Working / Ready / Sent back / Done with wait
+  time. B6's no-master fallback is dropped: the fill always queues.
+  Proof: `test_judge.py` (mark → wake judge → judge back → mark again → land → clear;
+  list wait time; board column); the fill tests read the queue, never a direct open.
+  The skill text: `~/.agent-skills/build/SKILL.md` "Judge" section, master SKILL.md.
+  Not mechanical: iOS `land.py` does not check for a judge yet (its own repo's record).
 - Then: herdr suite + agent_state test, commit path-limited.
 
 ### Stage 2: stop doing what agents now do (§5)
@@ -392,3 +407,13 @@ key list as the proof.
 - ✅ B5 built: master_socket.sh; `hm` in goals.sh and goal_done.sh; test_fill_session.py 3 pass.
 - Pre-existing at HEAD, not fixed: 8 session_worktree_test failures, `awk` on missing
   FOCUS.md exits 2 at herdr/goals.sh:~248 (no `|| true`).
+
+## Resume (B7 done, 2026-11-12)
+- Done: `herdr/ready.py` (linked as `herdr-ready`), board judge wake (exit 3) and status column,
+  goal_done.sh always queues (dry-run: `would queue` + `  cwd:` + `  launch:`), `test_judge.py`,
+  fill tests and `tools/tests/goal_done_test.py` read a per-test queue. Herdr suite 124 OK; goal_done,
+  session_worktree and agent_state tests 53 OK.
+- Skills (uncommitted in ~/.agent-skills): build/SKILL.md "Judge" section; master/SKILL.md seat sweep
+  and judge wake.
+- Open: iOS `land.py` does not check the judge (its repo's record). Live proof needs Eddy's herdr
+  restart and a reseated master: one /build reaching `ready`, a `judge:` wake, `land` from the master.

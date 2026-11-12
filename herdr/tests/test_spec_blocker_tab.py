@@ -1,7 +1,7 @@
 """A stopped chain that only a /spec can restart opens that /spec as a tab
 (Eddy, 2026-11-09: "If spec is needed tell me ... it just stopped")."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
@@ -45,18 +45,23 @@ class Repo:
         self.env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "PATH": f"{bin_dir}:{os.environ['PATH']}", "HERDR_TAB_ID": "t",
                     "HERDR_GOAL_DONE_AGENT": "claude", "HERDR_CHAIN_PAUSE": str(self.root / "absent"),
                     "HERDR_CHAIN_LOG": str(self.root / "state" / "chain.log"), "HERDR_CHAIN_NOTIFY": "0",
-                    "HERDR_FILL_RETRY_SECS": "0", "HERDR_CALLS": str(self.calls)}
+                    "HERDR_FILL_RETRY_SECS": "0", "HERDR_CALLS": str(self.calls),
+                    "AGENT_STATE_DIR": str(self.root / "state")}
 
     def fill(self) -> str:
         done = subprocess.run(["bash", str(GOAL_DONE), "--fill", str(self.root)],
                               env=self.env, capture_output=True, text=True)
         return done.stdout + done.stderr
 
+    def queued(self) -> list[list[str]]:  # B7: the fill queues for the master, never opens
+        q = self.root / "state/next.tsv"
+        return [r.split("\t") for r in q.read_text().splitlines()] if q.exists() else []
+
     def tabs(self) -> list[str]:
-        return [line for line in self.calls.read_text().splitlines() if line.startswith("tab create")]
+        return [f"tab create --label {r[2]}" for r in self.queued()]
 
     def runs(self) -> list[str]:
-        return [line for line in self.calls.read_text().splitlines() if line.startswith("pane run")]
+        return [f"pane run p {r[4]}" for r in self.queued()]
 
 
 class SpecBlockerTab(unittest.TestCase):

@@ -1,7 +1,7 @@
 """Master plan 1d (M3, BS-IOS-TASK-1709): the fills open the work graph's batch by its
 verb — `/build batch <lane>` or `/spec batch <lane>` — and a lone record as `/build <ID>`."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 
 HERE = pathlib.Path(__file__).resolve().parents[1]
@@ -117,7 +117,7 @@ class FillDryRun(unittest.TestCase):
 
     def test_the_reaper_fill_opens_a_spec_batch_in_the_shared_checkout(self):
         out = fill_dry(SPEC)
-        self.assertRegex(out, r'--label "▸ spec-batch-home"')
+        self.assertIn("would queue: ▸ spec-batch-home", out)
         self.assertIn('"/spec batch Home"', out)
         self.assertNotIn('"/build BS-IOS-FEAT-372"', out)
 

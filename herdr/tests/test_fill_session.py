@@ -1,10 +1,10 @@
 """Master plan B5/B6: with a master live, a fill opens no tab; it queues it for the master
 (2026-11-12: BS-IOS-FEAT-387 landed in detached window-113 and its fill opened
 BS-IOS-FEAT-342 there), and `herdr-open-next` opens it in the master's own session.
-`herdr-goals` (the master's opener) opens in the master's session. With no master live,
-the fill opens in the caller's session as before."""
+`herdr-goals` (the master's opener) opens in the master's session. B7: with no master
+live the fill still queues; nothing opens itself (the master opens it on seat)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import os, pathlib, shutil, socket, subprocess, sys, tempfile, textwrap, unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -83,9 +83,10 @@ class FillSession(unittest.TestCase):
         for call in self.opened("goals.sh"):
             self.assertIn("/master-win/herdr.sock|", call)
 
-    def test_with_no_master_the_tab_opens_in_the_callers_session(self):
-        for call in self.opened("goal_done.sh", master=False):
-            self.assertIn("/window-113/herdr.sock|", call)
+    def test_with_no_master_the_fill_still_queues(self):
+        calls = self.opened("goal_done.sh", master=False, expect_calls=False)
+        self.assertEqual([c for c in calls if "tab create" in c or "pane run" in c], [], self.out)
+        self.assertTrue((self.state / "next.tsv").read_text().strip(), self.out)
 
 
 if __name__ == "__main__":

@@ -121,9 +121,9 @@ if [ -f "$route_helper" ]; then . "$route_helper"; else
   echo "herdr: no ${route_helper} — opening sonnet medium (BS-IOS-FEAT-597)" >&2
 fi
 
-# Master plan B5/B6: with a master live, new tabs are queued for it (open_tab); with
-# none they open in the caller's own session. `hm` is herdr
-# aimed there; closing or reading the caller's own tab stays plain `herdr`.
+# Master plan B6/B7: a fill never opens a tab; open_tab queues it for the master, live
+# or not (it opens the queue on its next wake or seat). `hm` is herdr aimed at the
+# master's session; closing or reading the caller's own tab stays plain `herdr`.
 MASTER_SOCK=$("$(dirname "$(readlink -f "$0")")/master_socket.sh" 2>/dev/null || true)
 hm() { if [ -n "$MASTER_SOCK" ]; then HERDR_SOCKET_PATH="$MASTER_SOCK" herdr "$@"; else herdr "$@"; fi; }
 NEXT_QUEUE="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
@@ -154,30 +154,19 @@ open_tab() {  # cwd label boot model mode [effort]
   else
     launch="pi \"${boot}\""
   fi
-  # Master plan B6: a live master is the one dispatcher. The fill queues the tab in
-  # NEXT_QUEUE; the landing tab's exit wakes the master (`herdr-board --wake` says
-  # `landed`), which opens it with `herdr-open-next` and subscribes to it.
-  if [ -n "$MASTER_SOCK" ]; then
-    if [ "$DRY" = 1 ]; then
-      echo "would queue for the master ($(basename "$(dirname "$MASTER_SOCK")")): ▸ $tab_label — ${boot}"
-      return 0
-    fi
-    mkdir -p "$(dirname "$NEXT_QUEUE")"
-    printf '%s\t%s\t%s\t%s\t%s\n' "${AGENT_NAME:-$(basename "$PWD")}" "$tab_cwd" "▸ $tab_label" "$boot" "$launch" >> "$NEXT_QUEUE"
-    echo "goal-done: queued ${boot} for the master (herdr-open-next) — ${tab_cwd}"
-    return 0
-  fi
+  # Master plan B6/B7: the master is the one dispatcher, live or not. The fill queues
+  # the tab in NEXT_QUEUE; the master opens it with `herdr-open-next` on its `landed`
+  # wake, or on its seat sweep when it was down.
   if [ "$DRY" = 1 ]; then
-    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
-    echo "would run: herdr pane run <new> ${launch}"
+    echo "would queue: ▸ $tab_label — ${boot}"
+    echo "  cwd: ${tab_cwd}"
+    echo "  launch: ${launch}"
     return 0
   fi
-  pane=$(hm tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
-           jq -r '.result.root_pane.pane_id') || die "could not open the ${boot} tab"
-  [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
-  hm pane run "$pane" "$launch" ||
-    die "opened the tab but could not start ${session_agent} in $pane"
-  echo "goal-done: opened ${boot} in ${pane} (${session_agent}) — ${tab_cwd}"
+  mkdir -p "$(dirname "$NEXT_QUEUE")"
+  printf '%s\t%s\t%s\t%s\t%s\n' "${AGENT_NAME:-$(basename "$PWD")}" "$tab_cwd" "▸ $tab_label" "$boot" "$launch" >> "$NEXT_QUEUE"
+  echo "goal-done: queued ${boot} for the master (herdr-open-next) — ${tab_cwd}"
+  return 0
 }
 
 # `--tab`: retire that tab as if this ran inside it — its pane, its checkout,

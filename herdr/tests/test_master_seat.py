@@ -2,7 +2,7 @@
 starts in (`main` or `window-N`), `--here` seats a tab where `/master` was typed, and
 `herdr-goal-done` never retires the master's seat."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 
 HERE = pathlib.Path(__file__).resolve().parents[1]

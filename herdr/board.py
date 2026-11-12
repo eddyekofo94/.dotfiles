@@ -31,6 +31,8 @@ name. On the notice, the newest status file for NAME says whether there is a dec
 
   decide   BLOCKED, AWAITING USER APPROVAL, PARTIAL, or a blocked prompt: once per turn
            (`STATE_DIR/wakes/NAME` remembers the turn already escalated)
+  judge    (exit 3, B7) gate and review green, waiting on the judge: read its diff
+           and closeout against the record, then `herdr-ready judge NAME land|back`
   landed   DONE with tabs the fill queued for the master (B6): run herdr-open-next,
            then subscribe to each name it prints
   quiet    DONE with nothing queued, WAITING (its own job re-invokes it),
@@ -133,7 +135,7 @@ def tabs() -> list[dict]:
                 "agent": pane.get("agent") or "", "herdr_state": raw.get("agent_status", ""),
                 "focused": bool(raw.get("focused")), "cwd": cwd, "session": session,
                 "record": state.get("record") or (found.group(1).upper() if found else ""),
-                "state": state.get("state", ""), "status": state.get("status", ""),
+                "state": state.get("state", ""), "status": state.get("status", ""), "name": state.get("name", ""),
                 "next_move": state.get("next_move", ""), "context_tokens": state.get("context_tokens", 0),
                 "updated": state.get("updated", 0),
             })
@@ -261,7 +263,15 @@ def print_board(board: dict) -> None:
     for t in board["tabs"]:
         state = "working" if t["herdr_state"] == "working" else (t["state"] or t["herdr_state"] or "-")
         status = t["status"] or "-"
-        print(f"  {t['window']:<9} {t['label'][:34]:<34} {t['record'] or '-':<16} {state:<8} {status:<9} "
+        j = board.get("judge", {}).get(t.get("name", ""))
+        if j:  # B7: Ready / Sent back / Landing, with how long it has waited
+            status = {"ready": "Ready", "sent_back": "Sent back", "landing": "Landing"}.get(j["state"], status)
+            status = f"{status} {j['waited']}"
+        elif status == "DONE":
+            status = "Done"
+        elif state == "working":
+            status = "Working"
+        print(f"  {t['window']:<9} {t['label'][:34]:<34} {t['record'] or '-':<16} {state:<8} {status:<13} "
               f"{age(t['updated']):>4}  {t['next_move'][:60]}")
 
 
@@ -281,6 +291,21 @@ def print_deps(rows: list[dict]) -> None:
 DECIDE = {"BLOCKED", "AWAITING USER APPROVAL", "PARTIAL"}
 
 
+def judged() -> dict[str, dict]:
+    """B7: tabs waiting on, or answered by, the judge (herdr/ready.py), by name."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import ready
+    ready.STATE_DIR, ready.READY = STATE_DIR, STATE_DIR / "ready"
+    return {e["name"]: {**e, "waited": ready.waited(e)} for e in ready.entries()}
+
+
+def judge_line(name: str) -> str | None:
+    j = judged().get(name)
+    if j and j.get("state") == "ready":
+        return f"judge: {name} {j.get('record', '?')} (waited {j['waited']})"
+    return None
+
+
 def queued_next() -> list[str]:
     """Boot lines goal_done.sh queued for the master (`next.tsv`: from, cwd, label, boot, launch)."""
     try:
@@ -291,6 +316,9 @@ def queued_next() -> list[str]:
 
 
 def wake(name: str) -> tuple[bool, str]:
+    line = judge_line(name)  # B7: green and waiting on the judge
+    if line:
+        return True, line
     mine = [e for e in status_files().values() if e.get("name") == name]
     if not mine:
         return False, f"quiet: no status file names {name}"
@@ -330,7 +358,7 @@ def main() -> int:
     if args.wake:
         decide, line = wake(args.wake)
         print(line)
-        return 2 if line.startswith("landed:") else 0 if decide else 1
+        return 3 if line.startswith("judge:") else 2 if line.startswith("landed:") else 0 if decide else 1
     if args.gate:
         m = machine()
         print(json.dumps(m) if args.json else ("may open" if m["may_open"] else f"hold: {m['why']}"))
@@ -339,7 +367,7 @@ def main() -> int:
         rows = deps()
         print(json.dumps(rows, indent=1)) if args.json else print_deps(rows)
         return 0
-    board = {"machine": machine(), "lanes": lanes(), "tabs": tabs()}
+    board = {"machine": machine(), "lanes": lanes(), "tabs": tabs(), "judge": judged()}
     print(json.dumps(board, indent=1)) if args.json else print_board(board)
     return 0
 

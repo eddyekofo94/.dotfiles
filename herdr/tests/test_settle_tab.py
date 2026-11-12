@@ -2,7 +2,7 @@
 called we should run already settled and seek to settle anything on that
 track that's not ready to build")."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import os, pathlib, subprocess, unittest
 
 HERDR = pathlib.Path(__file__).resolve().parents[1]

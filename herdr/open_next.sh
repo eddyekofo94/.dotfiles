@@ -1,6 +1,6 @@
 #!/bin/bash
 # herdr-open-next: the master opens the tabs a fill queued for it (master plan B6).
-# With a master live, goal_done.sh writes each tab it would open to NEXT_QUEUE
+# goal_done.sh (B7: always, master live or not) writes each tab it would open to NEXT_QUEUE
 # (from-name, cwd, label, boot, launch) instead of opening it; the master runs this
 # on a `landed` wake, in its own session, then subscribes `notify_when_idle` to each
 # name printed. A label already open, or queued twice, opens once.

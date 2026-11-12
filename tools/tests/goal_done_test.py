@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
-_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
 import json
 import re
 import os
@@ -138,6 +138,9 @@ if sys.argv[1:3] == ['pane', 'get']:
             HERDR_CHAIN_LOG=str(self.repo.parent / "chain.log"),
             HERDR_CHAIN_NOTIFY="0",
         )
+        self.queue = self.repo.parent / "state/next.tsv"  # B7: the fill queues, never opens
+        self.queue.unlink(missing_ok=True)
+        env["AGENT_STATE_DIR"] = str(self.queue.parent)
         env.update(env_extra or {})
         if identity_env:
             env.update(identity_env)
@@ -151,10 +154,9 @@ if sys.argv[1:3] == ['pane', 'get']:
         )
 
     def opened(self):
-        """(label, launch) per tab the run opened."""
-        calls = self.calls(self.herdr_calls) if self.herdr_calls.exists() else []
-        labels = [c[c.index("--label") + 1] for c in calls if c[:2] == ["tab", "create"]]
-        return list(zip(labels, [strip_name(c[3]) for c in calls if c[:2] == ["pane", "run"]]))
+        """(label, launch) per tab the last run queued for the master (master plan B7)."""
+        rows = self.queue.read_text().splitlines() if self.queue.exists() else []
+        return [(r.split("\t")[2], strip_name(r.split("\t")[4])) for r in rows]
 
     def worktree(self, slug, merged=True):
         """A session checkout beside the repo, as the manager would make it."""
@@ -191,7 +193,8 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertEqual(self.calls(self.worktree_calls),
                          [["open", "df1", "--goal", "DF-1", "--paths", "a", "b"]])
         self.assertEqual(len(self.opened()), 1)
-        self.assertFalse(any(c[:2] == ["tab", "close"] for c in self.calls(self.herdr_calls)))
+        calls = self.calls(self.herdr_calls) if self.herdr_calls.exists() else []
+        self.assertFalse(any(c[:2] == ["tab", "close"] for c in calls))
 
     def test_fill_does_nothing_while_the_chain_is_paused(self):
         paused = self.repo / "paused"
@@ -214,10 +217,9 @@ if sys.argv[1:3] == ['pane', 'get']:
             self.calls(self.worktree_calls),
             [["open", "df1", "--goal", "DF-1", "--paths", "a", "b"]],
         )
-        calls = self.calls(self.herdr_calls)
-        create = next(call for call in calls if call[:2] == ["tab", "create"])
-        self.assertEqual(create[create.index("--label") + 1], "▸ df1")
-        self.assertIn("/build DF-1", next(call for call in calls if call[:2] == ["pane", "run"])[3])
+        label, launch = self.opened()[0]
+        self.assertEqual(label, "▸ df1")
+        self.assertIn("/build DF-1", launch)
 
     def test_nothing_startable_names_spec_and_opens_no_tab(self):
         # BibleStandard FS-262 D4: never a grill tab; the line offers it.
@@ -410,10 +412,7 @@ if sys.argv[1:3] == ['pane', 'get']:
                 self.worktree_calls.write_text("")
                 result = self.invoke(caller=caller)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                launch = next(
-                    call for call in self.calls(self.herdr_calls)
-                    if call[:2] == ["pane", "run"]
-                )[3]
+                launch = self.opened()[0][1]
                 launch = strip_name(launch)
                 self.assertEqual(launch, expected)
 
@@ -428,10 +427,7 @@ if sys.argv[1:3] == ['pane', 'get']:
                 self.herdr_calls.write_text("")
                 result = self.invoke(caller="", identity_env={variable: "1"})
                 self.assertEqual(result.returncode, 0, result.stderr)
-                launch = next(
-                    call for call in self.calls(self.herdr_calls)
-                    if call[:2] == ["pane", "run"]
-                )[3]
+                launch = self.opened()[0][1]
                 launch = strip_name(launch)
                 self.assertTrue(launch.startswith(expected), launch)
 
@@ -441,10 +437,7 @@ if sys.argv[1:3] == ['pane', 'get']:
             identity_env={"HERDR_GOAL_DONE_AGENT": "pi", "CLAUDECODE": "1"},
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        launch = next(
-            call for call in self.calls(self.herdr_calls)
-            if call[:2] == ["pane", "run"]
-        )[3]
+        launch = self.opened()[0][1]
         self.assertEqual(launch, 'pi "/build DF-1"')
 
         self.herdr_calls.unlink()
