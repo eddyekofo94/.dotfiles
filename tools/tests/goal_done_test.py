@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import re
 import os
 import subprocess
 import tempfile
@@ -8,6 +9,16 @@ from pathlib import Path
 ROUTES = Path(__file__).resolve().parents[2] / "herdr/tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def strip_name(launch: str) -> str:
+    """Orders 2026-11-12: a Claude tab opens as `env AGENT_NAME=<n> claude --name <n> ...`.
+    Check the pair matches, then compare the rest of the launch as before."""
+    named = re.match(r"env AGENT_NAME=(\S+) claude --name (\S+) ", launch)
+    if not named:
+        return launch
+    assert named.group(1) == named.group(2), launch
+    return "claude " + launch[named.end():]
 
 
 class GoalDone(unittest.TestCase):
@@ -141,7 +152,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         """(label, launch) per tab the run opened."""
         calls = self.calls(self.herdr_calls) if self.herdr_calls.exists() else []
         labels = [c[c.index("--label") + 1] for c in calls if c[:2] == ["tab", "create"]]
-        return list(zip(labels, [c[3] for c in calls if c[:2] == ["pane", "run"]]))
+        return list(zip(labels, [strip_name(c[3]) for c in calls if c[:2] == ["pane", "run"]]))
 
     def worktree(self, slug, merged=True):
         """A session checkout beside the repo, as the manager would make it."""
@@ -401,6 +412,7 @@ if sys.argv[1:3] == ['pane', 'get']:
                     call for call in self.calls(self.herdr_calls)
                     if call[:2] == ["pane", "run"]
                 )[3]
+                launch = strip_name(launch)
                 self.assertEqual(launch, expected)
 
     def test_environment_fallback_preserves_the_agent_family(self):
@@ -418,6 +430,7 @@ if sys.argv[1:3] == ['pane', 'get']:
                     call for call in self.calls(self.herdr_calls)
                     if call[:2] == ["pane", "run"]
                 )[3]
+                launch = strip_name(launch)
                 self.assertTrue(launch.startswith(expected), launch)
 
     def test_explicit_agent_override_wins_and_unknown_refuses_before_mutation(self):

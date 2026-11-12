@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import fcntl
+import re
 import json
 import os
 import subprocess
@@ -10,6 +11,16 @@ from pathlib import Path
 ROUTES = Path(__file__).resolve().parents[2] / "herdr/tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 SCRIPT = Path(__file__).parents[1] / "session_worktree.py"
+
+
+def strip_name(launch: str) -> str:
+    """Orders 2026-11-12: a Claude tab opens as `env AGENT_NAME=<n> claude --name <n> ...`.
+    Check the pair matches, then compare the rest of the launch as before."""
+    named = re.match(r"env AGENT_NAME=(\S+) claude --name (\S+) ", launch)
+    if not named:
+        return launch
+    assert named.group(1) == named.group(2), launch
+    return "claude " + launch[named.end():]
 
 
 class Worktrees(unittest.TestCase):
@@ -325,7 +336,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                                 env=env, text=True, capture_output=True)
         recorded = [json.loads(line) for line in calls.read_text().splitlines()]
         labels = [c[c.index("--label") + 1] for c in recorded if c[:2] == ["tab", "create"]]
-        runs = [c[3] for c in recorded if c[:2] == ["pane", "run"]]
+        runs = [strip_name(c[3]) for c in recorded if c[:2] == ["pane", "run"]]
         return result, list(zip(labels, runs))
 
     def test_goals_opens_four_builds_then_the_verdict_lane_and_nothing_else(self):
@@ -424,7 +435,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                 self.assertEqual(result.returncode, 0, result.stderr)
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
                 run = next(call for call in recorded if call[:2] == ["pane", "run"])
-                command = run[3]
+                command = strip_name(run[3])
                 self.assertEqual(command, expected)
 
         for caller, resume, expected in (
@@ -451,7 +462,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                 self.assertEqual(result.returncode, 0, result.stderr)
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
                 run = next(call for call in recorded if call[:2] == ["pane", "run"])
-                self.assertEqual(run[3], expected)
+                self.assertEqual(strip_name(run[3]), expected)
 
         # The real ranked path boots every new tab into its assigned workflow
         # without changing the invoking agent family.
@@ -480,7 +491,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
-                commands = [call[3] for call in recorded if call[:2] == ["pane", "run"]]
+                commands = [strip_name(call[3]) for call in recorded if call[:2] == ["pane", "run"]]
                 self.assertEqual(commands, expected_commands)
 
         # Explicit override outranks pane metadata and conflicting inherited
@@ -494,7 +505,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         )
         self.assertEqual(overridden.returncode, 0, overridden.stderr)
         recorded = [json.loads(line) for line in calls.read_text().splitlines()]
-        self.assertEqual(next(call[3] for call in recorded
+        self.assertEqual(next(strip_name(call[3]) for call in recorded
                               if call[:2] == ["pane", "run"]), "codex")
 
         for fallback_var, expected in (("CLAUDECODE", "claude"),
@@ -514,7 +525,7 @@ if sys.argv[1:3] == ['tab', 'create']:
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 recorded = [json.loads(line) for line in calls.read_text().splitlines()]
-                command = next(call[3] for call in recorded
+                command = next(strip_name(call[3]) for call in recorded
                                if call[:2] == ["pane", "run"])
                 self.assertEqual(command.split()[0], expected)
 

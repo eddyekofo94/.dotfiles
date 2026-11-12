@@ -156,12 +156,17 @@ fi
 SPECS=("$@")
 BOOTS=()
 FOCUS_MD="${REPO}/project/workflow/FOCUS.md"
+# Master plan B5: new tabs open in the session that seats the master, so Eddy sees
+# them; with no master live they open in the caller's own session. `hm` is herdr
+# aimed there; closing or reading the caller's own tab stays plain `herdr`.
+MASTER_SOCK=$("$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/master_socket.sh" 2>/dev/null || true)
+hm() { if [ -n "$MASTER_SOCK" ]; then HERDR_SOCKET_PATH="$MASTER_SOCK" herdr "$@"; else herdr "$@"; fi; }
 track_slug() { tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g'; }
 if [ -n "$SETTLE" ]; then
   canon=$(awk -v want="$SETTLE" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
   [ -n "$canon" ] || { echo "herdr-goals: no track \"$SETTLE\" in FOCUS.md" >&2; exit 2; }
   slug=$(track_slug "$canon")
-  if herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -qx "▸ settle-${slug}"; then
+  if hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -qx "▸ settle-${slug}"; then
     echo "herdr-goals: settle-${slug} is already open" >&2; exit 0
   fi
   SPECS+=("settle-${slug}:::shared"); BOOTS+=("/spec track ${canon}")
@@ -172,7 +177,7 @@ elif [ ${#TRACKS[@]} -gt 0 ]; then
   # B2: two track tabs run at once only when neither track is exclusive, or
   # Eddy names both in one call.
   exclusive=$(awk '/^### /{name=substr($0,5)} /^- Exclusive: yes/{print name}' "$FOCUS_MD" 2>/dev/null || true)
-  open_tracks=$(herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | sed -n 's/.*▸ track-//p' || true)
+  open_tracks=$(hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | sed -n 's/.*▸ track-//p' || true)
   named=""
   for name in "${TRACKS[@]}"; do
     canon=$(awk -v want="$name" '/^### /{n=substr($0,5); if (tolower(n) == tolower(want)) {print n; exit}}' "$FOCUS_MD" 2>/dev/null)
@@ -203,15 +208,26 @@ tab_route() {  # label boot
         awk '!f && $1 ~ /-[0-9]+$/ {print $1; f = 1}') || first=""
       if [ -n "$first" ]; then model_route "$REPO" spec --record "$first"; else model_route "$REPO" spec app; fi ;;
     verdict) model_route "$REPO" verdict app ;;
+    spec-batch-*) model_route "$REPO" spec app ;;
     *) model_route "$REPO" build app ;;
   esac
 }
-if [ "$DRY_RUN" = 1 ]; then
-  [ ${#SPECS[@]} -gt 0 ] || { echo "herdr-goals --dry-run: name --track, --build or --settle" >&2; exit 2; }
+
+# The session's `--name` (orders 2026-11-12): its tab label, or `<repo>-<lane>`
+# (`ios-home`) for a `/build batch <lane>` tab, labelled for its head's worktree.
+agent_name_for() {  # label boot
+  case "$2" in
+    "/build batch "*) printf '%s-%s' "$(basename "$REPO")" "$(track_slug "${2#/build batch }")" ;;
+    *) printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '-' ;;
+  esac
+}
+# `--dry-run` alone prints the lane fill (master plan 1d); with a SPEC, that SPEC.
+dry_print() {
   for i in "${!SPECS[@]}"; do
     echo "would open ${SPECS[$i]%%:*} (boot ${BOOTS[$i]:-none}) in ${REPO}"
     tab_route "${SPECS[$i]%%:*}" "${BOOTS[$i]:-}"
     echo "  launch: claude --model ${ROUTE_MODEL} --effort ${ROUTE_EFFORT}"
+    echo "  name: $(agent_name_for "${SPECS[$i]%%:*}" "${BOOTS[$i]:-}")"
     case "${BOOTS[$i]:-}" in "/build track "*)
       waiting=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null | jq -r '.waiting[]?.id' 2>/dev/null || true)
       python3 "${REPO}/tools/features_index.py" --list --track "${BOOTS[$i]#/build track }" --status "Ready To Build" 2>/dev/null |
@@ -221,8 +237,8 @@ if [ "$DRY_RUN" = 1 ]; then
         done || true ;;
     esac
   done
-  exit 0
-fi
+}
+if [ "$DRY_RUN" = 1 ] && [ ${#SPECS[@]} -gt 0 ]; then dry_print; exit 0; fi
 # Eddy, 2026-10-02: while this file exists the chain opens no tab by itself;
 # a named SPEC still opens. `rm` it to let the lanes fill again.
 CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
@@ -251,12 +267,23 @@ if [ ${#SPECS[@]} -eq 0 ]; then
     SPECS+=("${label}:::${slug}")
     BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
   done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
-  while IFS=$'\t' read -r id title; do
+  # Master plan 1d (M3): the batch head boots the batch's verb (batch_boot.jq). A
+  # `/spec batch` settles in the shared checkout and holds no build lane.
+  batch_jq="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/batch_boot.jq"
+  [ -f "$batch_jq" ] && focus_json=$(jq -c -f "$batch_jq" <<<"$focus_json" 2>/dev/null || printf '%s' "$focus_json")
+  while IFS=$'\t' read -r id title boot; do
     [ -n "$id" ] || continue
-    label=$(id_slug "$id")
-    SPECS+=("${label}")
-    BOOTS+=("${RUN} ${id}")
-  done < <(jq -r '.next[]? | [.id, .title] | @tsv' <<<"$focus_json")
+    case "$boot" in
+      "/spec batch "*)
+        label="spec-batch-$(track_slug "${boot#/spec batch }")"
+        if hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -q "▸ ${label}$"; then
+          echo "herdr-goals: ${label} is already open" >&2; continue
+        fi
+        SPECS+=("${label}:::shared"); BOOTS+=("$boot") ;;
+      *) SPECS+=("$(id_slug "$id")"); BOOTS+=("${boot:-${RUN} ${id}}") ;;
+    esac
+  # A tab is IFS whitespace: an empty title would collapse and shift the boot into it.
+  done < <(jq -r '.next[]? | [.id, ((.title // "") | if . == "" then "-" else . end), (.boot // "")] | @tsv' <<<"$focus_json")
   # FS-262 D3: the verdict lane opens only while unjudged agent rows wait and
   # its one seat is free; an empty queue opens none.
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
@@ -265,6 +292,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
     BOOTS+=("/verdict auto")
   fi
   [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
+  if [ "$DRY_RUN" = 1 ]; then [ ${#SPECS[@]} -eq 0 ] || dry_print; exit 0; fi
 fi
 
 herdr status server >/dev/null 2>&1 || { echo "herdr server not running; open Herdr first" >&2; exit 1; }
@@ -385,7 +413,8 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
 
   # FS-237 D8: an agent-opened tab carries `▸ `; Eddy's own tabs carry none.
   # The opener owns the mark, and repo_lock's later renames keep it.
-  pane=$(herdr tab create --cwd "$cwd" --label "▸ $tab_label" --no-focus | jq -r '.result.root_pane.pane_id')
+  pane=$(hm tab create --cwd "$cwd" --label "▸ $tab_label" --no-focus | jq -r '.result.root_pane.pane_id')
+  agent_name=""
   if [ "$session_agent" = "claude" ]; then
     case "${resume:-}" in
       "")     resume_args="" ;;
@@ -396,7 +425,11 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
     # asks); a model named in the SPEC still wins over the table's.
     tab_route "$label" "$boot"
     model="${model:-$ROUTE_MODEL}"; effort="$ROUTE_EFFORT"
-    launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
+    # Orders 2026-11-12: every tab is named (`--name`), so the master can message it
+    # and get a `notify_when_idle` notice; `AGENT_NAME` lets agent_state.py record it.
+    # A `/build batch <lane>` tab is `<repo>-<lane>` (`ios-home`); others, the label.
+    agent_name=$(agent_name_for "$tab_label" "$boot")
+    launch="env AGENT_NAME=${agent_name} claude --name ${agent_name} --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in
       "")     launch="codex${boot:+ \"${boot}\"}" ;;
@@ -410,9 +443,9 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
       *)      launch="pi --session ${resume}" ;;
     esac
   fi
-  herdr pane run "$pane" "$launch"
+  hm pane run "$pane" "$launch"
   boot_note="${boot:+ boot ${boot}}"
-  echo "opened ${tab_label} (${session_agent}${boot_note}) in pane ${pane} — ${cwd}"
+  echo "opened ${tab_label} (${session_agent}${boot_note}${agent_name:+, name ${agent_name}}) in pane ${pane} — ${cwd}"
 done
 # FS-262 D8: a full build cap opens nothing more; the chain fills a lane when
 # a build lands. Nothing here asks Eddy to deliver.

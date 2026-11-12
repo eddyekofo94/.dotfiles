@@ -72,19 +72,19 @@ LANES = {"next": [{"id": "BS-IOS-TASK-9"}], "unjudged": 1, "verdict_seat": "free
 class GoalDone(unittest.TestCase):
     def test_build_and_verdict_lane_open_at_the_tables_pairs(self):
         out = goal_done_fill(repo(TABLE, LANES))
-        self.assertIn('claude --model opus --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
-        self.assertIn('claude --model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
+        self.assertIn('--model opus --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
+        self.assertIn('--model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
 
     def test_a_missing_table_opens_sonnet_medium_with_one_line(self):
         out = goal_done_fill(repo(None, LANES))
-        self.assertIn('claude --model sonnet --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
-        self.assertIn('claude --model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
+        self.assertIn('--model sonnet --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
+        self.assertIn('--model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
         self.assertEqual(out.count("opening sonnet medium"), 1, out)
         self.assertNotIn("--model opus", out)
 
     def test_an_unreadable_table_opens_sonnet_medium(self):
         out = goal_done_fill(repo("import sys; sys.exit('model_routes.json: bad JSON')\n", LANES))
-        self.assertIn('claude --model sonnet --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
+        self.assertIn('--model sonnet --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
         self.assertEqual(out.count("opening sonnet medium"), 1, out)
 
 

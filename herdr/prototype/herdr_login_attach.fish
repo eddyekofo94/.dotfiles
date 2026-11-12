@@ -59,6 +59,11 @@ function __herdr_login_attach --description 'Attach a top-level login shell to H
     if not set -q HERDR_SKIP_PLUGIN_ENSURE
         "$HOME/.dotfiles/herdr/ensure_plugins.sh" "$session" >/dev/null 2>&1 &
     end
+    # Master plan M1: the session this login starts (`main` or `window-N`) seats the
+    # master (`1 ✻ master`, Fable) in tab 1, unless one already sits elsewhere.
+    if not set -q HERDR_NO_MASTER
+        "$HOME/.dotfiles/herdr/ensure_master.sh" "$session" >/dev/null 2>&1 &
+    end
 
     if test "$automatic_session" -eq 1
         "$allocator" --supervise "$fish_pid" "$session" "$herdr_bin"

@@ -121,6 +121,22 @@ if [ -f "$route_helper" ]; then . "$route_helper"; else
   echo "herdr: no ${route_helper} — opening sonnet medium (BS-IOS-FEAT-597)" >&2
 fi
 
+# Master plan B5: new tabs open in the session that seats the master, so Eddy sees
+# them; with no master live they open in the caller's own session. `hm` is herdr
+# aimed there; closing or reading the caller's own tab stays plain `herdr`.
+MASTER_SOCK=$("$(dirname "$(readlink -f "$0")")/master_socket.sh" 2>/dev/null || true)
+hm() { if [ -n "$MASTER_SOCK" ]; then HERDR_SOCKET_PATH="$MASTER_SOCK" herdr "$@"; else herdr "$@"; fi; }
+
+# The session's `--name`: its tab label, or `<repo>-<lane>` (`ios-home`) for a
+# `/build batch <lane>` tab, which is labelled for its head record's worktree.
+agent_name() {  # label boot
+  case "$2" in
+    "/build batch "*) printf '%s-%s' "$(basename "${shared:-repo}")" \
+      "$(printf '%s' "${2#/build batch }" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')" ;;
+    *) printf '%s' "$1" | tr -c 'A-Za-z0-9._-' '-' ;;
+  esac
+}
+
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
 open_tab() {  # cwd label boot model mode [effort]
@@ -129,21 +145,24 @@ open_tab() {  # cwd label boot model mode [effort]
   # graph marks escalated opens once at high (BibleStandard BS-IOS-TASK-1140).
   effort="${6:-medium}"
   if [ "$session_agent" = "claude" ]; then
-    launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
+    # Orders 2026-11-12: every tab is named, so the master can message it and get a
+    # `notify_when_idle` notice; `AGENT_NAME` lets agent_state.py record the name.
+    launch="env AGENT_NAME=$(agent_name "$tab_label" "$boot") claude --name $(agent_name "$tab_label" "$boot") --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
   elif [ "$session_agent" = "codex" ]; then
     launch="codex \"${boot}\""
   else
     launch="pi \"${boot}\""
   fi
   if [ "$DRY" = 1 ]; then
-    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
+    where=""; [ -z "$MASTER_SOCK" ] || where=" (in the master session $(basename "$(dirname "$MASTER_SOCK")"))"
+    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus${where}"
     echo "would run: herdr pane run <new> ${launch}"
     return 0
   fi
-  pane=$(herdr tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
+  pane=$(hm tab create --cwd "$tab_cwd" --label "▸ $tab_label" --no-focus |
            jq -r '.result.root_pane.pane_id') || die "could not open the ${boot} tab"
   [ -n "$pane" ] && [ "$pane" != null ] || die "could not read the new tab's pane id"
-  herdr pane run "$pane" "$launch" ||
+  hm pane run "$pane" "$launch" ||
     die "opened the tab but could not start ${session_agent} in $pane"
   echo "goal-done: opened ${boot} in ${pane} (${session_agent}) — ${tab_cwd}"
 }
@@ -205,6 +224,17 @@ case "$caller_agent" in
   openai) session_agent=codex ;;
   *) die "unsupported caller agent: $caller_agent" ;;
 esac
+
+# Master plan M1: the master's seat is never retired — not by its own turn, not by
+# the reaper's `--tab`, not by close-on-land. It closes workers with `--tab <id>`.
+if [ -z "$FILL_REPO" ]; then
+  tab_label=$(herdr tab list 2>/dev/null |
+    jq -r --arg tab "$HERDR_TAB_ID" '.result.tabs[]? | select(.tab_id == $tab) | .label' 2>/dev/null) || tab_label=""
+  tab_name=$(printf '%s' "$tab_label" | sed -E 's/^\[?[0-9]+\]? *//; s/^[✻✼✽ ]+//')
+  if [ "$tab_name" = master ] || { [ -z "$TARGET_TAB" ] && [ "${AGENT_ROLE:-}" = master ]; }; then
+    die "refused: tab $HERDR_TAB_ID is the master's seat"
+  fi
+fi
 
 root=$(git rev-parse --show-toplevel 2>/dev/null) || die "not in a git repository"
 # --git-common-dir points at the *shared* .git even from a linked worktree, so
@@ -397,6 +427,9 @@ rank_fill() {
     # FEAT-867 waited on untracked BS-IOS-BUG-402 and 997, so nothing opened).
     focus_json=$(jq -c --arg ex "$exclusive" '([.waiting[]? | select(.track == $ex) | .waiting_on[]?]) as $need | .next |= map(select(.track == $ex or (.id as $i | any($need[]; . == $i)))) | .resume |= ((. // []) | map(select(.track == $ex)))' <<<"$focus_json" 2>/dev/null) || focus_json="{}"
   fi
+  # Master plan 1d (M3): the batch head boots the batch's verb (batch_boot.jq).
+  batch_jq="$(dirname "$(readlink -f "$0")")/batch_boot.jq"
+  [ -f "$batch_jq" ] && focus_json=$(jq -c -f "$batch_jq" <<<"$focus_json" 2>/dev/null || printf '%s' "$focus_json")
   # FS-262 D9: orphaned builds first, each in its own checkout (`slug`); they
   # already hold their lanes. Then the new records.
   fill=$(jq -c '(.resume[]? | . + {resume: true}), .next[]?' <<<"$focus_json" 2>/dev/null) || fill=""
@@ -446,6 +479,17 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
     next_model="$build_model"; next_effort="${next_effort:-$build_effort}"
     next_boot=$(printf '%s\n' "$record" | jq -r '.boot // empty')
     [ -n "$next_id" ] || continue
+    # Master plan 1d: a `/spec batch` settles in the shared checkout, takes no lane.
+    case "$next_boot" in "/spec batch "*)
+      spec_label="spec-batch-$(printf '%s' "${next_boot#/spec batch }" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-|-$//g')"
+      if hm tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -q "▸ ${spec_label}$"; then
+        echo "goal-done: ${spec_label} is already open" >&2
+      else
+        model_route "$shared" spec app
+        open_tab "$shared" "$spec_label" "$next_boot" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT"
+      fi
+      continue ;;
+    esac
     tried=$((tried + 1))
     # The id is all this step knows, so the name it can build is `fs094` — while
     # the goal's checkout may be `fs094-offers`. `open` adopts the existing tree
