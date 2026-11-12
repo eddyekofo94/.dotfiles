@@ -1,69 +1,127 @@
 # CanonFidei working rules
 
-Read before work in any repo under `~/Programming/Projects/CanonFidei/`. Moved verbatim from the global `~/.dotfiles/agent-config/AGENTS.md` Lessons on 2026-10-27 (BS-IOS-TASK-835 D7, Eddy: "Yes to BS-IOS-TASK-835 D7").
+Read before work in any repo under `~/Programming/Projects/CanonFidei/`. The incidents and Eddy's words
+behind each rule are in `archive/canonfidei-before-audit-2026-11-12.md`.
 
-## Partners, the Group, Bible Standard operations
+## Partner mail
 
-- When you draft, send or report on any email to a partner, read the thread first: the other side's full latest message, our own earlier mail to them (Sent and every IMAP folder, parents included), and the date; never act from a summary, a report row or an earlier draft, and never send text that does not fit what they actually said (a refusal, an "ask in 12 months", a pointer to another owner). Send only after the checks show the draft still fits ("it's amazing how I have to babysit you … do you understand the gravity of these emails? it is critical to the business", Eddy, 2026-10-27: a report said Ministério Fiel was unanswered when a 23 Oct mail to João was in Sent; two drafts were written for ebook publishers when the thread was a Bible-text licence).
-- When Eddy asks in passing about a legal or rights check ("is there a trademark for …?"), answer it and stop; never file it as a task, his errand or a gate on the release unless he asks for one ("I don't care about a trademark lawyer, if I need it I will tell you. Just build Bible Stndrd is what we are going for.", Eddy, 2026-10-24: BS-IOS-FEAT-198's D12 made an attorney's search his errand and held the release on it).
-- When a pull request is opened for Emmanuel to continue (its body tags `@emmanuelrichard01` with "for you to continue" or "what is left for you"), it stays open: never merge it, and never write a prompt that merges it, including a "merge #A and #B" prompt that lists it among others; merge only PRs Eddy names as his own to land, and check each one's body for that tag before `gh pr merge`. Web #36 and API #67 were opened that way on 2026-10-24; #36 was merged by a pasted prompt this agent wrote ("Merge API PR #64 and web PR #36") and GitHub cannot reopen a merged PR, so Emmanuel's item became issue #37 ("I have made an absolute mess, today I created 2 PRs for emmanuel they're both merged by mistake", Eddy, 2026-10-24).
-- When work in any Bible Standard Group repo (iOS, API, web, data) needs a decider, a merge or a yes, it is Eddy's, the super admin's: every record is `Decider: Eddy`, never `Decider: Emmanuel`, the API's and the web's technical ones too; a pull request merges on Eddy's yes once its own gate is green (a red `Workers Builds` preview it did not cause never holds it), Emmanuel's pull requests included, since he waits on Eddy; tell Emmanuel what changed in a pull request that names him (`@emmanuelrichard01`), never hold work for his permission, and never ask Eddy whether his yes counts ("I decide, but he needs to somehow know the changes", Eddy, 2026-10-24; FS-490's D5 still made Emmanuel decider and merger: "nothing is decided by emmanuel, I am the supper admin! He is waiting for me", Eddy, 2026-10-24).
-- When naming the Bible Standard Group's developer or the person to invite to a Group repo (iOS, API, web, data and the clients to come), it is Emmanuel (`emmanuelrichard01`, who builds the API and the web); never name anyone else for that role (Eddy, 2026-10-23, FS-490; 2026-10-30: the other name is removed everywhere).
-- When work in Bible Standard touches accounts, sync, profiles, friends, posts or anything the server answers, pull `~/Programming/Projects/CanonFidei/biblestandard/api` (the Cloudflare API) to its latest `main` first and spec or build against what it already serves; check what is built in the API and the app and tick it, never rewrite it or plan it as new ("With fellowship alot of it is already done, so don't rewrite … it is hosting on cloudflare … always pull and work on the latest backend!", Eddy, 2026-10-22, FS-136; the checkout was 32 commits behind).
-- When sending or replying to email about Bible Standard (welcome, tester, supporter or any app mail), send from `bible.standard@canonfidei.com`, never `contact@canonfidei.com`; every other activity gets its own address, so pick the one that matches the activity ("it should go out on bible.standard@ not contact@ we will do everything regarding Bible standard through this!", Eddy, 2026-10-16).
-- When Eddy says the business is a sole trader who works with other people, do not call it a company, team or partnership in copy, and do not turn that into the headline either: name the studio and Eddy as the provider, and put any subcontracting disclosure in the terms, not the hero ("I am a sole trader but I work with other people, how do you adapt the language", Eddy, 2026-10-15).
-- When Eddy asks to update the supporters or run a sync, run `~/.local/bin/sync-supporters` directly and show the diff; never walk him through Keychain, key or paste steps once the key is stored ("it should just do it!", Eddy, 2026-10-15).
-- When the build lanes are full, a record whose change is app code (it names a `.swift` file or a path under `Sources/App/`, or names no file) waits queued, and nobody frees a lane for it; every other ready iOS record (tools, hooks, playbooks, records, docs) waits for the one workflow lane, and data, web and API share one lane; with the verdict seat that is five agent-opened builds, a build that really edits `Sources/App/` or `Packages/` holds an app lane whatever its record declares, and Eddy's own tabs are never capped ("we should limit it to 5 in total 2 ios one data/web/api and 1 workflow", Eddy, 2026-11-09: BS-IOS-TASK-1619; earlier: "you should not build anything if the lane is busy", Eddy, 2026-10-13; "can we set the cap only for Swift @Sources/App/ and allow everything else to build and be commited?", Eddy, 2026-10-24: FS-478's guard and thirteen other tool records sat behind two app builds).
-- When a turn in an agent-opened (`▸`) tab ends DONE or BLOCKED with nothing unlanded, do not offer the close: `herdr-reap` (launchd, every 2 min) closes it after 10 idle minutes via `herdr-goal-done --tab` and refills the free lanes; in Eddy's own tabs (no `▸`) keep the one line before **Status** naming `herdr-goal-done`, and run it when he says close (Eddy, 2026-10-04: "I don't want to clog space with idle sessions").
-- When people joined a mailing list by the early way (a mailto, a plain email), they consented; never mark them as unconsented because today's form has a tick box, and never list it as an open question ("They signed up to the mailing list, it was the primitive way we had it, we cannot judge it with the one we just set up!", Eddy, 2026-10-16).
+- Partner mail (Zoho: `contact@` and `bible.standard@canonfidei.com`) goes through
+  `~/.dotfiles/agent-config/claude/zoho_mail.mjs` (`folders`, `list`, `read`, `attachments`, `send`, `reply`).
+  Its tokens are Keychain items `cf-zoho-client-secret`, `cf-zoho-refresh-token` (read) and
+  `cf-zoho-send-token` (send): you have mail access, so never ask Eddy for credentials. Partner replies sit
+  in the `Bible Standard` folder; some land in `Spam`.
+- Before you draft, send or report on a partner email, read the thread itself: their full latest message,
+  our earlier mail to them (Sent and every IMAP folder), and the dates. Never act from a summary, a report
+  row or an old draft; send only text that fits what they actually said. These emails are critical to the
+  business.
+- Reply with `zoho_mail.mjs reply <folder> <messageId> <body.txt>` so it stays on their thread, and end the
+  body at "Eddy": the tool adds his Zoho signature (its logo needs a hosted copy in `LOGO_URL`).
+- Anything about Bible Standard goes out from `bible.standard@canonfidei.com`, never `contact@`; every other
+  activity has its own address. The App Store account is `eddy@canonfidei.com`, never the Gmail.
+- Save source files partners send into the data repo
+  (`biblestandard/data/data/library/bibles/<group>/<code>/raw/`), never `~/Downloads`.
+- Before a partner call or letter, write a report on them (app, business, catalogue, channels,
+  distribution, what could work for us) and a selling strategy with objections and questions in
+  `canonfidei-business/biblestandard/partners/<name>-report.md`. When two or three contacts name the same
+  company or tool, tell Eddy at once and research it.
+- Email, partners, publishers and outreach work from `~/Programming/Projects/CanonFidei/canonfidei-business`
+  (`business/` in each repo); read its `AGENTS.md` first.
+- People who joined a mailing list the early way (a mailto, a plain email) consented; never mark them
+  unconsented or list it as open.
 
-- When Eddy asks to read, save from or send partner mail (Zoho: `contact@` and `bible.standard@canonfidei.com`), use `~/.dotfiles/agent-config/claude/zoho_mail.mjs` (`folders`, `list`, `read`, `attachments`, `send`); its tokens are Keychain items `cf-zoho-client-secret`, `cf-zoho-refresh-token` (read) and `cf-zoho-send-token` (send), so never say you have no mail access and never ask Eddy for credentials; partner replies sit in the `Bible Standard` folder and some land in `Spam`. Save received source files into the data repo (`biblestandard/data/data/library/bibles/<group>/<code>/raw/`), never `~/Downloads` (Eddy, 2026-10-30: "you do have access to my zoho mail? what are you talking about?"; "why not inside … biblestandard/data?").
-- When replying to a partner, use `zoho_mail.mjs reply <folder> <messageId> <body.txt>` so it sits on their thread, and end the body at "Eddy": the tool adds his Zoho "Bible Standard" signature (its logo needs a hosted copy in `LOGO_URL`); never send a fresh message with a pasted signature (Eddy, 2026-10-30: "How come you didn't send it on the thread?"; "how come you don't use my signature").
-- When a publisher or partner has a call or a letter pending, write a report on them before it (their app, business, catalogue, channels, how they distribute, what could work for ours) and a selling strategy with objections and questions, in `~/Programming/Projects/CanonFidei/canonfidei-business/biblestandard/partners/<name>-report.md`; and when two or three contacts name the same company or tool (Bookwire), tell Eddy at once and research it (Eddy, 2026-10-30: "how come you never told us about them?"; "do a full report for them and have it ready for me").
+## People and decisions
 
-## Global Lessons, full text
+- Eddy is the super admin of the Bible Standard Group (iOS, API, web, data and the clients to come): every
+  record is `Decider: Eddy`, the API's and web's technical ones too. Emmanuel's pull requests merge on
+  Eddy's yes once their own gate is green (a red `Workers Builds` preview they did not cause never holds
+  them). Tell Emmanuel what changed in a PR that names `@emmanuelrichard01`; never hold work for his
+  permission, and never ask Eddy whether his yes counts.
+- The Group's developer, and the only person invited to its repos, is Emmanuel (`emmanuelrichard01`, API and
+  web). Never name anyone else for that role.
+- A PR opened for Emmanuel to continue (its body tags `@emmanuelrichard01` with "for you to continue" or
+  "what is left for you") stays open. Before any `gh pr merge`, check the body for that tag; merge only PRs
+  Eddy names as his own to land. GitHub cannot reopen a merged PR.
+- A passing question about legal or rights checks ("is there a trademark for …?") gets an answer and
+  stops there; never file it as a task, an errand or a release gate unless Eddy asks.
+- The business is a sole trader who works with other people: never call it a company, team or
+  partnership in copy. Name the studio and Eddy as the provider; subcontracting goes in the terms.
+- Name repos for the product (`biblestandard-qa`, `biblestandard-design`), never `canonfidei-*`; CanonFidei
+  is the org.
+- Ruby and River (`RubyandRiver`, `rubyandriver_services`, its Shopify theme or shop): do nothing. The shop
+  is closed.
 
-The full wording of the Lessons that stay in the global `AGENTS.md` as one-line rules.
+## Bible Standard operations
 
-- When Eddy agrees ("yes", "do it", a pasted prompt) to a change, take it as the order to finish it: tests, commit, push, and anything else the change needs; never stop at a staged diff, an unpushed commit or a prompt for the next step. When a retro finds an improvement a tool, hook, guard or skill can carry, build, test, commit and push it in that run and report it as done; only a change above Lessons in an `AGENTS.md` waits for him ("I hate that I have to tell you these things, I want the retro to be automated, when you find something for improvement this improvement should be automatic", Eddy, 2026-10-27: the retro's guard and hook took three prompts to commit and push).
-- When a guard or the workflow blocks what is left of a task (a cleanup, a commit, a stuck hold), settle its fix as a record queued first and let the chain build it; never end on steps or a prompt for Eddy to run ("just add things to the que and make sure they run, I don't want to sit here and babysit the workflow that's meant to be automatic", Eddy, 2026-10-24, BS-IOS-BUG-581).
-- When Eddy questions a tab's effort or model ("I shouldn't be running Max here?"), take it as the correction: say what the level costs, how he lowers it and what set it, and fix that setting in the same session; never explain why the level is fine (2026-10-24: `herdr-goals` opened every `/spec` tab at `max`, and FS-478's guard, passed 2026-10-23, was never built: "I don't want to use Max effort, I thought I put a reinforcement to stop this? it's token eating", Eddy).
-- When a file a tool writes (a gate's report, an audit's output) blocks a commit, a land or a tab close more than once, fix its cause in that session (ignore it, or stop the tool writing it into the checkout) and land the fix; never hand Eddy a prompt to remove it again ("I keep seeing this, it is clearly blocking eeverything and it should be fixed?", Eddy, 2026-10-23: `qa/bible_translation_audit.md`).
-- When work touches Ruby and River (`RubyandRiver`, `rubyandriver_services`, its Shopify theme or its shop), do nothing: no rename, reconnect, check or fix, because the shop is closed ("Don't do anything with ruby and river, the shop has been closed", Eddy, 2026-10-23: its repo was renamed to `rubyandriver-shop` in a table he had approved, before he said so).
-- When work is housekeeping, research, drafting, review, retros or config (anything but `/build` on a project), run it in a Sonnet tab; Opus is for `/build` only, or when Eddy calls for it ("things like this should not be done with Opus … opus should only be for build on projects, not what we are doing here unless called upon", Eddy, 2026-10-23: a retro and a dotfiles review ran on Opus).
-- When Eddy says he already wrote something down, search his own words (each noun he used, one at a time) across every decision file, record and session log before saying it is not written, and give him its ID; never conclude "not in the records" from one phrase that he did not use ("I thought I mentioned we will have nature, room, painting & abstract in the background … chosen from unsplash?", Eddy, 2026-10-23: it was FS-431, Ready To Act, missed by a search for "abstract theme").
-- When you launch any long check (an audit, a gate, a capture run), launch it so it ends itself at the first red line: the tool's fail-fast flag, or a watcher in the same background command that kills it when the first failure prints, so the job's exit tells you; never let a red run carry on to its end, and never chain passes (FS-371 L9 2026-10-22: red at 22:48, seen at 23:31; again 2026-10-23: look B's audit was red in its first minutes and ran 46 min until Eddy asked "why is this still taking so long?")).
-- When a turn ends while its own background job (a gate run, a reviewer agent) is still running, end it with the one-line `**Status:** WAITING` and no prompt block, and pick the work up when the job exits; never hand Eddy a resume prompt to paste ("Why do I have to paste this? What happened to the automated workflow we are building?", Eddy, 2026-10-22, FS-197).
-- When Eddy has already named the answer to an open question (e.g. "the app should ship WEB"), write it into the plan as settled and never re-ask it as a picker, even when a reviewer lists it as open ("I've said this before?", Eddy, 2026-10-15).
-- When Eddy's own words already say how a thing should be (a settled decision, or the ask in front of you), build exactly that; never turn it into a fork, a picker or a recommendation of the other way, and tell him a cost you find as the cost of his way, with its fix. FS-354 D8 made English always plain, yet he was asked UK or US and a toggle was queued ("You forgot, english is always plan, I thought I set this rule already?", 2026-10-13); FS-361's "slide under the hero" became an A/B with the opposite recommended ("this is quite clear isn't it?", Eddy, 2026-10-14).
-- When a tool behaviour Eddy relied on "was working before", diff that logic across the installed versions (e.g. `~/.local/share/claude/versions/*`) and reproduce it live (tmux `send-keys`/`capture-pane`) before proposing anything; never offer substitute keybinds he did not ask for (2.1.295 clamped effort cycling, "stop being dumb and just do what was previously working", Eddy, 2026-10-12).
-- When a push or merge lands, read the GitHub Actions run for that commit before calling it done; a local verify script may not run every CI step (Eddy, 2026-10-02).
-- When another tab looks idle, read its session log for a background job before saying it stalled or telling Eddy to prompt it (Eddy, 2026-10-01).
-- When Eddy asks for email, partners, publishers or outreach in any Bible Standard repo, work from `~/Programming/Projects/CanonFidei/canonfidei-business` (symlinked as `business/` in each repo; read its `AGENTS.md` first): the send tool, the Keychain item names and every draft are there (Eddy, 2026-10-30: "they should just know").
+- Work that touches accounts, sync, profiles, friends, posts or anything the server answers: pull
+  `biblestandard/api` (the Cloudflare API) to its latest `main` first, and spec or build against what it
+  already serves. Tick what is built; never plan it as new.
+- A data job (building, relinking or auditing packages, uploading to the R2 bucket `bs-libraries`, writing
+  the manifest) runs the data repo's tool from whichever Bible Standard repo you are in; R2 belongs to data.
+- A verb only iOS ships (`/verdict`, `/sweep`, `/focus`) runs in any Bible Standard repo through its router in
+  `~/.agent-skills/<verb>/SKILL.md`. A verb missing from a repo is a router to add.
+- To press a SwiftUI row in the simulator, use a held touch (`axe touch --down --up --delay 0.2`); a plain
+  `axe tap` reports success but does not fire it.
+- Supporters update or sync: run `~/.local/bin/sync-supporters` and show the diff. The key is stored; no
+  Keychain or paste steps.
+- When a Bible Standard address, link or name changes, change every copy you can reach that turn, across
+  every CanonFidei repo and checkout (studio site, testers form, idle worktrees, setup notes).
+- Build lanes: five agent-opened builds in all. Two iOS app lanes (a record that names a `.swift` file, a
+  path under `Sources/App/`, or no file; a build that really edits `Sources/App/` or `Packages/` holds one
+  whatever it declares), one workflow lane for every other iOS record (tools, hooks, playbooks, records,
+  docs), one shared data/web/API lane, and the verdict seat. A full lane means the record waits queued;
+  nobody frees a lane for it. Eddy's own tabs are never capped.
+- During a track build, Eddy's input or verdict goes first: a fix record born of it goes to the front of the
+  focus track's `Next:` line in `project/workflow/FOCUS.md` (a `(0000)` entry with his words), so the chain
+  opens it when the current build lands. Never open, close or pause a tab for it unless he calls it urgent.
+- Before Eddy leaves the chain unattended, read what the fill opens next (`features_index.py --focus
+  --json`: `next`, and `waiting` for the focus track) and name it. If the focus track waits on a record that
+  is not Ready, settle or flag it before he goes; never open a waiting record around its `depends on`.
 
-## Lessons moved from the global AGENTS.md (2026-11-05, verbatim)
+## The tab chain
 
-- When a Bible Standard address, link or name is switched, switch every copy Eddy can reach in that turn, across every CanonFidei repo and branch checkout (the studio site and its testers form, idle worktrees, setup notes), and never leave one because the ask named fewer files; Bible Standard's public address is `bible.standard@canonfidei.com` and the App Store account's is `eddy@canonfidei.com`, never the Gmail (Eddy, 2026-11-04: "No, it should not be"; "App Store we will not be using the gmail but eddy@canonfidei.com").
-- When a track is building and Eddy gives input or a verdict, that goes first: a fix record born of his fail or words goes to the very front of the focus track's `Next:` line in `project/workflow/FOCUS.md` (a `(0000)` entry with his quote), so the chain opens it when the current build lands; never open, close or pause a tab for it unless he calls it urgent, and never end a turn on a hand-started watcher or a prompt for it (Eddy, 2026-11-04: "when we are building a track, immediate input and verdicts should take priority in the future"; Home's BUG-1396 and BUG-1401 sat behind the Offers until he asked).
+- Eddy's yes (a "yes", "do it", a pasted prompt) orders the whole change: tests, commit, push, and what
+  else it needs. A retro's improvement that a tool, hook, guard or skill can carry is built, tested,
+  committed and pushed in that run; only a change above Lessons in an `AGENTS.md` waits for him.
+- When a guard or the workflow blocks the rest of a task, queue its fix as a record first and let the chain
+  build it; never end on steps or a prompt for Eddy to run.
+- When a build is refused or held by another tab's work (an overlap, the cap, a parked build), free it
+  yourself that turn and end only once the `/build` tab is open. Read the owning tab's screen
+  (`herdr pane read`) before calling it idle. For a lane your own paused build holds: commit it, copy its
+  plan to `~/Archive/github-backup/parked-notes/<ID>/`, `git worktree unlock` and `remove` it, then
+  `herdr-goals --build <ID>`.
+- "Close this tab and open a new one with:": do both yourself that turn. `herdr tab create`, `herdr pane run`,
+  check it took the prompt (`herdr pane read`), then `herdr tab close` your own tab (from
+  `herdr pane current`) as the last call.
+- A tab that cannot run the next move (a guard refuses `/build` in a housekeeping or retro tab): open the
+  prompt with "Close this tab and open a new one with:" and the `/build <ID>` line.
+- A turn in an agent-opened (`▸`) tab that ends DONE or BLOCKED with nothing unlanded offers no close:
+  `herdr-reap` closes it after 10 idle minutes and refills the lanes. In Eddy's own tabs (no `▸`), keep the
+  line naming `herdr-goal-done` and run it when he says close.
+- A prompt that continues a skill pinning a model (`/spec`, `/build` on Opus) starts with that slash
+  command; a plain "yes" runs on the tab's default model.
+- Models follow global `AGENTS.md` §3. When Eddy questions a tab's effort or model, take it as the
+  correction: say what the level costs and what set it, and fix that setting in the same session.
+- When Eddy names an order mid-task ("X runs first"), stop the current work that turn: park it as a WIP
+  commit with a resume note and start X.
+- A long check (audit, gate, capture run) ends itself at the first red line: the tool's fail-fast flag, or a
+  watcher in the same background command. Never let a red run carry on, and never chain passes.
+- A turn that ends while its own background job runs ends with the one-line `**Status:** WAITING` and
+  picks the work up when the job exits.
+- When another tab looks idle, read its session log for a background job before calling it stalled.
+- When a push or merge lands, read the GitHub Actions run for that commit (where the repo has CI) before
+  calling it done.
+- A file a tool writes into the checkout that blocks a commit, land or close more than once gets its cause
+  fixed that session (ignore it, or move the tool's output).
+- Changes that would reach Codex or Pi (a wrapper, a hook, a harness route) are built for Claude only; a
+  record that exists only for them is parked `Deferred — later`.
 
-- When a Bible Standard repo needs a verb only iOS ships (`/verdict`, `/sweep`, `/focus`), run it there through the global router in `~/.agent-skills/<verb>/SKILL.md`, which opens the iOS playbook on that repo's own records; a verb missing from a repo is a router to add, never a reason to send Eddy to the iOS tab. To press a SwiftUI row in the simulator, use a held touch (`axe touch --down --up --delay 0.2`): a plain `axe tap` reports success but does not fire it (Eddy, 2026-11-04: "How come that skill is not loading here? All the skills for iOS should be applicable to all Bible standard?"; BS-DATA-BUG-57).
+## Eddy's words
 
-- When a Bible Standard task is a data job (building, relinking or auditing packages, uploading them to the R2 bucket `bs-libraries`, writing the manifest), run the data repo's tool from whichever Bible Standard repo you are in (`~/Programming/Projects/CanonFidei/biblestandard/data`); never call it an iOS step or send Eddy to another repo for it. R2 belongs to data, not iOS (Eddy, 2026-11-04: "from any bible standard repo I should be able to perform any of these tasks … uploaded to R2 bucket is a data thing, not iOS?"; BS-DATA-TASK-97).
-
-- When a prompt says "Close this tab and open a new one with:", do both yourself in that turn: open the new tab (`herdr tab create`, `herdr pane run`), check it took the prompt (`herdr pane read`), then close your own tab (`herdr tab close <your tab id>`, from `herdr pane current`) as the last call; never leave "close this tab" as Eddy's next move (Eddy, 2026-11-04: "didn't the message say "Close this tab"? why not you do it?").
-
-- When a step's Ready-to-paste prompt continues a skill that pins a model (`/spec` and `/build` on Opus), start the prompt with that slash command; a plain "yes" turn runs on the tab's default Sonnet (Eddy, 2026-11-04: "runs on Opus bro").
-
-- When Eddy leaves the chain to run unattended (sleep, away), read what the fill opens next (`features_index.py --focus --json`: `next`, and `waiting` for the focus track) and name it; if the focus track's records wait on a record that is not Ready, settle or flag it before he goes, and never open a waiting record by hand around its `depends on` (Eddy, 2026-11-03: "I went to sleep and I came back nothing is running"; the Code quality track sat behind BS-IOS-TASK-772 at Spec Needed from 05:48).
-
-- When a build is refused or held by another tab's work (an overlap, the build cap, a parked build), free it yourself that turn and end only once the `/build` tab is open: read the owning tab's screen (`herdr pane read`) before calling it idle; for a lane your own paused build holds, commit it, copy its plan to `~/Archive/github-backup/parked-notes/<ID>/`, `git worktree unlock` and `remove` it from the shared checkout, then `herdr-goals --build <ID>`; a closeout that hands Eddy a prompt for this is the mistake, made twice on 2026-11-02 (BS-IOS-TASK-1242 behind 1148, then behind 1132: "I built a graph system but I have to be pasting prompts to get it going, why not do things yourself?").
-
-- When Eddy names an order mid-task ("X runs first, before anything else"), stop the current work that turn: park it as a WIP commit with a resume note and start X; never finish the current record first, and never call his ask a separate job that waits (Eddy, 2026-10-30, during BS-IOS-TASK-697: "the line reducing tasks should run first before we do anything else? why aren't you listening?").
-
-- When a repo is named, name it for its product (`biblestandard-qa`, `biblestandard-design`), never `canonfidei-*`: CanonFidei is the org; and invite only `emmanuelrichard01` on Bible Standard repos (Eddy, 2026-10-30: "canonfidei-qa-evidence … this is bible standard"; the other collaborator's name was removed from the rules).
-
-- When partner mail is sent, use the threaded `reply` with Eddy's Zoho signature; before any partner call write the partner's report and selling strategy (`canonfidei.md`; Eddy, 2026-10-30).
-
-- When a tab cannot run what the next move needs (a guard refuses `/build` in a housekeeping, retro or architecture tab), open the Ready-to-paste prompt with "Close this tab and open a new one with:" and then the `/build <ID>` line; never leave the bare prompt for Eddy to work out where it goes (Eddy, 2026-10-30, after the architecture pass for BS-IOS-FEAT-1099).
-
-- When a change would reach Codex or Pi (a wrapper, a hook, a harness route), leave them out and build it for Claude only; a record that exists only for them is parked `Deferred — later`, off its track (Eddy, 2026-10-29: "Forget Pi and Codex for now . I am Claude Maxxing!"; BS-IOS-TASK-967).
+- When Eddy has already named the answer (a settled decision, the ask in front of you), build exactly that:
+  never re-ask it as a picker, turn it into a fork, or recommend the other way. Tell him a cost you find as
+  the cost of his way, with its fix.
+- When Eddy says he already wrote something down, search each noun he used, one at a time, across every
+  decision file, record and session log before saying it is not written, and give him its ID.
+- When a tool behaviour "was working before", diff that logic across the installed versions
+  (`~/.local/share/claude/versions/*`) and reproduce it live (tmux `send-keys`/`capture-pane`) before
+  proposing anything; never offer substitute keybinds he did not ask for.
