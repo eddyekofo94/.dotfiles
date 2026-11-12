@@ -2,6 +2,7 @@
 park carries the order and the freed lane opens `/build <ID>` before the fill's pick
 (BibleStandard BS-IOS-TASK-1250)."""
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
+ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 GOAL_DONE = pathlib.Path(__file__).resolve().parents[1] / "goal_done.sh"
 
@@ -24,7 +25,7 @@ def dry_park(*flags: str) -> str:
     tree = repo.parent / "bs-ios-task-6"
     subprocess.run(["git", "-C", str(repo), "worktree", "add", "-q", "-b",
                     "feature/bs-ios-task-6", str(tree)], check=True)
-    env = {**os.environ, "HERDR_TAB_ID": "t", "HERDR_GOAL_DONE_AGENT": "claude",
+    env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "HERDR_TAB_ID": "t", "HERDR_GOAL_DONE_AGENT": "claude",
            "HERDR_CHAIN_PAUSE": str(repo / "absent")}
     done = subprocess.run(["bash", str(GOAL_DONE), "--park", *flags, "--dry-run"], cwd=tree,
                           env=env, capture_output=True, text=True)

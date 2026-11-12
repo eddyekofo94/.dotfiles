@@ -2,6 +2,7 @@
 BS-IOS-FEAT-1365; Eddy, 2026-11-04: "we can always spin a tab with that userstory from the
 data repo, land it and then update here")."""
 import os, pathlib, subprocess, tempfile, unittest
+ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 GOALS = pathlib.Path(__file__).resolve().parents[1] / "goals.sh"
 
@@ -18,7 +19,7 @@ class DataBuildTab(unittest.TestCase):
         (self.data / "tools").mkdir(parents=True)
 
     def dry_run(self, ident, data=None, extra=None, lane=False):
-        env = {**os.environ, "HERDR_GOALS_REPO": str(self.ios), "BS_DATA_DIR": str(data or self.data), **(extra or {})}
+        env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "HERDR_GOALS_REPO": str(self.ios), "BS_DATA_DIR": str(data or self.data), **(extra or {})}
         env["PATH"] = os.pathsep.join(p for p in env["PATH"].split(os.pathsep)
                                       if lane or not os.path.exists(os.path.join(p, "herdr-group-lane")))
         return subprocess.run(["bash", str(GOALS), "--build", ident, "--dry-run"],
@@ -49,7 +50,7 @@ class DataBuildTab(unittest.TestCase):
     def test_a_data_id_opens_in_the_data_checkout(self):
         run = self.dry_run("BS-DATA-BUG-72")
         self.assertEqual(run.returncode, 0, run.stderr)
-        self.assertEqual(run.stdout.strip(), f"would open bs-data-bug-72 (boot /build BS-DATA-BUG-72) in {self.data}")
+        self.assertEqual(run.stdout.splitlines()[0], f"would open bs-data-bug-72 (boot /build BS-DATA-BUG-72) in {self.data}")
 
     def test_a_moved_ios_id_opens_under_its_new_id(self):
         for old in ("BS-IOS-BUG-1003", "bs-ios-bug-1003", "BUG-1003"):
@@ -66,7 +67,7 @@ class DataBuildTab(unittest.TestCase):
     def test_an_app_id_is_unchanged(self):
         run = self.dry_run("BS-IOS-FEAT-1365")
         self.assertEqual(run.returncode, 0, run.stderr)
-        self.assertEqual(run.stdout.strip(), f"would open bs-ios-feat-1365 (boot /build BS-IOS-FEAT-1365) in {self.ios}")
+        self.assertEqual(run.stdout.splitlines()[0], f"would open bs-ios-feat-1365 (boot /build BS-IOS-FEAT-1365) in {self.ios}")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+ROUTES = Path(__file__).resolve().parents[2] / "herdr/tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 SCRIPT = Path(__file__).parents[1] / "session_worktree.py"
 
@@ -212,6 +213,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.command("git", "add", ".")
         self.command("git", "commit", "-m", "integration fixture")
         env = os.environ.copy()
+        env["HERDR_ROUTES_REPO"] = str(ROUTES)
         env.update(HERDR_GOALS_REPO=str(self.root.resolve()), HERDR_CALLS=str(calls),
                    PATH=f"{bin_dir}:{env['PATH']}")
         result = subprocess.run([str(goals), "one:opus::one:a,b"], cwd=self.root,
@@ -256,6 +258,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         linked = self.root.parent / "linked"
         self.command("git", "worktree", "add", "-b", "linked", str(linked), "main")
         env = os.environ.copy()
+        env["HERDR_ROUTES_REPO"] = str(ROUTES)
         env.update(HERDR_CALLS=str(calls), PATH=f"{bin_dir}:{env['PATH']}")
         result = subprocess.run(
             [str(goals), "one:opus::one:a"], cwd=linked, env=env,
@@ -315,6 +318,7 @@ if sys.argv[1:3] == ['tab', 'create']:
 """)
         (bin_dir / "herdr").chmod(0o755)
         env = os.environ.copy()
+        env["HERDR_ROUTES_REPO"] = str(ROUTES)
         env.update(HERDR_GOALS_REPO=str(repo), HERDR_CALLS=str(calls),
                    HERDR_GOALS_AGENT="claude", PATH=f"{bin_dir}:{env['PATH']}")
         result = subprocess.run([str(SCRIPT.parents[1] / "herdr/goals.sh"), *args], cwd=repo,
@@ -360,10 +364,11 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(tabs, [])
         self.assertIn("/spec when you have the attention", result.stderr)
 
-    def test_an_explicit_grill_opens_in_the_shared_checkout_at_high(self):
+    def test_an_explicit_grill_opens_in_the_shared_checkout_at_the_spec_pair(self):
+        # BS-IOS-FEAT-597: the routing table's app-kind spec pair, Opus xhigh.
         result, tabs = self.run_lanes([101], unjudged=3, args=("grill:opus",))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort high '
+        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort xhigh '
                                            '--permission-mode auto "/spec"')])
 
     def test_an_explicit_verdict_is_refused_while_the_seat_is_held(self):
@@ -397,6 +402,7 @@ if sys.argv[1:3] == ['tab', 'create']:
 """)
         stub.chmod(0o755)
         env = os.environ.copy()
+        env["HERDR_ROUTES_REPO"] = str(ROUTES)
         env.update(HERDR_GOALS_REPO=str(self.root.resolve()), HERDR_CALLS=str(calls),
                    HERDR_PANE_ID="source-pane", PATH=f"{bin_dir}:{env['PATH']}")
         for name in ("HERDR_GOALS_AGENT", "CLAUDECODE", "CODEX_SESSION_ID",

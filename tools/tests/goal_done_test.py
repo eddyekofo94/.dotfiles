@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+ROUTES = Path(__file__).resolve().parents[2] / "herdr/tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -18,6 +19,10 @@ class GoalDone(unittest.TestCase):
         (self.repo / "herdr/goal_done.sh").write_text(
             (ROOT / "herdr/goal_done.sh").read_text()
         )
+        # BS-IOS-FEAT-597: the opener asks the routing table through its helper.
+        (self.repo / "herdr/model_route.sh").write_text((ROOT / "herdr/model_route.sh").read_text())
+        (self.repo / "tools/model_routes.py").write_text(
+            "import sys; print({'build': 'opus medium', 'verdict': 'sonnet medium'}.get(sys.argv[1], 'opus xhigh'))\n")
         (self.repo / "tools/features_index.py").write_text("""import json, os
 graph = {'unjudged': int(os.environ.get('UNJUDGED', '0')), 'eddy_waiting': 7,
          'verdict_seat': os.environ.get('SEAT', 'free')}
@@ -97,6 +102,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         cwd=None, extra=(), resume=False, env_extra=None,
     ):
         env = os.environ.copy()
+        env["HERDR_ROUTES_REPO"] = str(ROUTES)
         for name in (
             "HERDR_GOAL_DONE_AGENT", "CLAUDECODE", "CODEX_SESSION_ID",
             "PI_SESSION_ID", "PI_CODING_AGENT_DIR",

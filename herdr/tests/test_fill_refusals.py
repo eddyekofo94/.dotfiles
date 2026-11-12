@@ -2,6 +2,7 @@
 none opened on a free lane it tries once more (BibleStandard BS-IOS-TASK-1428:
 BS-IOS-BUG-1396 did not open when BS-IOS-TASK-1356 closed, and nothing said why)."""
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
+ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 GOAL_DONE = pathlib.Path(__file__).resolve().parents[1] / "goal_done.sh"
 
@@ -41,7 +42,7 @@ def fill(rows: list[dict], opens: dict) -> tuple[str, str]:
     (bin_dir / "herdr").write_text(HERDR)
     (bin_dir / "herdr").chmod(0o755)
     log = repo / "chain.log"
-    env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}",
+    env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "PATH": f"{bin_dir}:{os.environ['PATH']}",
            "HERDR_TAB_ID": "t", "HERDR_GOAL_DONE_AGENT": "claude",
            "HERDR_CHAIN_PAUSE": str(repo / "absent"), "HERDR_CHAIN_LOG": str(log),
            "HERDR_CHAIN_NOTIFY": "0", "HERDR_FILL_RETRY_SECS": "0",

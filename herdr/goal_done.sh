@@ -22,7 +22,7 @@
 # anything is destroyed: if tab creation fails there is still a live session
 # holding the evidence of why.
 #
-# Claude keeps its Opus max/medium and permission-mode routing. Codex and Pi stay in
+# Claude opens at the routing table's model and effort (BS-IOS-FEAT-597). Codex and Pi stay in
 # their current agent family and inherit that agent's configured model and
 # permissions.
 #
@@ -112,14 +112,21 @@ run() {
 }
 
 command -v jq >/dev/null || die "jq required"
+# BS-IOS-FEAT-597: every tab's model and effort come from the routing table.
+# A copy of this script without its helper still opens Sonnet medium, never Opus.
+route_helper="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/model_route.sh"
+if [ -f "$route_helper" ]; then . "$route_helper"; else
+  ROUTE_MODEL=sonnet; ROUTE_EFFORT=medium
+  model_route() { :; }
+  echo "herdr: no ${route_helper} — opening sonnet medium (BS-IOS-FEAT-597)" >&2
+fi
 
 # Open one agent tab and start its session. The `▸ ` marks a tab an agent
 # opened (FS-237 D8); repo_lock keeps it.
 open_tab() {  # cwd label boot model mode [effort]
   local tab_cwd="$1" tab_label="$2" boot="$3" model="$4" tab_mode="$5" launch pane effort
-  # FS-100 (Eddy, 2026-09-25): builds and the verdict lane run at medium; a
-  # record the graph marks escalated opens once at high (BibleStandard
-  # BS-IOS-TASK-1140).
+  # The caller passes the routing table's pair (BS-IOS-FEAT-597); a record the
+  # graph marks escalated opens once at high (BibleStandard BS-IOS-TASK-1140).
   effort="${6:-medium}"
   if [ "$session_agent" = "claude" ]; then
     launch="claude --model ${model} --effort ${effort} ${tab_mode} \"${boot}\""
@@ -215,7 +222,8 @@ slug=$(basename "$root")
 if [ -n "$HANDOFF" ]; then
   [ -z "$FILL_REPO" ] && [ "$PARK" = 0 ] || die "--handoff takes neither --fill nor --park"
   [ "$root" != "$shared" ] || die "--handoff takes a goal's worktree, not the shared checkout"
-  open_tab "$root" "$slug" "/build ${HANDOFF} — ${HANDOFF_NOTE}" opus "--permission-mode auto"
+  model_route "$shared" build app
+  open_tab "$root" "$slug" "/build ${HANDOFF} — ${HANDOFF_NOTE}" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT"
   if [ "$KEEP_TAB" = 0 ]; then
     run herdr tab close "$HERDR_TAB_ID" ||
       echo "goal-done: could not close $HERDR_TAB_ID; close it with prefix+X" >&2
@@ -363,7 +371,8 @@ open_spec_blocker() {  # the Spec Needed blockers, one per line
   id=$(head -n 1 <<<"$1")
   marker="$state_dir/spec-opened-$id"
   touch "$marker"
-  if ( open_tab "$shared" "spec-$(id_slug "$id")" "/spec $id" opus "--permission-mode auto" high ); then
+  model_route "$shared" spec --record "$id"
+  if ( open_tab "$shared" "spec-$(id_slug "$id")" "/spec $id" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT" ); then
     chain_note "opened /spec $id: the chain waits on it"
   else
     rm -f "$marker"
@@ -422,6 +431,9 @@ import repo_lock, session_worktree
 held = [s for s in session_worktree.slot_details() if s.get("kind", "worktree") == "worktree" and s["name"] != os.environ.get("GOAL_DONE_SLUG")]
 print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_worktree, "seats_taken", len)(held), 0))' 2>/dev/null) || free=""
   fi
+  # BS-IOS-FEAT-597: a build's pair is asked once per run, not per record.
+  model_route "$shared" build app
+  build_model="$ROUTE_MODEL"; build_effort="$ROUTE_EFFORT"
   # One walk of $fill: open a build tab per free lane, log each refusal.
   walk_fill() {
   while IFS= read -r record; do
@@ -430,7 +442,8 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
     next_track=$(printf '%s\n' "$record" | jq -r '.track // empty')
     next_paths=$(printf '%s\n' "$record" | jq -r '(.owned_paths // .paths // [])[]?')
     resuming=$(printf '%s\n' "$record" | jq -r '.resume // false')
-    next_effort=$(printf '%s\n' "$record" | jq -r '.effort // "medium"')
+    next_effort=$(printf '%s\n' "$record" | jq -r '.effort // empty')
+    next_model="$build_model"; next_effort="${next_effort:-$build_effort}"
     next_boot=$(printf '%s\n' "$record" | jq -r '.boot // empty')
     [ -n "$next_id" ] || continue
     tried=$((tried + 1))
@@ -472,7 +485,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
       if [ "${#dry_flag[@]}" = 0 ]; then
         echo "goal-done: ${next_id}: gate not asked — this manager has no open --dry-run"
         echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-        open_tab "<resolved by repository worktree manager>" "$label" "$boot" opus "--permission-mode auto" "$next_effort"
+        open_tab "<resolved by repository worktree manager>" "$label" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
         opened=$((opened + 1))
         [ "$resuming" = true ] && resumed=$((resumed + 1))
         continue
@@ -482,7 +495,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
     if cwd=$(cd "$shared" && HERDR_GROUP_LANE_OPENER=1 python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
       cat "$open_err" >&2; rm -f "$open_err"
       [ "$DRY" = 1 ] && echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-      open_tab "$cwd" "$(basename "$cwd")" "$boot" opus "--permission-mode auto" "$next_effort"
+      open_tab "$cwd" "$(basename "$cwd")" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
     else
@@ -523,12 +536,13 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
   # seat is free. A full build cap never blocks it: it is not a build lane.
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json" 2>/dev/null)" -gt 0 ] 2>/dev/null &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
+    model_route "$shared" verdict app
     if [ "$DRY" = 1 ] && [ "${#dry_flag[@]}" = 0 ]; then
       echo "would run: python3 tools/session_worktree.py open verdict-drain ${place_flag[*]:-} — gate not asked"
-      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" sonnet "--permission-mode bypassPermissions"
+      open_tab "<resolved by repository worktree manager>" verdict-drain "/verdict auto" "$ROUTE_MODEL" "--permission-mode bypassPermissions" "$ROUTE_EFFORT"
       verdict_opened=1
     elif cwd=$(cd "$shared" && python3 tools/session_worktree.py open verdict-drain ${place_flag[@]+"${place_flag[@]}"} ${dry_flag[@]+"${dry_flag[@]}"}); then
-      open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" sonnet "--permission-mode bypassPermissions"
+      open_tab "$cwd" "$(basename "$cwd")" "/verdict auto" "$ROUTE_MODEL" "--permission-mode bypassPermissions" "$ROUTE_EFFORT"
       verdict_opened=1
     else
       rc=$?

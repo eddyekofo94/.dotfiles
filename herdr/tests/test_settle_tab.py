@@ -9,10 +9,11 @@ REPO = pathlib.Path.home() / "Programming/Projects/CanonFidei/biblestandard/ios"
 
 
 class SettleTab(unittest.TestCase):
-    def test_settle_tab_is_opus_high(self):
+    def test_settle_tab_asks_the_routing_table(self):
+        # BS-IOS-FEAT-597: no hard-coded model; test_model_route.py runs the pair.
         text = GOALS.read_text()
-        self.assertIn('SPECS+=("settle-${slug}:opus::shared"); BOOTS+=("/spec track ${canon}")', text)
-        self.assertIn("grill|settle-*) effort=high", text)
+        self.assertIn('SPECS+=("settle-${slug}:::shared"); BOOTS+=("/spec track ${canon}")', text)
+        self.assertIn('model_route "$REPO" spec --record "$first"', text)
 
     @unittest.skipUnless((REPO / "project/workflow/FOCUS.md").exists(), "no BibleStandard checkout")
     def test_dry_run_boots_spec_track(self):

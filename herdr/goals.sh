@@ -1,14 +1,16 @@
 #!/bin/bash
 # herdr-goals: open one Herdr tab per live goal using the caller's agent family.
-# Claude callers keep Opus high/medium routing. Codex and Pi callers stay in their
+# Claude callers open at the routing table's model and effort (BibleStandard
+# BS-IOS-FEAT-597, `model_route.sh`). Codex and Pi callers stay in their
 # own agent family and inherit that agent's configured model and permissions.
 #
-# Usage: herdr-goals [SPEC ...]     SPEC = label:model[:resume-target[:home[:paths]]]
+# Usage: herdr-goals [SPEC ...]     SPEC = label[:model[:resume-target[:home[:paths]]]]
 #        herdr-goals --track NAME [--track NAME] [--dry-run]   one track tab each
 #        herdr-goals --build ID [--track NAME] [--dry-run]     one /build tab
 #        herdr-goals --settle NAME [--dry-run]                 one /spec track tab
 #   model is an alias (`opus`), not a pinned id, so a tab follows the
 #   latest release of that family instead of aging into a retired model.
+#   Empty, the routing table picks it; the effort is always the table's.
 #   resume-target is a session id (resumes it directly), the literal `pick`
 #   (opens the interactive picker), or omitted (fresh session).
 #   home is `shared` (the shared checkout), a worktree slug, or omitted.
@@ -26,8 +28,8 @@
 #   goal-x:opus:pick:fs110-ledge    resumed -> that worktree
 #   goal-x:opus::fs110-ledge        fresh   -> that worktree (reused as-is)
 #   notes:opus::shared              fresh   -> shared checkout anyway
-#   grill:opus                      Eddy asked for one: shared, Opus high, /spec
-#   verdict:sonnet                  the verdict lane: verdict-drain, /verdict auto
+#   grill                           Eddy asked for one: shared, the table's spec pair, /spec
+#   verdict                         the verdict lane: verdict-drain, /verdict auto
 #
 # With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
 # `/build <ID>` tab in each orphaned build's own checkout (`resume`, D9),
@@ -66,6 +68,13 @@ if [ "${HERDR_GOALS_YOLO:-1}" = "0" ]; then BUILD_MODE_FLAG=""; else BUILD_MODE_
 # checkout, where tools/ actually lives.
 CANONFIDEI_ROOT="${CANONFIDEI_ROOT:-$HOME/Programming/Projects/CanonFidei}"
 HERDR_DEFAULT_REPO="${HERDR_DEFAULT_REPO:-${CANONFIDEI_ROOT}/biblestandard/ios}"
+# A copy of this script without its helper still opens Sonnet medium, never Opus.
+route_helper="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/model_route.sh"
+if [ -f "$route_helper" ]; then . "$route_helper"; else
+  ROUTE_MODEL=sonnet; ROUTE_EFFORT=medium
+  model_route() { :; }
+  echo "herdr: no ${route_helper} — opening sonnet medium (BS-IOS-FEAT-597)" >&2
+fi
 if [ -n "${HERDR_GOALS_REPO:-}" ]; then
   REPO="$HERDR_GOALS_REPO"
 elif common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
@@ -88,7 +97,7 @@ fi
 TRACKS=(); BUILD_ID=""; SETTLE=""; DRY_RUN=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    -h|--help) sed -n '2,39p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,41p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     --track|--build|--settle)
       [ -n "${2:-}" ] || { echo "herdr-goals: $1 needs a value" >&2; exit 2; }
       case "$1" in --track) TRACKS+=("$2") ;; --build) BUILD_ID="$2" ;; *) SETTLE="$2" ;; esac
@@ -155,9 +164,9 @@ if [ -n "$SETTLE" ]; then
   if herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null | grep -qx "▸ settle-${slug}"; then
     echo "herdr-goals: settle-${slug} is already open" >&2; exit 0
   fi
-  SPECS+=("settle-${slug}:opus::shared"); BOOTS+=("/spec track ${canon}")
+  SPECS+=("settle-${slug}:::shared"); BOOTS+=("/spec track ${canon}")
 elif [ -n "$BUILD_ID" ]; then
-  SPECS+=("$(id_slug "$BUILD_ID"):opus")
+  SPECS+=("$(id_slug "$BUILD_ID")")
   BOOTS+=("/build ${BUILD_ID}${TRACKS[0]:+ — track ${TRACKS[0]}}")
 elif [ ${#TRACKS[@]} -gt 0 ]; then
   # B2: two track tabs run at once only when neither track is exclusive, or
@@ -170,7 +179,7 @@ elif [ ${#TRACKS[@]} -gt 0 ]; then
     [ -n "$canon" ] || { echo "herdr-goals: no track \"$name\" in FOCUS.md" >&2; exit 2; }
     slug=$(track_slug "$canon"); named="$named $slug"
     if grep -qx "$slug" <<<"$open_tracks"; then echo "herdr-goals: track-${slug} is already open" >&2; continue; fi
-    SPECS+=("track-${slug}:opus::shared"); BOOTS+=("/build track ${canon}")
+    SPECS+=("track-${slug}:::shared"); BOOTS+=("/build track ${canon}")
   done
   others=$(grep -vx "${named# }" <<<"$open_tracks" | grep . || true)
   if [ ${#TRACKS[@]} -eq 1 ] && [ ${#SPECS[@]} -gt 0 ] && [ -n "$others" ]; then
@@ -183,10 +192,26 @@ elif [ ${#TRACKS[@]} -gt 0 ]; then
   # Every named track already has its tab: open nothing, never the lane fill.
   [ ${#SPECS[@]} -gt 0 ] || exit 0
 fi
+# BS-IOS-FEAT-597: the tab's verb and kind ask the routing table. A `/spec track`
+# tab takes the kind of the first record it will settle; `grill` reads as app.
+tab_route() {  # label boot
+  local first=""
+  case "$1" in
+    grill) model_route "$REPO" spec app ;;
+    settle-*)
+      first=$(python3 "${REPO}/tools/features_index.py" --list --track "${2#/spec track }" --status "Spec Needed" 2>/dev/null |
+        awk '!f && $1 ~ /-[0-9]+$/ {print $1; f = 1}') || first=""
+      if [ -n "$first" ]; then model_route "$REPO" spec --record "$first"; else model_route "$REPO" spec app; fi ;;
+    verdict) model_route "$REPO" verdict app ;;
+    *) model_route "$REPO" build app ;;
+  esac
+}
 if [ "$DRY_RUN" = 1 ]; then
   [ ${#SPECS[@]} -gt 0 ] || { echo "herdr-goals --dry-run: name --track, --build or --settle" >&2; exit 2; }
   for i in "${!SPECS[@]}"; do
     echo "would open ${SPECS[$i]%%:*} (boot ${BOOTS[$i]:-none}) in ${REPO}"
+    tab_route "${SPECS[$i]%%:*}" "${BOOTS[$i]:-}"
+    echo "  launch: claude --model ${ROUTE_MODEL} --effort ${ROUTE_EFFORT}"
     case "${BOOTS[$i]:-}" in "/build track "*)
       waiting=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null | jq -r '.waiting[]?.id' 2>/dev/null || true)
       python3 "${REPO}/tools/features_index.py" --list --track "${BOOTS[$i]#/build track }" --status "Ready To Build" 2>/dev/null |
@@ -202,7 +227,7 @@ fi
 # a named SPEC still opens. `rm` it to let the lanes fill again.
 CHAIN_PAUSE="${HERDR_CHAIN_PAUSE:-$HOME/.config/herdr/chain-paused}"
 if [ ${#SPECS[@]} -eq 0 ] && [ -e "$CHAIN_PAUSE" ]; then
-  echo "herdr-goals: chain paused ($CHAIN_PAUSE) — no tab opened; name one: herdr-goals <label>:opus::<worktree>" >&2
+  echo "herdr-goals: chain paused ($CHAIN_PAUSE) — no tab opened; name one: herdr-goals <label>::<worktree>" >&2
   exit 0
 fi
 if [ ${#SPECS[@]} -eq 0 ]; then
@@ -223,20 +248,20 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   while IFS=$'\t' read -r id slug; do
     [ -n "$id" ] && [ -n "$slug" ] || continue
     label=$(id_slug "$id")
-    SPECS+=("${label}:opus::${slug}")
+    SPECS+=("${label}:::${slug}")
     BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
   done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
   while IFS=$'\t' read -r id title; do
     [ -n "$id" ] || continue
     label=$(id_slug "$id")
-    SPECS+=("${label}:opus")
+    SPECS+=("${label}")
     BOOTS+=("${RUN} ${id}")
   done < <(jq -r '.next[]? | [.id, .title] | @tsv' <<<"$focus_json")
   # FS-262 D3: the verdict lane opens only while unjudged agent rows wait and
   # its one seat is free; an empty queue opens none.
   if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
-    SPECS+=("verdict:sonnet")
+    SPECS+=("verdict")
     BOOTS+=("/verdict auto")
   fi
   [ ${#SPECS[@]} -gt 0 ] || echo "herdr-goals: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
@@ -367,10 +392,10 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
       pick)   resume_args=" --resume" ;;
       *)      resume_args=" --resume ${resume}" ;;
     esac
-    # FS-100 (Eddy, 2026-09-25), amended 2026-10-24: a grill decides at high, never
-    # max unless Eddy asks ("I don't want to use Max effort ... it's token eating");
-    # builds and the verdict lane build at medium.
-    case "$label" in grill|settle-*) effort=high ;; *) effort=medium ;; esac
+    # BS-IOS-FEAT-597: the routing table names the pair (max never, unless Eddy
+    # asks); a model named in the SPEC still wins over the table's.
+    tab_route "$label" "$boot"
+    model="${model:-$ROUTE_MODEL}"; effort="$ROUTE_EFFORT"
     launch="claude --model ${model} --effort ${effort} ${mode_flag}${resume_args}${boot:+ \"${boot}\"}"
   elif [ "$session_agent" = "codex" ]; then
     case "${resume:-}" in

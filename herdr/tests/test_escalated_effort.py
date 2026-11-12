@@ -1,6 +1,7 @@
 """A record the graph marks escalated opens its build tab at high, with its own
 boot (BibleStandard BS-IOS-TASK-1140); every other build stays at medium."""
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
+ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 GOAL_DONE = pathlib.Path(__file__).resolve().parents[1] / "goal_done.sh"
 
@@ -16,7 +17,7 @@ def dry_fill(rows: list[dict]) -> str:
         else: print(0)
     """))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
-    env = {**os.environ, "HERDR_TAB_ID": "t", "HERDR_GOAL_DONE_AGENT": "claude",
+    env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "HERDR_TAB_ID": "t", "HERDR_GOAL_DONE_AGENT": "claude",
            "HERDR_CHAIN_PAUSE": str(repo / "absent")}
     done = subprocess.run(["bash", str(GOAL_DONE), "--fill", str(repo), "--dry-run"],
                           env=env, capture_output=True, text=True)

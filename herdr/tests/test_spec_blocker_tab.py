@@ -1,6 +1,7 @@
 """A stopped chain that only a /spec can restart opens that /spec as a tab
 (Eddy, 2026-11-09: "If spec is needed tell me ... it just stopped")."""
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
+ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 
 GOAL_DONE = pathlib.Path(__file__).resolve().parents[1] / "goal_done.sh"
 
@@ -29,6 +30,9 @@ class Repo:
                 print({json.dumps(json.dumps(graph))})
         """))
         (self.root / "tools" / "session_worktree.py").write_text("import sys; sys.exit(0)\n")
+        # BS-IOS-FEAT-597: the routing table's spec pair for an app-kind record.
+        (self.root / "tools" / "model_routes.py").write_text(
+            "import sys; print('opus xhigh' if sys.argv[1] == 'spec' else 'opus medium')\n")
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         bin_dir = self.root / "bin"
         bin_dir.mkdir()
@@ -36,7 +40,7 @@ class Repo:
         (bin_dir / "herdr").chmod(0o755)
         self.calls = self.root / "calls"
         self.calls.touch()
-        self.env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "HERDR_TAB_ID": "t",
+        self.env = {**os.environ, "HERDR_ROUTES_REPO": str(ROUTES), "PATH": f"{bin_dir}:{os.environ['PATH']}", "HERDR_TAB_ID": "t",
                     "HERDR_GOAL_DONE_AGENT": "claude", "HERDR_CHAIN_PAUSE": str(self.root / "absent"),
                     "HERDR_CHAIN_LOG": str(self.root / "state" / "chain.log"), "HERDR_CHAIN_NOTIFY": "0",
                     "HERDR_FILL_RETRY_SECS": "0", "HERDR_CALLS": str(self.calls)}
@@ -54,13 +58,13 @@ class Repo:
 
 
 class SpecBlockerTab(unittest.TestCase):
-    def test_a_spec_needed_blocker_opens_its_spec_tab_at_high(self):
+    def test_a_spec_needed_blocker_opens_its_spec_tab_at_the_tables_pair(self):
         repo = Repo({"BS-IOS-TASK-1": "Spec Needed — does it stay?"}, ["BS-IOS-TASK-1"])
         out = repo.fill()
         self.assertEqual(len(repo.tabs()), 1, out)
         self.assertIn("spec-bs-ios-task-1", repo.tabs()[0])
         self.assertIn("/spec BS-IOS-TASK-1", repo.runs()[0])
-        self.assertIn("--effort high", repo.runs()[0])
+        self.assertIn("--model opus --effort xhigh", repo.runs()[0])
 
     def test_the_next_fill_does_not_open_a_second_tab(self):
         repo = Repo({"BS-IOS-TASK-1": "Spec Needed"}, ["BS-IOS-TASK-1"])
