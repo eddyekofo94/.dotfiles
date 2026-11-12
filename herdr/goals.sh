@@ -255,7 +255,7 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   focus_json=$(python3 "${REPO}/tools/features_index.py" --focus --json 2>/dev/null) || focus_json="{}"
   # Eddy, 2026-10-24 ("these other tabs have to wait till we split these files"):
   # a focus track marked `- Exclusive: yes` in FOCUS.md opens only its own records.
-  exclusive=$(awk '/^### /{name=substr($0,5); f=0} /^- State: focus/{f=1} f && /^- Exclusive: yes/{print name; exit}' "${REPO}/project/workflow/FOCUS.md" 2>/dev/null)
+  exclusive=$(awk '/^### /{name=substr($0,5); f=0} /^- State: focus/{f=1} f && /^- Exclusive: yes/{print name; exit}' "${REPO}/project/workflow/FOCUS.md" 2>/dev/null || true)
   if [ -n "$exclusive" ]; then
     focus_json=$(jq -c --arg ex "$exclusive" '.next |= map(select(.track == $ex)) | .resume |= map(select(.track == $ex))' <<<"$focus_json" 2>/dev/null) || focus_json="{}"
   fi
