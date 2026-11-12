@@ -344,8 +344,8 @@ if sys.argv[1:3] == ['tab', 'create']:
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([label for label, _ in tabs],
                          ["▸ fs101", "▸ fs102", "▸ fs103", "▸ fs104", "▸ verdict-drain"])
-        self.assertEqual(tabs[-1][1], 'claude --model opus --effort medium '
-                                      '--permission-mode auto "/verdict auto"')
+        self.assertEqual(tabs[-1][1], 'claude --model sonnet --effort medium '
+                                      '--permission-mode bypassPermissions "/verdict auto"')
         self.assertTrue(all("--effort medium" in launch for _, launch in tabs))
         self.assertFalse(any("grill" in launch or "/spec" in launch or "/todo" in launch or "plan" in launch
                              for _, launch in tabs))
@@ -393,6 +393,8 @@ if sys.argv[1:3] == ['tab', 'create']:
         goals = self.root / "herdr/goals.sh"
         goals.write_text((SCRIPT.parents[1] / "herdr/goals.sh").read_text())
         goals.chmod(0o755)
+        (self.root / "herdr/model_route.sh").write_text(
+            (SCRIPT.parents[1] / "herdr/model_route.sh").read_text())
         bin_dir = self.root / "test-bin"
         bin_dir.mkdir()
         calls = self.root.parent / "agent-routing-calls.jsonl"
