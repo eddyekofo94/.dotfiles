@@ -195,7 +195,7 @@ path = "/Users/eddyekofo/.agent-skills/diagnosing-bugs/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/doctor/SKILL.md"
+path = "/Users/eddyekofo/.agent-skills/mac-doctor/SKILL.md"
 enabled = false
 
 [[skills.config]]
