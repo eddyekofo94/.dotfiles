@@ -49,8 +49,10 @@ loop, enforcement rules, and project loop bootstrap. Do not restate it here.
   result is a short report; the session that owns the job still plans, edits and decides.
 - Never two agents or tabs on one file. A subagent never closes the tab, lands or asks Eddy.
 - Review of a build diff is a fresh subagent; a `/review <ID>` tab runs when Eddy asks.
-- The model is the tab's, set when it opens, never switched: `/build` Opus `medium`, `/spec` Opus
-  `high` (`max` only when Eddy asks), review subagents Opus `high`, everything else Sonnet.
+- The model is the tab's, set when it opens, never switched. A project's model routes file (its
+  `AGENTS.md` names it) sets each verb's model and effort and wins over these defaults: `/build`
+  Opus `medium`, `/spec` Opus `high` (`max` only when Eddy asks), review subagents Opus `high`,
+  everything else Sonnet.
 
 ## 4. Own the bug
 
