@@ -1,5 +1,7 @@
 """Master plan 1d (M3, BS-IOS-TASK-1709): the fills open the work graph's batch by its
 verb — `/build batch <lane>` or `/spec batch <lane>` — and a lone record as `/build <ID>`."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 
 HERE = pathlib.Path(__file__).resolve().parents[1]

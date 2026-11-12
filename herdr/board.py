@@ -5,7 +5,8 @@
     herdr-board --json          the same, as one JSON object
     herdr-board --gate          exit 0 when the machine may take a new tab, 3 (with why) when not
     herdr-board --deps [--json] each held record, what it waits on, and whether it may open
-    herdr-board --wake NAME     on a `notify_when_idle` notice: `decide` (exit 0) or `quiet` (exit 1)
+    herdr-board --wake NAME     on a `notify_when_idle` notice: `decide` (exit 0), `quiet` (exit 1)
+                                or `landed` (exit 2: run herdr-open-next)
 
 Tabs come from every herdr server (`herdr tab list` / `pane list`), joined by agent
 session to the status files `agent_state.py` writes under `~/.local/state/agents/`.
@@ -30,7 +31,9 @@ name. On the notice, the newest status file for NAME says whether there is a dec
 
   decide   BLOCKED, AWAITING USER APPROVAL, PARTIAL, or a blocked prompt: once per turn
            (`STATE_DIR/wakes/NAME` remembers the turn already escalated)
-  quiet    DONE (landed: the tab closes itself), WAITING (its own job re-invokes it),
+  landed   DONE with tabs the fill queued for the master (B6): run herdr-open-next,
+           then subscribe to each name it prints
+  quiet    DONE with nothing queued, WAITING (its own job re-invokes it),
            a turn already escalated, or no status file. Never re-subscribe to it now:
            an idle tab answers a new subscription at once.
 
@@ -278,6 +281,15 @@ def print_deps(rows: list[dict]) -> None:
 DECIDE = {"BLOCKED", "AWAITING USER APPROVAL", "PARTIAL"}
 
 
+def queued_next() -> list[str]:
+    """Boot lines goal_done.sh queued for the master (`next.tsv`: from, cwd, label, boot, launch)."""
+    try:
+        rows = (STATE_DIR / "next.tsv").read_text().splitlines()
+    except OSError:
+        return []
+    return [r.split("\t")[3] for r in rows if r.count("\t") >= 4]
+
+
 def wake(name: str) -> tuple[bool, str]:
     mine = [e for e in status_files().values() if e.get("name") == name]
     if not mine:
@@ -285,7 +297,11 @@ def wake(name: str) -> tuple[bool, str]:
     entry = max(mine, key=lambda e: e.get("updated", 0))
     status, state = entry.get("status", ""), entry.get("state", "")
     if status == "DONE":
-        return False, f"quiet: {name} landed (DONE)"
+        # Master plan B6: a live master opens what the fill queued, then subscribes.
+        queued = queued_next()
+        if queued:
+            return True, f"landed: {name}; next {', '.join(queued)} (run herdr-open-next)"
+        return False, f"quiet: {name} landed (DONE); nothing queued"
     if status == "WAITING":
         return False, f"quiet: {name} is waiting on its own job"
     if status not in DECIDE and state != "blocked":
@@ -314,7 +330,7 @@ def main() -> int:
     if args.wake:
         decide, line = wake(args.wake)
         print(line)
-        return 0 if decide else 1
+        return 2 if line.startswith("landed:") else 0 if decide else 1
     if args.gate:
         m = machine()
         print(json.dumps(m) if args.json else ("may open" if m["may_open"] else f"hold: {m['why']}"))

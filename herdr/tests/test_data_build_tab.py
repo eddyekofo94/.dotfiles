@@ -1,6 +1,8 @@
 """`herdr-goals --build` opens a data record's tab in the data checkout (BibleStandard
 BS-IOS-FEAT-1365; Eddy, 2026-11-04: "we can always spin a tab with that userstory from the
 data repo, land it and then update here")."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import os, pathlib, subprocess, tempfile, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 

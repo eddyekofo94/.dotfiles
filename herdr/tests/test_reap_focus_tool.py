@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """herdr-reap and herdr-goal-done read a repo's records.py where it has no features_index.py
 (BibleStandard BS-DATA-TASK-84: the data checkout builds one record at a time)."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import importlib.machinery
 import importlib.util
 import subprocess

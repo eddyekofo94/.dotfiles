@@ -306,6 +306,16 @@ and the verdict and spec flow.
   session when no master sits. Closing the landed tab stays in its own session.
   Proof: `test_fill_session.py`, a fill run from a worker session opens its tab in the
   master's session; with no master it opens in its own.
+- [x] B6. One dispatcher (Eddy's yes 2026-11-12): with a master live, `goal_done.sh`
+  open_tab queues the tab in `$AGENT_STATE_DIR/next.tsv` (from, cwd, label, boot,
+  launch) and opens nothing; `herdr-board --wake` answers `landed: NAME; next …`
+  (exit 2) for DONE with a queue; the master runs `herdr-open-next` (`herdr/open_next.sh`,
+  linked in ~/.local/bin), which opens each queued label once in its own session and
+  prints the names to subscribe. No master live: the fill opens as before.
+  Proof: `test_fill_session.py` (queues, opens nothing; open_next opens a doubled queue
+  once in the master's session), `test_master_wake.py` (landed vs quiet). Every test
+  that runs a fill points `HERDR_SESSIONS_DIR` at an empty folder, so a live master
+  never turns a test into a queue write.
 - Then: herdr suite + agent_state test, commit path-limited.
 
 ### Stage 2: stop doing what agents now do (§5)

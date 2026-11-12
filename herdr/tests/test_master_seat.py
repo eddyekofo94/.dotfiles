@@ -1,6 +1,8 @@
 """Master plan 1c (M1): `ensure_master.sh` seats the master in tab 1 of the session Eddy
 starts in (`main` or `window-N`), `--here` seats a tab where `/master` was typed, and
 `herdr-goal-done` never retires the master's seat."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 
 HERE = pathlib.Path(__file__).resolve().parents[1]

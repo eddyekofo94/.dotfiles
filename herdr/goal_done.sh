@@ -121,11 +121,12 @@ if [ -f "$route_helper" ]; then . "$route_helper"; else
   echo "herdr: no ${route_helper} — opening sonnet medium (BS-IOS-FEAT-597)" >&2
 fi
 
-# Master plan B5: new tabs open in the session that seats the master, so Eddy sees
-# them; with no master live they open in the caller's own session. `hm` is herdr
+# Master plan B5/B6: with a master live, new tabs are queued for it (open_tab); with
+# none they open in the caller's own session. `hm` is herdr
 # aimed there; closing or reading the caller's own tab stays plain `herdr`.
 MASTER_SOCK=$("$(dirname "$(readlink -f "$0")")/master_socket.sh" 2>/dev/null || true)
 hm() { if [ -n "$MASTER_SOCK" ]; then HERDR_SOCKET_PATH="$MASTER_SOCK" herdr "$@"; else herdr "$@"; fi; }
+NEXT_QUEUE="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
 
 # The session's `--name`: its tab label, or `<repo>-<lane>` (`ios-home`) for a
 # `/build batch <lane>` tab, which is labelled for its head record's worktree.
@@ -153,9 +154,21 @@ open_tab() {  # cwd label boot model mode [effort]
   else
     launch="pi \"${boot}\""
   fi
+  # Master plan B6: a live master is the one dispatcher. The fill queues the tab in
+  # NEXT_QUEUE; the landing tab's exit wakes the master (`herdr-board --wake` says
+  # `landed`), which opens it with `herdr-open-next` and subscribes to it.
+  if [ -n "$MASTER_SOCK" ]; then
+    if [ "$DRY" = 1 ]; then
+      echo "would queue for the master ($(basename "$(dirname "$MASTER_SOCK")")): ▸ $tab_label — ${boot}"
+      return 0
+    fi
+    mkdir -p "$(dirname "$NEXT_QUEUE")"
+    printf '%s\t%s\t%s\t%s\t%s\n' "${AGENT_NAME:-$(basename "$PWD")}" "$tab_cwd" "▸ $tab_label" "$boot" "$launch" >> "$NEXT_QUEUE"
+    echo "goal-done: queued ${boot} for the master (herdr-open-next) — ${tab_cwd}"
+    return 0
+  fi
   if [ "$DRY" = 1 ]; then
-    where=""; [ -z "$MASTER_SOCK" ] || where=" (in the master session $(basename "$(dirname "$MASTER_SOCK")"))"
-    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus${where}"
+    echo "would run: herdr tab create --cwd $tab_cwd --label \"▸ $tab_label\" --no-focus"
     echo "would run: herdr pane run <new> ${launch}"
     return 0
   fi

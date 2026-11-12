@@ -1,6 +1,8 @@
 """Both openers launch at the routing table's model and effort (BibleStandard
 BS-IOS-FEAT-597, `tools/model_routes.py` from BS-IOS-FEAT-596); a table that
 cannot answer opens Sonnet medium with one line, never Opus."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 
 HERDR = pathlib.Path(__file__).resolve().parents[1]

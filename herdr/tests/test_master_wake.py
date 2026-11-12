@@ -1,6 +1,7 @@
 """Master plan 1e (orders 2026-11-12): a `notify_when_idle` notice wakes the master for
 a decision only. `herdr-board --wake NAME` says `decide` once per turn for BLOCKED,
-AWAITING or PARTIAL, and `quiet` for a landed (DONE) tab or one already escalated."""
+AWAITING or PARTIAL, `landed` (exit 2) for a DONE tab whose fill queued tabs for the
+master (B6), and `quiet` for a DONE tab with nothing queued or one already escalated."""
 import json, os, pathlib, subprocess, sys, tempfile, unittest
 
 HERE = pathlib.Path(__file__).resolve().parents[1]
@@ -35,9 +36,16 @@ class Wake(unittest.TestCase):
         self.write("s3", "verdict", "AWAITING USER APPROVAL")
         self.assertEqual(self.wake("verdict")[0], 0)
 
-    def test_a_landed_tab_does_not_wake_the_master(self):
+    def test_a_landed_tab_with_nothing_queued_stays_quiet(self):
         self.write("s4", "bs-ios-feat-9", "DONE")
-        self.assertEqual(self.wake("bs-ios-feat-9"), (1, "quiet: bs-ios-feat-9 landed (DONE)"))
+        self.assertEqual(self.wake("bs-ios-feat-9"), (1, "quiet: bs-ios-feat-9 landed (DONE); nothing queued"))
+
+    def test_a_landed_tab_names_what_the_fill_queued(self):  # B6
+        self.write("s6", "bs-ios-feat-387", "DONE")
+        (self.state / "next.tsv").write_text(
+            "bs-ios-feat-387\t/w/342\t▸ bs-ios-feat-342\t/build BS-IOS-FEAT-342\tenv AGENT_NAME=x claude --name x\n")
+        self.assertEqual(self.wake("bs-ios-feat-387"),
+                         (2, "landed: bs-ios-feat-387; next /build BS-IOS-FEAT-342 (run herdr-open-next)"))
 
     def test_waiting_unknown_and_the_newest_file_rule(self):
         self.write("s5", "spec-batch-home", "WAITING")

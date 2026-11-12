@@ -1,5 +1,7 @@
 """A stopped chain that only a /spec can restart opens that /spec as a tab
 (Eddy, 2026-11-09: "If spec is needed tell me ... it just stopped")."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 

@@ -1,5 +1,7 @@
 """A record the graph marks escalated opens its build tab at high, with its own
 boot (BibleStandard BS-IOS-TASK-1140); every other build stays at medium."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 

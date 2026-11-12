@@ -1,6 +1,8 @@
 """The fill writes why each ready record did not open to chain.log, and when
 none opened on a free lane it tries once more (BibleStandard BS-IOS-TASK-1428:
 BS-IOS-BUG-1396 did not open when BS-IOS-TASK-1356 closed, and nothing said why)."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import json, os, pathlib, subprocess, tempfile, textwrap, unittest
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "tests/fixtures/routes"  # BS-IOS-FEAT-597: never the real iOS table
 

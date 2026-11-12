@@ -1,6 +1,8 @@
 """`/focus` opens the settling tab itself (Eddy, 2026-11-03: "when /focus is
 called we should run already settled and seek to settle anything on that
 track that's not ready to build")."""
+import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
+_os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-")
 import os, pathlib, subprocess, unittest
 
 HERDR = pathlib.Path(__file__).resolve().parents[1]
