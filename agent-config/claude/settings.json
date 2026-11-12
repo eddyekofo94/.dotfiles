@@ -47,8 +47,8 @@
   "skillOverrides": {
     "animate": "user-invocable-only",
     "animation-vocabulary": "user-invocable-only",
-    "apple-design": "user-invocable-only",
-    "apple-hig": "user-invocable-only",
+    "apple-design": "on",
+    "apple-hig": "on",
     "ask-eddy": "user-invocable-only",
     "client-site-revamp": "user-invocable-only",
     "code-review": "user-invocable-only",
