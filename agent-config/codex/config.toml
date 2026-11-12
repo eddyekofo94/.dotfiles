@@ -179,10 +179,6 @@ path = "/Users/eddyekofo/.agent-skills/apple-hig/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/ask-eddy/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/client-site-revamp/SKILL.md"
 enabled = false
 
@@ -252,14 +248,6 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eddyekofo/.agent-skills/prototype/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/quiz-me/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/eddyekofo/.agent-skills/clean-tests/SKILL.md"
 enabled = false
 
 [[skills.config]]
