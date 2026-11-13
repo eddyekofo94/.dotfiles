@@ -402,10 +402,8 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
     fi
   fi
 
-  # A record's tab reads its id, lower case (`bs-ios-feat-1702`, `fs094`), the
-  # way `goal_done.sh --name` spells it; the worktree keeps its slug
-  # (BS-IOS-TASK-1763 C8, C15). Anything else (`ios-home`, `verdict-resume`)
-  # is named for the checkout it got.
+  # A record's tab reads its id as `goal_done.sh --name` spells it; anything
+  # else (`ios-home`) is named for the checkout. The worktree keeps its slug.
   if [ "$home" = "shared" ]; then
     tab_label="$label"
   elif printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | grep -Eq '^((bs-)?[a-z]+-(feat|bug|task)-[0-9]+|(fs|bug)-?[0-9]{3,})$'; then

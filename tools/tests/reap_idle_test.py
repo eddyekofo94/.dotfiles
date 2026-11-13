@@ -69,6 +69,20 @@ class Labels(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(reap_idle.build_record(tab(label=label, cwd="")), "")
 
+    def test_a_slug_ending_in_a_phase_word_is_still_a_build(self):
+        self.assertEqual(reap_idle.label_phase("▸ bs-ios-feat-1328-library-lab"), "")
+        self.assertEqual(reap_idle.build_record(tab(label="▸ fs094-offers-review", cwd="")), "FS-094")
+
+    def test_another_records_memory_is_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"XDG_CACHE_HOME": tmp}):
+            plan = Path(tmp) / "plan.md"
+            plan.write_text("- Round: passed 2026-11-13\n", encoding="utf-8")
+            memory = Path(tmp) / "herdr-tab-goals" / "window-1-w1-t1.json"
+            memory.parent.mkdir()
+            memory.write_text(json.dumps({"goal": "BS-IOS-TASK-9", "phase": "lab", "plan": str(plan)}))
+            self.assertIsNone(reap_idle.lab_open("/x/window-1/s", "w1:t1", "bs-ios-task-1328"))
+            self.assertIs(reap_idle.lab_open("/x/window-1/s", "w1:t1", "bs-ios-task-9"), False)
+
     def test_a_review_tab_gets_no_build_continue(self):
         text = reap_idle.continue_text(tab(label="▸ bs-ios-feat-1715-review", cwd="", prompt="carry on"))
         self.assertNotIn("/build", text)

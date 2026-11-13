@@ -78,10 +78,9 @@ PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
 #: `bs-ios-feat-537` whole (BibleStandard IOS-FEAT-537), never its `ios-feat-537` tail,
 #: and a phase word in front (`qa-ios-feat-515`) is never part of the id.
 RECORD = re.compile(r"\b((?:bs-)?[a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
-#: A label's suffix after the record (BS-IOS-TASK-1763): `bs-ios-task-1328-lab-r4` is
-#: phase `lab`, round 4; a bare record is a build. Only known phases, so a legacy
-#: slug label (`bug230-gap`) still reads as a build.
-SUFFIX = re.compile(r"-(spec|grill|plan|build|lab|qa|review|todo)(?:-r(\d+))?$")
+#: `<record>[-<phase>[-r<round>]]`, whole; a slug label (`fs094-offers-review`) is no match.
+LABEL = re.compile(r"((?:bs-)?[a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})"
+                   r"(?:-(spec|grill|plan|build|lab|qa|review|todo)(?:-r(\d+))?)?", re.I)
 #: Eddy's pass on a lab round (`tools/worktree_round.py` `PASSED` in the iOS repo).
 ROUND_PASSED = re.compile(r"^- Round: passed \d{4}-\d{2}-\d{2}", re.M)
 POSITION = re.compile(r"^\d+\s+")
@@ -149,16 +148,14 @@ def label_name(label: str) -> str:
 
 
 def label_phase(label: str) -> str:
-    """The phase a record label carries after the record (`bs-ios-feat-1715-review` -> review), or ''."""
-    name = label_name(label)
-    match = SUFFIX.search(name)
-    return match.group(1) if match and RECORD.match(name) else ""
+    """The phase after the record (`bs-ios-feat-1715-review` -> review), or ''."""
+    match = LABEL.fullmatch(label_name(label))
+    return (match.group(2) or "") if match else ""
 
 
 def build_record(tab: Tab) -> str:
-    """The record a build tab works (`▸ fs200` -> FS-200); '' for any other phase
-    (`-spec`, `-lab-r4`, `-review`; C7) and for the legacy `grill-`, `spec-` and
-    `verdict` tabs opened before BS-IOS-TASK-1763 (C16)."""
+    """The record a build tab works (`▸ fs200` -> FS-200); '' for any other phase,
+    and for the legacy `grill-`, `spec-` and `verdict` tabs."""
     name = label_name(tab.label)
     if "grill" in name or "verdict" in name or name.startswith("spec-"):
         return ""
@@ -371,15 +368,16 @@ def unlanded(cwd: str, session: str) -> list[str]:
     return problems
 
 
-def lab_open(sock: str, tab_id: str) -> bool | None:
-    """Whether a lab tab's round is still open, read through the tab memory
-    `repo_lock.py name --phase lab` writes (`repo_lock._tab_key`'s spelling;
-    C6, C13): False once its plan or the `decisions.md` beside it carries Eddy's
-    `- Round: passed <date>`, None when there is no memory or no plan."""
+def lab_open(sock: str, tab_id: str, record: str = "") -> bool | None:
+    """False once the lab plan in this tab's memory (or its `decisions.md`) is passed; None
+    when unknown. The key is `repo_lock._tab_key`'s spelling."""
     cache = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "herdr-tab-goals"
     key = re.sub(r"[^A-Za-z0-9_.-]+", "-", f"{Path(sock).parent.name}-{tab_id}".strip("-"))
     try:
-        plan = Path(json.loads((cache / f"{key}.json").read_text(encoding="utf-8")).get("plan") or "")
+        memory = json.loads((cache / f"{key}.json").read_text(encoding="utf-8"))
+        if record and str(memory.get("goal") or "").lower().replace("-", "") != record.lower().replace("-", ""):
+            return None  # a reused tab id's stale memory: not this lab's
+        plan = Path(memory.get("plan") or "")
         text = plan.read_text(encoding="utf-8") if str(plan) not in ("", ".") else None
     except (OSError, ValueError, AttributeError):
         return None
@@ -418,7 +416,7 @@ def gather(sock: str, only: str | None) -> list[Tab]:
         if tab.cwd and tab.closeout in CLOSING_STATUSES:
             tab.unlanded = unlanded(tab.cwd, tab.session)
         if label_phase(tab.label) == "lab":
-            tab.lab_open = lab_open(sock, tab.tab_id)
+            tab.lab_open = lab_open(sock, tab.tab_id, LABEL.fullmatch(label_name(tab.label)).group(1))
         tabs.append(tab)
     return tabs
 
