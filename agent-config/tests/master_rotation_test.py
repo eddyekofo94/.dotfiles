@@ -16,7 +16,7 @@ class RotationTest(unittest.TestCase):
                         '[ "$2" = create ] && echo \'{"result":{"root_pane":{"pane_id":"w1:p9"}}}\'\nexit 0\n')
         fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
         self.env = dict(os.environ, MASTER_DIR=str(self.dir / "master"), HERDR_BIN_PATH=str(fake),
-                        HERDR_TAB_ID="w1:t1", CLAUDE_SESSION_ID="s1", AGENT_ROLE="master")
+                        HERDR_TAB_ID="w1:t1", AGENT_ROLE="master")
         (self.dir / "master").mkdir()
 
     def run_mode(self, mode, payload=None, env=None, *args):
@@ -42,27 +42,29 @@ class RotationTest(unittest.TestCase):
     def test_resume_only_when_armed(self):
         self.assertEqual(self.run_mode("resume", {"session_id": "s1"})[1], "")
         self.compact(8)
-        self.assertIn("ROTATE", self.run_mode("resume", {"session_id": "s1"})[1])
+        out = self.run_mode("resume", {"session_id": "s1"})[1]
+        self.assertIn("ROTATE", out)
+        self.assertIn("rotate --session s1", out)
 
     def test_rotate_refuses_unarmed_and_stale_handoff(self):
-        self.assertEqual(self.run_mode("rotate")[0], 2)
+        self.assertEqual(self.run_mode("rotate", None, None, "--session", "s1")[0], 2)
         self.compact(8)
         handoff = self.dir / "master" / "handoff.md"
         handoff.write_text("old")
         os.utime(handoff, (time.time() - 100, time.time() - 100))
-        self.assertEqual(self.run_mode("rotate")[0], 3)
+        self.assertEqual(self.run_mode("rotate", None, None, "--session", "s1")[0], 3)
         self.assertFalse(self.log.exists())
 
     def test_rotate_makes_three_calls_in_order(self):
         self.compact(8)
         (self.dir / "master" / "handoff.md").write_text("fresh")
-        code, out, _ = self.run_mode("rotate")
+        code, out, _ = self.run_mode("rotate", None, None, "--session", "s1")
         self.assertEqual(code, 0, out)
         calls = self.log.read_text().splitlines()
         self.assertTrue(calls[0].startswith("tab rename w1:t1 master-prev"))
         self.assertIn("tab create", calls[1])
         self.assertTrue(calls[2].startswith("pane run w1:p9 env AGENT_ROLE=master"))
-        self.assertEqual(self.run_mode("rotate")[0], 2)  # armed file consumed: no second rotation
+        self.assertEqual(self.run_mode("rotate", None, None, "--session", "s1")[0], 2)  # armed file consumed: no second rotation
 
 
 if __name__ == "__main__":

@@ -57,7 +57,8 @@ def resume(payload: dict) -> str:
     if not armed.exists():
         return ""
     return (f"ROTATE: this master has compacted {ROTATE_AT}+ times. Now: rewrite {HANDOFF} (current state only; "
-            f"the journal keeps the log), run `python3 -I {SELF} rotate`, then stop. "
+            f"the journal keeps the log), run `python3 -I {SELF} rotate --session {payload.get('session_id', '')}`, "
+            "then stop. "
             "A fresh master reads both. Do not start new work in this tab.")
 
 
@@ -94,7 +95,10 @@ def rotate(session: str, dry: bool) -> int:
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "rotate":
-        return rotate(os.environ.get("CLAUDE_SESSION_ID", ""), "--dry-run" in sys.argv)
+        # CLAUDE_SESSION_ID is not in a Bash tool's environment: the resume hook passes --session.
+        args = sys.argv[2:]
+        session = args[args.index("--session") + 1] if "--session" in args[:-1] else os.environ.get("CLAUDE_SESSION_ID", "")
+        return rotate(session, "--dry-run" in args)
     try:
         payload = json.load(sys.stdin)
         text = {"count": count, "resume": resume}.get(mode, lambda p: "")(payload)
