@@ -8,8 +8,55 @@
 #
 #   open-next            open every queued tab; prints `opened NAME — BOOT`
 #   open-next --dry-run  list them, open nothing, keep the queue
+#   open-next --drop LABEL [--dry-run]
+#                        drop LABEL's rows and ask its repository to remove the
+#                        checkout (`tools/session_worktree.py remove`, which keeps
+#                        unlanded or dirty work); prints `dropped LABEL`, and
+#                        `kept LABEL — WHY` when the remove refuses
 set -euo pipefail
 queue="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
+# BS-IOS-TASK-1754: the master says "not this lane now" with one command.
+if [ "${1:-}" = "--drop" ]; then
+  shift
+  drop_dry=0; drop=""; extra=0
+  for arg in "$@"; do
+    case "$arg" in
+      --dry-run) drop_dry=1 ;;
+      *) if [ -z "$drop" ]; then drop="$arg"; else extra=1; fi ;;
+    esac
+  done
+  if [ -z "$drop" ] || [ "$extra" = 1 ]; then
+    echo "usage: open-next --drop LABEL [--dry-run]" >&2; exit 2
+  fi
+  drop="${drop#▸ }"
+  [ -s "$queue" ] || { echo "nothing queued for ${drop}"; exit 0; }
+  # awk with a one-character FS keeps empty fields, unlike bash IFS.
+  if ! awk -F'\t' -v l="$drop" \
+       '$3 == l || $3 == "▸ " l { found = 1 } END { exit !found }' "$queue"; then
+    echo "nothing queued for ${drop}"; exit 0
+  fi
+  if [ "$drop_dry" = 1 ]; then echo "would drop ${drop}"; exit 0; fi
+  work="${queue}.$$"
+  mv "$queue" "$work"
+  # Kept rows go back by append, never overwrite, so a fill landing meanwhile stays.
+  awk -F'\t' -v l="$drop" '!($3 == l || $3 == "▸ " l)' "$work" >> "$queue"
+  awk -F'\t' -v l="$drop" '$3 == l || $3 == "▸ " l { print $2 }' "$work" | sort -u |
+  while IFS= read -r cwd; do
+    [ -n "$cwd" ] && [ -d "$cwd" ] || continue
+    # Only a linked worktree is a checkout to remove; a shared tree stays.
+    gitdir=$(git -C "$cwd" rev-parse --path-format=absolute --git-dir 2>/dev/null) || continue
+    common=$(git -C "$cwd" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
+    [ "$gitdir" != "$common" ] || continue
+    root=$(dirname "$common")
+    [ -f "$root/tools/session_worktree.py" ] || { echo "kept ${drop} — ${root} has no tools/session_worktree.py"; continue; }
+    if ! why=$(cd "$root" && python3 tools/session_worktree.py remove "$(basename "$cwd")" 2>&1); then
+      echo "kept ${drop} — $(printf '%s' "$why" | tail -1)"
+    fi
+  done
+  rm -f "$work"
+  echo "dropped ${drop}"
+  exit 0
+fi
 dry=0; [ "${1:-}" = "--dry-run" ] && dry=1
 [ -s "$queue" ] || { echo "nothing queued"; exit 0; }
 if [ "$dry" = 1 ]; then

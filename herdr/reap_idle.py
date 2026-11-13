@@ -490,7 +490,7 @@ def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
         if reason in printed:
             return reason
     # A verdict tab skips goal-done's nothing-Ready line; no refusal means none was ranked.
-    if "goal-done: opened" in printed or "goal-done: queued" in printed:
+    if any(f"goal-done: {word}" in printed for word in ("opened", "queued", "already queued")):
         return "nothing Ready"
     return f"goal-done gave no reason (exit {done.returncode})"
 
@@ -561,7 +561,10 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
         if any(line.startswith("goal-done: queued") for line in lines):
             wake_master()
     # A verdict or /spec tab leaves the build lane empty, so only a build open clears the reason.
-    if any(line.startswith(("goal-done: opened /build", "goal-done: queued /build")) for line in lines):
+    # BS-IOS-TASK-1754: a tab the queue already holds is still this lane's open; it
+    # needs no log line or wake (the first queue did both), only the reason kept.
+    if any(line.startswith(("goal-done: opened /build", "goal-done: queued /build",
+                            "goal-done: already queued /build")) for line in lines):
         say_once(repo, "opened")
     elif free <= 0:
         say_once(repo, "full")

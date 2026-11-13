@@ -49,6 +49,7 @@ python3 "$herdr_dir/tests/test_reap_fill_wake.py" -v
 python3 "$herdr_dir/tests/test_master_wake.py" -v
 python3 "$herdr_dir/tests/test_wake_master.py" -v
 python3 "$herdr_dir/tests/test_fill_session.py" -v
+python3 "$herdr_dir/tests/test_queue_dedupe.py" -v
 # The switch above only isolates the gate if install.sh actually honours it.
 rg -q 'HERDR_INSTALL_TAB_STATUS:-1' "$herdr_dir/install.sh"
 rg -q 'install_tab_status\.sh' "$herdr_dir/install.sh"
