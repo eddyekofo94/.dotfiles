@@ -98,6 +98,17 @@ class FillSession(unittest.TestCase):
         self.assertFalse(any("swept-checkout" in c for c in creates), creates)
         self.assertFalse((self.state / "next.tsv").exists())  # not re-queued
 
+    def test_open_next_forgets_the_fill_push_so_the_same_row_wakes_again(self):
+        self.opened("goal_done.sh", expect_calls=False)
+        (self.state / "pushed").mkdir(parents=True, exist_ok=True)
+        (self.state / "pushed/fill").write_text("fill|hash\n")
+        env = {**self.env, "HERDR_SOCKET_PATH": str(self.sessions / "master-win/herdr.sock")}
+        dry = subprocess.run(["bash", str(HERE / "open_next.sh"), "--dry-run"], env=env, capture_output=True, text=True)
+        self.assertIn("would open: ▸ ", dry.stdout)
+        self.assertTrue((self.state / "pushed/fill").exists())  # a dry run takes nothing
+        subprocess.run(["bash", str(HERE / "open_next.sh")], env=env, capture_output=True, text=True, timeout=30)
+        self.assertFalse((self.state / "pushed/fill").exists())
+
     def test_herdr_goals_opens_in_the_masters_session(self):
         for call in self.opened("goals.sh"):
             self.assertIn("/master-win/herdr.sock|", call)

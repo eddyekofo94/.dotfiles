@@ -208,7 +208,8 @@ tab_route() {  # label boot
       first=$(python3 "${REPO}/tools/features_index.py" --list --track "${2#/spec track }" --status "Spec Needed" 2>/dev/null |
         awk '!f && $1 ~ /-[0-9]+$/ {print $1; f = 1}') || first=""
       if [ -n "$first" ]; then model_route "$REPO" spec --record "$first"; else model_route "$REPO" spec app; fi ;;
-    verdict|verdict-resume) model_route "$REPO" verdict app ;;
+    verdict) model_route "$REPO" verdict app ;;
+    verdict-resume) model_route "$REPO" verdict app ;;
     spec-batch-*) model_route "$REPO" spec app ;;
     *) model_route "$REPO" build app ;;
   esac

@@ -48,6 +48,8 @@ else:
 if os.environ.get('RESUME') == '1':
     graph['resume'] = [{'id':'DF-7','slug':'df7-old'}]
 graph['focus'] = 'Quality'
+drain = os.environ.get('VERDICT_CHECKOUT', '')
+graph['verdict_checkout'] = drain if drain and os.path.isdir(drain) else ''
 graph['waiting'] = [{'id':'DF-3','track':'Quality','waiting_on':['DF-9']},
                     {'id':'DF-4','track':'Other','waiting_on':['DF-8']}]
 print(json.dumps(graph))
@@ -71,6 +73,9 @@ sub.add_parser('park').add_argument('slug')
 args = parser.parse_args()
 with open(os.environ['WORKTREE_CALLS'], 'a') as out:
     out.write(json.dumps(sys.argv[1:]) + '\\n')
+if args.command == 'remove' and os.environ.get('REMOVE_DIRS') == '1':
+    import shutil
+    shutil.rmtree(os.path.join(os.path.dirname(os.environ['WORKTREE_PATH']), args.slug), ignore_errors=True)
 if args.command != 'open':
     raise SystemExit(0)
 if os.environ.get('EXIT_' + args.slug.replace('-', '_')):
@@ -312,6 +317,27 @@ if sys.argv[1:3] == ['pane', 'get']:
                       self.calls(self.worktree_calls))
         self.assertEqual(self.opened(), [], "nothing left: no verdict lane reopens")
         self.assertIn("7 wait on Eddy: /verdict", result.stdout)
+
+    def test_a_closing_drain_is_gone_before_the_fill_reads_the_seat(self):
+        # BS-IOS-TASK-1738 Scope 4: the close removes the drain with its branch, so the
+        # fill after it reads no checkout and queues no resume of the drain it just closed.
+        drain = self.worktree("verdict-drain")
+        result = self.invoke(cwd=drain, ranked=False, seat="orphaned", unjudged=2,
+                             env_extra={"REMOVE_DIRS": "1", "VERDICT_CHECKOUT": str(drain)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(["remove", "verdict-drain", "--delete-branch"], self.calls(self.worktree_calls))
+        self.assertFalse(drain.exists())
+        self.assertNotIn("resumed: land", result.stdout + result.stderr)
+        self.assertEqual(self.opened(), [])
+
+    def test_an_orphaned_drain_resumes_in_its_checkout_without_the_manager(self):
+        drain = self.worktree("verdict-drain")
+        result = self.invoke(ranked=False, seat="orphaned", env_extra={"VERDICT_CHECKOUT": str(drain)})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([label for label, _ in self.opened()], ["▸ verdict-drain"])
+        self.assertIn("/verdict auto — resumed: land what is routed first", self.opened()[0][1])
+        manager = self.calls(self.worktree_calls) if self.worktree_calls.exists() else []
+        self.assertNotIn(["open", "verdict-drain"], [c[:2] for c in manager])
 
     def recommit_on_main(self, path, name, text="landed"):
         """What main holds after a records-only branch lands as a fresh commit."""

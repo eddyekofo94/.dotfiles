@@ -13,12 +13,18 @@ queue="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
 dry=0; [ "${1:-}" = "--dry-run" ] && dry=1
 [ -s "$queue" ] || { echo "nothing queued"; exit 0; }
 if [ "$dry" = 1 ]; then
-  cut -f3,4 "$queue" | sed 's/^/would open: /'
+  tr '\t' '\037' < "$queue" | while IFS=$'\037' read -r _ cwd label boot _; do
+    if [ -n "$cwd" ] && [ -d "$cwd" ]; then echo "would open: ${label}"$'\t'"${boot}"
+    else echo "would drop: ${label#▸ } — checkout gone"; fi
+  done
   exit 0
 fi
 # Take the queue whole: a fill landing meanwhile appends to a fresh file.
 work="${queue}.$$"
 mv "$queue" "$work"
+# BS-IOS-TASK-1738: the queue is taken, so the next fill's push (keyed on the queue's
+# content) wakes the master again even when it queues the same row.
+rm -f "$(dirname "$queue")/pushed/fill"
 open_labels=$(herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null |
   sed -E 's/^\[?[0-9]+\]? *//' || true)
 seen=""
