@@ -3,7 +3,8 @@
 # goal_done.sh (B7: always, master live or not) writes each tab it would open to NEXT_QUEUE
 # (from-name, cwd, label, boot, launch) instead of opening it; the master runs this
 # on a `landed` wake, in its own session, then subscribes `notify_when_idle` to each
-# name printed. A label already open, or queued twice, opens once.
+# name printed. A label already open, or queued twice, opens once; a row whose
+# checkout is gone is dropped.
 #
 #   open-next            open every queued tab; prints `opened NAME — BOOT`
 #   open-next --dry-run  list them, open nothing, keep the queue
@@ -12,18 +13,32 @@ queue="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/next.tsv"
 dry=0; [ "${1:-}" = "--dry-run" ] && dry=1
 [ -s "$queue" ] || { echo "nothing queued"; exit 0; }
 if [ "$dry" = 1 ]; then
-  cut -f3,4 "$queue" | sed 's/^/would open: /'
+  tr '\t' '\037' < "$queue" | while IFS=$'\037' read -r _ cwd label boot _; do
+    if [ -n "$cwd" ] && [ -d "$cwd" ]; then echo "would open: ${label}"$'\t'"${boot}"
+    else echo "would drop: ${label#▸ } — checkout gone"; fi
+  done
   exit 0
 fi
 # Take the queue whole: a fill landing meanwhile appends to a fresh file.
 work="${queue}.$$"
 mv "$queue" "$work"
+# BS-IOS-TASK-1738: the queue is taken, so the next fill's push (keyed on the queue's
+# content) wakes the master again even when it queues the same row.
+rm -f "$(dirname "$queue")/pushed/fill"
 open_labels=$(herdr tab list 2>/dev/null | jq -r '.result.tabs[]?.label' 2>/dev/null |
   sed -E 's/^\[?[0-9]+\]? *//' || true)
 seen=""
 left=0
-while IFS=$'\t' read -r from cwd label boot launch; do
+# A tab is IFS whitespace, so an empty field would collapse and shift the rest; read
+# on the unit separator, which keeps it (BS-IOS-TASK-1738 H12).
+while IFS=$'\037' read -r from cwd label boot launch; do
   [ -n "$label" ] || continue
+  # BS-IOS-TASK-1738 D6: a checkout swept since the fill queued it never opens, and
+  # is not re-queued; an empty cwd is gone too.
+  if [ -z "$cwd" ] || [ ! -d "$cwd" ]; then
+    echo "dropped ${label#▸ } — checkout gone"
+    continue
+  fi
   if printf '%s\n' "$open_labels" | grep -qxF -- "$label" || printf '%s' "$seen" | grep -qxF -- "$label"; then
     echo "skipped ${label#▸ } — already open"
     continue
@@ -38,6 +53,6 @@ while IFS=$'\t' read -r from cwd label boot launch; do
     echo "could not open ${label#▸ } — left queued" >&2
     left=1
   fi
-done < "$work"
+done < <(tr '\t' '\037' < "$work")
 rm -f "$work"
 exit "$left"

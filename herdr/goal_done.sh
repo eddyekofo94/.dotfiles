@@ -599,6 +599,17 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
       fi
     fi
   fi
+  # BS-IOS-TASK-1738 D4: a drain closed with work off `main` (`orphaned`) resumes in
+  # its own checkout, whatever `unjudged` reads; no `open --place`. `capped`, `held`
+  # and a missing checkout open nothing.
+  seat=$(jq -r '.verdict_seat // "held"' <<<"$focus_json" 2>/dev/null) || seat=held
+  drain=$(jq -r '.verdict_checkout // ""' <<<"$focus_json" 2>/dev/null) || drain=""
+  if [ "$verdict_opened" = 0 ] && [ "$seat" = orphaned ] && [ -n "$drain" ] && [ -d "$drain" ]; then
+    model_route "$shared" verdict app
+    open_tab "$drain" "$(basename "$drain")" "/verdict auto — resumed: land what is routed first" \
+      "$ROUTE_MODEL" "--permission-mode bypassPermissions" "$ROUTE_EFFORT"
+    verdict_opened=1
+  fi
   # FS-262 D3: a drain that closes names what it left for Eddy.
   if [ "$slug" = verdict-drain ]; then
     eddy=$(jq -r '.eddy_waiting // 0' <<<"$focus_json" 2>/dev/null) || eddy=0

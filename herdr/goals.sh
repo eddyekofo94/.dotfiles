@@ -30,6 +30,7 @@
 #   notes:opus::shared              fresh   -> shared checkout anyway
 #   grill                           Eddy asked for one: shared, the table's spec pair, /spec
 #   verdict                         the verdict lane: verdict-drain, /verdict auto
+#                                   (an orphaned drain resumes in its checkout)
 #
 # With no SPEC this opens the lanes, and only the lanes (FS-262 D5): first a
 # `/build <ID>` tab in each orphaned build's own checkout (`resume`, D9),
@@ -208,6 +209,7 @@ tab_route() {  # label boot
         awk '!f && $1 ~ /-[0-9]+$/ {print $1; f = 1}') || first=""
       if [ -n "$first" ]; then model_route "$REPO" spec --record "$first"; else model_route "$REPO" spec app; fi ;;
     verdict) model_route "$REPO" verdict app ;;
+    verdict-resume) model_route "$REPO" verdict app ;;
     spec-batch-*) model_route "$REPO" spec app ;;
     *) model_route "$REPO" build app ;;
   esac
@@ -290,6 +292,14 @@ if [ ${#SPECS[@]} -eq 0 ]; then
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     SPECS+=("verdict")
     BOOTS+=("/verdict auto")
+  # BS-IOS-TASK-1738 D4: a drain closed with work off `main` resumes in its own
+  # checkout, whatever `unjudged` reads; `capped`, `held` and no checkout open nothing.
+  elif [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = orphaned ]; then
+    drain=$(jq -r '.verdict_checkout // ""' <<<"$focus_json")
+    if [ -n "$drain" ] && [ -d "$drain" ]; then
+      SPECS+=("verdict-resume:::${drain}")
+      BOOTS+=("/verdict auto — resumed: land what is routed first")
+    fi
   fi
   [ ${#SPECS[@]} -gt 0 ] || echo "tasks: nothing Ready and no verdict waiting — /spec when you have the attention (no tab opened)" >&2
   if [ "$DRY_RUN" = 1 ]; then [ ${#SPECS[@]} -eq 0 ] || dry_print; exit 0; fi
@@ -347,6 +357,8 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
   [ "$WORKTREE" = "true" ] && home="shared"
   if [ "$home" = "shared" ]; then
     cwd="$REPO"
+  elif [ "$label" = "verdict-resume" ]; then
+    cwd="$home"  # the orphaned drain's own checkout; the manager opens nothing (H8)
   else
     worktree_args=(open "$home")
     [ -n "$PLACE" ] && worktree_args+=("$PLACE")
@@ -399,7 +411,7 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
 
   mode_flag="$BUILD_MODE_FLAG"
   # The verdict drain runs in yolo (Eddy, 2026-10-29: "verdict drain should run on yolo mode").
-  if [ "$label" = "verdict" ] && [ -n "$mode_flag" ]; then mode_flag="--permission-mode bypassPermissions"; fi
+  if { [ "$label" = "verdict" ] || [ "$label" = "verdict-resume" ]; } && [ -n "$mode_flag" ]; then mode_flag="--permission-mode bypassPermissions"; fi
 
   # An explicit `grill` opens already working the decision backlog, and
   # `verdict` already draining (FS-262 D4/D2). A positional prompt seeds the

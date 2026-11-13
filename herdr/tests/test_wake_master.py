@@ -63,6 +63,17 @@ class WakeMaster(unittest.TestCase):
         self.assertIn("no master sits", self.run_tool(HERE / "wake_master.py", "bs-ios-feat-9").stdout)
         self.assertEqual(self.sent(), [])
 
+    def test_a_fill_pushes_once_per_queue(self):  # BS-IOS-TASK-1738 H2
+        row = "reap\t/w/vd\t▸ verdict-drain\t/verdict auto\tenv AGENT_NAME=x claude --name x\n"
+        (self.state / "next.tsv").write_text(row)
+        self.assertIn("woke the master", self.run_tool(HERE / "wake_master.py", "fill").stdout)
+        self.assertIn("already sent", self.run_tool(HERE / "wake_master.py", "fill").stdout)
+        self.assertEqual(len(self.sent()), 1)
+        (self.state / "next.tsv").write_text(row + row.replace("vd", "b9").replace("/verdict auto", "/build X"))
+        self.assertIn("woke the master", self.run_tool(HERE / "wake_master.py", "fill").stdout)
+        self.assertEqual(len(self.sent()), 2)
+        self.assertTrue(self.sent()[0].endswith("|w1:p1|landed: fill; next /verdict auto (run open-next)"))
+
     def test_judge_types_the_verdict_into_the_workers_pane(self):
         self.run_tool(HERE / "ready.py", "mark", "BS-IOS-FEAT-9")
         done = self.run_tool(HERE / "ready.py", "judge", "bs-ios-feat-9", "back", "no empty state")
