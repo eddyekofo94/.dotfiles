@@ -164,6 +164,15 @@ open_tab() {  # cwd label boot model mode [effort]
     return 0
   fi
   mkdir -p "$(dirname "$NEXT_QUEUE")"
+  # BS-IOS-TASK-1754: every fill re-queued a tab the master had not opened yet, so the
+  # queue grew one row per fill; a row with this checkout and label already waits.
+  # Two fills at once can still both append (no flock on macOS); open-next opens a
+  # repeated label once, so the cost is a duplicate row, never a duplicate tab.
+  if [ -f "$NEXT_QUEUE" ] && awk -F'\t' -v c="$tab_cwd" -v l="▸ $tab_label" \
+       '$2 == c && $3 == l { found = 1; exit } END { exit !found }' "$NEXT_QUEUE"; then
+    echo "goal-done: already queued ${boot} (${tab_label}) — ${tab_cwd}"
+    return 0
+  fi
   printf '%s\t%s\t%s\t%s\t%s\n' "${AGENT_NAME:-$(basename "$PWD")}" "$tab_cwd" "▸ $tab_label" "$boot" "$launch" >> "$NEXT_QUEUE"
   echo "goal-done: queued ${boot} for the master (open-next) — ${tab_cwd}"
   return 0

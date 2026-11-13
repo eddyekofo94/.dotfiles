@@ -64,6 +64,11 @@ class FillWake(unittest.TestCase):
         reap_idle.fill(self.root, [], False)
         self.assertTrue(any("wake-master fill failed" in line for line in self.logged), self.logged)
 
+    def test_an_already_queued_build_is_the_lanes_open_without_a_log_or_wake(self):  # BS-IOS-TASK-1754
+        self.goal_done_out = "goal-done: already queued /build BS-IOS-FEAT-9 (bs-ios-feat-9) — /w/feat-9\n"
+        reap_idle.fill(self.root, [], False)
+        self.assertEqual((self.wakes(), self.logged, self.said), ([], [], ["opened"]))
+
     def test_a_fill_that_queues_nothing_wakes_nobody(self):
         self.goal_done_out = "goal-done: nothing Ready — /spec when you have the attention (no tab opened)\n"
         reap_idle.fill(self.root, [], False)
