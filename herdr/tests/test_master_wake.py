@@ -47,6 +47,12 @@ class Wake(unittest.TestCase):
         self.assertEqual(self.wake("bs-ios-feat-387"),
                          (2, "landed: bs-ios-feat-387; next /build BS-IOS-FEAT-342 (run open-next)"))
 
+    def test_a_fill_names_what_it_queued_else_stays_quiet(self):  # BS-IOS-TASK-1738 H1
+        self.assertEqual(self.wake("fill"), (1, "quiet: nothing queued"))
+        (self.state / "next.tsv").write_text(
+            "reap\t/w/vd\t▸ verdict-drain\t/verdict auto\tenv AGENT_NAME=x claude --name x\n")
+        self.assertEqual(self.wake("fill"), (2, "landed: fill; next /verdict auto (run open-next)"))
+
     def test_waiting_unknown_and_the_newest_file_rule(self):
         self.write("s5", "spec-batch-home", "WAITING")
         self.assertEqual(self.wake("spec-batch-home")[0], 1)

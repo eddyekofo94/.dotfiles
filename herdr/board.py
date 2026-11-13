@@ -316,6 +316,11 @@ def queued_next() -> list[str]:
 
 
 def wake(name: str) -> tuple[bool, str]:
+    if name == "fill":  # BS-IOS-TASK-1738 D5: reap's fill queued tabs with no landing to say so
+        queued = queued_next()
+        if queued:
+            return True, f"landed: fill; next {', '.join(queued)} (run open-next)"
+        return False, "quiet: nothing queued"
     line = judge_line(name)  # B7: green and waiting on the judge
     if line:
         return True, line

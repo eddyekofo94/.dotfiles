@@ -421,7 +421,10 @@ def orphaned(repo: Path) -> bool:
     try:
         out = subprocess.run([sys.executable, str(index), "--focus", "--json"],
                              cwd=repo, capture_output=True, text=True, timeout=60)
-        return bool(json.loads(out.stdout).get("resume"))
+        focus = json.loads(out.stdout)
+        # BS-IOS-TASK-1738 H5: an orphaned verdict drain counts as verdict 1/1, so it must
+        # reach the fill past a full lane count, or it is never resumed.
+        return bool(focus.get("resume")) or focus.get("verdict_seat") == "orphaned"
     except (subprocess.TimeoutExpired, json.JSONDecodeError):
         return False
 
@@ -487,9 +490,25 @@ def why_nothing_opened(done: subprocess.CompletedProcess) -> str:
         if reason in printed:
             return reason
     # A verdict tab skips goal-done's nothing-Ready line; no refusal means none was ranked.
-    if "goal-done: opened" in printed:
+    if "goal-done: opened" in printed or "goal-done: queued" in printed:
         return "nothing Ready"
     return f"goal-done gave no reason (exit {done.returncode})"
+
+
+def wake_master() -> None:
+    """Type `landed: fill; next …` into the master's pane (BS-IOS-TASK-1738 H3). A failure
+    is logged and swallowed: the queue stays for the master's next wake or sweep."""
+    try:
+        done = subprocess.run([sys.executable, str(HERE / "wake_master.py"), "fill"],
+                              capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as err:
+        log(f"  wake-master fill failed: {err}")
+        return
+    said = (done.stdout or done.stderr).strip()
+    if done.returncode or said.startswith("wake-master: herdr pane run failed"):
+        log(f"  wake-master fill failed (exit {done.returncode}): {said}")
+    elif said:
+        log(f"  {said}")
 
 
 def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
@@ -532,13 +551,17 @@ def fill(repo: Path, tabs: list[Tab], dry_run: bool) -> None:
             if any(word in line for word in ("would advance to", "nothing", "full", "refused", "gate not asked", "verdict")):
                 print(f"  {line}")
         return
-    if any("goal-done: opened" in line for line in lines):
+    # Master plan B6: open_tab queues for the master (`goal-done: queued`), so a queued
+    # tab is an open: log it and wake the master to run open-next (BS-IOS-TASK-1738 D5).
+    if any(line.startswith(("goal-done: opened", "goal-done: queued")) for line in lines):
         log(f"fill: {repo.name} {summary}")
         for line in lines:
             if not line.startswith("goal-done: refused:"):
                 log(f"  {line}")
+        if any(line.startswith("goal-done: queued") for line in lines):
+            wake_master()
     # A verdict or /spec tab leaves the build lane empty, so only a build open clears the reason.
-    if any("goal-done: opened /build" in line for line in lines):
+    if any(line.startswith(("goal-done: opened /build", "goal-done: queued /build")) for line in lines):
         say_once(repo, "opened")
     elif free <= 0:
         say_once(repo, "full")

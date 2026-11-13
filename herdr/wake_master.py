@@ -12,7 +12,7 @@ send nothing.
 """
 from __future__ import annotations
 
-import json, os, subprocess, sys
+import hashlib, json, os, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -57,6 +57,11 @@ def main() -> int:
         print(f"wake-master: {line or 'nothing to say'}")
         return 0
     key = f"{turn(name)}|{line.split(':', 1)[0]}"
+    if name == "fill":  # BS-IOS-TASK-1738 H2: the same queue pushes once, a changed one again
+        try:
+            key = "fill|" + hashlib.sha256((STATE_DIR / "next.tsv").read_bytes()).hexdigest()
+        except OSError:
+            pass
     seen = STATE_DIR / "pushed" / name
     try:
         if seen.read_text().strip() == key:
