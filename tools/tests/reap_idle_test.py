@@ -57,6 +57,46 @@ class Decide(unittest.TestCase):
                          (False, "unlanded: worktree dirty"))
 
 
+class Labels(unittest.TestCase):
+    """BS-IOS-TASK-1763: `<record>[-<phase>[-r<round>]]` after the ▸."""
+
+    def test_a_bare_record_is_a_build(self):
+        self.assertEqual(reap_idle.build_record(tab(label="2 ▸ bs-ios-bug-1087")), "BS-IOS-BUG-1087")
+
+    def test_a_suffixed_record_is_no_build(self):
+        for label in ("▸ bs-ios-feat-1715-review", "▸ bs-ios-task-1763-spec", "▸ bs-ios-task-1328-lab-r4",
+                      "▸ grill-bs-ios-task-1763", "▸ spec-bs-ios-feat-1763", "▸ bs-ios-task-1763-grill"):
+            with self.subTest(label):
+                self.assertEqual(reap_idle.build_record(tab(label=label, cwd="")), "")
+
+    def test_a_review_tab_gets_no_build_continue(self):
+        text = reap_idle.continue_text(tab(label="▸ bs-ios-feat-1715-review", cwd="", prompt="carry on"))
+        self.assertNotIn("/build", text)
+
+    def test_a_lab_tab_stays_while_its_round_is_open_or_unknown(self):
+        for state in (True, None):
+            with self.subTest(state):
+                self.assertEqual(decide(tab(label="4 ▸ bs-ios-task-1328-lab-r4", lab_open=state), GRACE),
+                                 (False, "lab round open or unknown"))
+
+    def test_a_passed_lab_round_closes(self):
+        self.assertEqual(decide(tab(label="4 ▸ bs-ios-task-1328-lab-r4", lab_open=False), GRACE)[0], True)
+
+    def test_the_collector_reads_the_tab_memory(self):
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict("os.environ", {"XDG_CACHE_HOME": tmp}):
+            plan = Path(tmp) / "lab" / "plan.md"
+            plan.parent.mkdir()
+            plan.write_text("## Round 4\n", encoding="utf-8")
+            memory = Path(tmp) / "herdr-tab-goals" / "window-114-w1-t1Q.json"
+            memory.parent.mkdir()
+            memory.write_text(json.dumps({"goal": "BS-IOS-TASK-1328", "phase": "lab", "plan": str(plan)}))
+            sock = "/x/window-114/herdr.sock"
+            self.assertIs(reap_idle.lab_open(sock, "w1:t1Q"), True)
+            (plan.parent / "decisions.md").write_text("- Round: passed 2026-11-13\n", encoding="utf-8")
+            self.assertIs(reap_idle.lab_open(sock, "w1:t1Q"), False)
+            self.assertIsNone(reap_idle.lab_open(sock, "w1:t9"))
+
+
 class Fill(unittest.TestCase):
     def test_always_build_reads_one_root_per_line_and_skips_comments(self):
         with tempfile.NamedTemporaryFile("w", delete=False) as handle:

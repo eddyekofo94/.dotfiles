@@ -402,12 +402,17 @@ for spec in ${SPECS[@]+"${SPECS[@]}"}; do
     fi
   fi
 
-  # The tab is named for the checkout it actually got, not for the id it was
-  # asked with: `open` adopts `fs094-offers` for a bare `fs094` (FS-099), and a
-  # tab reading `fs094` next to a directory called `fs094-offers` is the stale
-  # bar the naming exists to remove. `goal_done.sh` derives it the same way, so
-  # a tab opened here and a tab opened there carry one shape.
-  if [ "$home" = "shared" ]; then tab_label="$label"; else tab_label=$(basename "$cwd"); fi
+  # A record's tab reads its id, lower case (`bs-ios-feat-1702`, `fs094`), the
+  # way `goal_done.sh --name` spells it; the worktree keeps its slug
+  # (BS-IOS-TASK-1763 C8, C15). Anything else (`ios-home`, `verdict-resume`)
+  # is named for the checkout it got.
+  if [ "$home" = "shared" ]; then
+    tab_label="$label"
+  elif printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | grep -Eq '^((bs-)?[a-z]+-(feat|bug|task)-[0-9]+|(fs|bug)-?[0-9]{3,})$'; then
+    tab_label=$(id_slug "$label")
+  else
+    tab_label=$(basename "$cwd")
+  fi
 
   mode_flag="$BUILD_MODE_FLAG"
   # The verdict drain runs in yolo (Eddy, 2026-10-29: "verdict drain should run on yolo mode").

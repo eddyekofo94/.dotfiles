@@ -69,7 +69,7 @@ class SpecBlockerTab(unittest.TestCase):
         repo = Repo({"BS-IOS-TASK-1": "Spec Needed — does it stay?"}, ["BS-IOS-TASK-1"])
         out = repo.fill()
         self.assertEqual(len(repo.tabs()), 1, out)
-        self.assertIn("spec-bs-ios-task-1", repo.tabs()[0])
+        self.assertIn("bs-ios-task-1-spec", repo.tabs()[0])  # BS-IOS-TASK-1763 C16
         self.assertIn("/spec BS-IOS-TASK-1", repo.runs()[0])
         self.assertIn("--model opus --effort xhigh", repo.runs()[0])
 

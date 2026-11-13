@@ -264,7 +264,7 @@ if [ -n "$HANDOFF" ]; then
   [ -z "$FILL_REPO" ] && [ "$PARK" = 0 ] || die "--handoff takes neither --fill nor --park"
   [ "$root" != "$shared" ] || die "--handoff takes a goal's worktree, not the shared checkout"
   model_route "$shared" build app
-  open_tab "$root" "$slug" "/build ${HANDOFF} — ${HANDOFF_NOTE}" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT"
+  open_tab "$root" "$(id_slug "$HANDOFF")" "/build ${HANDOFF} — ${HANDOFF_NOTE}" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT"
   if [ "$KEEP_TAB" = 0 ]; then
     run herdr tab close "$HERDR_TAB_ID" ||
       echo "goal-done: could not close $HERDR_TAB_ID; close it with prefix+X" >&2
@@ -413,7 +413,7 @@ open_spec_blocker() {  # the Spec Needed blockers, one per line
   marker="$state_dir/spec-opened-$id"
   touch "$marker"
   model_route "$shared" spec --record "$id"
-  if ( open_tab "$shared" "spec-$(id_slug "$id")" "/spec $id" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT" ); then
+  if ( open_tab "$shared" "$(id_slug "$id")-spec" "/spec $id" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT" ); then
     chain_note "opened /spec $id: the chain waits on it"
   else
     rm -f "$marker"
@@ -540,7 +540,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
       if [ "${#dry_flag[@]}" = 0 ]; then
         echo "goal-done: ${next_id}: gate not asked — this manager has no open --dry-run"
         echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-        open_tab "<resolved by repository worktree manager>" "$label" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
+        open_tab "<resolved by repository worktree manager>" "$(id_slug "$next_id")" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
         opened=$((opened + 1))
         [ "$resuming" = true ] && resumed=$((resumed + 1))
         continue
@@ -550,7 +550,8 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
     if cwd=$(cd "$shared" && HERDR_GROUP_LANE_OPENER=1 python3 tools/session_worktree.py "${worktree_args[@]}" 2>"$open_err"); then
       cat "$open_err" >&2; rm -f "$open_err"
       [ "$DRY" = 1 ] && echo "would advance to: ${next_id}${next_track:+ (${next_track})}"
-      open_tab "$cwd" "$(basename "$cwd")" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
+      # The tab reads the record id; the worktree keeps its slug (BS-IOS-TASK-1763 C2, C15).
+      open_tab "$cwd" "$(id_slug "$next_id")" "$boot" "$next_model" "--permission-mode auto" "$next_effort"
       opened=$((opened + 1))
       [ "$resuming" = true ] && resumed=$((resumed + 1))
     else

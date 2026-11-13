@@ -53,6 +53,7 @@ tab, checkout and lane. The guards:
 """
 
 import argparse
+import contextlib
 import fcntl
 import json
 import os
@@ -77,6 +78,13 @@ PROMPT = re.compile(r"Ready-to-paste prompt:\**\s*```[a-z]*\n(.*?)\n```", re.S)
 #: `bs-ios-feat-537` whole (BibleStandard IOS-FEAT-537), never its `ios-feat-537` tail,
 #: and a phase word in front (`qa-ios-feat-515`) is never part of the id.
 RECORD = re.compile(r"\b((?:bs-)?[a-z]+-(?:feat|bug|task)-\d+|(?:fs|bug)-?\d{3,})\b", re.I)
+#: A label's suffix after the record (BS-IOS-TASK-1763): `bs-ios-task-1328-lab-r4` is
+#: phase `lab`, round 4; a bare record is a build. Only known phases, so a legacy
+#: slug label (`bug230-gap`) still reads as a build.
+SUFFIX = re.compile(r"-(spec|grill|plan|build|lab|qa|review|todo)(?:-r(\d+))?$")
+#: Eddy's pass on a lab round (`tools/worktree_round.py` `PASSED` in the iOS repo).
+ROUND_PASSED = re.compile(r"^- Round: passed \d{4}-\d{2}-\d{2}", re.M)
+POSITION = re.compile(r"^\d+\s+")
 STATUS = re.compile(r"\*\*Status:\*\*\s*([A-Z][A-Z ]*[A-Z])")
 NEXT_MOVE = re.compile(r"\*\*Next move:\*\*\s*(.+)")
 LOCK = Path(os.environ.get("HERDR_REAP_LOCK", Path.home() / ".cache/reap.lock"))
@@ -106,6 +114,7 @@ class Tab:
     pane_id: str = ""
     context: int = 0                    # tokens in the last turn's context
     prompt: str = ""                    # the closeout's ready-to-paste prompt
+    lab_open: bool | None = None        # a `-lab` tab: its round open (True), passed (False), unknown (None)
 
 
 def decide(tab: Tab, grace: float) -> tuple[bool, str]:
@@ -129,13 +138,31 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
         return False, f"last turn {tab.closeout}"
     if tab.unlanded:
         return False, "unlanded: " + "; ".join(tab.unlanded)
+    if label_phase(tab.label) == "lab" and tab.lab_open is not False:
+        return False, "lab round open or unknown"  # never closed on a guess (BS-IOS-TASK-1763 C6)
     return True, f"{tab.closeout}, idle {int(tab.quiet_for // 60)}m, landed"
 
 
+def label_name(label: str) -> str:
+    """A label without the stamper's position and the opener's mark."""
+    return POSITION.sub("", label.split(AGENT_MARK, 1)[-1].strip(), count=1)
+
+
+def label_phase(label: str) -> str:
+    """The phase a record label carries after the record (`bs-ios-feat-1715-review` -> review), or ''."""
+    name = label_name(label)
+    match = SUFFIX.search(name)
+    return match.group(1) if match and RECORD.match(name) else ""
+
+
 def build_record(tab: Tab) -> str:
-    """The record a build tab works (`▸ fs200` -> FS-200); '' for a grill or verdict tab."""
-    name = tab.label.split(AGENT_MARK, 1)[-1]
-    if "grill" in name or "verdict" in name:
+    """The record a build tab works (`▸ fs200` -> FS-200); '' for any other phase
+    (`-spec`, `-lab-r4`, `-review`; C7) and for the legacy `grill-`, `spec-` and
+    `verdict` tabs opened before BS-IOS-TASK-1763 (C16)."""
+    name = label_name(tab.label)
+    if "grill" in name or "verdict" in name or name.startswith("spec-"):
+        return ""
+    if label_phase(tab.label) not in ("", "build"):
         return ""
     for text in (name, Path(tab.cwd).name if tab.cwd else ""):
         match = RECORD.search(text)
@@ -344,6 +371,26 @@ def unlanded(cwd: str, session: str) -> list[str]:
     return problems
 
 
+def lab_open(sock: str, tab_id: str) -> bool | None:
+    """Whether a lab tab's round is still open, read through the tab memory
+    `repo_lock.py name --phase lab` writes (`repo_lock._tab_key`'s spelling;
+    C6, C13): False once its plan or the `decisions.md` beside it carries Eddy's
+    `- Round: passed <date>`, None when there is no memory or no plan."""
+    cache = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "herdr-tab-goals"
+    key = re.sub(r"[^A-Za-z0-9_.-]+", "-", f"{Path(sock).parent.name}-{tab_id}".strip("-"))
+    try:
+        plan = Path(json.loads((cache / f"{key}.json").read_text(encoding="utf-8")).get("plan") or "")
+        text = plan.read_text(encoding="utf-8") if str(plan) not in ("", ".") else None
+    except (OSError, ValueError, AttributeError):
+        return None
+    if text is None:
+        return None
+    beside = plan.parent / "decisions.md"
+    with contextlib.suppress(OSError):
+        text += "\n" + beside.read_text(encoding="utf-8")
+    return not ROUND_PASSED.search(text)
+
+
 def gather(sock: str, only: str | None) -> list[Tab]:
     panes = {}
     for pane in herdr(sock, "pane", "list").get("panes", []):
@@ -370,6 +417,8 @@ def gather(sock: str, only: str | None) -> list[Tab]:
                     tab.context, tab.prompt = read_handoff(found)
         if tab.cwd and tab.closeout in CLOSING_STATUSES:
             tab.unlanded = unlanded(tab.cwd, tab.session)
+        if label_phase(tab.label) == "lab":
+            tab.lab_open = lab_open(sock, tab.tab_id)
         tabs.append(tab)
     return tabs
 
