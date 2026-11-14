@@ -27,8 +27,25 @@ HANDOFF = MASTER_DIR / "handoff.md"
 SELF = Path(__file__).resolve()
 
 
+def typed_master(payload: dict) -> bool:
+    """A hand-typed `/master` sets no AGENT_ROLE (retro ios-2026-11-14): read the first prompt."""
+    try:
+        with open(payload.get("transcript_path", ""), encoding="utf-8") as fh:
+            for _ in range(60):
+                line = fh.readline()
+                if not line:
+                    break
+                if '"type":"user"' in line.replace(" ", ""):
+                    return "<command-name>/master</command-name>" in line
+    except OSError:
+        pass
+    return False
+
+
 def is_master_main(payload: dict) -> bool:
-    return os.environ.get("AGENT_ROLE") == "master" and not payload.get("agent_id")
+    if payload.get("agent_id"):
+        return False
+    return os.environ.get("AGENT_ROLE") == "master" or typed_master(payload)
 
 
 def safe(session: str) -> str:
@@ -72,7 +89,8 @@ def rotate(session: str, dry: bool) -> int:
         return 3
     tab, herdr = os.environ.get("HERDR_TAB_ID", ""), os.environ.get("HERDR_BIN_PATH", str(Path.home() / ".local/bin/herdr"))
     org = os.environ.get("HERDR_BOARD_ORG", str(Path.home() / "Programming/Projects/CanonFidei/biblestandard"))
-    launch = f"env AGENT_ROLE=master AGENT_NAME=master claude --name master --model fable \"/master\""
+    model = os.environ.get("HERDR_MASTER_MODEL", "sonnet")  # same seat as herdr/ensure_master.sh
+    launch = f"env AGENT_ROLE=master AGENT_NAME=master claude --name master --model {model} --effort medium \"/master\""
     if not tab:
         print("rotate: not inside a herdr tab", file=sys.stderr)
         return 64

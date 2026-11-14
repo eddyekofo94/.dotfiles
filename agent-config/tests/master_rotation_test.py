@@ -39,6 +39,24 @@ class RotationTest(unittest.TestCase):
             self.assertEqual(self.run_mode("count", {"session_id": "s1"}, env)[1], "")
         self.assertEqual(self.compact(9, agent_id="a1"), "")
 
+    def test_typed_master_counts_without_role(self):
+        tr = self.dir / "t.jsonl"
+        tr.write_text('{"type":"user","message":{"content":"<command-name>/master</command-name>"}}\n')
+        env = {k: v for k, v in self.env.items() if k != "AGENT_ROLE"}
+        for _ in range(8):
+            out = self.run_mode("count", {"session_id": "s2", "transcript_path": str(tr)}, env)[1]
+        self.assertIn("compacted 8 times", out)
+        tr.write_text('{"type":"user","message":{"content":"<command-name>/spec</command-name>"}}\n')
+        for _ in range(9):
+            out = self.run_mode("count", {"session_id": "s3", "transcript_path": str(tr)}, env)[1]
+        self.assertEqual(out, "")
+
+    def test_rotate_launch_uses_seat_model(self):
+        self.compact(8)
+        (self.dir / "master" / "handoff.md").write_text("fresh")
+        self.run_mode("rotate", None, None, "--session", "s1")
+        self.assertIn("--model sonnet --effort medium", self.log.read_text())
+
     def test_resume_only_when_armed(self):
         self.assertEqual(self.run_mode("resume", {"session_id": "s1"})[1], "")
         self.compact(8)
