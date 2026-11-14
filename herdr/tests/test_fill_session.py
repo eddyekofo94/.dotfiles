@@ -5,6 +5,7 @@ BS-IOS-FEAT-342 there), and `open-next` opens it in the master's own session.
 live the fill still queues; nothing opens itself (the master opens it on seat)."""
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
 _os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
+_os.environ.setdefault("HERDR_BUILD_RUNNING", "0")  # hermetic: a live build tab on this Mac must not change the pins
 import os, pathlib, shutil, socket, subprocess, sys, tempfile, textwrap, unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
