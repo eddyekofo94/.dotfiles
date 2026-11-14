@@ -109,5 +109,33 @@ class Goals(unittest.TestCase):
         self.assertEqual(out.count("opening sonnet medium"), 1, out)
 
 
+class BareLabel(unittest.TestCase):
+    """BS-IOS-BUG-1008: a label with no `:model` once launched `claude --model --effort …`,
+    so Claude took `--effort` for the model and the tab died. A real (not dry) launch."""
+
+    def launch(self, spec: str) -> str:
+        root = repo(TABLE)
+        calls = root / "calls"
+        (root / "bin" / "herdr").write_text(
+            f'#!/bin/sh\necho "$*" >> "{calls}"\ncase "$1 $2" in\n'
+            '  "tab create") echo \'{"result":{"root_pane":{"pane_id":"p1"}}}\' ;;\n'
+            '  *) echo \'{"result":{"tabs":[]}}\' ;;\nesac\n')
+        run = subprocess.run(["bash", str(HERDR / "goals.sh"), spec], env={**env(root), "HERDR_GOALS_AGENT": "claude"},
+                             capture_output=True, text=True, cwd=root, timeout=60)
+        seen = calls.read_text() if calls.exists() else ""
+        runs = [line for line in seen.splitlines() if line.startswith("pane run ")]
+        self.assertEqual(len(runs), 1, seen + run.stdout + run.stderr)
+        return runs[0]
+
+    def test_a_bare_verdict_label_opens_the_lanes_model(self):
+        self.assertIn("--model sonnet --effort medium", self.launch("verdict"))
+
+    def test_an_empty_model_field_opens_the_lanes_model(self):
+        self.assertIn("--model sonnet --effort medium", self.launch("verdict:"))
+
+    def test_a_named_model_still_wins(self):
+        self.assertIn("--model opus --effort medium", self.launch("verdict:opus"))
+
+
 if __name__ == "__main__":
     unittest.main()
