@@ -8,6 +8,6 @@ ps -axo pid=,ppid=,command= | awk -v me="$$" '
   END {
     for (p = me; p > 1 && !(p in anc); p = ppid[p]) anc[p] = 1
     n = 0
-    for (p in cmd) if (!(p in anc) && cmd[p] ~ /claude .*"\/build / ) n++
+    for (p in cmd) if (!(p in anc) && cmd[p] ~ /claude .*[" ]\/build /) n++
     print n
   }'
