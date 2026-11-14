@@ -16,6 +16,7 @@ ROUTE_WARNED=0
 model_route() {
   local repo="$1" pair="" table_repo
   shift
+  local verb="${1:-}"
   local ios="${HERDR_ROUTES_REPO:-${HERDR_DEFAULT_REPO:-${CANONFIDEI_ROOT:-$HOME/Programming/Projects/CanonFidei}/biblestandard/ios}}"
   for table_repo in "$repo" "$ios"; do
     [ -f "${table_repo}/tools/model_routes.py" ] || continue
@@ -25,6 +26,13 @@ model_route() {
   if [[ "$pair" =~ ^[a-z0-9.-]+\ [a-z]+$ ]]; then
     ROUTE_MODEL="${pair% *}"
     ROUTE_EFFORT="${pair#* }"
+    # Eddy, 2026-11-14 ("Opus medium for build and as default ... tab3 is sonnet"): the table
+    # cannot open a tab above medium, and only a build runs on Opus, so a table row that
+    # says otherwise is clamped here. HERDR_ALLOW_HIGH=1 lifts it for one run Eddy asked for.
+    if [ "${HERDR_ALLOW_HIGH:-0}" != 1 ]; then
+      case "$verb" in build) ROUTE_MODEL=opus ;; *) ROUTE_MODEL=sonnet ;; esac
+      ROUTE_EFFORT=medium
+    fi
     return 0
   fi
   if [ "$ROUTE_WARNED" = 0 ]; then

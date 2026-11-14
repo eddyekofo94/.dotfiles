@@ -123,6 +123,11 @@
             "type": "command",
             "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/context_guard.py\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/tab_launch_guard.py\"",
+            "timeout": 5
           }
         ]
       }
@@ -362,7 +367,7 @@
       "effortLevel": "medium"
     },
     "claude-fable-5-2": {
-      "effortLevel": "high"
+      "effortLevel": "medium"
     }
   },
   "autoCompactWindow": 182000,

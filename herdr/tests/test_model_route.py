@@ -75,12 +75,12 @@ class GoalDone(unittest.TestCase):
     def test_build_and_verdict_lane_open_at_the_tables_pairs(self):
         out = goal_done_fill(repo(TABLE, LANES))
         self.assertIn('--model opus --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
-        self.assertIn('--model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
+        # Eddy, 2026-11-14: the drain runs only after a batch ends, never beside a build.
+        self.assertNotIn('"/verdict auto"', out)
 
     def test_a_missing_table_opens_sonnet_medium_with_one_line(self):
         out = goal_done_fill(repo(None, LANES))
         self.assertIn('--model sonnet --effort medium --permission-mode auto "/build BS-IOS-TASK-9"', out)
-        self.assertIn('--model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"', out)
         self.assertEqual(out.count("opening sonnet medium"), 1, out)
         self.assertNotIn("--model opus", out)
 
@@ -95,13 +95,13 @@ class Goals(unittest.TestCase):
         out = goals(repo(TABLE), "--build", "BS-IOS-TASK-9")
         self.assertIn("launch: claude --model opus --effort medium", out)
 
-    def test_an_app_kind_spec_opens_opus_xhigh(self):
+    def test_an_app_kind_spec_is_clamped_to_sonnet_medium(self):
         out = goals(repo(TABLE, track_first={"Home": "BS-IOS-FEAT-1 Spec Needed  a"}), "--settle", "Home")
-        self.assertIn("launch: claude --model opus --effort xhigh", out)
+        self.assertIn("launch: claude --model sonnet --effort medium", out)
 
-    def test_a_tool_kind_spec_opens_sonnet_high(self):
+    def test_a_tool_kind_spec_opens_sonnet_medium(self):
         out = goals(repo(TABLE, track_first={"Tools": "BS-IOS-TASK-2 Spec Needed  b"}), "--settle", "Tools")
-        self.assertIn("launch: claude --model sonnet --effort high", out)
+        self.assertIn("launch: claude --model sonnet --effort medium", out)
 
     def test_a_missing_table_opens_sonnet_medium(self):
         out = goals(repo(None), "--settle", "Home")

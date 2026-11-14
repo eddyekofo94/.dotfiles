@@ -71,7 +71,7 @@ class SpecBlockerTab(unittest.TestCase):
         self.assertEqual(len(repo.tabs()), 1, out)
         self.assertIn("bs-ios-task-1-spec", repo.tabs()[0])  # BS-IOS-TASK-1763 C16
         self.assertIn("/spec BS-IOS-TASK-1", repo.runs()[0])
-        self.assertIn("--model opus --effort xhigh", repo.runs()[0])
+        self.assertIn("--model sonnet --effort medium", repo.runs()[0])
 
     def test_the_next_fill_does_not_open_a_second_tab(self):
         repo = Repo({"BS-IOS-TASK-1": "Spec Needed"}, ["BS-IOS-TASK-1"])

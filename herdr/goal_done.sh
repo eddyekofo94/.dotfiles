@@ -438,6 +438,12 @@ rank_fill() {
     # FEAT-867 waited on untracked BS-IOS-BUG-402 and 997, so nothing opened).
     focus_json=$(jq -c --arg ex "$exclusive" '([.waiting[]? | select(.track == $ex) | .waiting_on[]?]) as $need | .next |= map(select(.track == $ex or (.id as $i | any($need[]; . == $i)))) | .resume |= ((. // []) | map(select(.track == $ex)))' <<<"$focus_json" 2>/dev/null) || focus_json="{}"
   fi
+  # Parked lanes (Eddy, 2026-11-14) open nothing: filtered before the batch head is chosen.
+  parked_file="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/parked-lanes"
+  parked_jq="$(dirname "$(readlink -f "$0")")/parked_lanes.jq"
+  if [ -f "$parked_file" ] && [ -f "$parked_jq" ]; then
+    focus_json=$(jq -c --argjson p "$(jq -Rn '[inputs | select(length > 0)]' <"$parked_file")" -f "$parked_jq" <<<"$focus_json" 2>/dev/null || printf '%s' "$focus_json")
+  fi
   # Master plan 1d (M3): the batch head boots the batch's verb (batch_boot.jq).
   batch_jq="$(dirname "$(readlink -f "$0")")/batch_boot.jq"
   [ -f "$batch_jq" ] && focus_json=$(jq -c -f "$batch_jq" <<<"$focus_json" 2>/dev/null || printf '%s' "$focus_json")
@@ -590,7 +596,15 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
 
   # FS-262 D3: the verdict lane, when unjudged agent rows wait and its one
   # seat is free. A full build cap never blocks it: it is not a build lane.
-  if [ "$(jq -r '.unjudged // 0' <<<"$focus_json" 2>/dev/null)" -gt 0 ] 2>/dev/null &&
+  # Eddy, 2026-11-14 ("drain should be ran ONLY after a batch is ended"): no drain, new or
+  # resumed, while a build tab runs or a Ready build waits for a seat.
+  builds_live=$("$(dirname "$(readlink -f "$0")")/build_running.sh" 2>/dev/null || echo 0)
+  if [ "${builds_live:-0}" -gt 0 ] 2>/dev/null || [ "$opened" -gt 0 ] || [ "$cap_full" = 1 ]; then
+    drain_ok=0
+  else
+    drain_ok=1
+  fi
+  if [ "$drain_ok" = 1 ] && [ "$(jq -r '.unjudged // 0' <<<"$focus_json" 2>/dev/null)" -gt 0 ] 2>/dev/null &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     model_route "$shared" verdict app
     if [ "$DRY" = 1 ] && [ "${#dry_flag[@]}" = 0 ]; then
@@ -614,7 +628,7 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
   # and a missing checkout open nothing.
   seat=$(jq -r '.verdict_seat // "held"' <<<"$focus_json" 2>/dev/null) || seat=held
   drain=$(jq -r '.verdict_checkout // ""' <<<"$focus_json" 2>/dev/null) || drain=""
-  if [ "$verdict_opened" = 0 ] && [ "$seat" = orphaned ] && [ -n "$drain" ] && [ -d "$drain" ]; then
+  if [ "$drain_ok" = 1 ] && [ "$verdict_opened" = 0 ] && [ "$seat" = orphaned ] && [ -n "$drain" ] && [ -d "$drain" ]; then
     model_route "$shared" verdict app
     open_tab "$drain" "$(basename "$drain")" "/verdict auto — resumed: land what is routed first" \
       "$ROUTE_MODEL" "--permission-mode bypassPermissions" "$ROUTE_EFFORT"

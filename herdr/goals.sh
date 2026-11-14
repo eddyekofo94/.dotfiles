@@ -269,6 +269,12 @@ if [ ${#SPECS[@]} -eq 0 ]; then
     SPECS+=("${label}:::${slug}")
     BOOTS+=("${RUN} ${id} — resumed (FS-262 D9): git merge main first")
   done < <(jq -r '.resume[]? | [.id, .slug] | @tsv' <<<"$focus_json")
+  # Parked lanes (Eddy, 2026-11-14) open nothing; filtered before the batch head is chosen.
+  parked_file="${AGENT_STATE_DIR:-$HOME/.local/state/agents}/parked-lanes"
+  parked_jq="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/parked_lanes.jq"
+  if [ -f "$parked_file" ] && [ -f "$parked_jq" ]; then
+    focus_json=$(jq -c --argjson p "$(jq -Rn '[inputs | select(length > 0)]' <"$parked_file")" -f "$parked_jq" <<<"$focus_json" 2>/dev/null || printf '%s' "$focus_json")
+  fi
   # Master plan 1d (M3): the batch head boots the batch's verb (batch_boot.jq). A
   # `/spec batch` settles in the shared checkout and holds no build lane.
   batch_jq="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/batch_boot.jq"
@@ -288,7 +294,11 @@ if [ ${#SPECS[@]} -eq 0 ]; then
   done < <(jq -r '.next[]? | [.id, ((.title // "") | if . == "" then "-" else . end), (.boot // "")] | @tsv' <<<"$focus_json")
   # FS-262 D3: the verdict lane opens only while unjudged agent rows wait and
   # its one seat is free; an empty queue opens none.
-  if [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
+  # Eddy, 2026-11-14: the drain runs only after a batch has ended, never beside a build.
+  builds_live=$("$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/build_running.sh" 2>/dev/null || echo 0)
+  if [ "${builds_live:-0}" -gt 0 ] 2>/dev/null || [ "${#SPECS[@]}" -gt 0 ]; then
+    : # a build runs or waits for a seat: no drain row
+  elif [ "$(jq -r '.unjudged // 0' <<<"$focus_json")" -gt 0 ] &&
      [ "$(jq -r '.verdict_seat // "held"' <<<"$focus_json")" = free ]; then
     SPECS+=("verdict")
     BOOTS+=("/verdict auto")
