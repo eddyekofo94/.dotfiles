@@ -13,7 +13,7 @@
 # master (a restart left the seat without its agent), and its pane runs no agent: so
 # a restored tab Eddy works in is never typed into.
 # It is labelled `✻ master` (tab_status.sh stamps `1 ✻ master`) and runs
-# `env AGENT_ROLE=master AGENT_NAME=master claude --name master --model fable "/master"`
+# `env AGENT_ROLE=master AGENT_NAME=master claude --name master --model sonnet --effort medium "/master"` (Eddy, 2026-11-14)
 # in the BibleStandard root. A tab 1 already running an agent is never taken over.
 # One master per machine: a `master` tab in any live session stops it.
 # `~/.config/herdr/no-master` (or HERDR_NO_MASTER=1) turns it off.
@@ -41,7 +41,7 @@ esac
 
 herdr_bin=${HERDR_BIN_PATH:-"$HOME/.local/bin/herdr"}
 org=${HERDR_BOARD_ORG:-"${CANONFIDEI_ROOT:-$HOME/Programming/Projects/CanonFidei}/biblestandard"}
-model=${HERDR_MASTER_MODEL:-fable}
+model=${HERDR_MASTER_MODEL:-sonnet}
 h() { "$herdr_bin" --session "$session" "$@"; }
 is_master='(.label // "") | sub("^\\[?[0-9]+\\]? *"; "") | ltrimstr("✻ ") | ltrimstr("✼ ") | ltrimstr("✽ ") == "master"'
 
@@ -84,7 +84,7 @@ printf '%s' "$tabs" | jq -e "(.result.tabs | length) == 1 or (.result.tabs[0] | 
 pane=$(h pane list 2>/dev/null | jq -r --arg tab "$tab" '[.result.panes[]? | select(.tab_id == $tab)][0] // {} | if (.agent // "") == "" then .pane_id // "" else "" end')
 [ -n "$pane" ] || exit 0  # tab 1 already runs an agent (the master, or Eddy's own)
 
-launch="cd '$org' && env AGENT_ROLE=master AGENT_NAME=master claude --name master --model $model \"/master\""
+launch="cd '$org' && env AGENT_ROLE=master AGENT_NAME=master claude --name master --model $model --effort medium \"/master\""
 if [ "$DRY" = 1 ]; then
   echo "would run: herdr tab rename $tab \"✻ master\""
   echo "would run: herdr pane run $pane $launch"

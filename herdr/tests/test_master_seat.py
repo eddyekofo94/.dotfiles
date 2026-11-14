@@ -46,10 +46,10 @@ class Seat(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stderr)
         return self.log.read_text().splitlines() if self.log.exists() else []
 
-    def test_a_fresh_main_session_seats_fable_in_tab_one(self):
+    def test_a_fresh_main_session_seats_sonnet_in_tab_one(self):
         calls = self.seat()
         self.assertEqual(calls[0], "tab rename w1:t1 ✻ master")
-        self.assertIn("pane run w1:p1 cd '/org' && env AGENT_ROLE=master AGENT_NAME=master claude --name master --model fable \"/master\"", calls[1])
+        self.assertIn("pane run w1:p1 cd '/org' && env AGENT_ROLE=master AGENT_NAME=master claude --name master --model sonnet --effort medium \"/master\"", calls[1])
 
     def test_a_restart_reseats_a_master_tab_left_without_its_agent(self):
         self.assertEqual(len(self.seat(tab_json=tabs("1 ✻ master", "2 ios"), pane_json=panes("", "claude"))), 2)
