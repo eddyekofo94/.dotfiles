@@ -95,9 +95,9 @@ class Goals(unittest.TestCase):
         out = goals(repo(TABLE), "--build", "BS-IOS-TASK-9")
         self.assertIn("launch: claude --model opus --effort medium", out)
 
-    def test_an_app_kind_spec_is_clamped_to_sonnet_medium(self):
+    def test_an_app_kind_spec_opens_opus_medium(self):
         out = goals(repo(TABLE, track_first={"Home": "BS-IOS-FEAT-1 Spec Needed  a"}), "--settle", "Home")
-        self.assertIn("launch: claude --model sonnet --effort medium", out)
+        self.assertIn("launch: claude --model opus --effort medium", out)
 
     def test_a_tool_kind_spec_opens_sonnet_medium(self):
         out = goals(repo(TABLE, track_first={"Tools": "BS-IOS-TASK-2 Spec Needed  b"}), "--settle", "Tools")

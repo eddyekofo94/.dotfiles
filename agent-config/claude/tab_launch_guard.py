@@ -12,8 +12,8 @@ def verdict(cmd: str):
         return None
     if re.search(r"--effort[ =](high|xhigh|max)\b", cmd):
         return "Tabs open on medium effort, never high (Eddy, 2026-11-14). Use --effort medium."
-    if re.search(r"--model[ =]opus\b", cmd) and not re.search(r"[\"' ]/build\b", cmd):
-        return "Only a /build tab runs on Opus; every other tab is Sonnet medium (Eddy, 2026-11-14)."
+    if re.search(r"--model[ =]opus\b", cmd) and not re.search(r"[\"' ]/(build|spec)\b", cmd):
+        return "Only a /build or app /spec tab runs on Opus; every other tab is Sonnet medium (Eddy, 2026-11-14)."
     return None
 
 def main():

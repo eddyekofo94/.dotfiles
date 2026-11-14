@@ -30,7 +30,12 @@ model_route() {
     # cannot open a tab above medium, and only a build runs on Opus, so a table row that
     # says otherwise is clamped here. HERDR_ALLOW_HIGH=1 lifts it for one run Eddy asked for.
     if [ "${HERDR_ALLOW_HIGH:-0}" != 1 ]; then
-      case "$verb" in build) ROUTE_MODEL=opus ;; *) ROUTE_MODEL=sonnet ;; esac
+      # Opus only for a build, or a spec the table routes to Opus (an app record).
+      case "$verb" in
+        build) ROUTE_MODEL=opus ;;
+        spec) [ "$ROUTE_MODEL" = opus ] || ROUTE_MODEL=sonnet ;;
+        *) ROUTE_MODEL=sonnet ;;
+      esac
       ROUTE_EFFORT=medium
     fi
     return 0
