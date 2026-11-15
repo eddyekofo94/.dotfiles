@@ -211,7 +211,11 @@ tab_route() {  # label boot
     verdict) model_route "$REPO" verdict app ;;
     verdict-resume) model_route "$REPO" verdict app ;;
     spec-batch-*) model_route "$REPO" spec app ;;
-    *) model_route "$REPO" build app ;;
+    *)
+      # Eddy, 2026-11-15: a one-record `/build ID` routes by its record (a hunt lane opens Sonnet).
+      if [[ "${2:-}" =~ ^/build\ ([A-Z][A-Z0-9-]*-[0-9]+)([^0-9]|$) ]]; then
+        model_route "$REPO" build --record "${BASH_REMATCH[1]}"
+      else model_route "$REPO" build app; fi ;;
   esac
 }
 

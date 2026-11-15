@@ -263,7 +263,7 @@ slug=$(basename "$root")
 if [ -n "$HANDOFF" ]; then
   [ -z "$FILL_REPO" ] && [ "$PARK" = 0 ] || die "--handoff takes neither --fill nor --park"
   [ "$root" != "$shared" ] || die "--handoff takes a goal's worktree, not the shared checkout"
-  model_route "$shared" build app
+  model_route "$shared" build --record "$HANDOFF"
   open_tab "$root" "$(id_slug "$HANDOFF")" "/build ${HANDOFF} — ${HANDOFF_NOTE}" "$ROUTE_MODEL" "--permission-mode auto" "$ROUTE_EFFORT"
   if [ "$KEEP_TAB" = 0 ]; then
     run herdr tab close "$HERDR_TAB_ID" ||
@@ -494,6 +494,9 @@ print(max(repo_lock.SESSION_CAP + repo_lock.WORKFLOW_CAP - getattr(session_workt
     resuming=$(printf '%s\n' "$record" | jq -r '.resume // false')
     next_effort=$(printf '%s\n' "$record" | jq -r '.effort // empty')
     next_model="$build_model"; next_effort="${next_effort:-$build_effort}"
+    # Eddy, 2026-11-15: a record that only runs the hunter on one lane builds on Sonnet (its effort stays the build's, or the record's escalation).
+    if [ "${HERDR_ALLOW_HIGH:-0}" != 1 ] && declare -F route_hunt_record >/dev/null &&
+      route_hunt_record "$shared" "$next_id"; then next_model=sonnet; fi
     next_boot=$(printf '%s\n' "$record" | jq -r '.boot // empty')
     [ -n "$next_id" ] || continue
     # Master plan 1d: a `/spec batch` settles in the shared checkout, takes no lane.

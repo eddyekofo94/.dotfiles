@@ -13,6 +13,17 @@
 ROUTE_MODEL=""
 ROUTE_EFFORT=""
 ROUTE_WARNED=0
+# Eddy, 2026-11-15: a data record that only runs the hunter on one lane (find and
+# fetch, no new code; BS-DATA-TASK-147) builds on Sonnet medium. True when REPO's
+# record ID carries that Disposition. Read from REPO, not the table's repo.
+route_hunt_record() {  # REPO ID
+  local f
+  [ -n "${2:-}" ] || return 1
+  for f in "$1"/project/*/"$2"-*.md; do
+    [ -f "$f" ] && grep -q '^- Disposition: finetune — runs the hunter on one lane' "$f" && return 0
+  done
+  return 1
+}
 model_route() {
   local repo="$1" pair="" table_repo
   shift
@@ -32,7 +43,9 @@ model_route() {
     if [ "${HERDR_ALLOW_HIGH:-0}" != 1 ]; then
       # Opus only for a build, or a spec the table routes to Opus (an app record).
       case "$verb" in
-        build) ROUTE_MODEL=opus ;;
+        build)
+          ROUTE_MODEL=opus
+          [ "${2:-}" = --record ] && route_hunt_record "$repo" "${3:-}" && ROUTE_MODEL=sonnet ;;
         spec) [ "$ROUTE_MODEL" = opus ] || ROUTE_MODEL=sonnet ;;
         *) ROUTE_MODEL=sonnet ;;
       esac
