@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
 _os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
+_os.environ.setdefault("HERDR_BUILD_RUNNING", "0")  # hermetic: a live /build tab on this Mac must not change the pins
 import json
 import re
 import os
@@ -267,11 +268,18 @@ if sys.argv[1:3] == ['pane', 'get']:
         goals = [c[c.index("--goal") + 1] for c in self.calls(self.worktree_calls)]
         self.assertEqual(goals, ["DF-9", "DF-5"])
 
-    def test_the_refill_opens_builds_then_the_verdict_lane_never_a_grill(self):
+    def test_the_refill_opens_builds_and_no_verdict_lane_beside_them(self):
+        # Eddy, 2026-11-14: the drain runs only after a batch has ended, never a grill.
         result = self.invoke(unjudged=2, place_manager=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.opened(), [
             ("▸ df1", 'claude --model opus --effort medium --permission-mode auto "/build DF-1"'),
+        ])
+
+    def test_the_refill_with_no_build_left_opens_the_verdict_lane(self):
+        result = self.invoke(unjudged=2, ranked=False, place_manager=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.opened(), [
             ("▸ verdict-drain",
              'claude --model sonnet --effort medium --permission-mode bypassPermissions "/verdict auto"'),
         ])
@@ -296,10 +304,11 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertIn("df7-old is a live session's, or a fill just placed a tab there", result.stderr)
         self.assertEqual([launch.split('"')[1] for _, launch in self.opened()], ["/build DF-1"])
 
-    def test_a_full_build_cap_still_opens_the_verdict_lane(self):
+    def test_a_full_build_cap_holds_the_verdict_lane(self):
+        # Eddy, 2026-11-14: a Ready build waiting for a seat means the batch has not ended.
         result = self.invoke(manager_exit=3, unjudged=2)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([label for label, _ in self.opened()], ["▸ verdict-drain"])
+        self.assertEqual(self.opened(), [])
         self.assertIn("build lanes full", result.stdout)
 
     def test_no_verdict_lane_without_unjudged_rows_or_a_free_seat(self):
@@ -419,7 +428,7 @@ if sys.argv[1:3] == ['pane', 'get']:
         self.assertNotIn("would advance to: DF-1", result.stdout)
 
     def test_a_dry_run_asks_the_verdict_lane_too(self):
-        self.invoke(dry_run=True, unjudged=2, env_extra={"MANAGER_DRY": "1"})
+        self.invoke(dry_run=True, unjudged=2, ranked=False, env_extra={"MANAGER_DRY": "1"})  # no build opens: the drain may
         drains = [call for call in self.dry_opens() if call[1] == "verdict-drain"]
         self.assertEqual(len(drains), 1)
         self.assertIn("--dry-run", drains[0])

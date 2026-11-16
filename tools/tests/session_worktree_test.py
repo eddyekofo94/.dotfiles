@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os as _os, tempfile as _tempfile  # master plan B6: never find the live master
 _os.environ["HERDR_SESSIONS_DIR"] = _tempfile.mkdtemp(prefix="no-master-"); _os.environ["AGENT_STATE_DIR"] = _tempfile.mkdtemp(prefix="state-")
+_os.environ.setdefault("HERDR_BUILD_RUNNING", "0")  # hermetic: a live /build tab on this Mac must not change the pins
 import fcntl
 import re
 import json
@@ -341,13 +342,11 @@ if sys.argv[1:3] == ['tab', 'create']:
         runs = [strip_name(c[3]) for c in recorded if c[:2] == ["pane", "run"]]
         return result, list(zip(labels, runs))
 
-    def test_goals_opens_four_builds_then_the_verdict_lane_and_nothing_else(self):
+    def test_goals_opens_four_builds_and_no_verdict_lane_beside_them(self):
+        # Eddy, 2026-11-14: the drain runs only after a batch has ended.
         result, tabs = self.run_lanes([101, 102, 103, 104, 105], unjudged=3)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual([label for label, _ in tabs],
-                         ["▸ fs101", "▸ fs102", "▸ fs103", "▸ fs104", "▸ verdict-drain"])
-        self.assertEqual(tabs[-1][1], 'claude --model sonnet --effort medium '
-                                      '--permission-mode bypassPermissions "/verdict auto"')
+        self.assertEqual([label for label, _ in tabs], ["▸ fs101", "▸ fs102", "▸ fs103", "▸ fs104"])
         self.assertTrue(all("--effort medium" in launch for _, launch in tabs))
         self.assertFalse(any("grill" in launch or "/spec" in launch or "/todo" in launch or "plan" in launch
                              for _, launch in tabs))
@@ -381,7 +380,7 @@ if sys.argv[1:3] == ['tab', 'create']:
         # BS-IOS-FEAT-597: the routing table's app-kind spec pair, Opus xhigh.
         result, tabs = self.run_lanes([101], unjudged=3, args=("grill:opus",))
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort xhigh '
+        self.assertEqual(tabs, [("▸ grill", 'claude --model opus --effort medium '
                                            '--permission-mode auto "/spec"')])
 
     def test_an_explicit_verdict_is_refused_while_the_seat_is_held(self):
