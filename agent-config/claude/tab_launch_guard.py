@@ -12,6 +12,8 @@ def verdict(cmd: str):
         return None
     if re.search(r"--effort[ =](high|xhigh|max)\b", cmd):
         return "Tabs open on medium effort, never high (Eddy, 2026-11-14). Use --effort medium."
+    if re.search(r"--model[ =](claude-)?opus", cmd) and re.search(r"[\"' ]/spec[ ]+auto\b", cmd):
+        return "/spec auto runs on Sonnet (tools/model_routes.json spec-auto); an Opus tab costs $5-10 (retro 2026-11-16)."
     if re.search(r"--model[ =](claude-)?opus", cmd) and not re.search(r"[\"' ]/(build|spec)\b", cmd):
         return "Only a /build or app /spec tab runs on Opus; every other tab is Sonnet medium (Eddy, 2026-11-14)."
     return None

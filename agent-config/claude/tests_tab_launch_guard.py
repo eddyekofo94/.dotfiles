@@ -9,6 +9,9 @@ class Guard(unittest.TestCase):
         self.assertIsNone(verdict('claude --model opus --effort medium "/spec X"'))
     def test_opus_verdict_denied(self):
         self.assertTrue(verdict('claude --model opus --effort medium "/verdict auto"'))
+    def test_opus_spec_auto_denied(self):
+        self.assertTrue(verdict('claude --model opus --effort medium "/spec auto BS-IOS-TASK-1328"'))
+        self.assertIsNone(verdict('claude --model sonnet --effort medium "/spec auto X"'))
     def test_build_opus_medium_ok(self):
         self.assertIsNone(verdict('claude --model opus --effort medium "/build X"'))
     def test_sonnet_medium_ok(self):
