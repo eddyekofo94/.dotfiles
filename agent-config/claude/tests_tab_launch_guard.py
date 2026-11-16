@@ -13,6 +13,11 @@ class Guard(unittest.TestCase):
         self.assertIsNone(verdict('claude --model opus --effort medium "/build X"'))
     def test_sonnet_medium_ok(self):
         self.assertIsNone(verdict('claude --model sonnet --effort medium "/verdict auto"'))
+    def test_full_opus_id_verdict_denied(self):
+        self.assertTrue(verdict('claude --model claude-opus-5-5 --effort medium "/verdict auto"'))
+        self.assertTrue(verdict('claude --model=claude-opus-5-5 "on Opus, file a record"'))
+    def test_full_opus_id_build_ok(self):
+        self.assertIsNone(verdict('claude --model claude-opus-5-5 --effort medium "/build X"'))
     def test_override(self):
         self.assertIsNone(verdict('HERDR_ALLOW_HIGH=1 claude --effort high x'))
     def test_unrelated(self):
