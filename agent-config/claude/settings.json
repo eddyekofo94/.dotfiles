@@ -299,6 +299,11 @@
             "type": "command",
             "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/close_on_land.py\"",
             "timeout": 45
+          },
+          {
+            "type": "command",
+            "command": "python3 -I \"$HOME/.dotfiles/agent-config/claude/model_route_warn.py\"",
+            "timeout": 5
           }
         ]
       },
