@@ -66,15 +66,35 @@ for sock in "$HOME/.config/herdr/sessions"/*/herdr.sock; do
 done
 
 if [ "$HERE" = 1 ]; then
-  other=$(printf '%s' "$tabs" | jq -r --arg me "$HERDR_TAB_ID" \
-    "[.result.tabs[] | select(.tab_id != \$me) | select($is_master) | .tab_id][0] // empty")
-  [ -z "$other" ] || { echo "ensure-master --here: the master already sits in $session tab $other; not seating this tab" >&2; exit 3; }
+  # Eddy, 2026-11-16: "something is done, it should be closed". A rotated-out master
+  # (`master-prev`) and a seat left without its agent close once this tab is seated;
+  # a `master` tab whose pane still runs an agent is live, so it still refuses.
+  is_prev='(.label // "") | sub("^\\[?[0-9]+\\]? *"; "") | ltrimstr("✻ ") | . == "master-prev"'
+  others=$(printf '%s' "$tabs" | jq -r --arg me "$HERDR_TAB_ID" \
+    ".result.tabs[] | select(.tab_id != \$me) | select(($is_master) or ($is_prev)) | [.tab_id, (if ($is_prev) then \"prev\" else \"master\" end)] | @tsv")
+  panes=$(h pane list 2>/dev/null || true)
+  stale=""
+  while IFS="$(printf '\t')" read -r other kind; do
+    [ -n "$other" ] || continue
+    if [ "$kind" = master ] && [ -n "$(printf '%s' "$panes" | jq -r --arg t "$other" '[.result.panes[]? | select(.tab_id == $t and (.agent // "") != "")][0].pane_id // empty')" ]; then
+      echo "ensure-master --here: the master already sits in $session tab $other; not seating this tab" >&2; exit 3
+    fi
+    stale="$stale $other"
+  done <<EOF2
+$others
+EOF2
   if printf '%s' "$tabs" | jq -e --arg me "$HERDR_TAB_ID" ".result.tabs[] | select(.tab_id == \$me) | select($is_master)" >/dev/null; then
-    echo "ensure-master --here: $session tab $HERDR_TAB_ID is already the seat"; exit 0
+    echo "ensure-master --here: $session tab $HERDR_TAB_ID is already the seat"
+  else
+    [ "$DRY" = 1 ] && echo "would run: herdr tab rename $HERDR_TAB_ID \"✻ master\"" || {
+      h tab rename "$HERDR_TAB_ID" "✻ master" >/dev/null
+      echo "ensure-master --here: seated the master in $session tab $HERDR_TAB_ID"; }
   fi
-  [ "$DRY" = 1 ] && { echo "would run: herdr tab rename $HERDR_TAB_ID \"✻ master\""; exit 0; }
-  h tab rename "$HERDR_TAB_ID" "✻ master" >/dev/null
-  echo "ensure-master --here: seated the master in $session tab $HERDR_TAB_ID"
+  for old in $stale; do
+    [ "$old" != "$HERDR_TAB_ID" ] || continue
+    if [ "$DRY" = 1 ]; then echo "would run: herdr tab close $old"; else
+      h tab close "$old" >/dev/null && echo "ensure-master --here: closed $session tab $old"; fi
+  done
   exit 0
 fi
 

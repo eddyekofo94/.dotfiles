@@ -315,6 +315,21 @@ def queued_next() -> list[str]:
     return [r.split("\t")[3] for r in rows if r.count("\t") >= 4]
 
 
+def owed(name: str) -> str | None:
+    """What a tab still owes the master or Eddy (a `judge:` or `decide:` wake), read without
+    the side effects `wake` has. None means nothing is owed, so a done tab may close."""
+    line = judge_line(name)
+    if line:
+        return line
+    mine = [e for e in status_files().values() if e.get("name") == name]
+    if not mine:
+        return None
+    entry = max(mine, key=lambda e: e.get("updated", 0))
+    if entry.get("status", "") in DECIDE or entry.get("state", "") == "blocked":
+        return f"decide: {name} {entry.get('status') or 'blocked'}"
+    return None
+
+
 def wake(name: str) -> tuple[bool, str]:
     if name == "fill":  # BS-IOS-TASK-1738 D5: reap's fill queued tabs with no landing to say so
         queued = queued_next()

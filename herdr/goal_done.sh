@@ -196,6 +196,14 @@ if [ -n "$TARGET_TAB" ]; then
     herdr tab close "$TARGET_TAB" >/dev/null && echo "goal-done: tab $TARGET_TAB closed; its checkout $cwd was already gone" >&2
     exit 0
   fi
+  # Eddy, 2026-11-16: the repo comes from the tab's own checkout, never the caller's
+  # cwd. A pane whose shell sits outside any repository (a `cd ~`) falls back to the
+  # cwd its agent's status file recorded for that tab.
+  if ! git -C "$cwd" rev-parse --show-toplevel >/dev/null 2>&1; then
+    state_cwd=$(cat "${AGENT_STATE_DIR:-$HOME/.local/state/agents}"/*.json 2>/dev/null |
+      jq -rs --arg tab "$TARGET_TAB" '[.[] | select((.herdr.tab // "") == $tab and (.cwd // "") != "")] | sort_by(.updated // 0) | last | .cwd // empty' 2>/dev/null) || state_cwd=""
+    if [ -n "$state_cwd" ] && [ -d "$state_cwd" ]; then cwd="$state_cwd"; fi
+  fi
   cd "$cwd" || die "cannot enter tab $TARGET_TAB's checkout"
 fi
 

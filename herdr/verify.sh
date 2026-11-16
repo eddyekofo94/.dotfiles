@@ -46,6 +46,7 @@ done
 python3 "$herdr_dir/tests/test_reap_simulators.py" -v
 # BS-IOS-TASK-1738: the fill wakes the master; open-next drops a gone checkout; a drain resumes.
 python3 "$herdr_dir/tests/test_reap_fill_wake.py" -v
+python3 "$herdr_dir/tests/test_done_closed.py" -v
 python3 "$herdr_dir/tests/test_master_wake.py" -v
 python3 "$herdr_dir/tests/test_wake_master.py" -v
 python3 "$herdr_dir/tests/test_fill_session.py" -v

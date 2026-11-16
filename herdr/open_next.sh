@@ -101,5 +101,19 @@ while IFS=$'\037' read -r from cwd label boot launch; do
     left=1
   fi
 done < <(tr '\t' '\037' < "$work")
+# One close path (Eddy, 2026-11-16: "something is done, it should be closed"): the tab a
+# queued row came from is finished, so it closes through `goal-done --tab`, the same call
+# `close <tab>` and the reaper make. That refuses unless its branch is merged and always
+# refuses the master, so a refusal is only reported. `--no-todo` stops it queueing again.
+goal_done="${HERDR_GOAL_DONE:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/goal_done.sh}"
+tabs_now=$(herdr tab list 2>/dev/null || true)
+cut -f1 "$work" | sort -u | while IFS= read -r from; do
+  [ -n "$from" ] && [ "$from" != fill ] || continue
+  id=$(printf '%s' "$tabs_now" | jq -r --arg n "${from#▸ }" \
+    '[.result.tabs[]? | select(((.label // "") | sub("^\\[?[0-9]+\\]? *"; "") | ltrimstr("▸ ")) == $n) | .tab_id][0] // empty' 2>/dev/null) || id=""
+  [ -n "$id" ] || continue
+  if out=$(bash "$goal_done" --tab "$id" --no-todo 2>&1); then echo "closed ${from#▸ } (tab $id)"
+  else echo "kept ${from#▸ } — ${out##*goal-done: }"; fi
+done
 rm -f "$work"
 exit "$left"

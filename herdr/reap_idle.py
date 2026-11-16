@@ -113,13 +113,14 @@ class Tab:
     pane_id: str = ""
     context: int = 0                    # tokens in the last turn's context
     prompt: str = ""                    # the closeout's ready-to-paste prompt
+    owed: str = ""                      # a pending decide:/judge: or a master hold: the tab stays
     lab_open: bool | None = None        # a `-lab` tab: its round open (True), passed (False), unknown (None)
 
 
 def decide(tab: Tab, grace: float) -> tuple[bool, str]:
     """Close or keep, and the reason. Pure: every fact is already on `tab`."""
     # The tab-status stamper prefixes a position (`2 ▸ fs307`), so look anywhere.
-    if AGENT_MARK not in tab.label:
+    if AGENT_MARK not in tab.label and label_name(tab.label) != "master-prev":
         return False, "Eddy's tab (no ▸)"
     if tab.focused:
         return False, "focused"
@@ -131,6 +132,10 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
         return False, f"no transcript for {tab.agent or 'the agent'}"
     if tab.quiet_for < grace:
         return False, f"idle {int(tab.quiet_for // 60)}m < {int(grace // 60)}m grace"
+    if tab.owed:
+        return False, f"owes: {tab.owed}"
+    if label_name(tab.label) == "master-prev" and tab.closeout not in CONTINUE_STATUSES:
+        return True, f"rotated-out master, idle {int(tab.quiet_for // 60)}m, nothing owed"
     if tab.closeout is None:
         return False, "last turn has no closeout"
     if tab.closeout not in CLOSING_STATUSES:
@@ -389,12 +394,30 @@ def lab_open(sock: str, tab_id: str, record: str = "") -> bool | None:
     return not ROUND_PASSED.search(text)
 
 
+def held_names() -> set[str]:
+    """Tabs the master holds for Eddy's answer (one name or pane id per line)."""
+    try:
+        text = Path(os.environ.get("HERDR_MASTER_HOLD", "/tmp/master_hold.txt")).read_text()
+    except OSError:
+        return set()
+    return {line.strip().lower() for line in text.splitlines() if line.strip()}
+
+
+def owed_by(tab: Tab, held: set[str]) -> str:
+    name = label_name(tab.label).lower()
+    if {name, tab.pane_id.lower(), tab.tab_id.lower()} & held:
+        return "held in master_hold.txt"
+    import board
+    return board.owed(name) or ""
+
+
 def gather(sock: str, only: str | None) -> list[Tab]:
     panes = {}
     for pane in herdr(sock, "pane", "list").get("panes", []):
         panes.setdefault(pane["tab_id"], pane)
     tabs = []
     now = time.time()
+    held = held_names()
     for raw in herdr(sock, "tab", "list").get("tabs", []):
         if only and raw["tab_id"] != only:
             continue
@@ -415,6 +438,8 @@ def gather(sock: str, only: str | None) -> list[Tab]:
                     tab.context, tab.prompt = read_handoff(found)
         if tab.cwd and tab.closeout in CLOSING_STATUSES:
             tab.unlanded = unlanded(tab.cwd, tab.session)
+        if AGENT_MARK in tab.label or label_name(tab.label) == "master-prev":
+            tab.owed = owed_by(tab, held)
         if label_phase(tab.label) == "lab":
             tab.lab_open = lab_open(sock, tab.tab_id, LABEL.fullmatch(label_name(tab.label)).group(1))
         tabs.append(tab)
