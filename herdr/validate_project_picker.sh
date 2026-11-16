@@ -92,8 +92,11 @@ focused_workspace() {
 focused_is() {
   [ "$(focused_workspace)" = "$1" ]
 }
+# `workspace_for_cwd` ends in `sed`, whose exit status is always 0, so the check must read
+# the id: the picker records the project token after the workspace appears, and an
+# always-true wait left `feature_workspace` empty (2026-11-16: focus wait never passed).
 workspace_exists_for_cwd() {
-  workspace_for_cwd "$1" >/dev/null 2>&1
+  [ -n "$(workspace_for_cwd "$1" 2>/dev/null)" ]
 }
 production_state() {
   jq -cn \
