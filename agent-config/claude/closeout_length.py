@@ -306,6 +306,21 @@ CI_ASK_RE = re.compile(
     r"|\b(fix|update|sort out|top up|resolve)\b[^.\n]{0,30}\bbilling\b", re.I)
 API_WEB_PR_RE = re.compile(r"\b(api|web)\b[^\n]{0,20}(#\d+|\bPRs?\b)|biblestandard-(api|web)\b", re.I)
 NEGATED_RE = re.compile(r"\b(never|don't|do not|no need)\b", re.I)
+# Bible Standard mail goes from bible.standard@, the App Store account is eddy@canonfidei.com
+# (canonfidei.md; BS-IOS-TASK-1526): a written line naming the wrong one is refused.
+WRONG_ADDRESS_RE = re.compile(r"contact@canonfidei\.com|ekofoeddy@gmail\.com", re.I)
+# A quoted git author (`<ekofoeddy@gmail.com>`, QA evidence) names who committed, not a sender.
+RIGHT_ADDRESS_RE = re.compile(r"bible\.standard@|eddy@canonfidei\.com|<ekofoeddy@gmail\.com>", re.I)
+ADDRESS_SCOPE = ("CanonFidei/biblestandard/", "canonfidei-business/biblestandard/")
+ADDRESS_EXEMPT = "tools/findings_fixtures/"
+EDIT_TOOLS = ("Write", "Edit", "MultiEdit")
+# A prompt continuing /spec or /build starts with that slash command, or the paste runs on the
+# tab's default model (canonfidei.md; BS-IOS-TASK-1526). Forms copied from build_budget_guard.py.
+COMMAND_RE = re.compile(r"^\s*(?:<command-message>[\w:-]+</command-message>\s*)?"
+                        r"(?:<command-name>)?[/$]([\w:-]+)")
+# Only the workflow verbs move it: `/compact`, `/model` or a pasted `/Users/...` path do not.
+WORKFLOW_VERBS = {"spec", "build", "verdict", "sweep", "report", "focus", "demo"}
+STATUS_WORD_RE = re.compile(r"\*\*Status:?\*\*:?\s*([A-Z]+)")
 
 
 def turn_refused(path):
@@ -329,6 +344,57 @@ def turn_refused(path):
     return refused
 
 
+def text_of(content):
+    if isinstance(content, str):
+        return content
+    return "\n".join(b.get("text", "") for b in content or [] if isinstance(b, dict) and b.get("type") == "text")
+
+
+def session_scan(path):
+    """The last slash command typed in the session, and the text this turn's edits wrote, by file."""
+    command, written = None, []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+                if entry.get("type") == "user" and not blocks_of(entry, "tool_result"):
+                    written = []  # a new prompt starts a new turn
+                    if not entry.get("isMeta") and not entry.get("isCompactSummary"):
+                        typed = COMMAND_RE.match(text_of(entry.get("message", {}).get("content")))
+                        if typed and typed.group(1) in WORKFLOW_VERBS:
+                            command = typed.group(1)
+                for call in blocks_of(entry, "tool_use"):
+                    tool_input = call.get("input") or {}
+                    if call.get("name") not in EDIT_TOOLS or not isinstance(tool_input, dict):
+                        continue
+                    edits = tool_input.get("edits") if isinstance(tool_input.get("edits"), list) else [tool_input]
+                    for edit in edits:
+                        if isinstance(edit, dict):
+                            new = edit.get("content") or edit.get("new_string") or ""
+                            written.append((str(tool_input.get("file_path", "")), str(new)))
+    except OSError:
+        pass
+    return command, written
+
+
+def address_problems(written):
+    problems = []
+    for file_path, new in written:
+        if not any(scope in file_path for scope in ADDRESS_SCOPE) or ADDRESS_EXEMPT in file_path:
+            continue
+        for line in new.splitlines():
+            if WRONG_ADDRESS_RE.search(line) and not RIGHT_ADDRESS_RE.search(line):
+                problems.append(f"`{line.strip()[:80]}`: Bible Standard mail goes from "
+                                "bible.standard@canonfidei.com and the App Store account is "
+                                "eddy@canonfidei.com; fix that line")
+    return problems
+
+
 def prompt_lines(closeout):
     """The fenced prompt's lines, in order."""
     labels = [i for i, line in enumerate(closeout) if "Ready-to-paste prompt" in line]
@@ -345,6 +411,14 @@ def content_problems(text, closeout, path):
     if first.startswith("/build") and turn_refused(path):
         problems.append(f"a guard refused this turn and the prompt is a bare `/build`: free the lane "
                         f"yourself, or open the prompt with `{ROUTE}`")
+    command, written = session_scan(path)
+    status = STATUS_WORD_RE.search("\n".join(closeout))
+    if (command in ("spec", "build") and status and status.group(1) != "DONE" and first
+            and not first.startswith("/") and not first.startswith(ROUTE)):
+        problems.append(f"the prompt continues `/{command}` but does not start with the slash "
+                        f"command: open it with `/{command} <ID> ...`, or the paste runs on the "
+                        "tab's default model")
+    problems.extend(address_problems(written))
     for line in text.splitlines():
         if CI_ASK_RE.search(line) and API_WEB_PR_RE.search(line) and not NEGATED_RE.search(line):
             problems.append(f"`{line.strip()[:80]}`: api and web CI runs only on prod; never ask Eddy "

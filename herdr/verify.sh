@@ -44,6 +44,8 @@ done
 /usr/bin/python3 "$herdr_dir/tests/test_project_catalog.py" -v
 /usr/bin/python3 "$herdr_dir/tests/test_worktree_sweep.py" -v
 python3 "$herdr_dir/tests/test_reap_simulators.py" -v
+# BS-IOS-TASK-1526: an API-cut tab gets continue once the API answers (F-080).
+python3 "$herdr_dir/tests/test_reap_continue.py" -v
 # BS-IOS-TASK-1738: the fill wakes the master; open-next drops a gone checkout; a drain resumes.
 python3 "$herdr_dir/tests/test_reap_fill_wake.py" -v
 python3 "$herdr_dir/tests/test_done_closed.py" -v

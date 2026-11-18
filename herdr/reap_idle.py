@@ -41,7 +41,9 @@ and wrote the prompt that resumes it. After `--continue-grace` (default 3
 minutes) a pass sends that prompt back, as `/build <ID> <prompt>` for a build
 tab. When its context holds `--clear-at` tokens or more (default 120k), the
 pass sends `/clear` first, so the work goes on in a fresh context in the same
-tab, checkout and lane. The guards:
+tab, checkout and lane. A turn the API cut off (`API Error: ...`, so no
+closeout; BS-IOS-TASK-1526) gets `continue` (`/build <ID> continue` on a build
+tab) once the API answers, never `/clear`. The guards:
 
   * the same tab rules as a close: `▸`, unfocused, one pane, idle or done
   * never `AWAITING USER APPROVAL`, `WAITING`, or a turn Eddy spoke after
@@ -61,6 +63,8 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -70,7 +74,10 @@ sys.path.insert(0, str(HERE))
 GOAL_DONE = HERE / "goal_done.sh"
 AGENT_MARK = "▸ "
 CLOSING_STATUSES = {"DONE", "BLOCKED"}
-CONTINUE_STATUSES = {"PARTIAL"}
+#: `API ERROR`: the turn was cut off by the API, so it has no closeout (F-080, BS-IOS-TASK-1526).
+API_ERROR = "API ERROR"
+CONTINUE_STATUSES = {"PARTIAL", API_ERROR}
+API_URL = "https://api.anthropic.com"
 IDLE_STATES = {"idle", "done"}         # `done`: Herdr's finished-and-unseen
 MAX_CONTINUES = 8                      # per tab per day
 FIVE_HOUR_STOP, SEVEN_DAY_STOP = 90, 95
@@ -134,7 +141,7 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
         return False, f"idle {int(tab.quiet_for // 60)}m < {int(grace // 60)}m grace"
     if tab.owed:
         return False, f"owes: {tab.owed}"
-    if label_name(tab.label) == "master-prev" and tab.closeout not in CONTINUE_STATUSES:
+    if label_name(tab.label) == "master-prev" and tab.closeout != "PARTIAL":
         return True, f"rotated-out master, idle {int(tab.quiet_for // 60)}m, nothing owed"
     if tab.closeout is None:
         return False, "last turn has no closeout"
@@ -191,23 +198,40 @@ def allowance_hold(now: float) -> str:
     return ""
 
 
+def api_answers(timeout: float = 5) -> bool:
+    """True when the API answers at all: any HTTP status counts, 401 and 404 included."""
+    try:
+        urllib.request.urlopen(API_URL, timeout=timeout).close()
+    except urllib.error.HTTPError:
+        return True
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+    return True
+
+
 def decide_continue(tab: Tab, grace: float, clear_at: int, record: dict, hold: str,
-                    today: str) -> tuple[str, str]:
-    """`continue`, `clear` or '' (leave it), and the reason. Pure."""
+                    today: str, api_up: bool = False) -> tuple[str, str]:
+    """`continue`, `clear` or '' (leave it), and the reason. Pure: `api_up` is read once per pass."""
     if AGENT_MARK not in tab.label or tab.closeout not in CONTINUE_STATUSES:
         return "", ""
+    word = tab.closeout
     if tab.focused or tab.pane_count != 1 or tab.status not in IDLE_STATES:
         return "", "focused, split or busy"
     if tab.quiet_for is None or tab.quiet_for < grace:
-        return "", f"PARTIAL, idle under {int(grace // 60)}m"
-    if not tab.prompt:
-        return "", "PARTIAL with no ready-to-paste prompt"
+        return "", f"{word}, idle under {int(grace // 60)}m"
+    if word == API_ERROR and not api_up:
+        return "", f"{word}, the API does not answer yet"
+    if word != API_ERROR and not tab.prompt:
+        return "", f"{word} with no ready-to-paste prompt"
     if hold:
-        return "", f"PARTIAL, held: {hold}"
+        return "", f"{word}, held: {hold}"
     if record.get("day") == today and record.get("count", 0) >= MAX_CONTINUES:
-        return "", f"PARTIAL, {MAX_CONTINUES} continues today: needs Eddy"
+        return "", f"{word}, {MAX_CONTINUES} continues today: needs Eddy"
     if record.get("move") and record.get("move") == tab.next_move:
-        return "", "PARTIAL, no progress since the last continue: needs Eddy"
+        return "", f"{word}, no progress since the last continue: needs Eddy"
+    if word == API_ERROR:
+        # Never /clear: the cut turn's state lives in the context.
+        return "continue", f"{word}, the API answers: continue"
     if tab.context >= clear_at:
         return "clear", f"PARTIAL at {tab.context // 1000}k: /clear, then its prompt"
     return "continue", f"PARTIAL at {tab.context // 1000}k: its prompt"
@@ -215,6 +239,9 @@ def decide_continue(tab: Tab, grace: float, clear_at: int, record: dict, hold: s
 
 def continue_text(tab: Tab) -> str:
     record = build_record(tab)
+    if tab.closeout == API_ERROR:
+        # `/build <ID>` keeps a build tab on its route (Opus); a bare word elsewhere.
+        return f"/build {record} continue" if record else "continue"
     prompt = " ".join(line.strip() for line in tab.prompt.splitlines() if line.strip())
     if record and not prompt.startswith("/"):
         return f"/build {record} {prompt}"
@@ -332,6 +359,10 @@ def read_transcript(transcript: Path, tail: int = 4 << 20) -> tuple[float | None
                      if isinstance(p, dict) and p.get("type") == "text"]
             if any(part.strip() for part in parts):
                 text = "\n".join(parts)
+                # A turn the API cut off (ENOTFOUND, lost connection, 5xx, overloaded); a
+                # login or model error does not start this way and stays for Eddy.
+                if entry.get("isApiErrorMessage") and text.lstrip().startswith("API Error:"):
+                    return spoke, API_ERROR, ""
                 break
     if text is None:
         return spoke, None, ""
@@ -660,7 +691,7 @@ def keep_awake(tabs: list[Tab]) -> bool:
 
 
 def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
-    """Send each PARTIAL agent tab its own prompt, under the guards above."""
+    """Send each PARTIAL agent tab its own prompt, and an API-cut one `continue`, under the guards above."""
     try:
         records = json.loads(CONTINUES.read_text())
     except (OSError, ValueError):
@@ -668,11 +699,14 @@ def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
     now = time.time()
     today = datetime.now().strftime("%Y-%m-%d")
     hold = allowance_hold(now)
+    # One probe a pass, and only when a tab waits on it (BS-IOS-TASK-1526).
+    api_up = any(AGENT_MARK in t.label and t.closeout == API_ERROR for t in tabs) and api_answers()
     changed = False
     for tab in tabs:
         key = f"{Path(tab.socket).parent.name}/{tab.tab_id}"
         record = records.get(key, {})
-        action, reason = decide_continue(tab, args.continue_grace, args.clear_at, record, hold, today)
+        action, reason = decide_continue(tab, args.continue_grace, args.clear_at, record, hold, today,
+                                         api_up)
         if not reason:
             continue
         line = f"{Path(tab.socket).parent.name} {tab.tab_id} {tab.label!r}: {action or 'leave'} — {reason}"
@@ -687,7 +721,9 @@ def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
             log(f"  not sent: {error}")
             continue
         count = record.get("count", 0) + 1 if record.get("day") == today else 1
-        records[key] = {"day": today, "count": count, "move": tab.next_move, "at": now}
+        # An API-cut turn has no Next move: keep the last one, so PARTIAL's no-progress check holds.
+        records[key] = {"day": today, "count": count, "move": tab.next_move or record.get("move", ""),
+                        "at": now}
         changed = True
     if changed:
         CONTINUES.parent.mkdir(parents=True, exist_ok=True)
