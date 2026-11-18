@@ -309,7 +309,8 @@ NEGATED_RE = re.compile(r"\b(never|don't|do not|no need)\b", re.I)
 # Bible Standard mail goes from bible.standard@, the App Store account is eddy@canonfidei.com
 # (canonfidei.md; BS-IOS-TASK-1526): a written line naming the wrong one is refused.
 WRONG_ADDRESS_RE = re.compile(r"contact@canonfidei\.com|ekofoeddy@gmail\.com", re.I)
-RIGHT_ADDRESS_RE = re.compile(r"bible\.standard@|eddy@canonfidei\.com", re.I)
+# A quoted git author (`<ekofoeddy@gmail.com>`, QA evidence) names who committed, not a sender.
+RIGHT_ADDRESS_RE = re.compile(r"bible\.standard@|eddy@canonfidei\.com|<ekofoeddy@gmail\.com>", re.I)
 ADDRESS_SCOPE = ("CanonFidei/biblestandard/", "canonfidei-business/biblestandard/")
 ADDRESS_EXEMPT = "tools/findings_fixtures/"
 EDIT_TOOLS = ("Write", "Edit", "MultiEdit")
@@ -317,6 +318,8 @@ EDIT_TOOLS = ("Write", "Edit", "MultiEdit")
 # tab's default model (canonfidei.md; BS-IOS-TASK-1526). Forms copied from build_budget_guard.py.
 COMMAND_RE = re.compile(r"^\s*(?:<command-message>[\w:-]+</command-message>\s*)?"
                         r"(?:<command-name>)?[/$]([\w:-]+)")
+# Only the workflow verbs move it: `/compact`, `/model` or a pasted `/Users/...` path do not.
+WORKFLOW_VERBS = {"spec", "build", "verdict", "sweep", "report", "focus", "demo"}
 STATUS_WORD_RE = re.compile(r"\*\*Status:?\*\*:?\s*([A-Z]+)")
 
 
@@ -363,7 +366,8 @@ def session_scan(path):
                     written = []  # a new prompt starts a new turn
                     if not entry.get("isMeta") and not entry.get("isCompactSummary"):
                         typed = COMMAND_RE.match(text_of(entry.get("message", {}).get("content")))
-                        command = typed.group(1) if typed else command
+                        if typed and typed.group(1) in WORKFLOW_VERBS:
+                            command = typed.group(1)
                 for call in blocks_of(entry, "tool_use"):
                     tool_input = call.get("input") or {}
                     if call.get("name") not in EDIT_TOOLS or not isinstance(tool_input, dict):

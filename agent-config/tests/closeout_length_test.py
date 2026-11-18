@@ -534,6 +534,7 @@ def main():
                 ("addr-gmail", repo, "Sign in to App Store Connect as ekofoeddy@gmail.com.", True),
                 ("addr-right", repo, "Send the reply from bible.standard@canonfidei.com.", False),
                 ("addr-named-against", repo, "Use eddy@canonfidei.com, never ekofoeddy@gmail.com.", False),
+                ("addr-git-author", repo, "Author: Eddy Ekofo <ekofoeddy@gmail.com>", False),
                 ("addr-elsewhere", "/tmp/notes.md", "Send it from contact@canonfidei.com.", False),
                 ("addr-fixture", repo.replace("project/", "tools/findings_fixtures/x/"),
                  "from contact@canonfidei.com", False)):
@@ -549,7 +550,8 @@ def main():
                 ("slash-led", "/build", partial.replace("do the thing", "/build BS-IOS-TASK-1 do the thing"), False),
                 ("slash-routed", "/build", partial.replace("do the thing", f"{HOOK_CONFIG['ROUTE']}\n/build X"), False),
                 ("slash-done", "/build", COMPLIANT, False),
-                ("slash-other-work", "/verdict", partial, False)):
+                ("slash-other-work", "/verdict", partial, False),
+                ("slash-after-compact", "/compact", partial, True)):
             decision = run(command_turn(directory, name, command, reply))
             expect((decision is not None and "slash command" in decision["reason"]) == blocked,
                    f"{name}: the slash-start check {'missed' if blocked else 'refused'} the prompt")

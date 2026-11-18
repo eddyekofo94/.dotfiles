@@ -141,7 +141,7 @@ def decide(tab: Tab, grace: float) -> tuple[bool, str]:
         return False, f"idle {int(tab.quiet_for // 60)}m < {int(grace // 60)}m grace"
     if tab.owed:
         return False, f"owes: {tab.owed}"
-    if label_name(tab.label) == "master-prev" and tab.closeout not in CONTINUE_STATUSES:
+    if label_name(tab.label) == "master-prev" and tab.closeout != "PARTIAL":
         return True, f"rotated-out master, idle {int(tab.quiet_for // 60)}m, nothing owed"
     if tab.closeout is None:
         return False, "last turn has no closeout"
@@ -721,7 +721,9 @@ def resume_partial(tabs: list[Tab], args: argparse.Namespace) -> None:
             log(f"  not sent: {error}")
             continue
         count = record.get("count", 0) + 1 if record.get("day") == today else 1
-        records[key] = {"day": today, "count": count, "move": tab.next_move, "at": now}
+        # An API-cut turn has no Next move: keep the last one, so PARTIAL's no-progress check holds.
+        records[key] = {"day": today, "count": count, "move": tab.next_move or record.get("move", ""),
+                        "at": now}
         changed = True
     if changed:
         CONTINUES.parent.mkdir(parents=True, exist_ok=True)

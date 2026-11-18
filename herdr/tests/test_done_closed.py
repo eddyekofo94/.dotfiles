@@ -154,6 +154,8 @@ class ReaperClose(unittest.TestCase):
 
     def test_a_rotated_out_master_closes_once_idle_but_the_seat_never(self):
         self.assertTrue(reap.decide(tab(label="1 master-prev", closeout=None), 600)[0])
+        # No ▸, so never continued: an API-cut master-prev still closes (BS-IOS-TASK-1526 review).
+        self.assertTrue(reap.decide(tab(label="1 master-prev", closeout="API ERROR"), 600)[0])
         self.assertFalse(reap.decide(tab(label="1 ✻ master", closeout="DONE"), 600)[0])
         self.assertFalse(reap.decide(tab(label="1 master-prev", closeout=None, status="working"), 600)[0])
 
