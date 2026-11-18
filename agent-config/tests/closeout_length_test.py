@@ -188,6 +188,31 @@ AGENT_END = {
 }
 
 
+def typed_command(command):
+    name = command.lstrip("/")
+    return {"type": "user", "origin": {"kind": "human"}, "message": {"content":
+            f"<command-message>{name}</command-message>\n<command-name>{command}</command-name>\n"
+            "<command-args>BS-IOS-TASK-1</command-args>"}}
+
+
+def command_turn(directory, name, command, reply, between=()):
+    """A session whose typed slash commands come first, then a tool call and the reply."""
+    commands = ["/build", command] if command != "/build" else [command]
+    entries = [typed_command(c) for c in commands] + list(between) + [
+        {"type": "assistant", "uuid": f"{name}-reply", "message": {"content": [{"type": "text", "text": reply}]}}]
+    path = Path(directory) / f"{name}.jsonl"
+    path.write_text("".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8")
+    return path
+
+
+def edit_turn(directory, name, file_path, line):
+    """A /build turn that writes `line` into `file_path`, then ends DONE."""
+    call = {"type": "assistant", "uuid": f"{name}-call", "message": {"content": [
+        {"type": "tool_use", "id": "w", "name": "Write", "input": {"file_path": file_path, "content": line + "\n"}}]}}
+    result = {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "w", "content": "ok"}]}}
+    return command_turn(directory, name, "/build", COMPLIANT, (call, result))
+
+
 def run(path, stop_hook_active=False):
     """Invoke the hook the way Claude Code does, and return its decision."""
     payload = json.dumps(
@@ -501,6 +526,33 @@ def main():
 
         expect("**Status:** WAITING" in HOOK_CONFIG["contract"](),
                "the injected contract does not teach WAITING")
+
+        # Bible Standard mail goes from bible.standard@, the App Store is eddy@canonfidei.com (BS-IOS-TASK-1526).
+        repo = "/Users/x/Programming/Projects/CanonFidei/biblestandard/ios/project/notes.md"
+        for name, path, line, blocked in (
+                ("addr-contact", repo, "Send the reply from contact@canonfidei.com.", True),
+                ("addr-gmail", repo, "Sign in to App Store Connect as ekofoeddy@gmail.com.", True),
+                ("addr-right", repo, "Send the reply from bible.standard@canonfidei.com.", False),
+                ("addr-named-against", repo, "Use eddy@canonfidei.com, never ekofoeddy@gmail.com.", False),
+                ("addr-elsewhere", "/tmp/notes.md", "Send it from contact@canonfidei.com.", False),
+                ("addr-fixture", repo.replace("project/", "tools/findings_fixtures/x/"),
+                 "from contact@canonfidei.com", False)):
+            decision = run(edit_turn(directory, name, path, line))
+            expect((decision is not None and "bible.standard@" in decision["reason"]) == blocked,
+                   f"{name}: the address check {'missed' if blocked else 'refused'} `{line}`")
+
+        # A prompt continuing /spec or /build starts with the slash command (BS-IOS-TASK-1526).
+        partial = COMPLIANT.replace("**Status:** DONE", "**Status:** PARTIAL")
+        for name, command, reply, blocked in (
+                ("slash-bare", "/build", partial, True),
+                ("slash-spec-bare", "/spec", partial, True),
+                ("slash-led", "/build", partial.replace("do the thing", "/build BS-IOS-TASK-1 do the thing"), False),
+                ("slash-routed", "/build", partial.replace("do the thing", f"{HOOK_CONFIG['ROUTE']}\n/build X"), False),
+                ("slash-done", "/build", COMPLIANT, False),
+                ("slash-other-work", "/verdict", partial, False)):
+            decision = run(command_turn(directory, name, command, reply))
+            expect((decision is not None and "slash command" in decision["reason"]) == blocked,
+                   f"{name}: the slash-start check {'missed' if blocked else 'refused'} the prompt")
 
     print("closeout length hook: PASS")
     return 0

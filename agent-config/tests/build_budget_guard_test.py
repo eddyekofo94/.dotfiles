@@ -6,6 +6,12 @@
 Each case runs the hook as Claude does: a PreToolUse payload on stdin, a transcript
 whose `/build` began three hours ago and has worked since, in a scratch git repo with an
 `origin/main`.
+
+    python3 agent-config/tests/build_budget_guard_test.py --lever [--fixture <json>]
+
+`--lever` runs only the 30-hour-gap case (F-079, BibleStandard BS-IOS-TASK-1526). A
+fixture `{"rev": "<sha>"}` runs it against that revision of the guard, `{"rev": null}`
+against the file on disk. Exit 1 when the case fails.
 """
 
 import json
@@ -18,7 +24,8 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-HOOK = Path(__file__).resolve().parents[1] / "claude" / "build_budget_guard.py"
+HOOK_ROOT = Path(__file__).resolve().parents[2]
+HOOK = HOOK_ROOT / "agent-config" / "claude" / "build_budget_guard.py"
 GOAL = "BS-IOS-BUG-9001"
 SLUG = "bsiosbug9001"
 WORK = "python3 tools/write_code.py"  # work a held build may not start
@@ -184,6 +191,12 @@ class Held(Fixture):
 
 class WorkingTime(Fixture):
     """BS-IOS-BUG-670 D1: the 2 h count only time the tab spent working."""
+
+    def test_a_thirty_hour_gap_does_not_park_the_build(self):  # F-079, BS-IOS-TASK-1526
+        # 1 h of work, an outage of 30 h, then 40 min: 1 h 50 counted with the gap's 10 min.
+        self.rows([build_row(31 * 3600 + 2400), *work(31 * 3600 + 2400, 30 * 3600 + 2400),
+                   *work(2400, 0, tag="x")])
+        self.assertEqual(self.hook(WORK), "allow")
 
     def test_an_idle_night_adds_ten_minutes(self):
         # 1 h 40 of work, a 20 h silence, then the next call: 1 h 50 counted.
@@ -656,5 +669,25 @@ class SpecTab(Fixture):
         self.assertEqual(self.hook("cat project/specs/x.md"), "allow")
 
 
+def lever(argv):
+    """The findings ledger's check (F-079): exit 0 when the 30-hour-gap case passes."""
+    global HOOK
+    rev = None
+    if "--fixture" in argv:
+        rev = json.loads(Path(argv[argv.index("--fixture") + 1]).read_text()).get("rev")
+    with tempfile.TemporaryDirectory() as tmp:
+        if rev:
+            HOOK = Path(tmp) / "build_budget_guard.py"
+            HOOK.write_text(git(HOOK_ROOT, "show", f"{rev}:agent-config/claude/build_budget_guard.py"))
+        case = WorkingTime("test_a_thirty_hour_gap_does_not_park_the_build")
+        result = unittest.TextTestRunner(stream=open(os.devnull, "w")).run(case)
+    ok = result.wasSuccessful()
+    print(f"{'pass' if ok else 'FAIL'}: a 30 h gap {'does not park' if ok else 'parks'} the build"
+          f" ({rev or 'build_budget_guard.py on disk'})")
+    return 0 if ok else 1
+
+
 if __name__ == "__main__":
+    if "--lever" in sys.argv[1:]:
+        sys.exit(lever(sys.argv[1:]))
     unittest.main()
